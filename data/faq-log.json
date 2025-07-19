@@ -1,0 +1,44 @@
+[
+  {
+    "school": "tokyo-dance",
+    "question": "レッスンは予約制ですか？",
+    "timestamp": "2025-07-18T09:15:00.123Z"
+  },
+  {
+    "school": "dansul",
+    "question": "初心者でも参加できますか？",
+    "timestamp": "2025-07-18T10:02:12.456Z"
+  },
+  {
+    "school": "dansul",
+    "question": "あああ",
+    "timestamp": "2025-07-18T10:49:05.584Z"
+  },
+  {
+    "school": "dansul",
+    "question": "てすと",
+    "timestamp": "2025-07-18T10:49:07.759Z"
+  },
+  {
+    "school": "dansul",
+    "question": "あああ",
+    "timestamp": "2025-07-18T12:23:21.199Z"
+  },
+  {
+    "school": "dansul",
+    "question": "てすと",
+    "timestamp": "2025-07-18T12:23:22.595Z"
+  },
+  {
+    "school": "dansul",
+    "question": "あああ",
+    "answer": "あああああ",
+    "timestamp": "2025-07-18T12:36:28.706Z"
+  },
+  {
+    "school": "dansul",
+    "question": "てすと",
+    "answer": "てすとてすと",
+    "timestamp": "2025-07-18T12:36:29.882Z"
+  }
+]

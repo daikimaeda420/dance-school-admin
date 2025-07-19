@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>チャットボット埋め込みテスト</title>
+    <style>
+      body {
+        font-family: sans-serif;
+        padding: 2rem;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>iframe埋め込みチャットボット テストページ</h1>
+    <p>以下は school=dansul 用のチャットボットです：</p>
+
+    <iframe
+      src="http://localhost:3000/embed/chatbot?school=dansul"
+      style="
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        width: 360px;
+        height: 500px;
+        border: none;
+        z-index: 9999;
+      "
+    ></iframe>
+  </body>
+</html>
