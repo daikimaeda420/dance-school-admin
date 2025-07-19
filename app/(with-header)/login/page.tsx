@@ -16,7 +16,7 @@ export default function LoginPage() {
   return (
     <div>
       <h1>ログインページ</h1>
-      <button onClick={() => signIn("google")}>Googleでログイン</button>
+      <button onClick={() => signIn("google")}>dGoogleでログイン</button>
     </div>
   );
 }
