@@ -1,1 +1,6 @@
-node_modules
+# node_modulesやbuild成果物を除外
+node_modules/
+.next/
+dist/
+.env
+.DS_Store
