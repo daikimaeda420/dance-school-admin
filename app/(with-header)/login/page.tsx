@@ -9,14 +9,18 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (status === "authenticated") {
-      router.push("/after-login");
+      router.push("/after-login"); // ✅ 認証済みなら明示的に遷移
     }
   }, [status, router]);
 
   return (
     <div>
       <h1>ログインページ</h1>
-      <button onClick={() => signIn("google")}>dGoogleでログイン</button>
+      <button
+        onClick={() => signIn("google", { callbackUrl: "/after-login" })} // ✅ 明示的に遷移先指定
+      >
+        Googleでログイン
+      </button>
     </div>
   );
 }
