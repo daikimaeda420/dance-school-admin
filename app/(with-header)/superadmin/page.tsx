@@ -1,5 +1,4 @@
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { promises as fs } from "fs";
 import path from "path";
 import { redirect } from "next/navigation";
@@ -11,7 +10,7 @@ const SuperAdminEditor = dynamic(() => import("./SuperAdminEditor"), {
 });
 
 export default async function SuperAdminPage() {
-  const session = await getServerSession(authOptions);
+  const session = await getServerSession();
   const email = session?.user?.email;
 
   if (!session || !email) {

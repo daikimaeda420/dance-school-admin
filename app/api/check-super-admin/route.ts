@@ -1,11 +1,10 @@
 // app/api/check-super-admin/route.ts
 import { getServerSession } from "next-auth";
-import { authOptions } from "../auth/[...nextauth]/route";
 import { promises as fs } from "fs";
 import path from "path";
 
 export async function GET(req: Request) {
-  const session = await getServerSession(authOptions);
+  const session = await getServerSession();
   const email = session?.user?.email;
 
   if (!session || !email) {

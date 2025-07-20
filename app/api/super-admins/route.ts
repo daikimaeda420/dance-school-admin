@@ -2,12 +2,11 @@
 import { promises as fs } from "fs";
 import path from "path";
 import { getServerSession } from "next-auth";
-import { authOptions } from "../auth/[...nextauth]/route";
 
 const filePath = path.join(process.cwd(), "data", "admins.json");
 
 export async function POST(req: Request) {
-  const session = await getServerSession(authOptions);
+  const session = await getServerSession();
   const userEmail = session?.user?.email;
 
   if (!session || !userEmail) {

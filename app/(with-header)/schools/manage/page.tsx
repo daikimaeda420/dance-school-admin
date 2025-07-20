@@ -1,5 +1,5 @@
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { authOptions } from "@/lib/authOptions"; // ✅ これを追加
 import { promises as fs } from "fs";
 import path from "path";
 import { redirect } from "next/navigation";
@@ -21,7 +21,7 @@ const AdminEditor = dynamic(() => import("../manage/AdminEditor"), {
 });
 
 export default async function SchoolManagePage() {
-  const session = await getServerSession(authOptions);
+  const session = await getServerSession(authOptions); // ✅ authOptions を渡す
   const email = session?.user?.email;
 
   if (!session || !email) {
