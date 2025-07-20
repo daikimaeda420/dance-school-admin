@@ -39,8 +39,10 @@ export default async function SchoolManagePage() {
   const data = await fs.readFile(filePath, "utf8");
   const schools = JSON.parse(data);
 
-  const mySchools = Object.entries(schools).filter(([_, admins]: any) =>
-    admins.map((a: string) => a.toLowerCase()).includes(email.toLowerCase())
+  // 明示的に型を注釈（[string, string[]][] として扱う）
+  const mySchools = Object.entries(schools).filter(
+    ([_, admins]: [string, string[]]) =>
+      admins.map((a: string) => a.toLowerCase()).includes(email.toLowerCase())
   );
 
   if (!isSuperAdmin && mySchools.length === 0) {
@@ -61,7 +63,10 @@ export default async function SchoolManagePage() {
               </Link>
             </div>
 
-            <AdminEditor schoolId={schoolName} admins={admins} />
+            <AdminEditor
+              schoolId={schoolName}
+              admins={admins as string[]} // ✅ 型アサーションを追加
+            />
             {isSuperAdmin && <DeleteSchoolButton schoolId={schoolName} />}
           </div>
         )
