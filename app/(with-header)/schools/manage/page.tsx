@@ -1,5 +1,5 @@
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/authOptions"; // ✅ これを追加
+import { getServerSession } from "next-auth/next"; // ✅ 修正ポイント
+import { authOptions } from "@/lib/authOptions";
 import { promises as fs } from "fs";
 import path from "path";
 import { redirect } from "next/navigation";
@@ -21,14 +21,13 @@ const AdminEditor = dynamic(() => import("../manage/AdminEditor"), {
 });
 
 export default async function SchoolManagePage() {
-  const session = await getServerSession(authOptions); // ✅ authOptions を渡す
+  const session = await getServerSession(authOptions);
   const email = session?.user?.email;
 
   if (!session || !email) {
     redirect("/login");
   }
 
-  // admins.json 読み込み（superAdmins）
   const adminFile = await fs.readFile(
     path.join(process.cwd(), "data", "admins.json"),
     "utf8"
@@ -36,17 +35,14 @@ export default async function SchoolManagePage() {
   const { superAdmins } = JSON.parse(adminFile);
   const isSuperAdmin = superAdmins.includes(email);
 
-  // schools.json 読み込み
   const filePath = path.join(process.cwd(), "data", "schools.json");
   const data = await fs.readFile(filePath, "utf8");
   const schools = JSON.parse(data);
 
-  // 自分が管理者の school のみ抽出
   const mySchools = Object.entries(schools).filter(([_, admins]: any) =>
     admins.map((a: string) => a.toLowerCase()).includes(email.toLowerCase())
   );
 
-  // superAdmin でも school 管理者でもなければ拒否
   if (!isSuperAdmin && mySchools.length === 0) {
     return <div className="">このページへのアクセス権がありません。</div>;
   }
