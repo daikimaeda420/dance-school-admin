@@ -1,21 +1,7 @@
+// app/api/auth/[...nextauth]/route.ts
 import NextAuth from "next-auth";
-import GoogleProvider from "next-auth/providers/google";
+import { authOptions } from "@/lib/authOptions"; // 外部の authOptions をインポート
 
-const handler = NextAuth({
-  providers: [
-    GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-    }),
-  ],
-  pages: {
-    signIn: "/login",
-  },
-  callbacks: {
-    async session({ session }) {
-      return session;
-    },
-  },
-});
+const handler = NextAuth(authOptions);
 
-export { handler as GET, handler as POST };
+export { handler as GET, handler as POST }; // handler のみ export（authOptions は export しない）
