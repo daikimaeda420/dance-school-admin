@@ -1,10 +1,12 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { signIn, signOut, useSession } from "next-auth/react";
 import Chatbot from "@/components/Chatbot";
 
 export default function HomePage() {
   const { data: session } = useSession();
+  const router = useRouter(); // ✅ 追加！
 
   return (
     <main
@@ -37,7 +39,7 @@ export default function HomePage() {
               }}
             >
               <button
-                onClick={() => (window.location.href = "/schools/manage")}
+                onClick={() => router.push("/schools/manage")}
                 style={{
                   padding: "0.5rem 1rem",
                   backgroundColor: "#2563eb",
