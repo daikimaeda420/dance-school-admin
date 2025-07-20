@@ -14,7 +14,9 @@ export async function GET(req: Request) {
   const schools = JSON.parse(json);
 
   const adminSchools = Object.entries(schools)
-    .filter(([_, admins]) => admins.includes(email))
+    .filter(([_, admins]: [string, string[]]) =>
+      admins.map((a) => a.toLowerCase()).includes(email.toLowerCase())
+    )
     .map(([id]) => id);
 
   return new Response(JSON.stringify({ schools: adminSchools }), {
