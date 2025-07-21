@@ -1,15 +1,23 @@
-// File: app/(with-header)/after-login/page.tsx
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/authOptions";
-import { redirect } from "next/navigation";
+// app/(with-header)/after-login/page.tsx
+"use client";
 
-export default async function AfterLoginPage() {
-  const session = await getServerSession(authOptions);
+import { useSession } from "next-auth/react";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 
-  if (!session) {
-    redirect("/login"); // 未ログインならログインページへ
-  }
+export default function AfterLoginPage() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
 
-  // ログイン済みなら学校管理ページへ遷移
-  redirect("/schools/manage");
+  useEffect(() => {
+    if (status === "loading") return;
+
+    if (status === "authenticated") {
+      router.push("/schools/manage");
+    } else {
+      router.push("/login");
+    }
+  }, [status, router]);
+
+  return <p>ログイン処理中...</p>;
 }
