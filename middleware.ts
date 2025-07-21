@@ -1,22 +1,24 @@
 import { withAuth } from "next-auth/middleware";
+import { NextRequest } from "next/server";
 
-export default withAuth({
-  pages: {
-    signIn: "/login",
+export default withAuth(
+  function middleware(req: NextRequest) {
+    // `/after-login` と `/login` には middleware を適用しない
+    const { pathname } = req.nextUrl;
+    if (pathname.startsWith("/after-login") || pathname.startsWith("/login")) {
+      return;
+    }
   },
-  callbacks: {
-    authorized: ({ token }) => !!token,
-  },
-});
+  {
+    pages: {
+      signIn: "/login",
+    },
+    callbacks: {
+      authorized: ({ token }) => !!token,
+    },
+  }
+);
 
 export const config = {
-  matcher: [
-    "/schools/:path*",
-    "/superadmin/:path*",
-    "/admin/:path*",
-    "/api/check-admin",
-    "/api/check-super-admin",
-    "!/after-login", // ← 明示的に除外！
-    "!/login",
-  ],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
 };
