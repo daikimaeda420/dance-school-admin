@@ -2,6 +2,7 @@
 "use client";
 
 import Header from "@/components/Header";
+import { SessionProvider } from "next-auth/react";
 
 export default function WithHeaderLayout({
   children,
@@ -9,9 +10,9 @@ export default function WithHeaderLayout({
   children: React.ReactNode;
 }) {
   return (
-    <>
+    <SessionProvider>
       <Header />
       {children}
-    </>
+    </SessionProvider>
   );
 }
