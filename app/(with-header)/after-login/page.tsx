@@ -7,9 +7,9 @@ export default async function AfterLoginPage() {
   const session = await getServerSession(authOptions);
 
   if (!session) {
-    redirect("/login"); // 未ログインならログインへ
+    redirect("/login"); // 未ログインならログインページへ
   }
 
-  // ログイン済みなら管理ページへリダイレクト
+  // ログイン済みなら学校管理ページへ遷移
   redirect("/schools/manage");
 }

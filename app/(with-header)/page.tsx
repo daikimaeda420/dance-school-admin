@@ -23,13 +23,11 @@ export default function HomePage() {
         <h1 style={{ fontSize: "2rem", fontWeight: "bold" }}>
           🕺 ダンススクール 管理システム
         </h1>
-
         {session ? (
           <div style={{ marginTop: "2rem" }}>
             <p style={{ fontSize: "1.1rem" }}>
               こんにちは、{session.user?.name} さん！
             </p>
-
             <div
               style={{
                 display: "flex",

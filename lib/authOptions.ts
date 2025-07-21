@@ -12,6 +12,10 @@ export const authOptions: NextAuthOptions = {
   pages: {
     signIn: "/login",
   },
+
+  // ✅ これを追加！
+  trustHost: true,
+
   callbacks: {
     async session({ session }) {
       return session;
