@@ -1,18 +1,15 @@
-// after-login/page.tsx
-"use client";
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { useSession } from "next-auth/react";
+// File: app/(with-header)/after-login/page.tsx
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/lib/authOptions";
+import { redirect } from "next/navigation";
 
-export default function AfterLogin() {
-  const router = useRouter();
-  const { status } = useSession();
+export default async function AfterLoginPage() {
+  const session = await getServerSession(authOptions);
 
-  useEffect(() => {
-    if (status === "authenticated") {
-      router.push("/schools/manage"); // ← ここを修正！
-    }
-  }, [status]);
+  if (!session) {
+    redirect("/login"); // 未ログインならログインへ
+  }
 
-  return <p>ログイン処理中...</p>;
+  // ログイン済みなら管理ページへリダイレクト
+  redirect("/schools/manage");
 }
