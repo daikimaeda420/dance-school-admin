@@ -1,18 +1,19 @@
 // app/(with-header)/layout.tsx
-"use client";
-
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/authOptions";
 import Header from "@/components/Header";
-import { SessionProvider } from "next-auth/react";
 
-export default function WithHeaderLayout({
+export default async function WithHeaderLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const session = await getServerSession(authOptions); // ✅ 修正！
+
   return (
-    <SessionProvider>
+    <>
       <Header />
       {children}
-    </SessionProvider>
+    </>
   );
 }

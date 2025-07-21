@@ -18,7 +18,7 @@ const AdminEditor = dynamic(() => import("../manage/AdminEditor"), {
 });
 
 export default async function SchoolManagePage() {
-  const session = await getServerSession(authOptions);
+  const session = await getServerSession();
   console.log("🛠 サーバーセッション:", session); // ← ✅ session 取得後にログ
 
   const email = session?.user?.email;

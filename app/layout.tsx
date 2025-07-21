@@ -1,22 +1,19 @@
 // app/layout.tsx
-import "./globals.css";
-import "../styles/global.css";
-import { Providers } from "./providers";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/authOptions";
+import SessionWrapper from "@/components/SessionWrapper";
 
-export const metadata = {
-  title: "ダンススクール管理",
-  description: "管理画面",
-};
-
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const session = await getServerSession(authOptions); // ✅ 修正！
+
   return (
-    <html lang="ja" suppressHydrationWarning>
+    <html>
       <body>
-        <Providers>{children}</Providers>
+        <SessionWrapper session={session}>{children}</SessionWrapper>
       </body>
     </html>
   );

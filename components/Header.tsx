@@ -2,6 +2,7 @@
 
 import { useSession, signIn, signOut } from "next-auth/react";
 import { useEffect, useState } from "react";
+import Link from "next/link";
 
 export default function Header() {
   const { data: session, status } = useSession();
@@ -31,11 +32,15 @@ export default function Header() {
     }
   }, [session, status]);
 
+  if (status === "loading") {
+    return <div>ヘッダー読み込み中...</div>;
+  }
+
   return (
     <header className="header">
       <div>🕺 Dance School Admin</div>
 
-      {status === "loading" ? null : session?.user ? (
+      {status === "authenticated" && session?.user && (
         <div>
           <img
             src={session.user.image ?? ""}
@@ -45,15 +50,17 @@ export default function Header() {
           <div>{session.user.name}</div>
           <div>{session.user.email}</div>
 
-          {isAdmin && <a href="/schools/manage">学校管理</a>}
-          {isSuperAdmin && <a href="/superadmin">Super Admin</a>}
-          {isAdmin && <a href="/admin/logs">ログ閲覧</a>}
+          {isAdmin && <Link href="/schools/manage">学校管理</Link>}
+          {isSuperAdmin && <Link href="/superadmin">Super Admin</Link>}
+          {isAdmin && <Link href="/admin/logs">ログ閲覧</Link>}
 
           <button onClick={() => signOut({ callbackUrl: "/login" })}>
             ログアウト
           </button>
         </div>
-      ) : (
+      )}
+
+      {status === "unauthenticated" && (
         <button
           onClick={() => signIn("google", { callbackUrl: "/after-login" })}
         >
