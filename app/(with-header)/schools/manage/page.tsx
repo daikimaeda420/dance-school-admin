@@ -1,4 +1,4 @@
-import { getServerSession } from "next-auth/next"; // ✅ 修正ポイント
+import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/authOptions";
 import { promises as fs } from "fs";
 import path from "path";
@@ -22,6 +22,9 @@ const AdminEditor = dynamic(() => import("../manage/AdminEditor"), {
 
 export default async function SchoolManagePage() {
   const session = await getServerSession(authOptions);
+
+  console.log("💡 session in /schools/manage:", session); // ← ログ追加！
+
   const email = session?.user?.email;
 
   if (!session || !email) {
@@ -39,34 +42,26 @@ export default async function SchoolManagePage() {
   const data = await fs.readFile(filePath, "utf8");
   const schools = JSON.parse(data);
 
-  // 明示的に型を注釈（[string, string[]][] として扱う）
   const mySchools = Object.entries(schools).filter(
     ([_, admins]: [string, string[]]) =>
       admins.map((a: string) => a.toLowerCase()).includes(email.toLowerCase())
   );
 
   if (!isSuperAdmin && mySchools.length === 0) {
-    return <div className="">このページへのアクセス権がありません。</div>;
+    return <div>このページへのアクセス権がありません。</div>;
   }
 
   return (
-    <div className="">
-      <h1 className="">学校管理ページ {isSuperAdmin && "（Super Admin）"}</h1>
+    <div>
+      <h1>学校管理ページ {isSuperAdmin && "（Super Admin）"}</h1>
 
       {(isSuperAdmin ? Object.entries(schools) : mySchools).map(
         ([schoolName, admins]) => (
-          <div key={schoolName} className="">
-            <div className="">
-              <h2 className="">{schoolName}</h2>
-              <Link href={`/schools/${schoolName}/faq`} className="">
-                FAQ編集
-              </Link>
-            </div>
+          <div key={schoolName}>
+            <h2>{schoolName}</h2>
+            <Link href={`/schools/${schoolName}/faq`}>FAQ編集</Link>
 
-            <AdminEditor
-              schoolId={schoolName}
-              admins={admins as string[]} // ✅ 型アサーションを追加
-            />
+            <AdminEditor schoolId={schoolName} admins={admins as string[]} />
             {isSuperAdmin && <DeleteSchoolButton schoolId={schoolName} />}
           </div>
         )
