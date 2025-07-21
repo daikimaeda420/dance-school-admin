@@ -13,19 +13,18 @@ export const authOptions: NextAuthOptions = {
     signIn: "/login",
   },
   callbacks: {
-    async session({ session }) {
+    async jwt({ token, account, profile }) {
+      if (account && profile?.email) {
+        token.email = profile.email;
+      }
+      return token;
+    },
+    async session({ session, token }) {
+      if (token?.email) {
+        session.user.email = token.email;
+      }
       return session;
     },
   },
-  cookies: {
-    sessionToken: {
-      name: `__Secure-next-auth.session-token`,
-      options: {
-        httpOnly: true,
-        sameSite: "lax",
-        path: "/",
-        secure: true,
-      },
-    },
-  },
+  secret: process.env.NEXTAUTH_SECRET, // 忘れずに
 };

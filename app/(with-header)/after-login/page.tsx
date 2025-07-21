@@ -11,14 +11,22 @@ export default function AfterLoginPage() {
   useEffect(() => {
     if (status === "loading") return;
 
-    console.log("✅ session:", session); // ← デバッグ用ログ
+    console.log("✅ status:", status);
+    console.log("✅ session:", session);
 
     if (status === "authenticated") {
-      router.replace("/schools/manage");
+      if (session?.user?.email) {
+        console.log("✅ 認証完了！リダイレクト開始");
+        router.replace("/");
+      } else {
+        console.warn("⚠️ session.user.email がない！ログイン失敗扱い");
+        router.replace("/login");
+      }
     } else {
+      console.log("❌ 未認証");
       router.replace("/login");
     }
-  }, [status, router]); // ✅ session を除外
+  }, [status, router]);
 
   return <p>ログイン確認中...</p>;
 }
