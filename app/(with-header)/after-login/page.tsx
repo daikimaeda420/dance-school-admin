@@ -9,10 +9,14 @@ export default function AfterLoginPage() {
   const router = useRouter();
 
   useEffect(() => {
+    if (status === "loading") return;
+
     if (status === "authenticated") {
       router.replace("/schools/manage");
+    } else {
+      router.replace("/login");
     }
-  }, [status]);
+  }, [status, router]);
 
-  return <p>ログイン処理中...</p>;
+  return <p>ログイン確認中...</p>;
 }
