@@ -14,5 +14,10 @@ export default withAuth({
 });
 
 export const config = {
-  matcher: ["/schools/:path*", "/superadmin/:path*", "/admin/:path*"],
+  matcher: [
+    "/schools/:path*",
+    "/superadmin/:path*",
+    "/admin/:path*",
+    // ここには `/` や `/after-login`、`/login` は書かないこと！
+  ],
 };
