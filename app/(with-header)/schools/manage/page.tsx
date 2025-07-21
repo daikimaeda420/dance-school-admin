@@ -6,6 +6,8 @@ import { redirect } from "next/navigation";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 
+console.log("🛠️ サーバーセッション:", session);
+
 // クライアントコンポーネント（動的読み込み）
 const AddSchoolForm = dynamic(() => import("../manage/AddSchoolForm"), {
   ssr: false,
