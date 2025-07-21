@@ -1,4 +1,3 @@
-// middleware.ts
 import { withAuth } from "next-auth/middleware";
 
 export default withAuth({
@@ -6,10 +5,18 @@ export default withAuth({
     signIn: "/login",
   },
   callbacks: {
-    authorized: ({ token }) => !!token, // ← 追加
+    authorized: ({ token }) => !!token,
   },
 });
 
 export const config = {
-  matcher: ["/schools/:path*", "/superadmin/:path*", "/admin/:path*"],
+  matcher: [
+    "/schools/:path*",
+    "/superadmin/:path*",
+    "/admin/:path*",
+    "/api/check-admin",
+    "/api/check-super-admin",
+    "!/after-login", // ← 明示的に除外！
+    "!/login",
+  ],
 };
