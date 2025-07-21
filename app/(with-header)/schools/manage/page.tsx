@@ -6,17 +6,12 @@ import { redirect } from "next/navigation";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 
-console.log("🛠️ サーバーセッション:", session);
-
-// クライアントコンポーネント（動的読み込み）
 const AddSchoolForm = dynamic(() => import("../manage/AddSchoolForm"), {
   ssr: false,
 });
 const DeleteSchoolButton = dynamic(
   () => import("../manage/DeleteSchoolButton"),
-  {
-    ssr: false,
-  }
+  { ssr: false }
 );
 const AdminEditor = dynamic(() => import("../manage/AdminEditor"), {
   ssr: false,
@@ -24,8 +19,7 @@ const AdminEditor = dynamic(() => import("../manage/AdminEditor"), {
 
 export default async function SchoolManagePage() {
   const session = await getServerSession(authOptions);
-
-  console.log("💡 session in /schools/manage:", session); // ← ログ追加！
+  console.log("🛠 サーバーセッション:", session); // ← ✅ session 取得後にログ
 
   const email = session?.user?.email;
 
@@ -62,7 +56,6 @@ export default async function SchoolManagePage() {
           <div key={schoolName}>
             <h2>{schoolName}</h2>
             <Link href={`/schools/${schoolName}/faq`}>FAQ編集</Link>
-
             <AdminEditor schoolId={schoolName} admins={admins as string[]} />
             {isSuperAdmin && <DeleteSchoolButton schoolId={schoolName} />}
           </div>
