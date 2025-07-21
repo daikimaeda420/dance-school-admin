@@ -11,12 +11,14 @@ export default function AfterLoginPage() {
   useEffect(() => {
     if (status === "loading") return;
 
+    console.log("✅ session:", session); // ← デバッグ用ログ
+
     if (status === "authenticated") {
       router.replace("/schools/manage");
     } else {
       router.replace("/login");
     }
-  }, [status, router]);
+  }, [status, session, router]);
 
   return <p>ログイン確認中...</p>;
 }
