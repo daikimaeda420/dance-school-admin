@@ -16,5 +16,11 @@ export default withAuth({
 });
 
 export const config = {
-  matcher: ["/schools/:path*", "/superadmin/:path*", "/admin/:path*"],
+  matcher: [
+    "/", // ← トップページも対象に
+    "/after-login",
+    "/schools/:path*",
+    "/superadmin/:path*",
+    "/admin/:path*",
+  ],
 };
