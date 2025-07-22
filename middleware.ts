@@ -1,12 +1,15 @@
+// middleware.ts
 import { withAuth } from "next-auth/middleware";
 
 export default withAuth({
-  pages: {
-    signIn: "/login", // 未認証なら login ページへ
-  },
+  pages: { signIn: "/login" },
   callbacks: {
-    authorized: ({ token }) => {
-      // token が存在すれば認証済みとみなす
+    authorized: ({ token, req }) => {
+      console.log(
+        `[middleware] checking auth - path=${req.nextUrl.pathname}`,
+        "token=",
+        token
+      );
       return !!token;
     },
   },

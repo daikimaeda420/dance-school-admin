@@ -23,6 +23,9 @@ export default function SchoolManagePage() {
   const [schools, setSchools] = useState<any>({});
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
 
+  // ✅ セッションデータのログ出力（useSessionの後）
+  console.log("[Page]", "session data:", session);
+
   useEffect(() => {
     if (status === "unauthenticated") {
       router.push("/login");
