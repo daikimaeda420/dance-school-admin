@@ -15,7 +15,7 @@ export default function AfterLoginPage() {
     console.log("✅ セッション状態:", session);
 
     if (status === "authenticated" && session?.user) {
-      router.replace("/schools/manage"); // ← 初期リダイレクト先を明示しておくと◎
+      router.replace("/"); // ← 初期リダイレクト先を明示しておくと◎
     } else {
       router.replace("/login");
     }
