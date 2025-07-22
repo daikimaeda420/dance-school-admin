@@ -2,11 +2,12 @@ import { withAuth } from "next-auth/middleware";
 
 export default withAuth({
   pages: {
-    signIn: "/login",
+    signIn: "/login", // ログインページへ明示的に飛ばす
   },
   callbacks: {
     authorized: ({ token }) => {
-      return !!token?.email;
+      // token が存在すればログイン済みとみなす（email が無くてもOK）
+      return !!token;
     },
   },
 });
