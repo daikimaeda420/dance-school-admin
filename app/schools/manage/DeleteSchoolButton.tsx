@@ -1,10 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function DeleteSchoolButton({ schoolId }: { schoolId: string }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   async function handleDelete() {
     const confirmed = confirm(`「${schoolId}」を本当に削除しますか？`);
@@ -30,6 +35,8 @@ export default function DeleteSchoolButton({ schoolId }: { schoolId: string }) {
       setLoading(false);
     }
   }
+
+  if (!isMounted) return null;
 
   return (
     <div className="mt-2">

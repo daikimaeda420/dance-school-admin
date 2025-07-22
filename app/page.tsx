@@ -2,11 +2,17 @@
 
 import { useRouter } from "next/navigation";
 import { signIn, signOut, useSession } from "next-auth/react";
-import Chatbot from "@/components/Chatbot";
+// Chatbot を動的インポート
+import dynamic from "next/dynamic";
+
+// ✅ ssr: false でサーバー側レンダリングを無効化
+const Chatbot = dynamic(() => import("@/components/Chatbot"), {
+  ssr: false,
+});
 
 export default function HomePage() {
   const { data: session } = useSession();
-  const router = useRouter(); // ✅ 追加！
+  const router = useRouter();
 
   return (
     <main
@@ -23,6 +29,7 @@ export default function HomePage() {
         <h1 style={{ fontSize: "2rem", fontWeight: "bold" }}>
           🕺 ダンススクール 管理システム
         </h1>
+
         {session ? (
           <div style={{ marginTop: "2rem" }}>
             <p style={{ fontSize: "1.1rem" }}>

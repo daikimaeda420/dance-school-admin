@@ -1,19 +1,14 @@
-// app/layout.tsx
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/authOptions";
-import SessionWrapper from "@/components/SessionWrapper";
+import SessionProviderClient from "@/components/SessionProviderClient";
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const session = await getServerSession(authOptions); // ✅ 修正！
-
   return (
-    <html>
+    <html lang="ja">
       <body>
-        <SessionWrapper session={session}>{children}</SessionWrapper>
+        <SessionProviderClient>{children}</SessionProviderClient>
       </body>
     </html>
   );

@@ -1,11 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function AddSchoolForm() {
   const [schoolId, setSchoolId] = useState("");
   const [adminEmail, setAdminEmail] = useState("");
   const [message, setMessage] = useState("");
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -26,6 +31,8 @@ export default function AddSchoolForm() {
       setMessage(`❌ 追加失敗: ${text}`);
     }
   }
+
+  if (!isMounted) return null;
 
   return (
     <form

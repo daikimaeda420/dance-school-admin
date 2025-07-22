@@ -8,6 +8,11 @@ export default function Header() {
   const { data: session, status } = useSession();
   const [isAdmin, setIsAdmin] = useState(false);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true); // ✅ 初回マウント済みフラグ
+  }, []);
 
   useEffect(() => {
     const checkRoles = async () => {
@@ -33,14 +38,14 @@ export default function Header() {
   }, [session, status]);
 
   if (status === "loading") {
-    return <div>ヘッダー読み込み中...</div>;
+    return null; // ← ローディング中は何も描画しないようにする
   }
 
   return (
     <header className="header">
       <div>🕺 Dance School Admin</div>
 
-      {status === "authenticated" && session?.user && (
+      {status === "authenticated" && session?.user ? (
         <div>
           <img
             src={session.user.image ?? ""}
@@ -58,9 +63,7 @@ export default function Header() {
             ログアウト
           </button>
         </div>
-      )}
-
-      {status === "unauthenticated" && (
+      ) : (
         <button
           onClick={() => signIn("google", { callbackUrl: "/after-login" })}
         >

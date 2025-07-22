@@ -9,10 +9,17 @@ interface Props {
 }
 
 export default function AdminEditor({ schoolId, admins }: Props) {
+  const { data: session, status } = useSession();
+  const myEmail = session?.user?.email;
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
-  const { data: session } = useSession();
-  const myEmail = session?.user?.email;
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  if (!isMounted || status === "loading") return null;
 
   async function updateAdmin(targetEmail: string, action: "add" | "remove") {
     if (action === "remove" && targetEmail === myEmail) {

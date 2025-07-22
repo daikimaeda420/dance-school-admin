@@ -2,6 +2,7 @@
 
 import { useSession } from "next-auth/react";
 import { useState, useEffect } from "react";
+import Header from "@/components/Header";
 
 export default function FAQPage({ params }: { params: { id: string } }) {
   const { data: session, status } = useSession();
@@ -65,6 +66,7 @@ export default function FAQPage({ params }: { params: { id: string } }) {
 
   return (
     <>
+      <Header />
       <div className="p-6 max-w-2xl mx-auto">
         <h2 className="text-2xl font-bold mb-4">
           📘 {params.id} スクールのFAQ管理
