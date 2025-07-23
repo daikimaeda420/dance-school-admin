@@ -1,0 +1,36 @@
+[
+  {
+    "email": "admin@example.com",
+    "name": "山田太郎",
+    "passwordHash": "ハッシュ化されたパスワード",
+    "role": "school-admin",
+    "schoolId": "dansul"
+  },
+  {
+    "email": "superadmin@example.com",
+    "name": "スーパ管理者",
+    "passwordHash": "$2a$10$hV63p0QXUgkQfOpTt1ZpxO59zJke7nKcdP7UexKNPxQgD4DR19Vfe",
+    "role": "superadmin"
+  },
+  {
+    "email": "dansul.jp@gmail.com",
+    "name": "Dansul管理者",
+    "passwordHash": "$2a$10$3HqLbWBszNjEq98k6nYOsujtMbSPcZ6KcMiIFG/59Ut50PRBaYlyO",
+    "role": "school-admin",
+    "schoolId": "dansul"
+  },
+  {
+    "email": "tetsumeiii@gmail.com",
+    "name": "てつめい管理者",
+    "passwordHash": "$2a$10$UMu6N1PlcYzC6U/.n8HDu.d02cOJqysMBfUzUN1hHzJqjNozrMgeS",
+    "role": "school-admin",
+    "schoolId": "tetsumeiii"
+  },
+  {
+    "email": "sdbhs04541@gmail.com",
+    "name": "テスト管理者",
+    "role": "superadmin",
+    "schoolId": "dansul",
+    "passwordHash": "$2b$10$5qIoZidYCLbBfhDmzCH3WOepznTVkh1E8/C4GOKluINGCIxORPU8a"
+  }
+]
