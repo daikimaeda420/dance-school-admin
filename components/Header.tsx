@@ -8,11 +8,6 @@ export default function Header() {
   const { data: session, status } = useSession();
   const [isAdmin, setIsAdmin] = useState(false);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
-  const [isMounted, setIsMounted] = useState(false);
-
-  useEffect(() => {
-    setIsMounted(true); // ✅ 初回マウント済みフラグ
-  }, []);
 
   useEffect(() => {
     const checkRoles = async () => {
@@ -38,7 +33,7 @@ export default function Header() {
   }, [session, status]);
 
   if (status === "loading") {
-    return null; // ← ローディング中は何も描画しないようにする
+    return null;
   }
 
   return (
@@ -47,11 +42,6 @@ export default function Header() {
 
       {status === "authenticated" && session?.user ? (
         <div>
-          <img
-            src={session.user.image ?? ""}
-            alt="プロフィール画像"
-            style={{ width: 32, height: 32, borderRadius: "50%" }}
-          />
           <div>{session.user.name}</div>
           <div>{session.user.email}</div>
 
@@ -64,11 +54,9 @@ export default function Header() {
           </button>
         </div>
       ) : (
-        <button
-          onClick={() => signIn("google", { callbackUrl: "/after-login" })}
-        >
-          Googleでログイン
-        </button>
+        <Link href="/login">
+          <button>ログイン</button>
+        </Link>
       )}
     </header>
   );

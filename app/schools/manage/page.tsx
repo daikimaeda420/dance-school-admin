@@ -5,7 +5,6 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import Header from "@/components/Header";
 
 const AddSchoolForm = dynamic(() => import("./AddSchoolForm"), {
   ssr: false,
@@ -67,7 +66,6 @@ export default function SchoolManagePage() {
 
   return (
     <div>
-      <Header />
       <h1>学校管理ページ {isSuperAdmin && "（Super Admin）"}</h1>
       {(isSuperAdmin ? Object.entries(schools) : mySchools).map(
         ([schoolName, admins]) => (

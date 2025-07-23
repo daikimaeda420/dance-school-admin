@@ -4,7 +4,6 @@ import { useRouter } from "next/navigation";
 import { signIn, signOut, useSession } from "next-auth/react";
 // Chatbot を動的インポート
 import dynamic from "next/dynamic";
-import Header from "@/components/Header";
 
 // ✅ ssr: false でサーバー側レンダリングを無効化
 const Chatbot = dynamic(() => import("@/components/Chatbot"), {
@@ -17,7 +16,6 @@ export default function HomePage() {
 
   return (
     <main>
-      <Header />
       <div style={{ maxWidth: "500px", width: "100%", textAlign: "center" }}>
         <h1 style={{ fontSize: "2rem", fontWeight: "bold" }}>
           🕺 ダンススクール 管理システム

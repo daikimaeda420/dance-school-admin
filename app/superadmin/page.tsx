@@ -3,7 +3,6 @@ import { promises as fs } from "fs";
 import path from "path";
 import { redirect } from "next/navigation";
 import dynamic from "next/dynamic";
-import Header from "@/components/Header";
 
 // クライアントコンポーネント（遅延読み込み）
 const SuperAdminEditor = dynamic(() => import("./SuperAdminEditor"), {
@@ -36,7 +35,6 @@ export default async function SuperAdminPage() {
 
   return (
     <div className="">
-      <Header />
       <h1 className="">🔐 Super Admin 管理</h1>
       <SuperAdminEditor
         superAdmins={superAdmins}

@@ -1,4 +1,5 @@
 import SessionProviderClient from "@/components/SessionProviderClient";
+import Header from "@/components/Header";
 
 export default function RootLayout({
   children,
@@ -8,7 +9,10 @@ export default function RootLayout({
   return (
     <html lang="ja">
       <body>
-        <SessionProviderClient>{children}</SessionProviderClient>
+        <SessionProviderClient>
+          <Header />
+          {children}
+        </SessionProviderClient>
       </body>
     </html>
   );

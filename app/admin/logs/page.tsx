@@ -1,6 +1,6 @@
+// app/admin/logs/page.tsx
 "use client";
 import { useEffect, useState } from "react";
-import Header from "@/components/Header";
 
 type FaqLog = {
   school: string;
@@ -29,7 +29,6 @@ export default function LogsPage() {
 
   return (
     <div className="">
-      <Header />
       <h1 className="">📊 チャットボット利用ログ</h1>
 
       {logs.length === 0 ? (
