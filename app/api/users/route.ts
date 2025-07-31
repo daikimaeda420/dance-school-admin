@@ -1,57 +1,155 @@
-import { NextResponse } from "next/server";
-import { readFile, writeFile } from "fs/promises";
+import { NextRequest } from "next/server";
 import path from "path";
+import { readFile, writeFile } from "fs/promises";
 import { hash } from "bcryptjs";
+import { getServerSession } from "next-auth"; // ✅ 追加
+import { authOptions } from "@/lib/authOptions"; // ✅ あなたのプロジェクトに合わせて調整
 
-const USERS_PATH = path.join(process.cwd(), "data", "users.json");
+const filePath = path.join(process.cwd(), "data", "users.json");
 
 export async function GET() {
-  const usersRaw = await readFile(USERS_PATH, "utf-8");
-  const users = JSON.parse(usersRaw);
-  return NextResponse.json({ users });
+  try {
+    const data = await readFile(filePath, "utf8");
+    const users = JSON.parse(data);
+    return new Response(JSON.stringify({ users }), { status: 200 });
+  } catch (err) {
+    console.error("GET /api/users エラー:", err);
+    return new Response(JSON.stringify({ error: "ユーザー取得失敗" }), {
+      status: 500,
+    });
+  }
 }
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
-    const { email, name, password, role, schoolId } = await req.json();
+    const body = await req.json();
+    const { email, name, password, role } = body;
+
     if (!email || !name || !password || !role) {
-      return NextResponse.json({ error: "入力不備" }, { status: 400 });
-    }
-
-    const raw = await readFile(USERS_PATH, "utf-8");
-    const users = JSON.parse(raw);
-
-    if (users.some((u: any) => u.email === email)) {
-      return NextResponse.json(
-        { error: "そのメールアドレスは既に存在します" },
+      return new Response(
+        JSON.stringify({ error: "全ての項目を入力してください" }),
         { status: 400 }
       );
     }
 
+    const schoolId = email.split("@")[0];
+
+    const raw = await readFile(filePath, "utf8");
+    const users = JSON.parse(raw);
+
+    const existing = users.find((u: any) => u.email === email);
+    if (existing) {
+      return new Response(JSON.stringify({ error: "既に登録されています" }), {
+        status: 400,
+      });
+    }
+
     const passwordHash = await hash(password, 10);
-    const newUser = { email, name, role, schoolId, passwordHash };
+
+    const newUser = {
+      email,
+      name,
+      role,
+      schoolId,
+      passwordHash,
+    };
+
     users.push(newUser);
+    await writeFile(filePath, JSON.stringify(users, null, 2), "utf8");
 
-    await writeFile(USERS_PATH, JSON.stringify(users, null, 2), "utf-8");
-
-    return NextResponse.json({ ok: true, user: newUser });
+    return new Response(JSON.stringify({ success: true }), { status: 200 });
   } catch (err) {
-    console.error("❌ POST /api/users error:", err);
-    return NextResponse.json({ error: "サーバーエラー" }, { status: 500 });
+    console.error("POST /api/users エラー:", err);
+    return new Response(JSON.stringify({ error: "追加に失敗しました" }), {
+      status: 500,
+    });
   }
 }
 
-export async function DELETE(req: Request) {
-  const { searchParams } = new URL(req.url);
-  const email = searchParams.get("email");
-  if (!email)
-    return NextResponse.json({ error: "メールが必要です" }, { status: 400 });
+export async function DELETE(req: NextRequest) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const email = searchParams.get("email");
+    if (!email) {
+      return new Response(
+        JSON.stringify({ error: "メールアドレスが必要です" }),
+        { status: 400 }
+      );
+    }
 
-  const raw = await readFile(USERS_PATH, "utf-8");
-  const users = JSON.parse(raw);
-  const filtered = users.filter((u: any) => u.email !== email);
+    const session = await getServerSession(authOptions); // ✅ 現在のログインユーザー取得
+    const currentEmail = session?.user?.email;
 
-  await writeFile(USERS_PATH, JSON.stringify(filtered, null, 2), "utf-8");
+    if (currentEmail === email) {
+      return new Response(
+        JSON.stringify({ error: "自分自身のアカウントは削除できません" }),
+        { status: 403 }
+      );
+    }
 
-  return NextResponse.json({ ok: true });
+    const raw = await readFile(filePath, "utf8");
+    const users = JSON.parse(raw);
+
+    const updated = users.filter((u: any) => u.email !== email);
+    if (updated.length === users.length) {
+      return new Response(
+        JSON.stringify({ error: "ユーザーが見つかりません" }),
+        { status: 404 }
+      );
+    }
+
+    await writeFile(filePath, JSON.stringify(updated, null, 2), "utf8");
+
+    return new Response(JSON.stringify({ success: true }), { status: 200 });
+  } catch (err) {
+    console.error("DELETE /api/users エラー:", err);
+    return new Response(JSON.stringify({ error: "削除に失敗しました" }), {
+      status: 500,
+    });
+  }
+}
+
+export async function PUT(req: NextRequest) {
+  try {
+    const body = await req.json();
+    const { email, name, password, role } = body;
+
+    if (!email || !name || !role) {
+      return new Response(
+        JSON.stringify({ error: "必須項目が不足しています" }),
+        {
+          status: 400,
+        }
+      );
+    }
+
+    const raw = await readFile(filePath, "utf8");
+    const users = JSON.parse(raw);
+    const index = users.findIndex((u: any) => u.email === email);
+
+    if (index === -1) {
+      return new Response(
+        JSON.stringify({ error: "ユーザーが見つかりません" }),
+        {
+          status: 404,
+        }
+      );
+    }
+
+    users[index].name = name;
+    users[index].role = role;
+    users[index].schoolId = email.split("@")[0];
+
+    if (password) {
+      users[index].passwordHash = await hash(password, 10);
+    }
+
+    await writeFile(filePath, JSON.stringify(users, null, 2), "utf8");
+    return new Response(JSON.stringify({ success: true }), { status: 200 });
+  } catch (err) {
+    console.error("PUT /api/users エラー:", err);
+    return new Response(JSON.stringify({ error: "更新に失敗しました" }), {
+      status: 500,
+    });
+  }
 }

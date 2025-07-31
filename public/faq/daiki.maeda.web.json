@@ -1,0 +1,17 @@
+[
+  {
+    "type": "select",
+    "question": "っっｓ",
+    "answer": "っっっっっｓ",
+    "options": [
+      {
+        "label": "ああああ",
+        "next": {
+          "type": "question",
+          "question": "えええ",
+          "answer": "えええええ"
+        }
+      }
+    ]
+  }
+]

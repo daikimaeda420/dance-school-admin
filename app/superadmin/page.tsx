@@ -1,3 +1,4 @@
+// app/superadmin/page.tsx
 import UsersEditor from "@/components/UsersEditor";
 
 export default function SuperadminPage() {

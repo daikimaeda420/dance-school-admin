@@ -1,36 +1,44 @@
 [
   {
-    "email": "admin@example.com",
-    "name": "山田太郎",
-    "passwordHash": "ハッシュ化されたパスワード",
-    "role": "school-admin",
-    "schoolId": "dansul"
-  },
-  {
-    "email": "superadmin@example.com",
-    "name": "スーパ管理者",
-    "passwordHash": "$2a$10$hV63p0QXUgkQfOpTt1ZpxO59zJke7nKcdP7UexKNPxQgD4DR19Vfe",
-    "role": "superadmin"
-  },
-  {
-    "email": "dansul.jp@gmail.com",
-    "name": "Dansul管理者",
-    "passwordHash": "$2a$10$3HqLbWBszNjEq98k6nYOsujtMbSPcZ6KcMiIFG/59Ut50PRBaYlyO",
-    "role": "school-admin",
-    "schoolId": "dansul"
-  },
-  {
-    "email": "tetsumeiii@gmail.com",
-    "name": "てつめい管理者",
-    "passwordHash": "$2a$10$UMu6N1PlcYzC6U/.n8HDu.d02cOJqysMBfUzUN1hHzJqjNozrMgeS",
-    "role": "school-admin",
-    "schoolId": "tetsumeiii"
-  },
-  {
     "email": "sdbhs04541@gmail.com",
     "name": "テスト管理者",
+    "passwordHash": "$2b$10$5qIoZidYCLbBfhDmzCH3WOepznTVkh1E8/C4GOKluINGCIxORPU8a",
+    "role": "school-admin",
+    "schoolId": "sdbhs04541"
+  },
+  {
+    "email": "ddd@gmail.com",
+    "name": "テスト管理者",
     "role": "superadmin",
-    "schoolId": "dansul",
-    "passwordHash": "$2b$10$5qIoZidYCLbBfhDmzCH3WOepznTVkh1E8/C4GOKluINGCIxORPU8a"
+    "schoolId": "ddd",
+    "passwordHash": "$2b$10$4qtn75dDujyTy7v7LAe1huAUiOfu5izJeQew9aSf2wCS1PKi7.1hW"
+  },
+  {
+    "email": "daiki.maeda.web@gmail.com",
+    "name": "アドミン",
+    "role": "superadmin",
+    "passwordHash": "$2b$10$5JOy8//UqSy9KksZ1.hhle1wKaNjNVuDQhzliZxAyoPLG2mwB/squ",
+    "schoolId": "daiki.maeda.web"
+  },
+  {
+    "email": "aaa@gmail.com",
+    "name": "あああ",
+    "role": "school-admin",
+    "passwordHash": "$2b$10$NTso7KXmfXhsgMhvJ9YTXODDhC7sN72LE4gHAhAcvIto7CyOAF4y2",
+    "schoolId": "aaa"
+  },
+  {
+    "email": "rrr@gmail.com",
+    "name": "テスト管理者",
+    "role": "superadmin",
+    "schoolId": "rrr",
+    "passwordHash": "$2b$10$hnHUrm4aZIcBJurU2zT2G.SpKnfLtNnECZ6V2LTzXhOtH92HnsIK."
+  },
+  {
+    "email": "ddd@hh",
+    "name": "sdbhs04541@gmail.com",
+    "passwordHash": "$2b$10$IjpocRUMbxg82me25fI1IOmN3BxzUo5fv4US.qWlUD8TvI.9oMmxa",
+    "role": "school-admin",
+    "schoolId": "sdbhs04541"
   }
 ]

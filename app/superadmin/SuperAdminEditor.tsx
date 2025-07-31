@@ -1,6 +1,7 @@
+// app/superadmin/SuperAdminEditor.tsx
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 interface Props {
   superAdmins: string[];
@@ -13,7 +14,13 @@ export default function SuperAdminEditor({
 }: Props) {
   const [admins, setAdmins] = useState<string[]>(superAdmins);
   const [newAdminEmail, setNewAdminEmail] = useState("");
+  const [schoolId, setSchoolId] = useState<string>("");
   const [message, setMessage] = useState("");
+
+  useEffect(() => {
+    const extracted = newAdminEmail.split("@")[0];
+    setSchoolId(extracted || "");
+  }, [newAdminEmail]);
 
   const handleAddAdmin = async () => {
     if (!newAdminEmail) return;
@@ -21,7 +28,11 @@ export default function SuperAdminEditor({
     const res = await fetch("/api/super-admins", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "add", email: newAdminEmail }),
+      body: JSON.stringify({
+        action: "add",
+        email: newAdminEmail,
+        schoolId,
+      }),
     });
 
     const text = await res.text();
@@ -82,6 +93,15 @@ export default function SuperAdminEditor({
           onChange={(e) => setNewAdminEmail(e.target.value)}
           className="border px-2 py-1 rounded w-full mb-2"
         />
+
+        {/* 自動生成された schoolId を表示（編集不可） */}
+        <input
+          type="text"
+          value={schoolId}
+          disabled
+          className="border px-2 py-1 rounded w-full mb-2 bg-gray-100 text-gray-600"
+        />
+
         <button
           onClick={handleAddAdmin}
           className="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded"

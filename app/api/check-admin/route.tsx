@@ -1,30 +1,11 @@
-import { promises as fs } from "fs";
-import path from "path";
-import { NextRequest, NextResponse } from "next/server";
+// app/api/check-admin/route.ts
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/authOptions"; // ✅ 明示的に必要！
+import { authOptions } from "@/lib/authOptions";
 
-const filePath = path.join(process.cwd(), "data", "schools.json");
+export async function GET() {
+  const session = await getServerSession(authOptions);
+  const roles = session?.user?.roles ?? [];
 
-export async function GET(req: NextRequest) {
-  const session = await getServerSession(authOptions); // ✅ authOptions 必須
-  const email = session?.user?.email;
-
-  if (!session || !email) {
-    return NextResponse.json({ ok: false }, { status: 401 });
-  }
-
-  try {
-    const data = await fs.readFile(filePath, "utf8");
-    const schools = JSON.parse(data);
-
-    const isAdmin = Object.values(schools).some((admins: string[]) =>
-      admins.map((a) => a.toLowerCase()).includes(email.toLowerCase())
-    );
-
-    return NextResponse.json({ ok: isAdmin });
-  } catch (err) {
-    console.error("チェック中にエラー:", err);
-    return NextResponse.json({ ok: false }, { status: 500 });
-  }
+  const isSchoolAdmin = roles.includes("school-admin");
+  return new Response(JSON.stringify({ ok: isSchoolAdmin }), { status: 200 });
 }

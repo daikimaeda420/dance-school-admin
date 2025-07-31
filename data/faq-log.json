@@ -1,44 +1,47 @@
 [
   {
-    "school": "tokyo-dance",
-    "question": "レッスンは予約制ですか？",
-    "timestamp": "2025-07-18T09:15:00.123Z"
+    "sessionId": "s-123",
+    "timestamp": "2025-07-30T14:00:00Z",
+    "question": {
+      "type": "select",
+      "text": "どのコースを探していますか？",
+      "options": [
+        {
+          "label": "キッズ",
+          "next": {
+            "question": {
+              "type": "select",
+              "text": "何歳ですか？",
+              "options": [
+                {
+                  "label": "3歳",
+                  "next": {
+                    "question": "入会できますか？",
+                    "answer": "入会できます！"
+                  }
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "answer": "こちらが該当コースです"
   },
   {
-    "school": "dansul",
-    "question": "初心者でも参加できますか？",
-    "timestamp": "2025-07-18T10:02:12.456Z"
+    "school": "daiki.maeda.web",
+    "question": "っっｓ",
+    "answer": "（選択肢）",
+    "url": "",
+    "timestamp": "2025-07-31T04:33:05.575Z",
+    "sessionId": "0a633cf3-532a-4733-afb3-f91c5a4b54de"
   },
   {
-    "school": "dansul",
-    "question": "あああ",
-    "timestamp": "2025-07-18T10:49:05.584Z"
-  },
-  {
-    "school": "dansul",
-    "question": "てすと",
-    "timestamp": "2025-07-18T10:49:07.759Z"
-  },
-  {
-    "school": "dansul",
-    "question": "あああ",
-    "timestamp": "2025-07-18T12:23:21.199Z"
-  },
-  {
-    "school": "dansul",
-    "question": "てすと",
-    "timestamp": "2025-07-18T12:23:22.595Z"
-  },
-  {
-    "school": "dansul",
-    "question": "あああ",
-    "answer": "あああああ",
-    "timestamp": "2025-07-18T12:36:28.706Z"
-  },
-  {
-    "school": "dansul",
-    "question": "てすと",
-    "answer": "てすとてすと",
-    "timestamp": "2025-07-18T12:36:29.882Z"
+    "school": "daiki.maeda.web",
+    "question": "えええ",
+    "answer": "えええええ",
+    "url": "",
+    "timestamp": "2025-07-31T04:33:06.524Z",
+    "sessionId": "0a633cf3-532a-4733-afb3-f91c5a4b54de"
   }
 ]
