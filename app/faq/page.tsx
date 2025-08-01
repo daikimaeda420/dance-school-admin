@@ -5,6 +5,19 @@ import { useState, useEffect, useCallback } from "react";
 import { produce } from "immer";
 import { FAQEditor } from "../../components/FAQEditor";
 
+// 型定義拡張を反映（Userに schoolId を含める）
+declare module "next-auth" {
+  interface Session {
+    user: {
+      name?: string;
+      email?: string;
+      image?: string;
+      role?: string;
+      schoolId?: string;
+    };
+  }
+}
+
 export type FAQItem =
   | {
       type: "question";
