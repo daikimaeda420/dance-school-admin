@@ -4,6 +4,16 @@ import { compare } from "bcryptjs";
 import path from "path";
 import { readFile } from "fs/promises";
 
+// 🔧 独自User型（NextAuthのUserに必要な型を明示）
+type CustomUser = {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  schoolId: string | null;
+  passwordHash?: string;
+};
+
 const USERS_PATH = path.join(process.cwd(), "data", "users.json");
 
 export const authOptions: NextAuthOptions = {
@@ -14,24 +24,23 @@ export const authOptions: NextAuthOptions = {
         username: { label: "メールアドレス", type: "text" },
         password: { label: "パスワード", type: "password" },
       },
-      async authorize(credentials) {
+      async authorize(credentials): Promise<CustomUser | null> {
         const { username, password } = credentials ?? {};
         if (!username || !password) return null;
 
         const raw = await readFile(USERS_PATH, "utf8");
-        const users = JSON.parse(raw);
+        const users: CustomUser[] = JSON.parse(raw);
 
         const user = users.find(
-          (u: any) => u.email.toLowerCase() === username.toLowerCase()
+          (u) => u.email.toLowerCase() === username.toLowerCase()
         );
         if (!user) return null;
 
-        const isValid = await compare(password, user.passwordHash);
+        const isValid = await compare(password, user.passwordHash || "");
         if (!isValid) return null;
 
-        // ✅ id を必ず含める（NextAuth が必須とするため）
         return {
-          id: user.email, // または user.id があるならそれ
+          id: user.email, // 👈 emailをidとして使用
           name: user.name,
           email: user.email,
           role: user.role,
