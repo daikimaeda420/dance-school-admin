@@ -1,4 +1,3 @@
-// components/FAQEditor.tsx
 "use client";
 
 import { memo, useCallback, useState } from "react";
@@ -69,12 +68,37 @@ export const FAQEditor = memo(function FAQEditor({
         <select
           className="border p-1 rounded w-full mr-2"
           value={item.type}
-          onChange={(e) =>
-            onChange(path, {
-              ...item,
-              type: e.target.value as "question" | "select",
-            })
-          }
+          onChange={(e) => {
+            const newType = e.target.value as "question" | "select";
+
+            if (newType === "question") {
+              onChange(path, {
+                type: "question",
+                question: item.question || "",
+                answer: "answer" in item ? item.answer ?? "" : "",
+                url: "url" in item ? item.url ?? "" : "",
+              });
+            } else {
+              onChange(path, {
+                type: "select",
+                question: item.question || "",
+                answer: "answer" in item ? item.answer ?? "" : "",
+                options:
+                  "options" in item && Array.isArray(item.options)
+                    ? item.options
+                    : [
+                        {
+                          label: "",
+                          next: {
+                            type: "question",
+                            question: "",
+                            answer: "",
+                          },
+                        },
+                      ],
+              });
+            }
+          }}
         >
           <option value="question">質問・回答</option>
           <option value="select">選択肢による分岐</option>
