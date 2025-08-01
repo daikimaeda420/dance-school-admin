@@ -128,7 +128,10 @@ export const FAQEditor = memo(function FAQEditor({
             className="border p-1 rounded w-full mb-1"
             placeholder="リンク先URL（省略可）"
             value={item.url ?? ""}
-            onChange={(e) => handleInputChange("url", e.target.value)}
+            onChange={(e) =>
+              item.type === "question" &&
+              handleInputChange("url" as keyof FAQItem, e.target.value)
+            }
           />
         </>
       )}
