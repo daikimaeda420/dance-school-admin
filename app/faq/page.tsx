@@ -24,6 +24,7 @@ export type FAQItem =
   | {
       type: "select";
       question: string;
+      answer: string;
       options: { label: string; next: FAQItem }[];
     };
 
