@@ -13,6 +13,7 @@ export type FAQItem =
   | {
       type: "select";
       question: string;
+      answer?: string;
       options: { label: string; next: FAQItem }[];
     };
 
@@ -23,7 +24,6 @@ export default function ChatbotEmbedClient() {
   const [messages, setMessages] = useState<any[]>([]);
   const chatEndRef = useRef<HTMLDivElement | null>(null);
 
-  // ✅ セッションIDを localStorage に保存して使いまわす
   const getSessionId = () => {
     if (typeof window === "undefined") return "";
     let sid = localStorage.getItem("sessionId");
@@ -67,48 +67,45 @@ export default function ChatbotEmbedClient() {
       .then(setFaq);
   }, [schoolId]);
 
-  const renderFAQ = (item: FAQItem, threadId: string = item.question) => {
-    setMessages((prev) => [
-      ...prev,
-      { role: "user", text: item.question, threadId },
-    ]);
+  const renderFAQ = (item: FAQItem, fromUserClick: boolean = true) => {
+    if (!item || typeof item !== "object" || !("question" in item)) return;
+
+    if (fromUserClick) {
+      setMessages((prev) => [...prev, { role: "user", text: item.question }]);
+    }
 
     if (item.type === "question") {
       setMessages((prev) => [
         ...prev,
-        {
-          role: "bot",
-          text: item.answer,
-          url: item.url,
-          threadId,
-        },
+        { role: "bot", text: item.answer, url: item.url },
       ]);
       logToServer(item.question, item.answer, item.url ?? "");
-    }
-
-    if (item.type === "select") {
+    } else if (item.type === "select") {
+      if (item.answer) {
+        setMessages((prev) => [...prev, { role: "bot", text: item.answer }]);
+      }
       setMessages((prev) => [
         ...prev,
         {
           role: "bot",
-          text: "以下から選んでください：",
+          text: item.question,
           options: item.options,
-          threadId,
         },
       ]);
-      logToServer(item.question, "（選択肢）");
+      logToServer(item.question, "(選択肢)");
     }
   };
 
-  const handleOptionSelect = (
-    option: { label: string; next: FAQItem },
-    threadId: string
-  ) => {
-    renderFAQ(option.next, threadId);
+  const handleOptionSelect = (option: { label: string; next: FAQItem }) => {
+    setMessages((prev) => [...prev, { role: "user", text: option.label }]);
+    setTimeout(() => {
+      renderFAQ(option.next, false);
+    }, 100);
   };
 
   const handleReset = () => {
     setMessages([]);
+    localStorage.removeItem("sessionId");
   };
 
   useEffect(() => {
@@ -139,10 +136,10 @@ export default function ChatbotEmbedClient() {
       <div style={{ marginBottom: 16 }}>
         <p style={{ fontSize: 14, marginBottom: 8 }}>質問を選んでください：</p>
         <ul style={{ listStyle: "none", padding: 0 }}>
-          {faq.map((item, i) => (
+          {faq.map((item) => (
             <li key={item.question}>
               <button
-                onClick={() => renderFAQ(item)}
+                onClick={() => renderFAQ(item, true)}
                 style={{
                   display: "block",
                   width: "100%",
@@ -174,7 +171,7 @@ export default function ChatbotEmbedClient() {
       >
         {messages.map((msg, i) => (
           <div
-            key={msg.threadId + "-" + i}
+            key={i}
             style={{
               textAlign: msg.role === "user" ? "right" : "left",
               marginBottom: 10,
@@ -189,8 +186,9 @@ export default function ChatbotEmbedClient() {
                 maxWidth: "80%",
               }}
             >
-              <div>{msg.text}</div>
-              {msg.role === "bot" && msg.url?.trim() && (
+              <div style={{ whiteSpace: "pre-wrap" }}>{msg.text}</div>
+
+              {msg.url?.trim() && (
                 <div style={{ marginTop: 6 }}>
                   <a
                     href={msg.url}
@@ -206,10 +204,11 @@ export default function ChatbotEmbedClient() {
                   </a>
                 </div>
               )}
+
               {msg.options?.map((opt: any, j: number) => (
                 <button
                   key={j}
-                  onClick={() => handleOptionSelect(opt, msg.threadId || "")}
+                  onClick={() => handleOptionSelect(opt)}
                   style={{
                     display: "block",
                     width: "100%",

@@ -169,21 +169,6 @@ export const FAQEditor = memo(function FAQEditor({
           </button>
         </div>
       )}
-
-      <div className="mt-2">
-        <button
-          type="button"
-          onClick={() => setShowPreview(!showPreview)}
-          className="text-xs text-gray-600"
-        >
-          {showPreview ? "▲ マップを非表示" : "▼ マップを表示"}
-        </button>
-        {showPreview && (
-          <pre className="text-xs bg-gray-50 border rounded p-2 mt-1 whitespace-pre-wrap">
-            {renderTree(item).join("\n")}
-          </pre>
-        )}
-      </div>
     </div>
   );
 });
