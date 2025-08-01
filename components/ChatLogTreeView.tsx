@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react"; // ← この行が必要
+import * as React from "react"; // ← 修正: JSX namespace 対応
 import { useState } from "react";
 
 type SelectOption = {
@@ -42,7 +42,6 @@ export default function ChatLogTreeView({ logs }: Props) {
     );
   }
 
-  // セッションでグループ化
   const sessions: Record<string, FaqLog[]> = {};
   logs.forEach((log) => {
     const id = log.sessionId || "unknown";
@@ -80,7 +79,7 @@ export default function ChatLogTreeView({ logs }: Props) {
     return JSON.stringify(a);
   };
 
-  const renderQuestion = (q: FaqQuestion, depth = 0): JSX.Element => {
+  const renderQuestion = (q: FaqQuestion, depth = 0): React.ReactElement => {
     if (typeof q === "string") return <div className="mb-1">Q: {q}</div>;
 
     if (q && typeof q === "object" && q.type === "select") {
