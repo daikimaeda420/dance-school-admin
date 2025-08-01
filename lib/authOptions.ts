@@ -29,8 +29,9 @@ export const authOptions: NextAuthOptions = {
         const isValid = await compare(password, user.passwordHash);
         if (!isValid) return null;
 
+        // ✅ id を必ず含める（NextAuth が必須とするため）
         return {
-          id: user.email,
+          id: user.email, // または user.id があるならそれ
           name: user.name,
           email: user.email,
           role: user.role,
