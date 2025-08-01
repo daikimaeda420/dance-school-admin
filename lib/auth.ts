@@ -1,4 +1,4 @@
-// app/lib/authOptions.ts
+// app/lib/auth.ts
 import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { compare } from "bcryptjs";
@@ -13,6 +13,8 @@ export const authOptions: NextAuthOptions = {
         password: { label: "パスワード", type: "password" },
       },
       async authorize(credentials) {
+        if (!credentials?.username || !credentials?.password) return null;
+
         const user = users.find(
           (u) => u.email.toLowerCase() === credentials.username.toLowerCase()
         );
@@ -22,7 +24,9 @@ export const authOptions: NextAuthOptions = {
         const isValid = await compare(credentials.password, user.passwordHash);
         if (!isValid) throw new Error("パスワードが違います");
 
+        // ✅ id を含めることで NextAuth の要件を満たす
         return {
+          id: user.email, // ← ここが重要
           email: user.email,
           name: user.name,
           role: user.role,
@@ -37,17 +41,18 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async session({ session, token }) {
       if (token) {
-        session.user.role = token.role;
-        session.user.schoolId = token.schoolId ?? null;
+        session.user.role = token.role as string;
+        session.user.schoolId = token.schoolId as string | null;
       }
       return session;
     },
     async jwt({ token, user }) {
       if (user) {
-        token.role = user.role;
-        token.schoolId = user.schoolId ?? null;
+        token.role = (user as any).role;
+        token.schoolId = (user as any).schoolId ?? null;
       }
       return token;
     },
   },
+  secret: process.env.NEXTAUTH_SECRET,
 };
