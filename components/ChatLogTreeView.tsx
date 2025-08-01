@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react"; // ← この行が必要
 import { useState } from "react";
 
 type SelectOption = {
