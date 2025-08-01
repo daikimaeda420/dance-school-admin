@@ -11,8 +11,17 @@ export default function Header() {
   // ✅ /embed 配下ではヘッダーを非表示にする
   if (pathname.startsWith("/embed")) return null;
 
-  const role = session?.user?.role;
-  const schoolId = session?.user?.schoolId ?? null;
+  // ✅ session.user に role と schoolId を持たせる
+  const user = session?.user as {
+    name?: string;
+    email?: string;
+    image?: string;
+    role?: string;
+    schoolId?: string;
+  };
+
+  const role = user?.role;
+  const schoolId = user?.schoolId ?? null;
   const isSuperAdmin = role === "superadmin";
   const isSchoolAdmin = role === "school-admin";
 
@@ -25,8 +34,8 @@ export default function Header() {
       {status === "authenticated" ? (
         <div className="flex items-center gap-4">
           <div className="text-sm text-gray-700">
-            {session.user.name} <br />
-            <span className="text-gray-500">{session.user.email}</span>
+            {user?.name} <br />
+            <span className="text-gray-500">{user?.email}</span>
           </div>
 
           {(isSchoolAdmin || isSuperAdmin) && (
