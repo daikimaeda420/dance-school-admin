@@ -1,14 +1,11 @@
-// app/api/check-super-admin/route.ts
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
 
-  // 型アサーションを追加
-  const role = (session?.user as { role?: string })?.role;
+  const user = session?.user as { role?: string }; // ここで型を補完
 
-  const isServiceAdmin = role === "service-admin";
-
+  const isServiceAdmin = user?.role === "service-admin";
   return new Response(JSON.stringify({ ok: isServiceAdmin }), { status: 200 });
 }

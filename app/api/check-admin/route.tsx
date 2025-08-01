@@ -4,8 +4,10 @@ import { NextRequest } from "next/server";
 
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
-  const role = (session?.user as any)?.role;
 
-  const isSchoolAdmin = role === "school-admin";
+  // 型を明示する（TypeScriptにroleがあると伝える）
+  const user = session?.user as { role?: string };
+
+  const isSchoolAdmin = user?.role === "school-admin";
   return new Response(JSON.stringify({ ok: isSchoolAdmin }), { status: 200 });
 }
