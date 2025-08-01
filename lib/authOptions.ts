@@ -1,4 +1,3 @@
-// lib/authOptions.ts
 import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { compare } from "bcryptjs";
@@ -48,8 +47,8 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.name = user.name;
         token.email = user.email;
-        token.role = user.role;
-        token.schoolId = user.schoolId;
+        token.role = (user as any).role;
+        token.schoolId = (user as any).schoolId ?? null;
       }
       return token;
     },
@@ -57,8 +56,8 @@ export const authOptions: NextAuthOptions = {
       if (token) {
         session.user.name = token.name as string;
         session.user.email = token.email as string;
-        session.user.role = token.role as string;
-        session.user.schoolId = token.schoolId as string | null;
+        (session.user as any).role = token.role;
+        (session.user as any).schoolId = token.schoolId;
       }
       return session;
     },
