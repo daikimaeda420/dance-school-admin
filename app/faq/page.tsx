@@ -125,6 +125,7 @@ export default function FAQPage() {
               {
                 type: "select",
                 question: "",
+                answer: "", // ← 🔧 これを追加！
                 options: [
                   {
                     label: "",
