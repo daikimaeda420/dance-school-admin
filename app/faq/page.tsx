@@ -1,9 +1,18 @@
+// app/faq/page.tsx
 "use client";
 
 import { useSession } from "next-auth/react";
 import { useState, useEffect, useCallback } from "react";
 import { produce } from "immer";
 import { FAQEditor } from "../../components/FAQEditor";
+
+// schoolId を含む型を明示的に定義
+type UserWithSchool = {
+  name?: string;
+  email?: string;
+  image?: string;
+  schoolId?: string;
+};
 
 export type FAQItem =
   | {
@@ -18,21 +27,13 @@ export type FAQItem =
       options: { label: string; next: FAQItem }[];
     };
 
-// セッションユーザーの拡張型
-type ExtendedUser = {
-  name?: string;
-  email?: string;
-  image?: string;
-  role?: string;
-  schoolId?: string;
-};
-
 export default function FAQPage() {
   const { data: session, status } = useSession();
+  const user = session?.user as UserWithSchool;
+  const schoolId = user?.schoolId;
+
   const [faq, setFaq] = useState<FAQItem[]>([]);
   const [saving, setSaving] = useState(false);
-
-  const schoolId = (session?.user as ExtendedUser)?.schoolId;
 
   useEffect(() => {
     if (status === "authenticated" && schoolId) {
