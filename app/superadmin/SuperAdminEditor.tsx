@@ -2,6 +2,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { Shield, Trash2, Plus } from "lucide-react";
 
 interface Props {
   superAdmins: string[];
@@ -12,7 +13,8 @@ export default function SuperAdminEditor({
   superAdmins,
   currentUserEmail,
 }: Props) {
-  const [admins, setAdmins] = useState<string[]>(superAdmins);
+  const initial = Array.isArray(superAdmins) ? superAdmins : [];
+  const [admins, setAdmins] = useState<string[]>(initial);
   const [newAdminEmail, setNewAdminEmail] = useState("");
   const [schoolId, setSchoolId] = useState<string>("");
   const [message, setMessage] = useState("");
@@ -44,6 +46,7 @@ export default function SuperAdminEditor({
     setAdmins((prev) => [...prev, newAdminEmail]);
     setNewAdminEmail("");
     setMessage("✅ 追加しました");
+    setTimeout(() => setMessage(""), 2000);
   };
 
   const handleRemoveAdmin = async (email: string) => {
@@ -64,52 +67,109 @@ export default function SuperAdminEditor({
 
     setAdmins((prev) => prev.filter((e) => e !== email));
     setMessage("✅ 削除しました");
+    setTimeout(() => setMessage(""), 2000);
   };
 
   return (
-    <div className="bg-white shadow p-4 rounded space-y-4">
-      <h2 className="text-lg font-bold">Super Admin 一覧</h2>
-      <ul className="list-disc pl-5 space-y-1">
-        {admins.map((email) => (
-          <li key={email} className="flex justify-between items-center">
-            <span>{email}</span>
-            {email !== currentUserEmail && (
-              <button
-                onClick={() => handleRemoveAdmin(email)}
-                className="text-sm text-red-600 hover:underline"
-              >
-                削除
-              </button>
-            )}
-          </li>
-        ))}
-      </ul>
-
-      <div className="mt-4">
-        <input
-          type="email"
-          placeholder="追加するメールアドレス"
-          value={newAdminEmail}
-          onChange={(e) => setNewAdminEmail(e.target.value)}
-          className="border px-2 py-1 rounded w-full mb-2"
-        />
-
-        {/* 自動生成された schoolId を表示（編集不可） */}
-        <input
-          type="text"
-          value={schoolId}
-          disabled
-          className="border px-2 py-1 rounded w-full mb-2 bg-gray-100 text-gray-600"
-        />
-
-        <button
-          onClick={handleAddAdmin}
-          className="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded"
-        >
-          追加
-        </button>
-        {message && <p className="text-sm mt-2 text-green-600">{message}</p>}
+    <section className="card">
+      <div className="card-header">
+        <div className="flex items-center gap-2">
+          <Shield className="text-amber-500" size={18} />
+          <h2 className="font-semibold text-gray-900">Super Admin 管理</h2>
+        </div>
       </div>
-    </div>
+
+      <div className="card-body space-y-6">
+        {/* 追加フォーム */}
+        <div className="rounded-xl border border-amber-200 bg-amber-50/60 p-4">
+          <div className="grid gap-3 md:grid-cols-3">
+            <div className="md:col-span-2">
+              <label className="mb-1 block text-sm text-gray-700">
+                追加するメールアドレス
+              </label>
+              <input
+                type="email"
+                placeholder="admin@example.com"
+                value={newAdminEmail}
+                onChange={(e) => setNewAdminEmail(e.target.value)}
+                className="input"
+              />
+            </div>
+
+            <div>
+              <label className="mb-1 block text-sm text-gray-700">
+                自動生成された schoolId
+              </label>
+              <input
+                type="text"
+                value={schoolId}
+                disabled
+                className="input bg-gray-50 text-gray-600"
+              />
+            </div>
+          </div>
+
+          <div className="mt-3 flex items-center justify-between">
+            <p className="text-xs text-gray-600">
+              ※ メールの @ の前を schoolId として登録します
+            </p>
+            <button
+              onClick={handleAddAdmin}
+              className="btn-primary inline-flex items-center"
+            >
+              <Plus size={16} /> 追加
+            </button>
+          </div>
+
+          {message && (
+            <p className="mt-3 rounded-md border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700">
+              {message}
+            </p>
+          )}
+        </div>
+
+        {/* 一覧 */}
+        <div>
+          <h3 className="mb-2 text-sm font-semibold text-gray-700">
+            Super Admin 一覧
+          </h3>
+          {admins.length === 0 ? (
+            <p className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-500">
+              まだ登録がありません
+            </p>
+          ) : (
+            <ul className="divide-y divide-gray-100 rounded-xl border border-gray-200 bg-white">
+              {admins.map((email) => (
+                <li
+                  key={email}
+                  className="flex items-center justify-between px-4 py-3"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-700">
+                      {email}
+                    </span>
+                    {email === currentUserEmail && (
+                      <span className="text-[11px] text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full">
+                        you
+                      </span>
+                    )}
+                  </div>
+
+                  {email !== currentUserEmail && (
+                    <button
+                      onClick={() => handleRemoveAdmin(email)}
+                      className="inline-flex items-center gap-1 rounded-md bg-red-600 px-2.5 py-1.5 text-xs font-medium text-white hover:bg-red-700"
+                    >
+                      <Trash2 size={14} />
+                      削除
+                    </button>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
+    </section>
   );
 }

@@ -2,9 +2,15 @@
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./*"]
+      "@/*": [
+        "./*"
+      ]
     },
-    "lib": ["dom", "dom.iterable", "esnext"],
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": false,
@@ -15,8 +21,10 @@
     "moduleResolution": "node",
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "jsx": "react-jsx",
-    "types": ["next-auth"], // ✅ 追加: 型定義を使うために必要
+    "jsx": "preserve",
+    "types": [
+      "next-auth"
+    ], // ✅ 追加: 型定義を使うために必要
     "plugins": [
       {
         "name": "next"
@@ -39,5 +47,7 @@
     ".next/types/app/layout.tsx",
     "app/schools/manage/page.tsx"
   ],
-  "exclude": ["node_modules"]
+  "exclude": [
+    "node_modules"
+  ]
 }

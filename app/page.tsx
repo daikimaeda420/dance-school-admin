@@ -1,89 +1,67 @@
-"use client";
-
-import { useRouter } from "next/navigation";
-import { signIn, signOut, useSession } from "next-auth/react";
-// Chatbot を動的インポート
-import dynamic from "next/dynamic";
-
-// ✅ ssr: false でサーバー側レンダリングを無効化
-const Chatbot = dynamic(() => import("@/components/Chatbot"), {
-  ssr: false,
-});
-
-export default function HomePage() {
-  const { data: session } = useSession();
-  const router = useRouter();
-
+export default function Dashboard() {
   return (
-    <main>
-      <div style={{ maxWidth: "500px", width: "100%", textAlign: "center" }}>
-        <h1 style={{ fontSize: "2rem", fontWeight: "bold" }}>
-          🕺 ダンススクール 管理システム
-        </h1>
-
-        {session ? (
-          <div style={{ marginTop: "2rem" }}>
-            <p style={{ fontSize: "1.1rem" }}>
-              こんにちは、{session.user?.name} さん！
-            </p>
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: "1rem",
-                marginTop: "1.5rem",
-              }}
-            >
-              <button
-                onClick={() => router.push("/schools/manage")}
-                style={{
-                  padding: "0.5rem 1rem",
-                  backgroundColor: "#2563eb",
-                  color: "#fff",
-                  border: "none",
-                  borderRadius: "4px",
-                  cursor: "pointer",
-                }}
-              >
-                学校一覧を見る
-              </button>
-
-              <button
-                onClick={() => signOut()}
-                style={{
-                  padding: "0.5rem 1rem",
-                  backgroundColor: "#6b7280",
-                  color: "#fff",
-                  border: "none",
-                  borderRadius: "4px",
-                  cursor: "pointer",
-                }}
-              >
-                ログアウト
-              </button>
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* 左2カラム：カード群 */}
+      <section className="lg:col-span-2 space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="card">
+            <div className="card-header">
+              <h3 className="font-semibold text-gray-900">折れ線グラフ</h3>
+            </div>
+            <div className="card-body h-48 grid place-items-center text-gray-400">
+              {/* Chart placeholder */}
+              Chart here
             </div>
           </div>
-        ) : (
-          <div style={{ marginTop: "2rem" }}>
-            <p style={{ marginBottom: "1rem" }}>
-              ログインして管理をはじめましょう
-            </p>
-            <button
-              onClick={() => signIn("google", { callbackUrl: "/after-login" })}
-              style={{
-                padding: "0.5rem 1rem",
-                backgroundColor: "#10b981",
-                color: "#fff",
-                border: "none",
-                borderRadius: "4px",
-                cursor: "pointer",
-              }}
-            >
-              Googleでログイン
-            </button>
+          <div className="card">
+            <div className="card-header">
+              <h3 className="font-semibold text-gray-900">円グラフ</h3>
+            </div>
+            <div className="card-body h-48 grid place-items-center text-gray-400">
+              Chart here
+            </div>
           </div>
-        )}
-      </div>
-    </main>
+        </div>
+
+        <div className="card">
+          <div className="card-header">
+            <h3 className="font-semibold text-gray-900">棒グラフ</h3>
+          </div>
+          <div className="card-body h-64 grid place-items-center text-gray-400">
+            Chart here
+          </div>
+        </div>
+      </section>
+
+      {/* 右カラム：KPI/ボタン群 */}
+      <aside className="space-y-6">
+        <div className="card">
+          <div className="card-header">
+            <h3 className="font-semibold">指標</h3>
+          </div>
+          <div className="card-body space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-600">売上（今月）</span>
+              <span className="text-xl font-bold text-gray-900">99,999</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-600">CVR</span>
+              <span className="text-xl font-bold text-gray-900">5.4%</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="card">
+          <div className="card-header">
+            <h3 className="font-semibold">ボタン</h3>
+          </div>
+          <div className="card-body space-y-3">
+            <button className="btn-primary w-full">決定/保存ボタン</button>
+            <button className="btn-ghost w-full">キャンセルボタン</button>
+            <button className="btn-danger w-full">削除ボタン</button>
+          </div>
+        </div>
+      </aside>
+    </div>
   );
 }

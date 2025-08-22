@@ -1,0 +1,190 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* カード/ボタン/入力の共通クラス */
+@layer components {
+  .card {
+    @apply rounded-2xl border border-gray-200 bg-white shadow-soft;
+  }
+  .card-header {
+    @apply flex items-center justify-between p-4 border-b border-gray-100;
+  }
+  .card-body {
+    @apply p-4;
+  }
+
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium rounded-lg transition;
+  }
+  .btn-primary {
+    @apply btn bg-primary text-white hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-400;
+  }
+  .btn-ghost {
+    @apply btn bg-white border border-gray-300 text-gray-700 hover:bg-gray-50;
+  }
+  .btn-danger {
+    @apply btn bg-red-600 text-white hover:bg-red-700;
+  }
+
+  .input {
+    @apply w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-300;
+  }
+
+  /* サイドバー項目 */
+  .nav-item {
+    @apply flex items-center gap-3 rounded-lg px-3 py-2 text-gray-700 hover:bg-gray-100;
+  }
+  .nav-item-active {
+    @apply bg-primary-50 text-primary-700 border-l-4 border-primary-400;
+  }
+  /* ▼ ラッパーに .qa-simple を付けると有効になります */
+  .qa-simple {
+    /* トークン */
+    --accent: #58afb7;
+    --ink: #1f586e;
+    --line: #e8edf0;
+    --soft: #f7fbfc;
+    --bg: #fff;
+    --radius: 10px;
+
+    /* まず既存の枠線を極力OFFに */
+    *,
+    *::before,
+    *::after {
+      box-shadow: none !important;
+    }
+    .card,
+    .panel,
+    .box,
+    .fieldset,
+    .group,
+    .level,
+    .options {
+      border: 0 !important;
+      background: transparent !important;
+    }
+
+    /* トップレベルだけ薄い枠 */
+    .level-root {
+      background: var(--bg) !important;
+      border: 1px solid var(--line) !important;
+      border-radius: var(--radius);
+      padding: 16px;
+    }
+
+    /* ネストは枠をやめて “左線＋淡背景” で階層表現（data-depth を推奨） */
+    [data-depth="1"] {
+      border-left: 4px solid var(--accent);
+      background: var(--bg);
+    }
+    [data-depth="2"] {
+      border-left: 3px solid color-mix(in oklab, var(--accent) 35%, white);
+      background: var(--soft);
+    }
+    [data-depth="3"] {
+      border-left: 2px solid color-mix(in oklab, var(--accent) 20%, white);
+      background: transparent;
+    }
+    [data-depth] {
+      padding: 14px 14px 10px;
+      border-radius: calc(var(--radius) - 2px);
+    }
+
+    /* セクション同士の区切りは“余白＋うっすら罫線”だけに */
+    .section + .section,
+    .group + .group,
+    .options + .options {
+      margin-top: 18px;
+      padding-top: 14px;
+      border-top: 1px dashed var(--line) !important;
+    }
+
+    /* “Level 1/2” といった見出しは小さなピルだけに */
+    .level-title,
+    .section-title,
+    .block-title {
+      margin: 0 0 10px;
+      padding: 4px 8px;
+      display: inline-flex;
+      font: 600 12px/1.2 system-ui, -apple-system, Segoe UI, sans-serif;
+      color: var(--ink);
+      background: color-mix(in oklab, var(--accent) 10%, white);
+      border-radius: 999px;
+      border: 0;
+    }
+
+    /* ラベル行は太字のみ。囲みは無し */
+    .field-label {
+      font-weight: 600;
+      margin: 8px 0 6px;
+    }
+
+    /* 入力部はシンプル枠＋フォーカスリングのみ */
+    input[type="text"],
+    input[type="search"],
+    textarea,
+    select {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      padding: 10px 12px;
+      font: 1rem/1.5 system-ui, -apple-system, Segoe UI, sans-serif;
+      transition: border-color 0.15s ease, outline-color 0.15s ease;
+    }
+    input:focus,
+    textarea:focus,
+    select:focus {
+      border-color: var(--accent);
+      outline: 3px solid color-mix(in oklab, var(--accent) 18%, transparent);
+      outline-offset: 1px;
+    }
+
+    /* タブ切替（「質問 / 選択肢」など）はボーダー1本だけ */
+    .tab-switch {
+      display: inline-flex;
+      gap: 2px;
+      padding: 2px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }
+    .tab-switch button {
+      border: 0;
+      background: transparent;
+      padding: 6px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    .tab-switch .is-active {
+      background: var(--soft);
+      color: var(--ink);
+      font-weight: 600;
+    }
+
+    /* 選択肢の並びはカード感を消してリスト風に */
+    .option-list {
+      display: grid;
+      gap: 10px;
+    }
+    .option-item {
+      padding: 0;
+      border: 0 !important;
+    }
+
+    /* 余白バランス（小さめ） */
+    .stack-s {
+      display: grid;
+      gap: 8px;
+    }
+    .stack-m {
+      display: grid;
+      gap: 12px;
+    }
+    .stack-l {
+      display: grid;
+      gap: 16px;
+    }
+  }
+}

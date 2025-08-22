@@ -1,201 +1,246 @@
 "use client";
 
-import { memo, useCallback, useState } from "react";
-import type { FAQItem } from "../app/faq/page";
+import { useCallback } from "react";
+import type { FAQItem } from "@/app/faq/page";
 
-// 再帰的に構造を走査してマップを生成
-function renderTree(item: FAQItem, path: string[] = []): string[] {
-  const current = path.join(" > ") + "：" + item.question;
-  if (item.type === "select") {
-    return item.options
-      .flatMap((opt, i) => renderTree(opt.next, [...path, `選択肢${i + 1}`]))
-      .map((sub) => current + "\n├─ " + sub);
-  }
-  return [current];
-}
-
-export const FAQEditor = memo(function FAQEditor({
-  item,
-  path,
-  onChange,
-}: {
+type Props = {
   item: FAQItem;
   path: (number | string)[];
   onChange: (path: (number | string)[], updated: FAQItem) => void;
-}) {
-  const [collapsedOptions, setCollapsedOptions] = useState<
-    Record<number, boolean>
-  >({});
-  const [showPreview, setShowPreview] = useState(false);
+  level?: number; // 0起点
+};
 
-  const toggleCollapse = (index: number) => {
-    setCollapsedOptions((prev) => ({
-      ...prev,
-      [index]: !prev[index],
-    }));
+/* 線を減らすためのスタイル */
+const TINT = [
+  "bg-amber-50",
+  "bg-emerald-50",
+  "bg-sky-50",
+  "bg-rose-50",
+  "bg-indigo-50",
+];
+const STRIPE = [
+  "border-amber-300",
+  "border-emerald-300",
+  "border-sky-300",
+  "border-rose-300",
+  "border-indigo-300",
+];
+const levelWrap = (level = 0) =>
+  level === 0
+    ? ""
+    : `rounded-lg ${TINT[level % TINT.length]} border-l-4 ${
+        STRIPE[level % STRIPE.length]
+      } pl-3 pr-3 py-3`;
+
+function NodeHeader({
+  level,
+  type,
+  onSwitch,
+}: {
+  level: number;
+  type: "question" | "select";
+  onSwitch: (t: "question" | "select") => void;
+}) {
+  return (
+    <div className="mb-3 flex items-center justify-between">
+      <div className="text-xs font-semibold text-gray-600">
+        Level {level + 1}
+      </div>
+      <div className="inline-flex rounded-full bg-gray-100 p-0.5">
+        <button
+          type="button"
+          onClick={() => onSwitch("question")}
+          className={`px-2 py-1 text-xs rounded-full ${
+            type === "question" ? "bg-white shadow-sm" : "hover:bg-white/70"
+          }`}
+        >
+          質問
+        </button>
+        <button
+          type="button"
+          onClick={() => onSwitch("select")}
+          className={`px-2 py-1 text-xs rounded-full ${
+            type === "select" ? "bg-white shadow-sm" : "hover:bg-white/70"
+          }`}
+        >
+          選択肢
+        </button>
+      </div>
+    </div>
+  );
+}
+
+export function FAQEditor({ item, path, onChange, level = 0 }: Props) {
+  const update = useCallback(
+    (updated: FAQItem) => onChange(path, updated),
+    [onChange, path]
+  );
+
+  /** タイプ切替（不変更新） */
+  const switchType = (nextType: "question" | "select") => {
+    if (nextType === item.type) return;
+
+    if (nextType === "select" && item.type === "question") {
+      update({
+        type: "select",
+        question: item.question,
+        answer: item.answer ?? "",
+        options: [
+          { label: "", next: { type: "question", question: "", answer: "" } },
+        ],
+      });
+      return;
+    }
+    if (nextType === "question" && item.type === "select") {
+      if (!confirm("選択肢は削除されます。質問に変換しますか？")) return;
+      update({
+        type: "question",
+        question: item.question,
+        answer: item.answer ?? "",
+      });
+    }
   };
 
-  const handleInputChange = useCallback(
-    (field: keyof FAQItem, value: string) => {
-      onChange(path, { ...item, [field]: value });
-    },
-    [item, path, onChange]
-  );
+  if (item.type === "question") {
+    return (
+      <div className={levelWrap(level)}>
+        <NodeHeader level={level} type="question" onSwitch={switchType} />
 
-  const handleOptionChange = useCallback(
-    (index: number, updatedOption: { label: string; next: FAQItem }) => {
-      if (item.type !== "select") return;
-      const updatedOptions = [...item.options];
-      updatedOptions[index] = updatedOption;
-      onChange(path, { ...item, options: updatedOptions });
-    },
-    [item, path, onChange]
-  );
+        <div className="space-y-4">
+          <div className="grid gap-2">
+            <label className="text-sm text-gray-700">質問</label>
+            <input
+              className="input"
+              value={item.question}
+              onChange={(e) => update({ ...item, question: e.target.value })}
+              placeholder="質問文"
+            />
+          </div>
 
-  const level = path.filter((p) => typeof p === "number").length;
-  const labelPath = path
-    .filter((p) => typeof p === "number")
-    .map((n, i) =>
-      i === 0
-        ? String.fromCharCode(65 + (n as number))
-        : `選択肢${(n as number) + 1}`
-    )
-    .join(" > ");
+          <div className="grid gap-2">
+            <label className="text-sm text-gray-700">回答</label>
+            <textarea
+              className="input"
+              rows={3}
+              value={item.answer}
+              onChange={(e) => update({ ...item, answer: e.target.value })}
+              placeholder="回答テキスト"
+            />
+          </div>
 
-  return (
-    <div className="border p-2 rounded mb-2">
-      <div className="flex justify-between items-center mb-1">
-        <select
-          className="border p-1 rounded w-full mr-2"
-          value={item.type}
-          onChange={(e) => {
-            const newType = e.target.value as "question" | "select";
-
-            if (newType === "question") {
-              onChange(path, {
-                type: "question",
-                question: item.question || "",
-                answer: "answer" in item ? item.answer ?? "" : "",
-                url: "url" in item ? item.url ?? "" : "",
-              });
-            } else {
-              onChange(path, {
-                type: "select",
-                question: item.question || "",
-                answer: "answer" in item ? item.answer ?? "" : "",
-                options:
-                  "options" in item && Array.isArray(item.options)
-                    ? item.options
-                    : [
-                        {
-                          label: "",
-                          next: {
-                            type: "question",
-                            question: "",
-                            answer: "",
-                          },
-                        },
-                      ],
-              });
-            }
-          }}
-        >
-          <option value="question">質問・回答</option>
-          <option value="select">選択肢による分岐</option>
-        </select>
-        <div className="text-right text-xs text-gray-500 min-w-max">
-          <div>階層: {level}</div>
-          {labelPath && <div className="text-gray-400">📍 {labelPath}</div>}
+          <div className="grid gap-2">
+            <label className="text-sm text-gray-700">リンクURL（任意）</label>
+            <input
+              className="input"
+              value={item.url ?? ""}
+              onChange={(e) => update({ ...item, url: e.target.value })}
+              placeholder="https://example.com"
+            />
+          </div>
         </div>
       </div>
+    );
+  }
 
-      <input
-        className="border p-1 rounded w-full mb-1"
-        placeholder="質問文"
-        value={item.question}
-        onChange={(e) => handleInputChange("question", e.target.value)}
-      />
+  // === select ===
+  return (
+    <div className={levelWrap(level)}>
+      <NodeHeader level={level} type="select" onSwitch={switchType} />
 
-      {item.type === "question" && (
-        <>
-          <textarea
-            className="border p-1 rounded w-full mb-1"
-            placeholder="回答"
-            value={item.answer}
-            onChange={(e) => handleInputChange("answer", e.target.value)}
-          />
+      <div className="space-y-4">
+        <div className="grid gap-2">
+          <label className="text-sm text-gray-700">質問</label>
           <input
-            className="border p-1 rounded w-full mb-1"
-            placeholder="リンク先URL（省略可）"
-            value={item.url ?? ""}
-            onChange={(e) =>
-              item.type === "question" &&
-              handleInputChange("url" as keyof FAQItem, e.target.value)
-            }
+            className="input"
+            value={item.question}
+            onChange={(e) => update({ ...item, question: e.target.value })}
+            placeholder="質問文（分岐の親）"
           />
-        </>
-      )}
+        </div>
 
-      {item.type === "select" && (
-        <div className="mb-2">
-          <p className="text-sm text-gray-600 mb-1">選択肢：</p>
-          {item.options?.map((opt, j) => (
-            <div key={j} className="border p-2 rounded mb-2">
-              <div className="flex justify-between items-center mb-1">
+        <div className="grid gap-2">
+          <label className="text-sm text-gray-700">
+            選択後の案内文（任意）
+          </label>
+          <input
+            className="input"
+            value={item.answer ?? ""}
+            onChange={(e) => update({ ...item, answer: e.target.value })}
+            placeholder="（例）下の選択肢から選んでください"
+          />
+        </div>
+
+        <div className="space-y-3">
+          <div className="text-sm font-semibold text-gray-700">選択肢</div>
+
+          {item.options.map((opt, idx) => (
+            <div key={idx} className={levelWrap(level + 1)}>
+              <div className="grid gap-2">
+                <label className="text-sm text-gray-700">
+                  ラベル（Level {level + 2}）
+                </label>
                 <input
-                  className="border p-1 rounded w-full mr-2"
-                  placeholder="選択肢のラベル"
+                  className="input"
                   value={opt.label}
                   onChange={(e) =>
-                    handleOptionChange(j, { ...opt, label: e.target.value })
+                    update({
+                      ...item,
+                      options: item.options.map((o, j) =>
+                        j === idx ? { ...o, label: e.target.value } : o
+                      ),
+                    })
                   }
+                  placeholder="（例）キッズ"
                 />
-                <button
-                  type="button"
-                  onClick={() => toggleCollapse(j)}
-                  className="text-xs text-blue-500"
-                >
-                  {collapsedOptions[j] ? "▶ 展開" : "▼ 折りたたみ"}
-                </button>
               </div>
 
-              {!collapsedOptions[j] && (
+              <div className="mt-3">
+                {/* 子ノード（不変更新は子側が行うのでここはそのまま） */}
                 <FAQEditor
                   item={opt.next}
-                  path={[...path, "options", j, "next"]}
+                  path={[...path, "options", idx, "next"]}
                   onChange={onChange}
+                  level={level + 1}
                 />
-              )}
+              </div>
 
-              <button
-                type="button"
-                onClick={() => {
-                  const updatedOptions = [...item.options];
-                  updatedOptions.splice(j, 1);
-                  onChange(path, { ...item, options: updatedOptions });
-                }}
-                className="text-red-500 text-sm"
-              >
-                ✕ 削除
-              </button>
+              <div className="mt-3 flex gap-2">
+                <button
+                  type="button"
+                  className="text-sm text-red-600 hover:underline"
+                  onClick={() =>
+                    update({
+                      ...item,
+                      options: item.options.filter((_, j) => j !== idx),
+                    })
+                  }
+                >
+                  この選択肢を削除
+                </button>
+              </div>
             </div>
           ))}
+
           <button
             type="button"
-            onClick={() => {
-              const newOptions = [...(item.options || [])];
-              newOptions.push({
-                label: "",
-                next: { type: "question", question: "", answer: "" },
-              });
-              onChange(path, { ...item, options: newOptions });
-            }}
-            className="text-blue-500 text-sm mt-1"
+            className="btn-ghost"
+            onClick={() =>
+              update({
+                ...item,
+                options: [
+                  ...item.options,
+                  {
+                    label: "",
+                    next: { type: "question", question: "", answer: "" },
+                  },
+                ],
+              })
+            }
           >
             ＋ 選択肢を追加
           </button>
         </div>
-      )}
+      </div>
     </div>
   );
-});
+}
