@@ -15,13 +15,15 @@ import {
 import { useEffect } from "react";
 
 type Props = {
-  /** モバイルドロワーの開閉（ヘッダーのハンバーガーから制御） */
+  /** md以上で表示する左固定サイドバーを出すか（デフォルト: true） */
+  showDesktop?: boolean;
+  /** smで使うドロワーの開閉状態 */
   mobileOpen?: boolean;
-  /** モバイルドロワーを閉じる */
+  /** ドロワーを閉じる */
   onClose?: () => void;
 };
 
-/** 必要に応じて編集してください（デスクトップ/モバイル共通） */
+// 必要に応じて編集
 const NAV = [
   { href: "/", label: "ホーム", icon: Home },
   { href: "/schools/manage", label: "学校管理", icon: ClipboardList },
@@ -31,7 +33,11 @@ const NAV = [
   { href: "/help", label: "ヘルプ", icon: HelpCircle },
 ];
 
-export default function Sidebar({ mobileOpen = false, onClose }: Props) {
+export default function Sidebar({
+  showDesktop = true,
+  mobileOpen = false,
+  onClose,
+}: Props) {
   const pathname = usePathname();
 
   // /embed はサイドバー非表示
@@ -40,7 +46,7 @@ export default function Sidebar({ mobileOpen = false, onClose }: Props) {
   const isActive = (href: string) =>
     pathname === href || pathname.startsWith(href + "/");
 
-  /** モバイルドロワー表示時は背景スクロール固定 */
+  // モバイルドロワー中は背景スクロール固定
   useEffect(() => {
     if (!mobileOpen) return;
     const prev = document.body.style.overflow;
@@ -52,34 +58,36 @@ export default function Sidebar({ mobileOpen = false, onClose }: Props) {
 
   return (
     <>
-      {/* ====== デスクトップ常設サイドバー ====== */}
-      <aside
-        className="
-          sticky top-16 hidden md:block
-          h-[calc(100vh-4rem)] w-64 shrink-0
-          border-r bg-white
-        "
-      >
-        <nav className="p-3">
-          {NAV.map(({ href, label, icon: Icon }) => (
-            <Link
-              key={href}
-              href={href}
-              className={[
-                "flex items-center gap-3 rounded-lg px-3 py-2 transition-colors",
-                isActive(href)
-                  ? "bg-amber-50 text-amber-900 border-l-4 border-amber-400"
-                  : "text-gray-700 hover:bg-gray-100",
-              ].join(" ")}
-            >
-              <Icon size={18} />
-              <span>{label}</span>
-            </Link>
-          ))}
-        </nav>
-      </aside>
+      {/* ====== デスクトップ常設サイドバー（md以上） ====== */}
+      {showDesktop && (
+        <aside
+          className="
+            sticky top-16 hidden md:block
+            h-[calc(100vh-4rem)] w-64 shrink-0
+            border-r bg-white
+          "
+        >
+          <nav className="p-3">
+            {NAV.map(({ href, label, icon: Icon }) => (
+              <Link
+                key={href}
+                href={href}
+                className={[
+                  "flex items-center gap-3 rounded-lg px-3 py-2 transition-colors",
+                  isActive(href)
+                    ? "bg-amber-50 text-amber-900 border-l-4 border-amber-400"
+                    : "text-gray-700 hover:bg-gray-100",
+                ].join(" ")}
+              >
+                <Icon size={18} />
+                <span>{label}</span>
+              </Link>
+            ))}
+          </nav>
+        </aside>
+      )}
 
-      {/* ====== モバイルドロワー（同一コンポーネント内） ====== */}
+      {/* ====== モバイルドロワー（smのみ） ====== */}
       {mobileOpen && (
         <div className="fixed inset-0 z-[60] md:hidden">
           {/* オーバーレイ */}

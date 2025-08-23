@@ -239,8 +239,12 @@ export default function Header() {
         </div>
       </header>
 
-      {/* モバイル用サイドバー（統合版） */}
-      <Sidebar mobileOpen={menuOpen} onClose={() => setMenuOpen(false)} />
+      {/* モバイル用サイドバー（統合版）←★ デスクトップは出さない */}
+      <Sidebar
+        showDesktop={false}
+        mobileOpen={menuOpen}
+        onClose={() => setMenuOpen(false)}
+      />
 
       {/* ヘッダー分の余白 */}
       <div className="h-16" aria-hidden />
