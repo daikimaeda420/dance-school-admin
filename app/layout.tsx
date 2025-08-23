@@ -19,7 +19,7 @@ export default function RootLayout({
       <body className="min-h-screen bg-gray-50 text-gray-900">
         <AuthProvider>
           <Header />
-          <div className="mx-auto max-w-6xl px-4">
+          <div className="mx-auto px-4">
             <div className="flex gap-6">
               {/* ← デスクトップ（md以上）でのみ表示。Header側はモバイルドロワーのみ */}
               <Sidebar showDesktop />
