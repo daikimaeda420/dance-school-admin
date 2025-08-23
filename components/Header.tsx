@@ -1,12 +1,22 @@
 "use client";
 
-import { useSession, signOut } from "next-auth/react";
+import { SessionProvider, useSession, signOut } from "next-auth/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LogIn, LogOut } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
+/** ---- 外側: ここで自前で SessionProvider を噛ませる ---- */
 export default function Header() {
+  return (
+    <SessionProvider>
+      <HeaderInner />
+    </SessionProvider>
+  );
+}
+
+/** ---- 内側: 実際のヘッダー本体 ---- */
+function HeaderInner() {
   const { data: session, status } = useSession();
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
@@ -36,7 +46,7 @@ export default function Header() {
     <>
       <header className="fixed inset-x-0 top-0 z-50 h-16 border-b bg-white/90 backdrop-blur">
         <div className="mx-auto flex h-full w-full max-w-6xl items-center justify-between px-4">
-          {/* 左：サービスロゴ（/public/logo.svg が無い場合はテキストだけ表示） */}
+          {/* 左：サービスロゴ（/public/logo.svg が無ければテキストのみ） */}
           <Link href="/" className="flex items-center gap-2">
             <img
               src="/logo.svg"
