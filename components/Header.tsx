@@ -1,38 +1,25 @@
 "use client";
 
-import { SessionProvider, useSession, signOut } from "next-auth/react";
+import { useSession, signOut } from "next-auth/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LogIn, LogOut } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
-/** ---- 外側: ここで自前で SessionProvider を噛ませる ---- */
 export default function Header() {
-  return (
-    <SessionProvider>
-      <HeaderInner />
-    </SessionProvider>
-  );
-}
-
-/** ---- 内側: 実際のヘッダー本体 ---- */
-function HeaderInner() {
+  // ❶ フックは常に最上部で同じ順序で呼ぶ（条件分岐の外）
   const { data: session, status } = useSession();
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const popRef = useRef<HTMLDivElement>(null);
+  const [mounted, setMounted] = useState(false);
 
-  // /embed 配下ではヘッダー非表示
-  if (pathname.startsWith("/embed")) return null;
-  if (status === "loading") return null;
+  // ❷ マウント後フラグ（SSR差分を避ける。フック順序は変えない）
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
-  const user = session?.user as {
-    name?: string;
-    email?: string;
-    image?: string;
-  };
-
-  // ポップオーバー外クリックで閉じる
+  // ❸ クリック外しでメニューを閉じる（フックは既に呼んだ後）
   useEffect(() => {
     const onClick = (e: MouseEvent) => {
       if (!popRef.current) return;
@@ -42,11 +29,25 @@ function HeaderInner() {
     return () => document.removeEventListener("click", onClick);
   }, []);
 
+  // ❹ 表示可否は“レンダーの後段”で判定（フック順序には影響させない）
+  const hideOnEmbed = pathname.startsWith("/embed");
+  if (hideOnEmbed) return null;
+
+  // ローディング中は空のスペーサーだけ（ヘッダー高さは確保）
+  if (status === "loading" || !mounted)
+    return <div className="h-16" aria-hidden />;
+
+  const user = session?.user as {
+    name?: string;
+    email?: string;
+    image?: string;
+  };
+
   return (
     <>
       <header className="fixed inset-x-0 top-0 z-50 h-16 border-b bg-white/90 backdrop-blur">
         <div className="mx-auto flex h-full w-full max-w-6xl items-center justify-between px-4">
-          {/* 左：サービスロゴ（/public/logo.svg が無ければテキストのみ） */}
+          {/* 左：サービスロゴ（なければテキストだけ出る） */}
           <Link href="/" className="flex items-center gap-2">
             <img
               src="/logo.svg"
@@ -64,7 +65,7 @@ function HeaderInner() {
           {/* 右：認証エリア */}
           {status === "authenticated" ? (
             <div className="flex items-center gap-4">
-              {/* PC表示：名前/メール */}
+              {/* PC：名前/メール */}
               <div className="hidden sm:flex items-center gap-3">
                 {user?.image ? (
                   <img
@@ -89,7 +90,7 @@ function HeaderInner() {
                 </div>
               </div>
 
-              {/* PC表示：ログアウトボタン */}
+              {/* PC：ログアウト */}
               <button
                 onClick={() => signOut({ callbackUrl: "/login" })}
                 className="hidden sm:inline-flex items-center gap-2 rounded-md bg-gray-800 px-4 py-2 text-sm font-medium text-white hover:bg-gray-900"
@@ -98,7 +99,7 @@ function HeaderInner() {
                 ログアウト
               </button>
 
-              {/* モバイル表示：アバター + ポップオーバー */}
+              {/* モバイル：アバター → ポップオーバー */}
               <div className="relative sm:hidden" ref={popRef}>
                 <button
                   aria-label="アカウントメニュー"
@@ -158,16 +159,15 @@ function HeaderInner() {
               </div>
             </div>
           ) : (
-            // 未ログイン
             <>
-              {/* PC：テキストボタン */}
+              {/* PC：ログイン */}
               <Link
                 href="/login"
                 className="hidden sm:inline-flex rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
               >
                 ログイン
               </Link>
-              {/* モバイル：アイコンボタン */}
+              {/* モバイル：ログイン丸ボタン */}
               <Link
                 href="/login"
                 className="sm:hidden grid h-10 w-10 place-items-center rounded-full bg-blue-600 text-white hover:bg-blue-700"
