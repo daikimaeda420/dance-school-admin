@@ -3,7 +3,6 @@
 import { useSession, signOut } from "next-auth/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import Image from "next/image";
 import { LogIn, LogOut } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
@@ -37,18 +36,16 @@ export default function Header() {
     <>
       <header className="fixed inset-x-0 top-0 z-50 h-16 border-b bg-white/90 backdrop-blur">
         <div className="mx-auto flex h-full w-full max-w-6xl items-center justify-between px-4">
-          {/* 左：サービスロゴ */}
+          {/* 左：サービスロゴ（/public/logo.svg が無い場合はテキストだけ表示） */}
           <Link href="/" className="flex items-center gap-2">
-            {/* 画像ロゴがあれば /public/logo.svg を置いてください */}
-            <div className="relative h-7 w-7 overflow-hidden rounded">
-              <Image
-                src="/logo.svg"
-                alt="サービスロゴ"
-                fill
-                sizes="28px"
-                className="object-contain"
-              />
-            </div>
+            <img
+              src="/logo.svg"
+              alt="サービスロゴ"
+              className="h-7 w-7 object-contain"
+              onError={(e) =>
+                ((e.target as HTMLImageElement).style.display = "none")
+              }
+            />
             <span className="text-lg font-semibold tracking-tight">
               Dance School Admin
             </span>
@@ -60,15 +57,13 @@ export default function Header() {
               {/* PC表示：名前/メール */}
               <div className="hidden sm:flex items-center gap-3">
                 {user?.image ? (
-                  <span className="relative inline-block h-9 w-9 overflow-hidden rounded-full ring-1 ring-gray-200">
-                    <Image
-                      src={user.image}
-                      alt={user.name ?? "User"}
-                      fill
-                      sizes="36px"
-                      className="object-cover"
-                    />
-                  </span>
+                  <img
+                    src={user.image}
+                    alt={user.name ?? "User"}
+                    className="h-9 w-9 rounded-full object-cover ring-1 ring-gray-200"
+                    referrerPolicy="no-referrer"
+                    loading="lazy"
+                  />
                 ) : (
                   <span className="grid h-9 w-9 place-items-center rounded-full bg-gray-200 text-xs text-gray-600 ring-1 ring-gray-200">
                     {user?.name?.[0] ?? "U"}
@@ -97,19 +92,18 @@ export default function Header() {
               <div className="relative sm:hidden" ref={popRef}>
                 <button
                   aria-label="アカウントメニュー"
+                  aria-expanded={open}
                   onClick={() => setOpen((v) => !v)}
                   className="grid h-10 w-10 place-items-center rounded-full bg-gray-100 ring-1 ring-gray-200"
                 >
                   {user?.image ? (
-                    <span className="relative inline-block h-9 w-9 overflow-hidden rounded-full">
-                      <Image
-                        src={user.image}
-                        alt={user.name ?? "User"}
-                        fill
-                        sizes="36px"
-                        className="object-cover"
-                      />
-                    </span>
+                    <img
+                      src={user.image}
+                      alt={user.name ?? "User"}
+                      className="h-9 w-9 rounded-full object-cover"
+                      referrerPolicy="no-referrer"
+                      loading="lazy"
+                    />
                   ) : (
                     <span className="text-sm font-semibold text-gray-700">
                       {user?.name?.[0] ?? "U"}
@@ -121,15 +115,13 @@ export default function Header() {
                   <div className="absolute right-0 mt-2 w-64 rounded-xl border border-gray-200 bg-white p-3 shadow-lg">
                     <div className="mb-3 flex items-center gap-3">
                       {user?.image ? (
-                        <span className="relative inline-block h-9 w-9 overflow-hidden rounded-full ring-1 ring-gray-200">
-                          <Image
-                            src={user.image}
-                            alt={user.name ?? "User"}
-                            fill
-                            sizes="36px"
-                            className="object-cover"
-                          />
-                        </span>
+                        <img
+                          src={user.image}
+                          alt={user.name ?? "User"}
+                          className="h-9 w-9 rounded-full object-cover ring-1 ring-gray-200"
+                          referrerPolicy="no-referrer"
+                          loading="lazy"
+                        />
                       ) : (
                         <span className="grid h-9 w-9 place-items-center rounded-full bg-gray-200 text-xs text-gray-600 ring-1 ring-gray-200">
                           {user?.name?.[0] ?? "U"}
