@@ -1,19 +1,23 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
+  darkMode: "class", // ← 追加！
   content: ["./app/**/*.{js,ts,jsx,tsx}", "./components/**/*.{js,ts,jsx,tsx}"],
   theme: {
     extend: {
       colors: {
         primary: {
-          DEFAULT: "#f59e0b", // オレンジ
-          50: "#fff7ed",
-          100: "#ffedd5",
-          200: "#fed7aa",
-          300: "#fdba74",
-          400: "#fb923c",
-          500: "#f59e0b",
-          600: "#d97706",
-          700: "#b45309",
+          50: "#ffefec",
+          100: "#ffdfda",
+          200: "#ffd0c8",
+          300: "#ffb8ac",
+          400: "#ffa090",
+          500: "#ff6146",
+          600: "#e6573f",
+          700: "#cc4e38",
+          800: "#a63f2e",
+          900: "#803023",
+          950: "#592218",
+          DEFAULT: "#ff6146",
         },
       },
       borderRadius: {

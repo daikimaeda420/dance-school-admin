@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation";
 import { LogIn, LogOut, Menu } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import Sidebar from "@/components/Sidebar";
+import ThemeToggle from "@/components/ThemeToggle";
 
 export default function Header() {
   // フック（順序固定）
@@ -95,12 +96,13 @@ export default function Header() {
 
   return (
     <>
-      <header className="fixed inset-x-0 top-0 z-50 h-16 border-b bg-white/90 backdrop-blur">
+      <header className="fixed inset-x-0 top-0 z-50 h-16 border-b bg-white/90 backdrop-blur border-gray-200 dark:border-gray-800 dark:bg-gray-900/70">
         <div className="mx-auto flex h-full w-full items-center justify-between px-4">
           {/* 左：ハンバーガー（smのみ）＋ ロゴ */}
           <div className="flex items-center gap-2">
             <button
-              className="sm:hidden grid h-10 w-10 place-items-center rounded-md hover:bg-gray-100"
+              type="button"
+              className="sm:hidden grid h-10 w-10 place-items-center rounded-md hover:bg-gray-100 dark:hover:bg-gray-800"
               onClick={() => setMenuOpen(true)}
               aria-label="メニュー"
               aria-expanded={menuOpen}
@@ -115,7 +117,7 @@ export default function Header() {
             >
               {/* ここがロゴ画像（/public/logo.svg を想定） */}
               <Image
-                src="/logo.svg" // ← 作ったファイル名に合わせて変更（png/jpgでもOK）
+                src="/logo.svg"
                 alt="rizbo"
                 width={100}
                 height={32}
@@ -125,121 +127,128 @@ export default function Header() {
             </Link>
           </div>
 
-          {/* 右：認証エリア */}
-          {status === "authenticated" ? (
-            <div className="flex items-center gap-4">
-              {/* PC：名前/メール */}
-              <div className="hidden sm:flex items-center gap-3">
-                {user?.image ? (
-                  <img
-                    src={user.image}
-                    alt={user.name ?? "User"}
-                    className="h-9 w-9 rounded-full object-cover ring-1 ring-gray-200"
-                    referrerPolicy="no-referrer"
-                    loading="lazy"
-                  />
-                ) : (
-                  <span className="grid h-9 w-9 place-items-center rounded-full bg-gray-200 text-xs text-gray-600 ring-1 ring-gray-200">
-                    {user?.name?.[0] ?? "U"}
-                  </span>
-                )}
-                <div className="text-right">
-                  <div className="leading-none text-sm font-medium text-gray-900">
-                    {user?.name ?? "ユーザー"}
-                  </div>
-                  <div className="leading-none text-xs text-gray-500">
-                    {user?.email}
-                  </div>
-                </div>
-              </div>
+          {/* 右：テーマ切替＋認証エリア */}
+          <div className="flex items-center gap-3">
+            <ThemeToggle />
 
-              {/* PC：ログアウト */}
-              <button
-                onClick={() => signOut({ callbackUrl: "/login" })}
-                className="hidden sm:inline-flex items-center gap-2 rounded-md bg-gray-800 px-4 py-2 text-sm font-medium text-white hover:bg-gray-900"
-              >
-                <LogOut size={16} />
-                ログアウト
-              </button>
-
-              {/* モバイル：アバター → ポップオーバー */}
-              <div className="relative sm:hidden" ref={popRef}>
-                <button
-                  aria-label="アカウントメニュー"
-                  aria-expanded={profileOpen}
-                  onClick={() => setProfileOpen((v) => !v)}
-                  className="grid h-10 w-10 place-items-center rounded-full bg-gray-100 ring-1 ring-gray-200"
-                >
+            {status === "authenticated" ? (
+              <div className="flex items-center gap-4">
+                {/* PC：名前/メール */}
+                <div className="hidden sm:flex items-center gap-3">
                   {user?.image ? (
                     <img
                       src={user.image}
                       alt={user.name ?? "User"}
-                      className="h-9 w-9 rounded-full object-cover"
+                      className="h-9 w-9 rounded-full object-cover ring-1 ring-gray-200 dark:ring-gray-700"
                       referrerPolicy="no-referrer"
                       loading="lazy"
                     />
                   ) : (
-                    <span className="text-sm font-semibold text-gray-700">
+                    <span className="grid h-9 w-9 place-items-center rounded-full bg-gray-200 text-xs text-gray-600 ring-1 ring-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:ring-gray-700">
                       {user?.name?.[0] ?? "U"}
                     </span>
                   )}
+                  <div className="text-right">
+                    <div className="leading-none text-sm font-medium text-gray-900 dark:text-gray-100">
+                      {user?.name ?? "ユーザー"}
+                    </div>
+                    <div className="leading-none text-xs text-gray-500 dark:text-gray-400">
+                      {user?.email}
+                    </div>
+                  </div>
+                </div>
+
+                {/* PC：ログアウト */}
+                <button
+                  type="button"
+                  onClick={() => signOut({ callbackUrl: "/login" })}
+                  className="hidden sm:inline-flex items-center gap-2 rounded-md bg-gray-800 px-4 py-2 text-sm font-medium text-white hover:bg-gray-900 dark:bg-gray-700 dark:hover:bg-gray-600"
+                >
+                  <LogOut size={16} />
+                  ログアウト
                 </button>
 
-                {profileOpen && (
-                  <div className="absolute right-0 mt-2 w-64 rounded-xl border border-gray-200 bg-white p-3 shadow-lg">
-                    <div className="mb-3 flex items-center gap-3">
-                      {user?.image ? (
-                        <img
-                          src={user.image}
-                          alt={user.name ?? "User"}
-                          className="h-9 w-9 rounded-full object-cover ring-1 ring-gray-200"
-                          referrerPolicy="no-referrer"
-                          loading="lazy"
-                        />
-                      ) : (
-                        <span className="grid h-9 w-9 place-items-center rounded-full bg-gray-200 text-xs text-gray-600 ring-1 ring-gray-200">
-                          {user?.name?.[0] ?? "U"}
-                        </span>
-                      )}
-                      <div>
-                        <div className="text-sm font-medium text-gray-900">
-                          {user?.name ?? "ユーザー"}
-                        </div>
-                        <div className="text-xs text-gray-500">
-                          {user?.email}
+                {/* モバイル：アバター → ポップオーバー */}
+                <div className="relative sm:hidden" ref={popRef}>
+                  <button
+                    type="button"
+                    aria-label="アカウントメニュー"
+                    aria-expanded={profileOpen}
+                    onClick={() => setProfileOpen((v) => !v)}
+                    className="grid h-10 w-10 place-items-center rounded-full bg-gray-100 ring-1 ring-gray-200 dark:bg-gray-800 dark:ring-gray-700"
+                  >
+                    {user?.image ? (
+                      <img
+                        src={user.image}
+                        alt={user.name ?? "User"}
+                        className="h-9 w-9 rounded-full object-cover"
+                        referrerPolicy="no-referrer"
+                        loading="lazy"
+                      />
+                    ) : (
+                      <span className="text-sm font-semibold text-gray-700 dark:text-gray-200">
+                        {user?.name?.[0] ?? "U"}
+                      </span>
+                    )}
+                  </button>
+
+                  {profileOpen && (
+                    <div className="absolute right-0 mt-2 w-64 rounded-xl border border-gray-200 bg-white p-3 shadow-lg dark:border-gray-700 dark:bg-gray-900">
+                      <div className="mb-3 flex items-center gap-3">
+                        {user?.image ? (
+                          <img
+                            src={user.image}
+                            alt={user.name ?? "User"}
+                            className="h-9 w-9 rounded-full object-cover ring-1 ring-gray-200 dark:ring-gray-700"
+                            referrerPolicy="no-referrer"
+                            loading="lazy"
+                          />
+                        ) : (
+                          <span className="grid h-9 w-9 place-items-center rounded-full bg-gray-200 text-xs text-gray-600 ring-1 ring-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:ring-gray-700">
+                            {user?.name?.[0] ?? "U"}
+                          </span>
+                        )}
+                        <div>
+                          <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                            {user?.name ?? "ユーザー"}
+                          </div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400">
+                            {user?.email}
+                          </div>
                         </div>
                       </div>
+                      <button
+                        type="button"
+                        onClick={() => signOut({ callbackUrl: "/login" })}
+                        className="flex w-full items-center justify-center gap-2 rounded-md bg-gray-800 px-4 py-2 text-sm font-medium text-white hover:bg-gray-900 dark:bg-gray-700 dark:hover:bg-gray-600"
+                      >
+                        <LogOut size={16} />
+                        ログアウト
+                      </button>
                     </div>
-                    <button
-                      onClick={() => signOut({ callbackUrl: "/login" })}
-                      className="flex w-full items-center justify-center gap-2 rounded-md bg-gray-800 px-4 py-2 text-sm font-medium text-white hover:bg-gray-900"
-                    >
-                      <LogOut size={16} />
-                      ログアウト
-                    </button>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
-            </div>
-          ) : (
-            <>
-              {/* PC：ログイン */}
-              <Link
-                href="/login"
-                className="hidden sm:inline-flex rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-              >
-                ログイン
-              </Link>
-              {/* モバイル：ログイン丸ボタン */}
-              <Link
-                href="/login"
-                className="sm:hidden grid h-10 w-10 place-items-center rounded-full bg-blue-600 text-white hover:bg-blue-700"
-                aria-label="ログイン"
-              >
-                <LogIn size={18} />
-              </Link>
-            </>
-          )}
+            ) : (
+              <>
+                {/* PC：ログイン */}
+                <Link
+                  href="/login"
+                  className="hidden sm:inline-flex rounded-md bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-400 dark:focus:ring-primary-700"
+                >
+                  ログイン
+                </Link>
+                {/* モバイル：ログイン丸ボタン */}
+                <Link
+                  href="/login"
+                  className="sm:hidden grid h-10 w-10 place-items-center rounded-full bg-primary text-white hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-400 dark:focus:ring-primary-700"
+                  aria-label="ログイン"
+                >
+                  <LogIn size={18} />
+                </Link>
+              </>
+            )}
+          </div>
         </div>
       </header>
 
