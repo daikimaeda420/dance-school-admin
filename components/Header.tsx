@@ -116,18 +116,20 @@ export default function Header() {
               aria-label="トップへ"
             >
               {/* ここがロゴ画像（/public/logo.svg を想定） */}
-              <source
-                srcSet="/logo_w.svg"
-                media="(prefers-color-scheme: dark)"
-              />
-              <Image
-                src="/logo.svg"
-                alt="rizbo"
-                width={100}
-                height={32}
-                priority
-                className="object-contain"
-              />
+              <picture className="block">
+                <source
+                  srcSet="/logo_w.svg"
+                  media="(prefers-color-scheme: dark)"
+                />
+                <Image
+                  src="/logo.svg"
+                  alt="rizbo"
+                  width={100}
+                  height={32}
+                  priority
+                  className="object-contain"
+                />
+              </picture>
             </Link>
           </div>
 
