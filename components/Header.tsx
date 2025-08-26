@@ -2,6 +2,7 @@
 
 import { useSession, signOut } from "next-auth/react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { LogIn, LogOut, Menu } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -82,7 +83,7 @@ export default function Header() {
   }, []);
 
   // 表示判定（/embed は非表示）
-  if (pathname.startsWith("/embed")) return null;
+  if (pathname?.startsWith("/embed")) return null;
   if (status === "loading" || !mounted)
     return <div className="h-16" aria-hidden />;
 
@@ -95,7 +96,7 @@ export default function Header() {
   return (
     <>
       <header className="fixed inset-x-0 top-0 z-50 h-16 border-b bg-white/90 backdrop-blur">
-        <div className="mx-auto flex h-full w-full max-w-6xl items-center justify-between px-4">
+        <div className="mx-auto flex h-full w-full items-center justify-between px-4">
           {/* 左：ハンバーガー（smのみ）＋ ロゴ */}
           <div className="flex items-center gap-2">
             <button
@@ -106,18 +107,21 @@ export default function Header() {
             >
               <Menu size={20} />
             </button>
-            <Link href="/" className="flex items-center gap-2">
-              <img
-                src="/logo.svg"
-                alt="サービスロゴ"
-                className="h-7 w-7 object-contain"
-                onError={(e) =>
-                  ((e.target as HTMLImageElement).style.display = "none")
-                }
+
+            <Link
+              href="/"
+              className="flex items-center gap-2"
+              aria-label="トップへ"
+            >
+              {/* ここがロゴ画像（/public/logo.svg を想定） */}
+              <Image
+                src="/logo.svg" // ← 作ったファイル名に合わせて変更（png/jpgでもOK）
+                alt="rizbo"
+                width={100}
+                height={32}
+                priority
+                className="object-contain"
               />
-              <span className="text-lg font-semibold tracking-tight">
-                Dance School Admin
-              </span>
             </Link>
           </div>
 
