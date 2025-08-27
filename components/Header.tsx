@@ -115,21 +115,23 @@ export default function Header() {
               className="flex items-center gap-2"
               aria-label="トップへ"
             >
-              {/* ここがロゴ画像（/public/logo.svg を想定） */}
-              <picture className="block">
-                <source
-                  srcSet="/logo_w.svg"
-                  media="(prefers-color-scheme: dark)"
-                />
-                <Image
-                  src="/logo.svg"
-                  alt="rizbo"
-                  width={100}
-                  height={32}
-                  priority
-                  className="object-contain"
-                />
-              </picture>
+              {/* ライト用 */}
+              <Image
+                src="/logo.svg"
+                alt="rizbo"
+                width={100}
+                height={32}
+                priority
+                className="object-contain dark:hidden"
+              />
+              {/* ダーク用 */}
+              <Image
+                src="/logo_w.svg"
+                alt="rizbo"
+                width={100}
+                height={32}
+                className="hidden dark:inline object-contain"
+              />
             </Link>
           </div>
 

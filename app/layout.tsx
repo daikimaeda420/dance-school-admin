@@ -1,5 +1,6 @@
 // app/layout.tsx
 import "./globals.css";
+import Script from "next/script";
 import type { Metadata, Viewport } from "next"; // ← Viewport を追加
 import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
@@ -44,6 +45,14 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ja" suppressHydrationWarning>
+      <Script id="theme-init" strategy="beforeInteractive">{`
+      try {
+        var ls = localStorage.getItem("theme");
+        var mql = window.matchMedia("(prefers-color-scheme: dark)");
+        var dark = ls ? (ls === "dark") : mql.matches;
+        if (dark) document.documentElement.classList.add("dark");
+      } catch (e) {}
+    `}</Script>
       <body className="min-h-screen bg-gray-50 text-gray-900 dark:bg-gray-950 dark:text-gray-100">
         <AuthProvider>
           <Header />
