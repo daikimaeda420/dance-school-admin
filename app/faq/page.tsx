@@ -1,8 +1,8 @@
-// app/faq/page.tsx
+// app/faq/page.tsx — Q&A エディタ（1カラム版・プレビュー削除）
 "use client";
 
 import { useSession } from "next-auth/react";
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { produce } from "immer";
 import { FAQEditor } from "../../components/FAQEditor";
 
@@ -28,14 +28,50 @@ export type FAQItem =
       options: { label: string; next: FAQItem }[];
     };
 
-/** 凡例用の色（淡色＋細い枠） */
-const LEVEL_CHIP = [
-  "bg-amber-50 border-amber-200",
-  "bg-emerald-50 border-emerald-200",
-  "bg-sky-50 border-sky-200",
-  "bg-rose-50 border-rose-200",
-  "bg-indigo-50 border-indigo-200",
-];
+// 入力検証：空の質問、空の回答（question型）、空のラベルなどを検出
+function validateFAQ(items: FAQItem[]) {
+  const errors = new Set<string>();
+  let questions = 0;
+  let selects = 0;
+  let options = 0;
+  let maxDepth = 0;
+
+  const key = (path: (number | string)[], field: string) =>
+    [...path, field].join(".");
+
+  const walk = (item: FAQItem, path: (number | string)[], depth: number) => {
+    maxDepth = Math.max(maxDepth, depth);
+    if (item.type === "question") {
+      questions++;
+      if (!item.question.trim()) errors.add(key(path, "question"));
+      if (!item.answer.trim()) errors.add(key(path, "answer"));
+      return;
+    }
+    // select
+    selects++;
+    if (!item.question.trim()) errors.add(key(path, "question"));
+    if (Array.isArray(item.options)) {
+      item.options.forEach((opt, i) => {
+        options++;
+        if (!opt.label.trim())
+          errors.add(key([...path, "options", i], "label"));
+        walk(opt.next, [...path, "options", i, "next"], depth + 1);
+      });
+    }
+  };
+
+  items.forEach((it, i) => walk(it, [i], 1));
+  return {
+    errors,
+    stats: {
+      nodes: questions + selects,
+      questions,
+      selects,
+      options,
+      maxDepth,
+    },
+  };
+}
 
 export default function FAQPage() {
   const { data: session, status } = useSession();
@@ -44,15 +80,53 @@ export default function FAQPage() {
 
   const [faq, setFaq] = useState<FAQItem[]>([]);
   const [saving, setSaving] = useState(false);
+  const initialRef = useRef<string>("[]");
+  const [collapsed, setCollapsed] = useState<Record<number, boolean>>({});
+  const [query, setQuery] = useState("");
 
+  // 取得
   useEffect(() => {
     if (status === "authenticated" && schoolId) {
       fetch(`/api/faq?school=${schoolId}`)
         .then((res) => res.json())
-        .then(setFaq)
-        .catch(() => setFaq([]));
+        .then((data) => {
+          setFaq(data || []);
+          initialRef.current = JSON.stringify(data || []);
+        })
+        .catch(() => {
+          setFaq([]);
+          initialRef.current = "[]";
+        });
     }
   }, [status, schoolId]);
+
+  const dirty = useMemo(
+    () => JSON.stringify(faq) !== initialRef.current,
+    [faq]
+  );
+
+  // 未保存警告
+  useEffect(() => {
+    const onBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (!dirty) return;
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => window.removeEventListener("beforeunload", onBeforeUnload);
+  }, [dirty]);
+
+  // ⌘S / Ctrl+S で保存
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
+        e.preventDefault();
+        saveFAQ();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  });
 
   const saveFAQ = async () => {
     if (!schoolId) return;
@@ -65,11 +139,8 @@ export default function FAQPage() {
     setSaving(false);
 
     if (res.ok) {
+      initialRef.current = JSON.stringify(faq);
       alert("保存しました！");
-      const iframe = document.getElementById(
-        "chatbot-iframe"
-      ) as HTMLIFrameElement | null;
-      iframe?.contentWindow?.location.reload();
     } else {
       const err = await res.json().catch(() => ({}));
       alert("保存に失敗しました: " + (err.error || "不明なエラー"));
@@ -81,15 +152,41 @@ export default function FAQPage() {
       setFaq((prev) =>
         produce(prev, (draft: any) => {
           let current = draft;
-          for (let i = 0; i < path.length - 1; i++) {
-            current = current[path[i]];
-          }
+          for (let i = 0; i < path.length - 1; i++) current = current[path[i]];
           current[path[path.length - 1]] = updated;
         })
       );
     },
     []
   );
+
+  // 入力検証と統計
+  const { errors, stats } = useMemo(() => validateFAQ(faq), [faq]);
+  const makeKey = useCallback(
+    (path: (number | string)[], field: string) => [...path, field].join("."),
+    []
+  );
+  const hasError = useCallback(
+    (path: (number | string)[], field: string) =>
+      errors.has(makeKey(path, field)),
+    [errors, makeKey]
+  );
+
+  // 検索（最初の一致へスクロール）
+  const scrollToFirstMatch = () => {
+    const q = query.trim().toLowerCase();
+    if (!q) return;
+    const hitIndex = faq.findIndex((it) =>
+      JSON.stringify(it).toLowerCase().includes(q)
+    );
+    if (hitIndex >= 0) {
+      const el = document.getElementById(`node-${hitIndex}`);
+      el?.scrollIntoView({ behavior: "smooth", block: "start" });
+      setCollapsed((c) => ({ ...c, [hitIndex]: false }));
+    } else {
+      alert("一致する項目が見つかりませんでした");
+    }
+  };
 
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "";
   const iframeCode = `<iframe src="${baseUrl}/embed/chatbot?school=${schoolId}" width="100%" height="600" style="border:none;"></iframe>`;
@@ -109,11 +206,50 @@ export default function FAQPage() {
           <h2 className="text-2xl font-bold">
             📘 {schoolId} スクールのFAQ管理
           </h2>
-          <p className="mt-1 text-sm text-gray-600">
+          <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
             入れ子にすると色だけ変えて表示します（線は最小限）。
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          {dirty && (
+            <span
+              className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs
+              border border-amber-300 bg-amber-50 text-amber-800
+              dark:bg-amber-900/30 dark:border-amber-700 dark:text-amber-200"
+            >
+              未保存の変更あり
+            </span>
+          )}
+          {errors.size > 0 && (
+            <button
+              type="button"
+              className="btn-ghost"
+              onClick={() => {
+                const first = Array.from(errors)[0];
+                const topIndex = Number(first.split(".")[0]); // "0.question" → 0
+                const el = document.getElementById(`node-${topIndex}`);
+                el?.scrollIntoView({ behavior: "smooth", block: "start" });
+              }}
+            >
+              エラー {errors.size} 件
+            </button>
+          )}
+          <div className="relative">
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && scrollToFirstMatch()}
+              className="input pr-20"
+              placeholder="キーワード検索（Enterで移動）"
+            />
+            <button
+              type="button"
+              className="absolute right-1 top-1/2 -translate-y-1/2 btn-ghost px-2 py-1 text-xs"
+              onClick={scrollToFirstMatch}
+            >
+              検索
+            </button>
+          </div>
           <button
             type="button"
             onClick={() =>
@@ -147,111 +283,174 @@ export default function FAQPage() {
           </button>
           <button
             type="button"
+            onClick={() =>
+              setCollapsed(Object.fromEntries(faq.map((_, i) => [i, true])))
+            }
+            className="btn-ghost"
+          >
+            すべて閉じる
+          </button>
+          <button
+            type="button"
+            onClick={() => setCollapsed({})}
+            className="btn-ghost"
+          >
+            すべて開く
+          </button>
+          <button
+            type="button"
             onClick={saveFAQ}
-            disabled={saving}
+            disabled={saving || !dirty}
             className="btn-primary disabled:opacity-50"
           >
-            {saving ? "保存中..." : "保存する"}
+            {saving ? "保存中..." : dirty ? "保存する（⌘/Ctrl+S）" : "保存済み"}
           </button>
         </div>
       </div>
 
-      {/* 凡例 */}
-      <div className="mb-6 flex flex-wrap gap-2 text-xs">
-        {[0, 1, 2, 3].map((lv) => (
-          <span
-            key={lv}
-            className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 ${
-              LEVEL_CHIP[lv % LEVEL_CHIP.length]
-            }`}
-          >
-            <span className="font-medium">Level {lv + 1}</span>
-          </span>
-        ))}
-      </div>
-
-      {/* 2カラム：左=編集 / 右=プレビュー */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        {/* 左：エディタ（外枠だけカード。内側の線はFAQEditorで最小化） */}
+      {/* ===== 1カラム構成 ===== */}
+      <div className="space-y-6">
+        {/* エディタ */}
         <section className="space-y-4">
           {empty ? (
-            <div className="card p-6 text-sm text-gray-600">
+            <div className="card p-6 text-sm text-gray-600 dark:text-gray-300">
               まだ項目がありません。右上の「通常の質問」または「選択肢ブロック」から追加してください。
             </div>
           ) : (
             faq.map((item, i) => (
-              <div key={i} className="card p-5">
-                <div className="mb-3 flex items-center justify-between">
-                  <div className="text-xs font-semibold text-gray-600">
+              <div key={i} className="card p-5" id={`node-${i}`}>
+                <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                  <div className="text-xs font-semibold text-gray-600 dark:text-gray-300">
                     Level 1
                   </div>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setFaq((prev) => prev.filter((_, j) => j !== i))
-                    }
-                    className="text-sm text-red-600 hover:underline"
-                  >
-                    削除
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      className="btn-ghost text-xs"
+                      onClick={() =>
+                        setCollapsed((c) => ({ ...c, [i]: !c[i] }))
+                      }
+                    >
+                      {collapsed[i] ? "▼ 開く" : "▲ 閉じる"}
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-ghost text-xs"
+                      disabled={i === 0}
+                      onClick={() =>
+                        setFaq((prev) => {
+                          const next = [...prev];
+                          [next[i - 1], next[i]] = [next[i], next[i - 1]];
+                          return next;
+                        })
+                      }
+                    >
+                      ↑ 上へ
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-ghost text-xs"
+                      disabled={i === faq.length - 1}
+                      onClick={() =>
+                        setFaq((prev) => {
+                          const next = [...prev];
+                          [next[i + 1], next[i]] = [next[i], next[i + 1]];
+                          return next;
+                        })
+                      }
+                    >
+                      ↓ 下へ
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-ghost text-xs"
+                      onClick={() =>
+                        setFaq((prev) => [
+                          ...prev.slice(0, i + 1),
+                          JSON.parse(JSON.stringify(item)),
+                          ...prev.slice(i + 1),
+                        ])
+                      }
+                    >
+                      ⧉ 複製
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setFaq((prev) => prev.filter((_, j) => j !== i))
+                      }
+                      className="text-sm text-red-600 hover:underline"
+                    >
+                      削除
+                    </button>
+                  </div>
                 </div>
 
-                {/* level=0 を渡す（入れ子で +1 される） */}
-                <FAQEditor
-                  item={item}
-                  path={[i]}
-                  onChange={updateFaqAtPath}
-                  level={0}
-                />
+                {!collapsed[i] && (
+                  <FAQEditor
+                    item={item}
+                    path={[i]}
+                    onChange={updateFaqAtPath}
+                    level={0}
+                    hasError={hasError}
+                  />
+                )}
               </div>
             ))
           )}
         </section>
 
-        {/* 右：プレビュー & 埋め込みコード */}
-        <aside className="self-start space-y-6 lg:sticky lg:top-20">
-          <div className="card">
-            <div className="card-header">
-              <h3 className="font-semibold">🔍 チャットボット プレビュー</h3>
-            </div>
-            <div className="card-body">
-              <iframe
-                id="chatbot-iframe"
-                src={`/embed/chatbot?school=${schoolId}`}
-                className="h-[600px] w-full rounded border border-gray-300"
+        {/* 埋め込みコード */}
+        <section className="card">
+          <div className="card-header">
+            <h3 className="font-semibold">🧩 埋め込みコード</h3>
+          </div>
+          <div className="card-body">
+            <p className="mb-2 text-sm text-gray-600 dark:text-gray-300">
+              このコードをWebサイトに貼り付けてチャットボットを埋め込めます：
+            </p>
+            <div className="flex items-start gap-2">
+              <textarea
+                readOnly
+                rows={4}
+                value={iframeCode}
+                className="input font-mono"
               />
+              <button
+                type="button"
+                onClick={() => {
+                  navigator.clipboard.writeText(iframeCode);
+                  alert("コピーしました！");
+                }}
+                className="btn-ghost shrink-0"
+              >
+                コピー
+              </button>
             </div>
           </div>
+        </section>
 
-          <div className="card">
-            <div className="card-header">
-              <h3 className="font-semibold">🧩 埋め込みコード</h3>
-            </div>
-            <div className="card-body">
-              <p className="mb-2 text-sm text-gray-600">
-                このコードをWebサイトに貼り付けてチャットボットを埋め込めます：
-              </p>
-              <div className="flex items-start gap-2">
-                <textarea
-                  readOnly
-                  rows={4}
-                  value={iframeCode}
-                  className="input font-mono"
-                />
-                <button
-                  type="button"
-                  onClick={() => {
-                    navigator.clipboard.writeText(iframeCode);
-                    alert("コピーしました！");
-                  }}
-                  className="btn-ghost shrink-0"
-                >
-                  コピー
-                </button>
-              </div>
-            </div>
+        {/* バリデーション */}
+        <section className="card">
+          <div className="card-header">
+            <h3 className="font-semibold">✅ バリデーション</h3>
           </div>
-        </aside>
+          <div className="card-body text-sm">
+            {errors.size === 0 ? (
+              <p className="text-emerald-600 dark:text-emerald-300">
+                問題は見つかりませんでした。
+              </p>
+            ) : (
+              <ul className="list-disc pl-5 space-y-1 text-amber-700 dark:text-amber-200">
+                <li>未入力の質問/回答、空のラベル等を検出しています。</li>
+                <li>
+                  入力欄が赤く縁取りされている箇所を修正してください（エラー{" "}
+                  {errors.size} 件）。
+                </li>
+              </ul>
+            )}
+          </div>
+        </section>
       </div>
     </div>
   );

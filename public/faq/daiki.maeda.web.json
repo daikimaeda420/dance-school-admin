@@ -2,6 +2,16 @@
   {
     "type": "select",
     "question": "2",
-    "options": []
+    "options": [
+      {
+        "label": "あて",
+        "next": {
+          "type": "select",
+          "question": "っっっｄ",
+          "answer": "っっっｄ",
+          "options": []
+        }
+      }
+    ]
   }
 ]

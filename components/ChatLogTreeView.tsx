@@ -1,3 +1,4 @@
+// components/ChatLogTreeView.tsx 置き換え
 "use client";
 
 import * as React from "react";
@@ -15,18 +16,17 @@ type FaqLog = {
   answer?: any;
   url?: string;
 };
-
 type Props = { logs: FaqLog[] };
 
 const ITEMS_PER_PAGE_DEFAULT = 5;
 
-// 階層ごとの色
+/* 階層ごとの色（ダーク対応） */
 const LEVEL_BG = [
-  "bg-amber-50 border-amber-200",
-  "bg-emerald-50 border-emerald-200",
-  "bg-sky-50 border-sky-200",
-  "bg-rose-50 border-rose-200",
-  "bg-indigo-50 border-indigo-200",
+  "bg-amber-50 border-amber-200 dark:bg-amber-900/20 dark:border-amber-700",
+  "bg-emerald-50 border-emerald-200 dark:bg-emerald-900/20 dark:border-emerald-700",
+  "bg-sky-50 border-sky-200 dark:bg-sky-900/20 dark:border-sky-700",
+  "bg-rose-50 border-rose-200 dark:bg-rose-900/20 dark:border-rose-700",
+  "bg-indigo-50 border-indigo-200 dark:bg-indigo-900/20 dark:border-indigo-700",
 ];
 const levelClass = (level: number) =>
   `rounded-lg border ${LEVEL_BG[level % LEVEL_BG.length]}`;
@@ -89,14 +89,12 @@ export default function ChatLogTreeView({ logs }: Props) {
     s.has(id) ? s.delete(id) : s.add(id);
     setOpenIds(s);
   };
-
   const expandAll = () =>
     setOpenIds(new Set(filteredSessions.map(([id]) => id)));
   const collapseAll = () => setOpenIds(new Set());
 
   const formatDate = (d: string) =>
     new Date(d).toLocaleString(undefined, { hour12: false });
-
   const renderAnswer = (a: any): string => {
     if (a == null) return "-";
     if (typeof a === "string") return a;
@@ -115,7 +113,6 @@ export default function ChatLogTreeView({ logs }: Props) {
         </div>
       );
     }
-
     if (q && typeof q === "object" && q.type === "select") {
       return (
         <div className={`p-3 space-y-3 ${levelClass(level)}`}>
@@ -128,7 +125,6 @@ export default function ChatLogTreeView({ logs }: Props) {
                 </div>
                 {opt.next && (
                   <div className="ml-3">
-                    {/* next が {question, answer} 形式でも、文字列でも両対応 */}
                     {renderQuestion(
                       typeof opt.next === "object" && "question" in opt.next
                         ? (opt.next as any).question
@@ -136,7 +132,7 @@ export default function ChatLogTreeView({ logs }: Props) {
                       level + 1
                     )}
                     {(opt.next as any)?.answer && (
-                      <div className="mt-2 rounded-md bg-green-50 px-3 py-2 text-green-800 border border-green-200 text-sm">
+                      <div className="mt-2 rounded-md bg-green-50 border border-green-200 text-green-800 dark:bg-green-900/20 dark:border-green-700 dark:text-green-200 px-3 py-2 text-sm">
                         A: {renderAnswer((opt.next as any).answer)}
                       </div>
                     )}
@@ -148,9 +144,12 @@ export default function ChatLogTreeView({ logs }: Props) {
         </div>
       );
     }
-
     return (
-      <div className={`p-3 italic text-gray-500 ${levelClass(level)}`}>
+      <div
+        className={`p-3 italic text-gray-500 dark:text-gray-400 ${levelClass(
+          level
+        )}`}
+      >
         (不明な質問形式)
       </div>
     );
@@ -169,10 +168,8 @@ export default function ChatLogTreeView({ logs }: Props) {
         alert(`削除に失敗しました：${text}`);
         return;
       }
-      // ページ側のステートを持たないので、再読み込みで反映
       location.reload();
-    } catch (e) {
-      console.error(e);
+    } catch {
       alert("削除に失敗しました（通信エラー）");
     }
   };
@@ -188,11 +185,11 @@ export default function ChatLogTreeView({ logs }: Props) {
               setCurrentPage(1);
               setQuery(e.target.value);
             }}
-            className="w-64 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-300"
+            className="input w-64"
             placeholder="セッションID / 質問 / 回答 を検索"
           />
           <select
-            className="rounded-lg border border-gray-300 bg-white px-2 py-2 text-sm"
+            className="input w-36"
             value={pageSize}
             onChange={(e) => {
               setCurrentPage(1);
@@ -208,16 +205,10 @@ export default function ChatLogTreeView({ logs }: Props) {
         </div>
 
         <div className="flex gap-2">
-          <button
-            onClick={expandAll}
-            className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm hover:bg-gray-50"
-          >
+          <button onClick={expandAll} className="btn-ghost">
             全て展開
           </button>
-          <button
-            onClick={collapseAll}
-            className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm hover:bg-gray-50"
-          >
+          <button onClick={collapseAll} className="btn-ghost">
             全て閉じる
           </button>
         </div>
@@ -225,7 +216,9 @@ export default function ChatLogTreeView({ logs }: Props) {
 
       {/* セッション一覧 */}
       {filteredSessions.length === 0 ? (
-        <p className="p-6 text-sm text-gray-500">該当するログがありません</p>
+        <p className="p-6 text-sm text-gray-500 dark:text-gray-400">
+          該当するログがありません
+        </p>
       ) : (
         <div className="space-y-4">
           {pageSessions.map(([id, items]) => {
@@ -237,19 +230,17 @@ export default function ChatLogTreeView({ logs }: Props) {
             ).toLocaleDateString()}`;
 
             return (
-              <div
-                key={id}
-                className="rounded-xl border border-gray-200 shadow-soft bg-white"
-              >
+              <div key={id} className="card overflow-hidden">
+                {/* ヘッダー */}
                 <div
-                  className="flex cursor-pointer items-center justify-between rounded-t-xl bg-amber-50 px-4 py-3"
+                  className="flex cursor-pointer items-center justify-between bg-amber-50 dark:bg-amber-900/20 border-b border-amber-200 dark:border-amber-700 px-4 py-3"
                   onClick={() => toggle(id)}
                 >
                   <div className="flex flex-col md:flex-row md:items-center md:gap-3">
-                    <div className="text-sm font-semibold text-amber-900">
+                    <div className="text-sm font-semibold text-amber-900 dark:text-amber-200">
                       {opened ? "▼" : "▶"} セッションID: {id}
                     </div>
-                    <div className="text-xs text-amber-800">
+                    <div className="text-xs text-amber-800 dark:text-amber-300">
                       {items.length} 件 / {dateRange}
                     </div>
                   </div>
@@ -259,7 +250,7 @@ export default function ChatLogTreeView({ logs }: Props) {
                         e.stopPropagation();
                         navigator.clipboard.writeText(id);
                       }}
-                      className="rounded-md border border-amber-300 bg-white px-2 py-1 text-xs text-amber-800 hover:bg-amber-100"
+                      className="btn-ghost text-xs border-amber-300 dark:border-amber-700 text-amber-800 dark:text-amber-200"
                     >
                       コピー
                     </button>
@@ -268,32 +259,33 @@ export default function ChatLogTreeView({ logs }: Props) {
                         e.stopPropagation();
                         handleDelete(id);
                       }}
-                      className="rounded-md bg-red-600 px-2 py-1 text-xs font-medium text-white hover:bg-red-700"
+                      className="rounded-md bg-red-600 dark:bg-red-500 px-2 py-1 text-xs font-medium text-white hover:bg-red-700 dark:hover:bg-red-600"
                     >
                       削除
                     </button>
                   </div>
                 </div>
 
+                {/* 本文 */}
                 {opened && (
-                  <ul className="divide-y divide-gray-100">
+                  <ul className="divide-y divide-gray-100 dark:divide-gray-800">
                     {items.map((log, i) => (
                       <li key={i} className="p-4">
                         <div className="flex flex-col gap-2">
                           {renderQuestion(log.question, 0)}
                           {log.answer != null && (
-                            <div className="mt-2 rounded-md bg-green-50 px-3 py-2 text-sm text-green-800 border border-green-200">
+                            <div className="mt-2 rounded-md bg-green-50 border border-green-200 text-green-800 dark:bg-green-900/20 dark:border-green-700 dark:text-green-200 px-3 py-2 text-sm">
                               A: {renderAnswer(log.answer)}
                             </div>
                           )}
-                          <div className="text-xs text-gray-500">
+                          <div className="text-xs text-gray-500 dark:text-gray-400">
                             📅 {formatDate(log.timestamp)}
                             {log.url && (
                               <>
                                 {"  "}・{" "}
                                 <a
                                   href={log.url}
-                                  className="text-blue-600 hover:underline"
+                                  className="text-blue-600 dark:text-blue-300 hover:underline"
                                   target="_blank"
                                   rel="noreferrer"
                                 >
@@ -316,17 +308,17 @@ export default function ChatLogTreeView({ logs }: Props) {
             <button
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               disabled={currentPage === 1}
-              className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm disabled:opacity-50 hover:bg-gray-50"
+              className="btn-ghost disabled:opacity-50"
             >
               前へ
             </button>
-            <span className="px-2 text-sm text-gray-700">
+            <span className="px-2 text-sm text-gray-700 dark:text-gray-300">
               {currentPage} / {totalPages}
             </span>
             <button
               onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
               disabled={currentPage === totalPages}
-              className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm disabled:opacity-50 hover:bg-gray-50"
+              className="btn-ghost disabled:opacity-50"
             >
               次へ
             </button>

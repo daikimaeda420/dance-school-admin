@@ -6,27 +6,24 @@ import { usePathname } from "next/navigation";
 import {
   Home,
   Layers,
-  ClipboardList,
   Users,
   Settings,
   HelpCircle,
   X,
+  Bot,
+  ExternalLink,
 } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, MouseEvent } from "react";
+import { useSession } from "next-auth/react";
 
 type Props = {
-  /** md以上で表示する左固定サイドバーを出すか（デフォルト: true） */
   showDesktop?: boolean;
-  /** smで使うドロワーの開閉状態 */
   mobileOpen?: boolean;
-  /** ドロワーを閉じる */
   onClose?: () => void;
 };
 
-// 必要に応じて編集
 const NAV = [
   { href: "/", label: "ホーム", icon: Home },
-  { href: "/schools/manage", label: "学校管理", icon: ClipboardList },
   { href: "/faq", label: "Q&A編集", icon: Layers },
   { href: "/admin/chat-history", label: "ユーザーログ", icon: Users },
   { href: "/superadmin", label: "アカウント管理", icon: Settings },
@@ -39,10 +36,15 @@ export default function Sidebar({
   onClose,
 }: Props) {
   const pathname = usePathname();
+  const { data: session } = useSession();
+  const schoolId = (session?.user as any)?.schoolId as string | undefined;
 
   // /embed はサイドバー非表示
   if (pathname.startsWith("/embed")) return null;
 
+  const embedHref = `/embed/chatbot${
+    schoolId ? `?school=${encodeURIComponent(schoolId)}` : ""
+  }`;
   const isActive = (href: string) =>
     pathname === href || pathname.startsWith(href + "/");
 
@@ -56,7 +58,6 @@ export default function Sidebar({
     };
   }, [mobileOpen]);
 
-  // 共通クラス
   const baseLink =
     "flex items-center gap-3 rounded-lg px-3 py-2 transition-colors focus-visible:outline-none " +
     "focus-visible:ring-2 focus-visible:ring-primary-400 dark:focus-visible:ring-primary-700";
@@ -65,6 +66,52 @@ export default function Sidebar({
   const active =
     "bg-primary-50 text-primary-700 border-l-4 border-primary-400 " +
     "dark:bg-gray-800 dark:text-primary-300 dark:border-primary-600";
+
+  /** 小窓で中央表示。ブロック時は新規タブにフォールバック。⌘/Ctrlクリックは新規タブ。 */
+  const openPreviewPopup = (e?: MouseEvent<HTMLButtonElement>) => {
+    if (e && (e.metaKey || e.ctrlKey || e.shiftKey)) {
+      window.open(embedHref, "_blank", "noopener,noreferrer");
+      return;
+    }
+    e?.preventDefault?.();
+
+    const width = 420;
+    const height = 720;
+    const screenLeft = (window.screenLeft ??
+      (window as any).screenX ??
+      0) as number;
+    const screenTop = (window.screenTop ??
+      (window as any).screenY ??
+      0) as number;
+    const innerW =
+      window.innerWidth || document.documentElement.clientWidth || screen.width;
+    const innerH =
+      window.innerHeight ||
+      document.documentElement.clientHeight ||
+      screen.height;
+
+    const left = Math.max(0, Math.round(screenLeft + (innerW - width) / 2));
+    const top = Math.max(0, Math.round(screenTop + (innerH - height) / 2));
+
+    const features = [
+      "popup=yes",
+      "noopener",
+      "noreferrer",
+      "resizable=yes",
+      "scrollbars=yes",
+      `width=${width}`,
+      `height=${height}`,
+      `left=${left}`,
+      `top=${top}`,
+    ].join(",");
+
+    const w = window.open(embedHref, "chatbotPreview", features);
+    if (!w) {
+      window.open(embedHref, "_blank", "noopener,noreferrer");
+    } else {
+      w.focus();
+    }
+  };
 
   return (
     <>
@@ -78,7 +125,7 @@ export default function Sidebar({
             dark:bg-gray-900 dark:border-gray-800
           "
         >
-          <nav className="p-3">
+          <nav className="p-3 space-y-1">
             {NAV.map(({ href, label, icon: Icon }) => {
               const selected = isActive(href);
               return (
@@ -93,6 +140,26 @@ export default function Sidebar({
                 </Link>
               );
             })}
+
+            {/* 小窓プレビュー（別タブアイコン表示） */}
+            <button
+              type="button"
+              onClick={openPreviewPopup}
+              title="チャットボットプレビューを小窓で開く（⌘/Ctrl+クリックで新規タブ）"
+              className={[
+                baseLink,
+                inactive,
+                "w-full justify-between text-left",
+              ].join(" ")}
+            >
+              <span className="flex items-center gap-3">
+                <Bot size={18} />
+                <span>プレビュー</span>
+              </span>
+              <span className="flex items-center gap-2">
+                <ExternalLink size={14} className="opacity-70" aria-hidden />
+              </span>
+            </button>
           </nav>
         </aside>
       )}
@@ -126,7 +193,7 @@ export default function Sidebar({
               </button>
             </div>
 
-            <nav className="p-2">
+            <nav className="p-2 space-y-1">
               {NAV.map(({ href, label, icon: Icon }) => {
                 const selected = isActive(href);
                 return (
@@ -146,6 +213,33 @@ export default function Sidebar({
                   </Link>
                 );
               })}
+
+              {/* 小窓プレビュー（別タブアイコン表示） */}
+              <button
+                type="button"
+                onClick={(e) => {
+                  openPreviewPopup(e);
+                  onClose?.();
+                }}
+                className={[
+                  baseLink,
+                  "w-full",
+                  inactive,
+                  "justify-between text-left",
+                ].join(" ")}
+                title="チャットボットプレビューを小窓で開く（⌘/Ctrl+クリックで新規タブ）"
+              >
+                <span className="flex items-center gap-3">
+                  <Bot size={18} />
+                  <span>チャットボット（小窓）</span>
+                </span>
+                <span className="flex items-center gap-2">
+                  <ExternalLink size={14} className="opacity-70" aria-hidden />
+                  <span className="text-[10px] rounded-full border px-1.5 py-0.5 text-gray-600 dark:text-gray-300 border-gray-300 dark:border-gray-700">
+                    420×720
+                  </span>
+                </span>
+              </button>
             </nav>
           </aside>
         </div>

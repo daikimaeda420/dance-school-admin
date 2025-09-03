@@ -1,7 +1,7 @@
 // app/layout.tsx
 import "./globals.css";
 import Script from "next/script";
-import type { Metadata, Viewport } from "next"; // ← Viewport を追加
+import type { Metadata, Viewport } from "next";
 import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
 import AuthProvider from "@/components/AuthProvider";
@@ -26,7 +26,7 @@ export const metadata: Metadata = {
     statusBarStyle: "default",
     title: "Dance School Admin",
   },
-  // ❌ ここに themeColor は置かない（警告の原因）
+  // themeColor はここに置かない
 };
 
 // ✅ こちらに移動
@@ -45,14 +45,17 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ja" suppressHydrationWarning>
-      <Script id="theme-init" strategy="beforeInteractive">{`
-      try {
-        var ls = localStorage.getItem("theme");
-        var mql = window.matchMedia("(prefers-color-scheme: dark)");
-        var dark = ls ? (ls === "dark") : mql.matches;
-        if (dark) document.documentElement.classList.add("dark");
-      } catch (e) {}
-    `}</Script>
+      {/* 👇 ここで head を明示し、Script を head 内に置く */}
+      <head>
+        <Script id="theme-init" strategy="beforeInteractive">{`
+          try {
+            var ls = localStorage.getItem("theme");
+            var mql = window.matchMedia("(prefers-color-scheme: dark)");
+            var dark = ls ? (ls === "dark") : mql.matches;
+            if (dark) document.documentElement.classList.add("dark");
+          } catch (e) {}
+        `}</Script>
+      </head>
       <body className="min-h-screen bg-gray-50 text-gray-900 dark:bg-gray-950 dark:text-gray-100">
         <AuthProvider>
           <Header />
