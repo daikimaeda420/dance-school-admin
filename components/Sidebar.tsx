@@ -5,9 +5,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Home,
-  Layers,
-  Users,
-  Settings,
+  // Layers,
+  TimerReset,
+  // Settings,
+  UserCog,
+  MessagesSquare,
   HelpCircle,
   X,
   Bot,
@@ -24,9 +26,9 @@ type Props = {
 
 const NAV = [
   { href: "/", label: "ホーム", icon: Home },
-  { href: "/faq", label: "Q&A編集", icon: Layers },
-  { href: "/admin/chat-history", label: "ユーザーログ", icon: Users },
-  { href: "/superadmin", label: "アカウント管理", icon: Settings },
+  { href: "/faq", label: "Q&A編集", icon: MessagesSquare },
+  { href: "/admin/chat-history", label: "ユーザーログ", icon: TimerReset },
+  { href: "/superadmin", label: "アカウント管理", icon: UserCog },
   { href: "/help", label: "ヘルプ", icon: HelpCircle },
 ];
 
@@ -64,8 +66,8 @@ export default function Sidebar({
   const inactive =
     "text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800";
   const active =
-    "bg-primary-50 text-primary-700 border-l-4 border-primary-400 " +
-    "dark:bg-gray-800 dark:text-primary-300 dark:border-primary-600";
+    "bg-primary-50 text-primary-700 border-l-4 border-l-[#fe6147] " +
+    "bg-gray-100 dark:bg-gray-800 dark:text-primary-300 dark:border-primary-600 dark:border-l-[#fe6147]";
 
   /** 小窓で中央表示。ブロック時は新規タブにフォールバック。⌘/Ctrlクリックは新規タブ。 */
   const openPreviewPopup = (e?: MouseEvent<HTMLButtonElement>) => {

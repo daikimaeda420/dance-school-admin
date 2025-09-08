@@ -2,6 +2,7 @@
 "use client";
 
 import { useSession } from "next-auth/react";
+import { HelpCircle } from "lucide-react";
 
 function Section({
   id,
@@ -29,9 +30,12 @@ export default function HelpPage() {
     <main className="min-h-[80vh]">
       <div className="mx-auto max-w-6xl px-4 py-6">
         <div className="mb-6">
-          <h1 className="text-2xl font-bold">ヘルプ</h1>
-          <p className="mt-1 text-sm text-gray-600">
-            セットアップから運用、トラブル対応まで
+          <h1 className="flex items-center gap-2 text-2xl font-bold">
+            <HelpCircle aria-hidden="true" className="w-6 h-6" />
+            <span>ヘルプ</span>
+          </h1>
+          <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
+            セットアップから運用までのガイドライン
           </p>
         </div>
 

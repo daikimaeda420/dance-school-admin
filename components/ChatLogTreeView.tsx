@@ -3,6 +3,7 @@
 
 import * as React from "react";
 import { useMemo, useState } from "react";
+import { ChevronDown, Trash2, Clock } from "lucide-react";
 
 type SelectOption = { label: string; next?: any };
 type FaqQuestion =
@@ -28,8 +29,7 @@ const LEVEL_BG = [
   "bg-rose-50 border-rose-200 dark:bg-rose-900/20 dark:border-rose-700",
   "bg-indigo-50 border-indigo-200 dark:bg-indigo-900/20 dark:border-indigo-700",
 ];
-const levelClass = (level: number) =>
-  `rounded-lg border ${LEVEL_BG[level % LEVEL_BG.length]}`;
+const levelClass = (level: number) => `rounded-lg `;
 
 export default function ChatLogTreeView({ logs }: Props) {
   // セッションにグルーピング＆最新順
@@ -108,7 +108,7 @@ export default function ChatLogTreeView({ logs }: Props) {
   const renderQuestion = (q: FaqQuestion, level = 0): React.ReactElement => {
     if (typeof q === "string") {
       return (
-        <div className={`p-3 ${levelClass(level)}`}>
+        <div className={`p-3 bg-gray-50 dark:bg-gray-800 rounded-md`}>
           <div className="font-semibold">Q: {q}</div>
         </div>
       );
@@ -177,7 +177,7 @@ export default function ChatLogTreeView({ logs }: Props) {
   return (
     <div className="p-4">
       {/* コントロールバー */}
-      <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+      <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between ">
         <div className="flex items-center gap-2">
           <input
             value={query}
@@ -233,14 +233,14 @@ export default function ChatLogTreeView({ logs }: Props) {
               <div key={id} className="card overflow-hidden">
                 {/* ヘッダー */}
                 <div
-                  className="flex cursor-pointer items-center justify-between bg-amber-50 dark:bg-amber-900/20 border-b border-amber-200 dark:border-amber-700 px-4 py-3"
+                  className="flex cursor-pointer items-center bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 px-4 py-3 justify-between"
                   onClick={() => toggle(id)}
                 >
                   <div className="flex flex-col md:flex-row md:items-center md:gap-3">
-                    <div className="text-sm font-semibold text-amber-900 dark:text-amber-200">
-                      {opened ? "▼" : "▶"} セッションID: {id}
+                    <div className="text-sm font-semibold">
+                      セッションID: {id}
                     </div>
-                    <div className="text-xs text-amber-800 dark:text-amber-300">
+                    <div className="text-xs">
                       {items.length} 件 / {dateRange}
                     </div>
                   </div>
@@ -250,7 +250,7 @@ export default function ChatLogTreeView({ logs }: Props) {
                         e.stopPropagation();
                         navigator.clipboard.writeText(id);
                       }}
-                      className="btn-ghost text-xs border-amber-300 dark:border-amber-700 text-amber-800 dark:text-amber-200"
+                      className="btn-ghost text-xs bg-white dark:bg-gray-900 border border-gray-500 dark:border-gray-500"
                     >
                       コピー
                     </button>
@@ -259,10 +259,23 @@ export default function ChatLogTreeView({ logs }: Props) {
                         e.stopPropagation();
                         handleDelete(id);
                       }}
-                      className="rounded-md bg-red-600 dark:bg-red-500 px-2 py-1 text-xs font-medium text-white hover:bg-red-700 dark:hover:bg-red-600"
+                      className="inline-flex items-center gap-1 rounded-lg
+              border dark:border-gray-500
+              ring-1 ring-inset ring-gray-500 dark:ring-gray-500
+              bg-red-600 px-2.5 py-2 text-xs font-medium text-white hover:bg-red-700"
+                      title="削除"
                     >
-                      削除
+                      <Trash2 size={14} />
+                      <span className="hidden sm:inline">削除</span>
                     </button>
+                    {/* 矢印 */}
+                    <Clock
+                      size={20}
+                      className={`shrink-0 transition-transform duration-200 ${
+                        opened ? "rotate-180" : ""
+                      } text-gray-600 dark:text-gray-300`}
+                      aria-hidden
+                    />
                   </div>
                 </div>
 
@@ -274,12 +287,13 @@ export default function ChatLogTreeView({ logs }: Props) {
                         <div className="flex flex-col gap-2">
                           {renderQuestion(log.question, 0)}
                           {log.answer != null && (
-                            <div className="mt-2 rounded-md bg-green-50 border border-green-200 text-green-800 dark:bg-green-900/20 dark:border-green-700 dark:text-green-200 px-3 py-2 text-sm">
+                            <div className="mt-2 rounded-md border border-gray-200 px-3 py-2 text-sm">
                               A: {renderAnswer(log.answer)}
                             </div>
                           )}
-                          <div className="text-xs text-gray-500 dark:text-gray-400">
-                            📅 {formatDate(log.timestamp)}
+                          <div className="text-xs text-gray-500 dark:text-gray-400 flex gap-2 items-center">
+                            <Clock aria-hidden="true" className="w-4 h-4" />
+                            {formatDate(log.timestamp)}
                             {log.url && (
                               <>
                                 {"  "}・{" "}

@@ -145,20 +145,13 @@ function OptionHeader({
         }}
         className="rounded-md group flex w-full items-center justify-between gap-2 px-2.5 py-2 text-left
         bg-gray-200 dark:bg-gray-700
-            appearance-none border-0 ring-0
-            focus:outline-none focus:ring-0
-            focus-visible:outline-none focus-visible:ring-0"
+            hover:bg-gray-300 dark:hover:bg-gray-600
+          appearance-none border-0 ring-0
+          focus:outline-none focus:ring-0
+          focus-visible:outline-none focus-visible:ring-0"
       >
-        {/* 左：矢印＋バッジ＋ラベル */}
+        {/* 左：バッジ＋ラベル */}
         <div className="min-w-0 flex items-center gap-2">
-          <ChevronDown
-            size={16}
-            className={`shrink-0 transition-transform duration-200 ${
-              opened ? "rotate-180" : ""
-            } text-gray-600 dark:text-gray-300`}
-            aria-hidden
-          />
-
           {/* バッジ：濃いグレー枠 */}
           <span
             className="inline-flex shrink-0 items-center rounded-full border px-2 py-0.5 text-[11px]
@@ -171,9 +164,9 @@ function OptionHeader({
           {/* ラベル入力：濃いグレー枠 */}
           <input
             className="input h-8 w-[220px] sm:w-[280px] md:w-[320px]
-                       !border-gray-500 dark:!border-gray-500
-                       focus:!border-gray-600 focus:!ring-1 focus:!ring-gray-600
-                       dark:focus:!border-gray-500 dark:focus:!ring-gray-500"
+                      !border-gray-500 dark:!border-gray-500
+                      focus:!border-gray-600 focus:!ring-1 focus:!ring-gray-600
+                      dark:focus:!border-gray-500 dark:focus:!ring-gray-500"
             value={label}
             placeholder="（例）キッズ"
             onChange={(e) => onChangeLabel(e.target.value)}
@@ -200,9 +193,9 @@ function OptionHeader({
                 onClick();
               }}
               className="inline-flex items-center gap-1 rounded-full
-                         border border-gray-500 dark:border-gray-500
-                         bg-white px-3 py-1.5 text-xs hover:bg-gray-50
-                         dark:bg-gray-900 dark:hover:bg-gray-800"
+                border border-gray-500 dark:border-gray-500
+                bg-white px-3 py-1.5 text-xs hover:bg-gray-50
+                dark:bg-gray-900 dark:hover:bg-gray-800"
               title={label}
             >
               <Icon size={14} />
@@ -218,14 +211,23 @@ function OptionHeader({
               onRemove();
             }}
             className="inline-flex items-center gap-1 rounded-md
-                       border border-gray-500 dark:border-gray-500
-                       ring-1 ring-inset ring-gray-500 dark:ring-gray-500
-                       bg-red-600 px-2.5 py-1.5 text-xs font-medium text-white hover:bg-red-700"
+              border dark:border-gray-500
+              ring-1 ring-inset ring-gray-500 dark:ring-gray-500
+              bg-red-600 px-2.5 py-1.5 text-xs font-medium text-white hover:bg-red-700"
             title="削除"
           >
             <Trash2 size={14} />
             <span className="hidden sm:inline">削除</span>
           </button>
+
+          {/* 矢印 */}
+          <ChevronDown
+            size={20}
+            className={`shrink-0 transition-transform duration-200 ${
+              opened ? "rotate-180" : ""
+            } text-gray-600 dark:text-gray-300`}
+            aria-hidden
+          />
         </div>
       </button>
     </div>

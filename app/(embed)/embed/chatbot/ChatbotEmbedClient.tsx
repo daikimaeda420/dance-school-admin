@@ -1,5 +1,7 @@
+// app/(embed)/embed/chatbot/ChatbotEmbedClient.tsx
 "use client";
 
+import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState, useRef } from "react";
 
@@ -114,15 +116,29 @@ export default function ChatbotEmbedClient() {
 
   return (
     <div
-      style={{ padding: 16, fontFamily: "sans-serif", background: "#f9f9f9" }}
+      style={{
+        padding: 16,
+        fontFamily: "sans-serif",
+        background: "#f9f9f9",
+        color: "#000", // ★ 文字色を黒に
+      }}
     >
-      <h3 style={{ fontWeight: "bold", marginBottom: 8 }}>🤖 チャットボット</h3>
+      <div style={{ marginBottom: 8 }}>
+        <Image
+          src="/logo.svg"
+          alt="rizbo"
+          width={120}
+          height={32}
+          priority
+          style={{ display: "block", objectFit: "contain" }}
+        />
+      </div>
 
       <button
         onClick={handleReset}
         style={{
           background: "#f43f5e",
-          color: "#fff",
+          color: "#fff", // リセットボタンは白文字のまま
           border: "none",
           padding: "8px 12px",
           borderRadius: 6,
@@ -150,6 +166,7 @@ export default function ChatbotEmbedClient() {
                   border: "1px solid #ddd",
                   borderRadius: 6,
                   cursor: "pointer",
+                  color: "#000", // 質問リストの文字も黒
                 }}
               >
                 {item.question}
@@ -184,6 +201,7 @@ export default function ChatbotEmbedClient() {
                 borderRadius: 12,
                 background: msg.role === "user" ? "#dcfce7" : "#e5e7eb",
                 maxWidth: "80%",
+                color: "#000", // 吹き出し内の文字を黒
               }}
             >
               <div style={{ whiteSpace: "pre-wrap" }}>{msg.text}</div>
@@ -196,7 +214,7 @@ export default function ChatbotEmbedClient() {
                     rel="noopener noreferrer"
                     style={{
                       fontSize: 13,
-                      color: "#2563eb",
+                      color: "#2563eb", // リンクは青のまま
                       textDecoration: "underline",
                     }}
                   >
@@ -219,6 +237,7 @@ export default function ChatbotEmbedClient() {
                     border: "1px solid #ccc",
                     borderRadius: 6,
                     cursor: "pointer",
+                    color: "#000", // 選択肢ボタンの文字も黒
                   }}
                 >
                   {opt.label}

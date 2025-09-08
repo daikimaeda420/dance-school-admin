@@ -4,6 +4,7 @@
 import { useSession } from "next-auth/react";
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { produce } from "immer";
+import { MessagesSquare } from "lucide-react";
 import { FAQEditor } from "../../components/FAQEditor";
 
 // schoolId を含む型
@@ -201,15 +202,16 @@ export default function FAQPage() {
   return (
     <div className="mx-auto max-w-6xl px-4 py-6">
       {/* 見出し + ツールバー */}
+      <div className="mb-6">
+        <h1 className="flex items-center gap-2 text-2xl font-bold">
+          <MessagesSquare aria-hidden="true" className="w-6 h-6" />
+          <span>Q&A編集</span>
+        </h1>
+        <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
+          チャットボットの質問の追加・編集を行います。変更後は必ず保存してください。
+        </p>
+      </div>
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h2 className="text-2xl font-bold">
-            📘 {schoolId} スクールのFAQ管理
-          </h2>
-          <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
-            入れ子にすると色だけ変えて表示します（線は最小限）。
-          </p>
-        </div>
         <div className="flex flex-wrap gap-2">
           {dirty && (
             <span
@@ -240,7 +242,7 @@ export default function FAQPage() {
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && scrollToFirstMatch()}
               className="input pr-20"
-              placeholder="キーワード検索（Enterで移動）"
+              placeholder="キーワード検索"
             />
             <button
               type="button"
@@ -320,19 +322,14 @@ export default function FAQPage() {
             faq.map((item, i) => (
               <div key={i} className="card p-5" id={`node-${i}`}>
                 <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                  <div className="text-xs font-semibold text-gray-600 dark:text-gray-300">
-                    Level 1
-                  </div>
+                  <button
+                    type="button"
+                    className="btn-ghost text-xs"
+                    onClick={() => setCollapsed((c) => ({ ...c, [i]: !c[i] }))}
+                  >
+                    {collapsed[i] ? "▼ 開く" : "▲ 閉じる"}
+                  </button>
                   <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      className="btn-ghost text-xs"
-                      onClick={() =>
-                        setCollapsed((c) => ({ ...c, [i]: !c[i] }))
-                      }
-                    >
-                      {collapsed[i] ? "▼ 開く" : "▲ 閉じる"}
-                    </button>
                     <button
                       type="button"
                       className="btn-ghost text-xs"

@@ -3,6 +3,7 @@
 // app/admin/chat-history/page.tsx
 import { useEffect, useMemo, useState } from "react";
 import ChatLogTreeView from "@/components/ChatLogTreeView";
+import { TimerReset } from "lucide-react";
 
 type FaqLog = {
   sessionId?: string;
@@ -40,7 +41,10 @@ export default function ChatHistoryPage() {
   return (
     <div className="mx-auto max-w-6xl px-4 py-6">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold">💬 チャット履歴（セッション別）</h1>
+        <h1 className="flex items-center gap-2 text-2xl font-bold">
+          <TimerReset aria-hidden="true" className="w-6 h-6" />
+          <span>ユーザーログ</span>
+        </h1>
         <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
           セッション数{" "}
           <span className="font-semibold text-gray-900 dark:text-gray-100">

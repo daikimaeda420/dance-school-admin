@@ -3,6 +3,7 @@
 
 import { useSession } from "next-auth/react";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { Home } from "lucide-react";
 import {
   AlertCircle,
   ArrowUpRight,
@@ -186,7 +187,11 @@ export default function HomePage() {
         {/* ヘッダー */}
         <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-2xl font-bold">ホーム</h1>
+            <h1 className="flex items-center gap-2 text-2xl font-bold">
+              <Home aria-hidden="true" className="w-6 h-6" />
+              <span>ホーム</span>
+            </h1>
+
             <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
               {subtitle || "Q&A運用状況のハイライトとクイックアクション"}
             </p>
