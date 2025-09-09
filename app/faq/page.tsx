@@ -162,7 +162,7 @@ export default function FAQPage() {
   );
 
   // 入力検証と統計
-  const { errors, stats } = useMemo(() => validateFAQ(faq), [faq]);
+  const { errors } = useMemo(() => validateFAQ(faq), [faq]);
   const makeKey = useCallback(
     (path: (number | string)[], field: string) => [...path, field].join("."),
     []
@@ -189,8 +189,12 @@ export default function FAQPage() {
     }
   };
 
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "";
-  const iframeCode = `<iframe src="${baseUrl}/embed/chatbot?school=${schoolId}" width="100%" height="600" style="border:none;"></iframe>`;
+  // ▼▼ ここを「script方式」に変更 ▼▼
+  const baseUrl =
+    process.env.NEXT_PUBLIC_BASE_URL ||
+    (typeof window !== "undefined" ? window.location.origin : "");
+  const embedScriptCode = `<script src="${baseUrl}/embed.js" data-school="${schoolId}" data-theme="light" data-height="600" async></script>`;
+  // ▲▲ ここまで ▲▲
 
   const empty = useMemo(() => faq.length === 0, [faq.length]);
 
@@ -397,26 +401,27 @@ export default function FAQPage() {
           )}
         </section>
 
-        {/* 埋め込みコード */}
+        {/* 埋め込みコード（script方式） */}
         <section className="card">
           <div className="card-header">
-            <h3 className="font-semibold">🧩 埋め込みコード</h3>
+            <h3 className="font-semibold">🧩 埋め込みコード（script）</h3>
           </div>
           <div className="card-body">
             <p className="mb-2 text-sm text-gray-600 dark:text-gray-300">
-              このコードをWebサイトに貼り付けてチャットボットを埋め込めます：
+              外部サイトには下記の <code>&lt;script&gt;</code>{" "}
+              を貼り付けてください。
             </p>
             <div className="flex items-start gap-2">
               <textarea
                 readOnly
                 rows={4}
-                value={iframeCode}
+                value={embedScriptCode}
                 className="input font-mono"
               />
               <button
                 type="button"
                 onClick={() => {
-                  navigator.clipboard.writeText(iframeCode);
+                  navigator.clipboard.writeText(embedScriptCode);
                   alert("コピーしました！");
                 }}
                 className="btn-ghost shrink-0"
@@ -424,6 +429,11 @@ export default function FAQPage() {
                 コピー
               </button>
             </div>
+            <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+              ※ <code>public/embed.js</code> を配信してください。必要なら{" "}
+              <code>data-theme</code> / <code>data-height</code>{" "}
+              を調整できます。
+            </p>
           </div>
         </section>
 
