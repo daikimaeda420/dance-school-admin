@@ -1,9 +1,9 @@
+// app/(embed)/embed/chatbot/ChatbotEmbedClient.tsx
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { useEffect, useMemo, useRef, useState } from "react";
 
-// ===== Types =====
 export type FAQItem =
   | {
       type: "question";
@@ -18,87 +18,17 @@ export type FAQItem =
       options: { label: string; next: FAQItem }[];
     };
 
-type Message =
-  | {
-      id: string;
-      role: "bot";
-      text: string;
-      options?: QuickReply[];
-      url?: string;
-    }
-  | { id: string; role: "user"; text: string };
+type Message = {
+  role: "bot" | "user";
+  text: string;
+  url?: string;
+  options?: { label: string; next: FAQItem }[];
+};
 
-type QuickReply = { label: string; path: string }; // path = "0.options.1.next" など
-
-// ===== Utils =====
-const uid = () => Math.random().toString(36).slice(2);
-
-function pathToArray(path: string) {
-  // "0.options.1.next" -> ["0","options","1","next"]
-  return path.split(".").map((k) => (k.match(/^\d+$/) ? Number(k) : k));
-}
-
-function getNodeByPath(items: FAQItem[], path: string): FAQItem | null {
-  try {
-    const keys = pathToArray(path);
-    let cur: any = items;
-    for (const k of keys) cur = cur[k];
-    return cur ?? null;
-  } catch {
-    return null;
-  }
-}
-
-function flatten(items: FAQItem[]) {
-  // 検索用：全 question を収集
-  const list: {
-    question: string;
-    answer?: string;
-    url?: string;
-    path: string;
-    type: FAQItem["type"];
-  }[] = [];
-  const walk = (node: FAQItem, path: (number | string)[]) => {
-    if (node.type === "question") {
-      list.push({
-        question: node.question || "",
-        answer: node.answer,
-        url: node.url,
-        path: path.join("."),
-        type: "question",
-      });
-    } else {
-      list.push({
-        question: node.question || "",
-        path: path.join("."),
-        type: "select",
-      });
-      node.options?.forEach((opt, i) =>
-        walk(opt.next, [...path, "options", i, "next"])
-      );
-    }
-  };
-  items.forEach((it, i) => walk(it, [i]));
-  return list;
-}
-
-function ensureSessionId() {
-  if (typeof window === "undefined") return "";
-  let sid = localStorage.getItem("sessionId");
-  if (!sid) {
-    sid = `s_${Date.now().toString(36)}_${Math.random()
-      .toString(36)
-      .slice(2, 8)}`;
-    localStorage.setItem("sessionId", sid);
-  }
-  return sid;
-}
-
-// ===== Component =====
 export default function ChatbotEmbedClient() {
   const params = useSearchParams();
-  const school = params.get("school") ?? "";
-  const theme = params.get("theme") ?? "light";
+  const schoolId = params.get("school") ?? "";
+  const theme = (params.get("theme") ?? "light").toLowerCase(); // light|dark
 
   const rootRef = useRef<HTMLDivElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
@@ -108,10 +38,82 @@ export default function ChatbotEmbedClient() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const sessionId = useMemo(() => ensureSessionId(), []);
-  const flat = useMemo(() => flatten(faq), [faq]);
+  // --- session id を確保（従来ロジック踏襲） ---
+  const getSessionId = () => {
+    if (typeof window === "undefined") return "";
+    let sid = localStorage.getItem("sessionId");
+    if (!sid) {
+      sid = crypto.randomUUID();
+      localStorage.setItem("sessionId", sid);
+    }
+    return sid;
+  };
 
-  // ===== resize to parent (inline互換) =====
+  // --- ログ送信（従来の /api/logs を利用） ---
+  const logToServer = async (
+    question: string,
+    answer: string = "",
+    url: string = ""
+  ) => {
+    if (!schoolId) return;
+    const sessionId = getSessionId();
+    try {
+      await fetch("/api/logs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          school: schoolId,
+          sessionId,
+          question,
+          answer,
+          url,
+          timestamp: new Date().toISOString(),
+        }),
+      });
+    } catch (err) {
+      console.error("ログ送信失敗:", err);
+    }
+  };
+
+  // --- FAQ 取得 ---
+  useEffect(() => {
+    if (!schoolId) return;
+    (async () => {
+      try {
+        const res = await fetch(
+          `/api/faq?school=${encodeURIComponent(schoolId)}`
+        );
+        const data = (await res.json()) as FAQItem[] | null;
+        setFaq(Array.isArray(data) ? data : []);
+      } catch {
+        setFaq([]);
+      }
+    })();
+  }, [schoolId]);
+
+  // --- 初期メッセージ（トップが select の場合は選択肢提示） ---
+  useEffect(() => {
+    if (!faq.length) return;
+    const top = faq[0];
+    const greet: Message = {
+      role: "bot",
+      text: "ご不明な点はありますか？ お気軽にお問合せください。",
+    };
+    if (top?.type === "select" && top.options?.length) {
+      setMessages([
+        greet,
+        ...(top.answer
+          ? ([{ role: "bot", text: top.answer }] as Message[])
+          : []),
+        { role: "bot", text: top.question, options: top.options },
+      ]);
+      logToServer(top.question, "(選択肢)");
+    } else {
+      setMessages([greet]);
+    }
+  }, [faq]);
+
+  // --- 親へ高さ通知（ローダーの自動リサイズ互換） ---
   useEffect(() => {
     const postResize = () => {
       const h = rootRef.current?.scrollHeight ?? 600;
@@ -123,217 +125,141 @@ export default function ChatbotEmbedClient() {
     return () => ro.disconnect();
   }, []);
 
-  // ===== auto-scroll =====
+  // --- オートスクロール ---
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [messages.length]);
 
-  // ===== load FAQ =====
-  useEffect(() => {
-    (async () => {
-      try {
-        const res = await fetch(
-          `/api/faq?school=${encodeURIComponent(school)}`
-        );
-        const data = (await res.json()) as FAQItem[] | null;
-        setFaq(Array.isArray(data) ? data : []);
-      } catch {
-        setFaq([]);
-      }
-    })();
-  }, [school]);
+  // --- ユーザが選択肢をクリック ---
+  const handleOptionSelect = (option: { label: string; next: FAQItem }) => {
+    setMessages((prev) => [...prev, { role: "user", text: option.label }]);
+    setTimeout(() => renderFAQ(option.next, false), 120);
+  };
 
-  // ===== greet =====
-  useEffect(() => {
+  // --- FAQノードを描画（従来ロジックを拡張） ---
+  const renderFAQ = (item: FAQItem, fromUserClick: boolean = true) => {
+    if (!item) return;
+    if (fromUserClick) {
+      setMessages((prev) => [...prev, { role: "user", text: item.question }]);
+    }
+
+    if (item.type === "question") {
+      setMessages((prev) => [
+        ...prev,
+        { role: "bot", text: item.answer, url: item.url },
+        // 追質問の導線を軽く提示
+        ...makeTopFollowup(),
+      ]);
+      logToServer(item.question, item.answer, item.url ?? "");
+      return;
+    }
+
+    // select
+    if (item.answer) {
+      setMessages((prev) => [...prev, { role: "bot", text: item.answer }]);
+    }
+    setMessages((prev) => [
+      ...prev,
+      { role: "bot", text: item.question, options: item.options || [] },
+    ]);
+    logToServer(item.question, "(選択肢)");
+  };
+
+  // --- 画面下「再スタート」相当（セッションもリセット） ---
+  const handleReset = () => {
+    setMessages([]);
+    localStorage.removeItem("sessionId");
+    // 初期案内を再生成
     if (!faq.length) return;
-    // 最初のメッセージ
+    const top = faq[0];
     const greet: Message = {
-      id: uid(),
       role: "bot",
       text: "ご不明な点はありますか？ お気軽にお問合せください。",
     };
-
-    // トップが select の場合はその選択肢をクイックリプライに
-    let options: QuickReply[] | undefined;
-    const top = faq[0];
-    if (top && top.type === "select" && top.options?.length) {
-      options = top.options.map((opt, i) => ({
-        label: opt.label || "(選択肢)",
-        path: `0.options.${i}.next`,
-      }));
+    if (top?.type === "select" && top.options?.length) {
+      setMessages([
+        greet,
+        ...(top.answer
+          ? ([{ role: "bot", text: top.answer }] as Message[])
+          : []),
+        { role: "bot", text: top.question, options: top.options },
+      ]);
+    } else {
+      setMessages([greet]);
     }
+  };
 
-    setMessages(options ? [{ ...greet, options }] : [greet]);
+  // --- FAQを平坦化（簡易検索用） ---
+  const flat = useMemo(() => {
+    const list: { question: string; node: FAQItem }[] = [];
+    const walk = (node: FAQItem) => {
+      if (node.type === "question")
+        list.push({ question: node.question || "", node });
+      if (node.type === "select") node.options?.forEach((o) => walk(o.next));
+    };
+    faq.forEach(walk);
+    return list;
   }, [faq]);
 
-  // ===== logging (best-effort) =====
-  const log = async (payload: {
-    question: string;
-    answer?: string;
-    url?: string;
-  }) => {
-    try {
-      await fetch(`/api/faq-log?school=${encodeURIComponent(school)}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          sessionId,
-          timestamp: new Date().toISOString(),
-          ...payload,
-        }),
-      });
-    } catch {
-      // 無視（存在しない環境でも落ちないように）
-    }
-  };
-
-  // ===== reply helpers =====
-  const showSelect = (node: Extract<FAQItem, { type: "select" }>) => {
-    const opts: QuickReply[] = node.options.map((opt, i) => ({
-      label: opt.label || "(選択肢)",
-      path: `__CURRENT__.options.${i}.next`, // __CURRENT__ は直後で差し替え
-    }));
-
-    // nodeのpathを探す
-    const hit = flat.find(
-      (f) => f.path && f.path.length && f.question === node.question
-    );
-    const basePath = hit?.path ?? ""; // 例: "0"
-    const fixedOpts = opts.map((o) => ({
-      ...o,
-      path: o.path.replace("__CURRENT__", basePath),
-    }));
-
-    setMessages((prev) => [
-      ...prev,
-      {
-        id: uid(),
-        role: "bot",
-        text: node.question || "お選びください。",
-        options: fixedOpts,
-      },
-    ]);
-  };
-
-  const answerQuestion = (q: string, a?: string, url?: string) => {
-    setMessages((prev) => [
-      ...prev,
-      { id: uid(), role: "bot", text: a || "回答が見つかりました。", url },
-      {
-        id: uid(),
-        role: "bot",
-        text: "他にもご質問はありますか？",
-        options: makeTopOptions(),
-      },
-    ]);
-    log({ question: q, answer: a, url }).catch(() => {});
-  };
-
-  const makeTopOptions = (): QuickReply[] | undefined => {
-    const top = faq[0];
-    if (top && top.type === "select" && top.options?.length) {
-      return top.options.map((opt, i) => ({
-        label: opt.label || "(選択肢)",
-        path: `0.options.${i}.next`,
-      }));
-    }
-    return undefined;
-  };
-
-  // ===== user actions =====
-  const onQuickReply = (qr: QuickReply) => {
-    // 1) ユーザが選んだ表示
-    setMessages((prev) => [
-      ...prev,
-      { id: uid(), role: "user", text: qr.label },
-    ]);
-
-    // 2) 次ノードに進む
-    const next = getNodeByPath(faq, qr.path);
-    if (!next) {
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: uid(),
-          role: "bot",
-          text: "すみません、該当の項目が見つかりませんでした。",
-        },
-      ]);
-      return;
-    }
-    if (next.type === "question") {
-      answerQuestion(next.question, next.answer, next.url);
-    } else {
-      showSelect(next);
-    }
-  };
-
+  // --- テキスト送信（部分一致検索） ---
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const text = input.trim();
     if (!text) return;
     setInput("");
-    setMessages((prev) => [...prev, { id: uid(), role: "user", text }]);
+    setMessages((prev) => [...prev, { role: "user", text }]);
     setLoading(true);
 
     setTimeout(() => {
       setLoading(false);
-
-      // 部分一致で question を検索
       const hit =
-        flat.find(
-          (f) =>
-            f.type === "question" &&
-            f.question?.toLowerCase().includes(text.toLowerCase())
-        ) ||
         flat.find((f) =>
-          f.question?.toLowerCase().includes(text.toLowerCase())
-        );
+          f.question.toLowerCase().includes(text.toLowerCase())
+        ) ?? null;
 
       if (!hit) {
         setMessages((prev) => [
           ...prev,
           {
-            id: uid(),
             role: "bot",
             text: "うまく見つかりませんでした。カテゴリーからお選びいただくか、別のキーワードでお試しください。",
-            options: makeTopOptions(),
+            ...(faq[0]?.type === "select" && faq[0].options?.length
+              ? { options: faq[0].options }
+              : {}),
           },
         ]);
         return;
       }
-
-      // hit が question の場合はその回答、select の場合は選択肢提示
-      const node = getNodeByPath(faq, hit.path);
-      if (!node) {
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: uid(),
-            role: "bot",
-            text: "該当の項目が見つかりませんでした。",
-          },
-        ]);
-        return;
-      }
-      if (node.type === "question") {
-        answerQuestion(node.question, node.answer, (node as any).url);
-      } else {
-        showSelect(node);
-      }
-    }, 150); // 疑似待機で自然に
+      renderFAQ(hit.node, false);
+    }, 140);
   };
 
-  // ===== close bubble =====
+  // --- 右上の「×」で親に閉じる通知 ---
   const closeParent = () => {
     window.parent?.postMessage({ type: "RIZBO_CLOSE" }, "*");
   };
 
-  // ===== render =====
+  // --- 追質問の導線を生成（トップが select のとき） ---
+  const makeTopFollowup = (): Message[] => {
+    const top = faq[0];
+    if (top?.type === "select" && top.options?.length) {
+      return [
+        {
+          role: "bot",
+          text: "他にもご質問はありますか？",
+          options: top.options,
+        },
+      ];
+    }
+    return [];
+  };
+
+  // ===== Render =====
   return (
     <div
       ref={rootRef}
       className={`rzw-root ${theme === "dark" ? "rzw-dark" : ""}`}
+      style={{ color: "#000" }} // 文字は黒基調
     >
       <div className="rzw-card">
         {/* Header */}
@@ -356,9 +282,9 @@ export default function ChatbotEmbedClient() {
 
         {/* Body */}
         <main className="rzw-body">
-          {messages.map((m) => (
+          {messages.map((m, i) => (
             <div
-              key={m.id}
+              key={i}
               className={`rzw-msg ${
                 m.role === "user" ? "rzw-msg-out" : "rzw-msg-in"
               }`}
@@ -368,25 +294,23 @@ export default function ChatbotEmbedClient() {
                   m.role === "user" ? "rzw-bubble-out" : "rzw-bubble-in"
                 }`}
               >
-                <p
-                  dangerouslySetInnerHTML={{
-                    __html: escapeHtml(m.text).replace(/\n/g, "<br>"),
-                  }}
-                />
-                {m.url && (
+                <div style={{ whiteSpace: "pre-wrap" }}>{m.text}</div>
+
+                {m.url?.trim() && (
                   <p className="rzw-link">
                     <a href={m.url} target="_blank" rel="noopener noreferrer">
                       くわしく見る ↗
                     </a>
                   </p>
                 )}
+
                 {m.role === "bot" && m.options?.length ? (
                   <div className="rzw-qr">
-                    {m.options.map((o, i) => (
+                    {m.options.map((o, j) => (
                       <button
-                        key={i}
+                        key={j}
                         className="rzw-chip"
-                        onClick={() => onQuickReply(o)}
+                        onClick={() => handleOptionSelect(o)}
                       >
                         {o.label || "選択"}
                       </button>
@@ -396,6 +320,7 @@ export default function ChatbotEmbedClient() {
               </div>
             </div>
           ))}
+
           {loading && (
             <div className="rzw-msg rzw-msg-in">
               <div className="rzw-bubble rzw-bubble-in">
@@ -410,7 +335,16 @@ export default function ChatbotEmbedClient() {
           <div ref={endRef} />
         </main>
 
-        {/* Input */}
+        {/* Input / Controls */}
+        <div className="rzw-controls">
+          <button
+            className="rzw-reset"
+            onClick={handleReset}
+            title="再スタート"
+          >
+            🔁
+          </button>
+        </div>
         <form className="rzw-input" onSubmit={onSubmit}>
           <input
             className="rzw-field"
@@ -455,7 +389,6 @@ export default function ChatbotEmbedClient() {
           display: flex;
           align-items: flex-end;
           justify-content: flex-end;
-          color: #111827;
         }
         .rzw-card {
           width: 100%;
@@ -530,7 +463,6 @@ export default function ChatbotEmbedClient() {
         .rzw-bubble-out {
           background: var(--rz-bubble-out);
           color: var(--rz-text-out);
-          border-color: transparent;
         }
         .rzw-link {
           margin-top: 6px;
@@ -557,6 +489,17 @@ export default function ChatbotEmbedClient() {
         .rzw-chip:hover {
           border-color: var(--rz-primary);
         }
+        .rzw-controls {
+          display: flex;
+          justify-content: flex-end;
+          padding: 8px 12px 0;
+        }
+        .rzw-reset {
+          border: none;
+          background: transparent;
+          cursor: pointer;
+          font-size: 16px;
+        }
         .rzw-input {
           display: flex;
           gap: 8px;
@@ -573,6 +516,7 @@ export default function ChatbotEmbedClient() {
           padding: 0 42px 0 14px;
           outline: none;
           background: #fff;
+          color: #000;
         }
         .rzw-field::placeholder {
           color: #9aa7b6;
@@ -620,9 +564,4 @@ export default function ChatbotEmbedClient() {
       `}</style>
     </div>
   );
-}
-
-// ===== tiny HTML escape =====
-function escapeHtml(s: string) {
-  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
