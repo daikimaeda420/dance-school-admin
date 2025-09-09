@@ -4,11 +4,15 @@ import Script from "next/script";
 import type { Metadata, Viewport } from "next";
 import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
+import Footer from "@/components/Footer";
 import AuthProvider from "@/components/AuthProvider";
 
 export const metadata: Metadata = {
-  title: { default: "Dance School Admin", template: "%s | Dance School Admin" },
-  description: "ダンススクール向け管理システム",
+  title: {
+    default: "rizbo - ダンススクール専用チャットボットシステム",
+    template: "%s | rizbo",
+  },
+  description: "ダンススクール専用チャットボットシステム",
   icons: {
     icon: [
       { url: "/favicon.ico", sizes: "any" },
@@ -24,7 +28,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Dance School Admin",
+    title: "rizbo",
   },
   // themeColor はここに置かない
 };
@@ -62,9 +66,10 @@ export default function RootLayout({
           <div className="mx-auto px-4">
             <div className="flex gap-6">
               <Sidebar showDesktop />
-              <main className="flex-1 min-h-[calc(100vh-4rem)] py-6">
-                {children}
-              </main>
+              <div className="flex-1 min-h-[calc(100vh-4rem)]">
+                <main className="min-h-[87vh] py-6">{children}</main>
+                <Footer siteName="Rizbo" startYear={2025} />
+              </div>
             </div>
           </div>
         </AuthProvider>
