@@ -260,7 +260,7 @@ export default function ChatbotEmbedClient() {
       ref={rootRef}
       className={`rzw-root ${theme === "dark" ? "rzw-dark" : ""}`}
     >
-      <div className="rzw-card min-h-dvw">
+      <div className="rzw-card">
         {/* ヘッダー */}
         <header className="rzw-head">
           <div className="rzw-head-left">
@@ -406,6 +406,7 @@ export default function ChatbotEmbedClient() {
           color: #000;
         }
         .rzw-card {
+          min-height: 100dvh;
           width: 100%;
           height: 100%;
           background: #fff;
