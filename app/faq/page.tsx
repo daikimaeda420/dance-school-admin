@@ -4,7 +4,7 @@
 import { useSession } from "next-auth/react";
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { produce } from "immer";
-import { MessagesSquare, CodeXml, BadgeCheck } from "lucide-react";
+import { MessagesSquare, CodeXml, BadgeCheck, Palette } from "lucide-react";
 import { FAQEditor } from "../../components/FAQEditor";
 
 // schoolId を含む型
@@ -349,46 +349,6 @@ export default function FAQPage() {
 
       {/* ===== 1カラム構成 ===== */}
       <div className="space-y-6">
-        {/* 🎨 テーマカラー */}
-        <section className="card">
-          <div className="card-header">
-            <h3 className="font-semibold">🎨 テーマカラー</h3>
-          </div>
-          <div className="card-body">
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
-              {PALETTES.map((p) => {
-                const active = palette === p.value;
-                return (
-                  <button
-                    key={p.value}
-                    type="button"
-                    onClick={() => setPalette(p.value)}
-                    className={[
-                      "rounded-xl border px-3 py-2 text-left transition",
-                      active
-                        ? "ring-2 ring-blue-500 border-blue-300 bg-blue-50 dark:bg-blue-900/20"
-                        : "hover:bg-gray-50 dark:hover:bg-gray-800 border-gray-200 dark:border-gray-700",
-                    ].join(" ")}
-                    aria-pressed={active}
-                  >
-                    <div
-                      className="h-6 w-full rounded mb-1.5"
-                      style={{ background: p.color }}
-                      aria-hidden
-                    />
-                    <div className="text-xs text-gray-700 dark:text-gray-200">
-                      {p.label}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-            <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-              選択はブラウザに保存され、下の埋め込みコードに反映されます。
-            </p>
-          </div>
-        </section>
-
         {/* エディタ */}
         <section className="space-y-4">
           {empty ? (
@@ -472,6 +432,49 @@ export default function FAQPage() {
               </div>
             ))
           )}
+        </section>
+
+        {/* 🎨 テーマカラー */}
+        <section className="card">
+          <div className="card-header">
+            <h3 className="font-semibold flex items-center gap-2">
+              <Palette aria-hidden="true" className="w-5 h-5" />
+              <span>テーマカラー</span>
+            </h3>
+          </div>
+          <div className="card-body">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
+              {PALETTES.map((p) => {
+                const active = palette === p.value;
+                return (
+                  <button
+                    key={p.value}
+                    type="button"
+                    onClick={() => setPalette(p.value)}
+                    className={[
+                      "rounded-xl border px-3 py-2 text-left transition",
+                      active
+                        ? "ring-2 ring-blue-500 border-blue-300 bg-blue-50 dark:bg-blue-900/20"
+                        : "hover:bg-gray-50 dark:hover:bg-gray-800 border-gray-200 dark:border-gray-700",
+                    ].join(" ")}
+                    aria-pressed={active}
+                  >
+                    <div
+                      className="h-6 w-full rounded mb-1.5"
+                      style={{ background: p.color }}
+                      aria-hidden
+                    />
+                    <div className="text-xs text-gray-700 dark:text-gray-200">
+                      {p.label}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+            <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+              選択はブラウザに保存され、下の埋め込みコードに反映されます。
+            </p>
+          </div>
         </section>
 
         {/* 埋め込みコード（script方式） */}
