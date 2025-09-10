@@ -15,6 +15,16 @@ type UserWithSchool = {
   schoolId?: string;
 };
 
+const PALETTES = [
+  { value: "navy", label: "Navy", color: "#2f5c7a" },
+  { value: "emerald", label: "Emerald", color: "#0f766e" },
+  { value: "orange", label: "Orange", color: "#ea580c" },
+  { value: "purple", label: "Purple", color: "#6d28d9" },
+  { value: "rose", label: "Rose", color: "#be123c" },
+  { value: "gray", label: "Gray", color: "#374151" },
+] as const;
+type PaletteValue = (typeof PALETTES)[number]["value"];
+
 export type FAQItem =
   | {
       type: "question";
@@ -84,6 +94,24 @@ export default function FAQPage() {
   const initialRef = useRef<string>("[]");
   const [collapsed, setCollapsed] = useState<Record<number, boolean>>({});
   const [query, setQuery] = useState("");
+
+  // ▼ 追加：テーマパレット
+  const [palette, setPalette] = useState<PaletteValue>("navy");
+  // schoolId 決定後に復元
+  useEffect(() => {
+    if (!schoolId) return;
+    const saved = localStorage.getItem(
+      `chatbot_palette:${schoolId}`
+    ) as PaletteValue | null;
+    if (saved && PALETTES.some((p) => p.value === saved)) {
+      setPalette(saved);
+    }
+  }, [schoolId]);
+  // 変更を保存
+  useEffect(() => {
+    if (!schoolId) return;
+    localStorage.setItem(`chatbot_palette:${schoolId}`, palette);
+  }, [palette, schoolId]);
 
   // 取得
   useEffect(() => {
@@ -189,11 +217,16 @@ export default function FAQPage() {
     }
   };
 
-  // ▼▼ ここを「script方式」に変更 ▼▼
+  // ▼▼ script方式（palette 反映版） ▼▼
   const baseUrl =
     process.env.NEXT_PUBLIC_BASE_URL ||
     (typeof window !== "undefined" ? window.location.origin : "");
-  const embedScriptCode = `<script src="${baseUrl}/embed.js" data-school="${schoolId}" data-theme="light" data-height="600" async></script>`;
+  const embedScriptCode = `<script src="${baseUrl}/embed.js"
+  data-rizbo-school="${schoolId}"
+  data-rizbo-palette="${palette}"
+  data-rizbo-theme="light"
+  async
+></script>`;
   // ▲▲ ここまで ▲▲
 
   const empty = useMemo(() => faq.length === 0, [faq.length]);
@@ -316,6 +349,46 @@ export default function FAQPage() {
 
       {/* ===== 1カラム構成 ===== */}
       <div className="space-y-6">
+        {/* 🎨 テーマカラー */}
+        <section className="card">
+          <div className="card-header">
+            <h3 className="font-semibold">🎨 テーマカラー</h3>
+          </div>
+          <div className="card-body">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
+              {PALETTES.map((p) => {
+                const active = palette === p.value;
+                return (
+                  <button
+                    key={p.value}
+                    type="button"
+                    onClick={() => setPalette(p.value)}
+                    className={[
+                      "rounded-xl border px-3 py-2 text-left transition",
+                      active
+                        ? "ring-2 ring-blue-500 border-blue-300 bg-blue-50 dark:bg-blue-900/20"
+                        : "hover:bg-gray-50 dark:hover:bg-gray-800 border-gray-200 dark:border-gray-700",
+                    ].join(" ")}
+                    aria-pressed={active}
+                  >
+                    <div
+                      className="h-6 w-full rounded mb-1.5"
+                      style={{ background: p.color }}
+                      aria-hidden
+                    />
+                    <div className="text-xs text-gray-700 dark:text-gray-200">
+                      {p.label}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+            <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+              選択はブラウザに保存され、下の埋め込みコードに反映されます。
+            </p>
+          </div>
+        </section>
+
         {/* エディタ */}
         <section className="space-y-4">
           {empty ? (
@@ -405,7 +478,7 @@ export default function FAQPage() {
         <section className="card">
           <div className="card-header">
             <h3 className="font-semibold flex items-center gap-2">
-              <CodeXml aria-hidden="true" className="w-5 h-5" />{" "}
+              <CodeXml aria-hidden="true" className="w-5 h-5" />
               <span>埋め込みコード（script）</span>
             </h3>
           </div>
@@ -417,7 +490,7 @@ export default function FAQPage() {
             <div className="flex items-start gap-2">
               <textarea
                 readOnly
-                rows={4}
+                rows={5}
                 value={embedScriptCode}
                 className="input font-mono"
               />
@@ -433,9 +506,9 @@ export default function FAQPage() {
               </button>
             </div>
             <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-              ※ <code>public/embed.js</code> を配信してください。必要なら{" "}
-              <code>data-theme</code> / <code>data-height</code>{" "}
-              を調整できます。
+              ※ <code>public/embed.js</code> が <code>data-rizbo-school</code> /{" "}
+              <code>data-rizbo-palette</code> / <code>data-rizbo-theme</code>{" "}
+              を読み込み、iframe に反映します。
             </p>
           </div>
         </section>
@@ -444,7 +517,7 @@ export default function FAQPage() {
         <section className="card">
           <div className="card-header">
             <h3 className="font-semibold flex items-center gap-2">
-              <BadgeCheck aria-hidden="true" className="w-5 h-5" />{" "}
+              <BadgeCheck aria-hidden="true" className="w-5 h-5" />
               <span>バリデーション</span>
             </h3>
           </div>
