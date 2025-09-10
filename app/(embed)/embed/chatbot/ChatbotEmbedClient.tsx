@@ -27,21 +27,10 @@ type Message = {
   options?: { label: string; next: FAQItem }[];
 };
 
-const PALETTES = new Set([
-  "navy",
-  "emerald",
-  "orange",
-  "purple",
-  "rose",
-  "gray",
-]);
-
 export default function ChatbotEmbedClient() {
   const params = useSearchParams();
   const schoolId = params.get("school") ?? "";
   const theme = (params.get("theme") ?? "light").toLowerCase(); // light|dark
-  const paletteParam = (params.get("palette") ?? "navy").toLowerCase();
-  const palette = PALETTES.has(paletteParam) ? paletteParam : "navy";
 
   const rootRef = useRef<HTMLDivElement>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
@@ -125,7 +114,7 @@ export default function ChatbotEmbedClient() {
     }
   }, [faq]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ==== 親へ高さ通知（本文だけスクロールにするので無効化） ====
+  // ==== 親へ高さ通知（無効化して本文のみスクロールに） ====
   const enableAutoResize = false;
   useEffect(() => {
     if (!enableAutoResize) return;
@@ -261,9 +250,7 @@ export default function ChatbotEmbedClient() {
   return (
     <div
       ref={rootRef}
-      className={`rzw-root rzw-theme-${palette} ${
-        theme === "dark" ? "rzw-dark" : ""
-      }`}
+      className={`rzw-root ${theme === "dark" ? "rzw-dark" : ""}`}
     >
       <div className="rzw-card">
         {/* ヘッダー */}
@@ -312,8 +299,8 @@ export default function ChatbotEmbedClient() {
               {m.role === "bot" && (
                 <img
                   src="/apple-touch-icon.png"
-                  width={22}
-                  height={22}
+                  width={32}
+                  height={32}
                   alt="サイトロゴ"
                   className="logo-icon"
                 />
@@ -381,113 +368,24 @@ export default function ChatbotEmbedClient() {
       </div>
 
       <style jsx>{`
-        /* -------- スコープされたCSS変数（デフォルト: navy） -------- */
-        .rzw-root {
+        :global(:root) {
           --rz-primary: #2f5c7a;
           --rz-bg: #f6f8fb;
           --rz-bubble-in: #e9f2f8;
           --rz-bubble-out: #2f5c7a;
           --rz-text-in: #2b3950;
-          --rz-text-out: #ffffff;
+          --rz-text-out: #fff;
           --rz-border: #d7dee6;
-          color: #000;
         }
-        /* palette: emerald */
-        .rzw-theme-emerald {
-          --rz-primary: #0f766e;
-          --rz-bg: #f5fbfa;
-          --rz-bubble-in: #e6f7f5;
-          --rz-bubble-out: #0f766e;
-          --rz-text-in: #11423e;
-          --rz-text-out: #ffffff;
-          --rz-border: #cfe9e5;
-        }
-        /* palette: orange */
-        .rzw-theme-orange {
-          --rz-primary: #ea580c;
-          --rz-bg: #fff8f3;
-          --rz-bubble-in: #fff2e8;
-          --rz-bubble-out: #ea580c;
-          --rz-text-in: #5b3219;
-          --rz-text-out: #ffffff;
-          --rz-border: #f4d3bf;
-        }
-        /* palette: purple */
-        .rzw-theme-purple {
-          --rz-primary: #6d28d9;
-          --rz-bg: #faf5ff;
-          --rz-bubble-in: #f3e8ff;
-          --rz-bubble-out: #6d28d9;
-          --rz-text-in: #3e1a71;
-          --rz-text-out: #ffffff;
-          --rz-border: #e1ccfa;
-        }
-        /* palette: rose */
-        .rzw-theme-rose {
-          --rz-primary: #be123c;
-          --rz-bg: #fff6f8;
-          --rz-bubble-in: #ffe8ee;
-          --rz-bubble-out: #be123c;
-          --rz-text-in: #5c1222;
-          --rz-text-out: #ffffff;
-          --rz-border: #f2c4d0;
-        }
-        /* palette: gray */
-        .rzw-theme-gray {
-          --rz-primary: #374151;
-          --rz-bg: #f7fafc;
-          --rz-bubble-in: #eef2f7;
-          --rz-bubble-out: #374151;
-          --rz-text-in: #1f2937;
-          --rz-text-out: #ffffff;
-          --rz-border: #d1d5db;
-        }
-
-        /* ---- ダークモード時の上書き（パレット別にチューニング） ---- */
-        .rzw-dark.rzw-theme-navy {
+        .rzw-dark :global(:root) {
           --rz-bg: #0f1720;
           --rz-bubble-in: #1b2a38;
           --rz-bubble-out: #345f7d;
           --rz-text-in: #dbe6ef;
+          --rz-text-out: #fff;
           --rz-border: #233446;
         }
-        .rzw-dark.rzw-theme-emerald {
-          --rz-bg: #071615;
-          --rz-bubble-in: #123b38;
-          --rz-bubble-out: #147d74;
-          --rz-text-in: #d2f2ee;
-          --rz-border: #1d2b29;
-        }
-        .rzw-dark.rzw-theme-orange {
-          --rz-bg: #140d09;
-          --rz-bubble-in: #2a1a12;
-          --rz-bubble-out: #f97316;
-          --rz-text-in: #fde4d4;
-          --rz-border: #3a2418;
-        }
-        .rzw-dark.rzw-theme-purple {
-          --rz-bg: #0e0a17;
-          --rz-bubble-in: #251842;
-          --rz-bubble-out: #7c3aed;
-          --rz-text-in: #eaddff;
-          --rz-border: #33245a;
-        }
-        .rzw-dark.rzw-theme-rose {
-          --rz-bg: #14080c;
-          --rz-bubble-in: #2b0f18;
-          --rz-bubble-out: #e11d48;
-          --rz-text-in: #ffd9e1;
-          --rz-border: #3a1a25;
-        }
-        .rzw-dark.rzw-theme-gray {
-          --rz-bg: #0b1117;
-          --rz-bubble-in: #1f2937;
-          --rz-bubble-out: #4b5563;
-          --rz-text-in: #e5e7eb;
-          --rz-border: #2b3745;
-        }
 
-        /* ---------- layout ---------- */
         .rzw-root {
           width: 100%;
           height: 100%;
@@ -495,15 +393,16 @@ export default function ChatbotEmbedClient() {
           display: flex;
           align-items: flex-end;
           justify-content: flex-end;
+          color: #000;
         }
         .rzw-card {
-          height: 100dvh;
+          height: 100dvh; /* 本体の高さを固定（必要なら 100svh に） */
           width: 100%;
           background: #fff;
           border-radius: 16px;
           display: flex;
           flex-direction: column;
-          overflow: hidden;
+          overflow: hidden; /* 子(main)以外は溢れない */
           box-shadow: none;
         }
         .rzw-head {
@@ -542,9 +441,9 @@ export default function ChatbotEmbedClient() {
           flex: 1;
           background: var(--rz-bg);
           padding: 12px;
-          overflow-y: auto;
+          overflow-y: auto; /* ← 本文だけスクロール */
           overflow-x: hidden;
-          overscroll-behavior: contain;
+          overscroll-behavior: contain; /* 親への伝播を抑制 */
           scrollbar-gutter: stable;
         }
         .rzw-row {
@@ -588,7 +487,7 @@ export default function ChatbotEmbedClient() {
         }
         .rzw-link a {
           color: inherit;
-          text-decoration: underline;
+          text-decoration: underline; /* ← 誤記修正 */
         }
         .rzw-qr {
           display: flex;
@@ -688,7 +587,7 @@ export default function ChatbotEmbedClient() {
         body,
         #__next {
           height: 100%;
-          overflow: hidden;
+          overflow: hidden; /* body 全体はスクロールさせない */
         }
       `}</style>
     </div>
