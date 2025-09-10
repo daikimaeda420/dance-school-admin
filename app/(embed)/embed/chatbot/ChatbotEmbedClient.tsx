@@ -3,6 +3,7 @@
 
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { RefreshCcw } from "lucide-react";
 import Image from "next/image";
 
 export type FAQItem =
@@ -277,9 +278,10 @@ export default function ChatbotEmbedClient() {
             <button
               className="rzw-reset"
               title="再スタート"
+              aria-label="再スタート"
               onClick={handleReset}
             >
-              🔁
+              <RefreshCcw width={18} height={18} />
             </button>
             <button className="rzw-x" aria-label="閉じる" onClick={closeParent}>
               <svg width="18" height="18" viewBox="0 0 24 24">

@@ -1990,5 +1990,21 @@
     "url": "",
     "timestamp": "2025-09-09T08:35:42.464Z",
     "sessionId": "66ef1c37-2b8c-44ef-9c7c-2954ceedfad2"
+  },
+  {
+    "school": "daiki.maeda.web",
+    "question": "回答",
+    "answer": "アンサー",
+    "url": "",
+    "timestamp": "2025-09-10T07:26:50.422Z",
+    "sessionId": "e0f004d5-4d90-4856-a692-6ffcbf3bd67e"
+  },
+  {
+    "school": "daiki.maeda.web",
+    "question": "回答",
+    "answer": "アンサー",
+    "url": "",
+    "timestamp": "2025-09-10T07:26:53.036Z",
+    "sessionId": "3d7d689c-4261-4bff-8189-4b17d639e572"
   }
 ]

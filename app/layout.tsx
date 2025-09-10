@@ -60,13 +60,13 @@ export default function RootLayout({
           } catch (e) {}
         `}</Script>
       </head>
-      <body className="min-h-screen bg-gray-50 text-gray-900 dark:bg-gray-950 dark:text-gray-100">
+      <body className="min-h-screen bg-gray-50 text-gray-900 dark:bg-gray-950 dark:text-gray-100 w-dvw">
         <AuthProvider>
           <Header />
           <div className="mx-auto px-4">
             <div className="flex gap-6">
               <Sidebar showDesktop />
-              <div className="flex-1 min-h-[calc(100vh-4rem)]">
+              <div className="flex-1 w-full min-h-[calc(100vh-4rem)]">
                 <main className="min-h-[87vh] py-6">{children}</main>
                 <Footer siteName="Rizbo" startYear={2025} />
               </div>

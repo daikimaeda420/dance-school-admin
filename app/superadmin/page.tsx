@@ -11,7 +11,7 @@ const SuperAdminEditor = dynamic(() => import("./SuperAdminEditor"), {
 
 export default function SuperadminPage() {
   return (
-    <main className="mx-auto w-full max-w-6xl px-3 sm:px-6 lg:px-8 py-4 sm:py-6">
+    <div className="mx-auto max-w-6xl px-4 py-6">
       <div className="mb-4 sm:mb-6">
         <h1 className="flex items-center gap-2 text-xl sm:text-2xl font-bold">
           <UserCog aria-hidden="true" className="h-5 w-5 sm:h-6 sm:w-6" />
@@ -38,6 +38,6 @@ export default function SuperadminPage() {
           <UsersEditor />
         </div>
       </section>
-    </main>
+    </div>
   );
 }

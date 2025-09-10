@@ -159,7 +159,7 @@ export default function UsersEditor() {
 
       {/* テーブル */}
       <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700">
-        <table className="w-full text-sm">
+        <table className="w-full text-sm w-max">
           <thead>
             <tr className="bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200">
               <th className="px-3 py-2 text-left">Email</th>
