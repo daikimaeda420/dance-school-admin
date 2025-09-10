@@ -260,7 +260,7 @@ export default function ChatbotEmbedClient() {
       ref={rootRef}
       className={`rzw-root ${theme === "dark" ? "rzw-dark" : ""}`}
     >
-      <div className="rzw-card">
+      <div className="rzw-card min-h-dvw">
         {/* ヘッダー */}
         <header className="rzw-head">
           <div className="rzw-head-left">
@@ -296,7 +296,7 @@ export default function ChatbotEmbedClient() {
         </header>
 
         {/* 本文（メッセージ） */}
-        <main className="rzw-body">
+        <main className="rzw-body overflow-y-auto">
           {messages.map((m, i) => (
             <div
               key={i}
