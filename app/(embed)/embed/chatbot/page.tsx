@@ -1,14 +1,13 @@
-// app/(embed)/embed/layout.tsx
-import type { ReactNode } from "react";
+// app/(embed)/embed/chatbot/page.tsx
+import ChatbotEmbedClient from "./ChatbotEmbedClient";
 
-// もし埋め込みページ用のグローバルCSSを足すなら、クライアント子で styled-jsx
-// import EmbedGlobalStyle from "@/components/EmbedGlobalStyle";
+// （必要に応じてSSRキャッシュ無効化したいなら）
+// export const revalidate = 0;
 
-export default function EmbedLayout({ children }: { children: ReactNode }) {
+export default function ChatbotEmbedPage() {
   return (
-    <>
-      {/* <EmbedGlobalStyle /> */}
-      {children}
-    </>
+    <div style={{ minHeight: "100dvh" }}>
+      <ChatbotEmbedClient />
+    </div>
   );
 }
