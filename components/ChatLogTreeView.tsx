@@ -269,7 +269,7 @@ export default function ChatLogTreeView({ logs }: Props) {
                       <span className="hidden sm:inline">削除</span>
                     </button>
                     {/* 矢印 */}
-                    <Clock
+                    <ChevronDown
                       size={20}
                       className={`shrink-0 transition-transform duration-200 ${
                         opened ? "rotate-180" : ""
