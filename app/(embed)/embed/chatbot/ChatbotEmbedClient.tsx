@@ -40,6 +40,14 @@ export default function ChatbotEmbedClient() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
 
+  // ---- helpers (型固定) ----
+  const bot = (text: string, extras: Partial<Message> = {}): Message => ({
+    role: "bot" as const,
+    text,
+    ...extras,
+  });
+  const userMsg = (text: string): Message => ({ role: "user" as const, text });
+
   // ==== session id（元コード準拠） ====
   const getSessionId = () => {
     if (typeof window === "undefined") return "";
@@ -91,28 +99,27 @@ export default function ChatbotEmbedClient() {
   useEffect(() => {
     if (!faq.length) return;
 
-    const greet: Message = {
-      role: "bot",
-      text: "ご不明な点はありますか？ お気軽にお問合せください。",
-    };
+    const greet = bot("ご不明な点はありますか？ お気軽にお問合せください。");
 
     const first = faq[0];
     if (first?.type === "select" && first.options?.length) {
-      setMessages([
+      const initial: Message[] = [
         greet,
-        ...(first.answer ? [{ role: "bot", text: first.answer }] : []),
-        { role: "bot", text: first.question, options: first.options },
-      ]);
+        ...(first.answer ? [bot(first.answer)] : []),
+        bot(first.question, { options: first.options }),
+      ];
+      setMessages(initial);
       logToServer(first.question, "(選択肢)");
     } else {
       // トップがselectでない/複数ある場合は一覧を選択肢化
       const opts = faq.map((it) => ({ label: it.question, next: it }));
-      setMessages([
+      const initial: Message[] = [
         greet,
-        { role: "bot", text: "項目をお選びください。", options: opts },
-      ]);
+        bot("項目をお選びください。", { options: opts }),
+      ];
+      setMessages(initial);
     }
-  }, [faq]);
+  }, [faq]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ==== 親へ高さ通知（embed.js と連携） ====
   useEffect(() => {
@@ -145,20 +152,20 @@ export default function ChatbotEmbedClient() {
 
   // ==== 選択肢クリック ====
   const handleOptionSelect = (option: { label: string; next: FAQItem }) => {
-    setMessages((prev) => [...prev, { role: "user", text: option.label }]);
+    setMessages((prev) => [...prev, userMsg(option.label)]);
     setTimeout(() => renderFAQ(option.next, false), 120);
   };
 
   // ==== ノード表示 ====
   const renderFAQ = (item: FAQItem, fromUserClick = true) => {
     if (fromUserClick) {
-      setMessages((prev) => [...prev, { role: "user", text: item.question }]);
+      setMessages((prev) => [...prev, userMsg(item.question)]);
     }
 
     if (item.type === "question") {
       setMessages((prev) => [
         ...prev,
-        { role: "bot", text: item.answer, url: item.url },
+        bot(item.answer, { url: item.url }),
         ...makeFollowup(),
       ]);
       logToServer(item.question, item.answer, item.url ?? "");
@@ -167,11 +174,11 @@ export default function ChatbotEmbedClient() {
 
     if (item.type === "select") {
       if (item.answer) {
-        setMessages((prev) => [...prev, { role: "bot", text: item.answer }]);
+        setMessages((prev) => [...prev, bot(item.answer)]);
       }
       setMessages((prev) => [
         ...prev,
-        { role: "bot", text: item.question, options: item.options || [] },
+        bot(item.question, { options: item.options || [] }),
       ]);
       logToServer(item.question, "(選択肢)");
     }
@@ -180,13 +187,7 @@ export default function ChatbotEmbedClient() {
   const makeFollowup = (): Message[] => {
     const first = faq[0];
     if (first?.type === "select" && first.options?.length) {
-      return [
-        {
-          role: "bot",
-          text: "他にもご質問はありますか？",
-          options: first.options,
-        },
-      ];
+      return [bot("他にもご質問はありますか？", { options: first.options })];
     }
     return [];
   };
@@ -197,7 +198,7 @@ export default function ChatbotEmbedClient() {
     const text = input.trim();
     if (!text) return;
     setInput("");
-    setMessages((prev) => [...prev, { role: "user", text }]);
+    setMessages((prev) => [...prev, userMsg(text)]);
     setLoading(true);
 
     setTimeout(() => {
@@ -211,13 +212,11 @@ export default function ChatbotEmbedClient() {
         const first = faq[0];
         setMessages((prev) => [
           ...prev,
-          {
-            role: "bot",
-            text: "うまく見つかりませんでした。カテゴリーからお選びください。",
+          bot("うまく見つかりませんでした。カテゴリーからお選びください。", {
             ...(first?.type === "select" && first.options?.length
               ? { options: first.options }
               : {}),
-          },
+          }),
         ]);
         return;
       }
@@ -234,25 +233,25 @@ export default function ChatbotEmbedClient() {
   const handleReset = () => {
     setMessages([]);
     localStorage.removeItem("sessionId");
-    // 初期メッセージを再構築
     if (!faq.length) return;
+
     const first = faq[0];
-    const greet: Message = {
-      role: "bot",
-      text: "ご不明な点はありますか？ お気軽にお問合せください。",
-    };
+    const greet = bot("ご不明な点はありますか？ お気軽にお問合せください。");
+
     if (first?.type === "select" && first.options?.length) {
-      setMessages([
+      const initial: Message[] = [
         greet,
-        ...(first.answer ? [{ role: "bot", text: first.answer }] : []),
-        { role: "bot", text: first.question, options: first.options },
-      ]);
+        ...(first.answer ? [bot(first.answer)] : []),
+        bot(first.question, { options: first.options }),
+      ];
+      setMessages(initial);
     } else {
       const opts = faq.map((it) => ({ label: it.question, next: it }));
-      setMessages([
+      const initial: Message[] = [
         greet,
-        { role: "bot", text: "項目をお選びください。", options: opts },
-      ]);
+        bot("項目をお選びください。", { options: opts }),
+      ];
+      setMessages(initial);
     }
   };
 
@@ -266,7 +265,7 @@ export default function ChatbotEmbedClient() {
         <header className="rzw-head">
           <div className="rzw-head-left">
             <Image
-              src="/logo_w.svg" // ここをあなたのロゴに
+              src="/logo_w.svg"
               alt="サイトロゴ"
               width={96}
               height={20}
@@ -429,15 +428,6 @@ export default function ChatbotEmbedClient() {
           align-items: center;
           gap: 10px;
         }
-        .rzw-avatar {
-          width: 26px;
-          height: 26px;
-          border-radius: 50%;
-          background: #d9e1e8;
-        }
-        .rzw-title {
-          font-weight: 700;
-        }
         .rzw-head-actions {
           display: flex;
           align-items: center;
@@ -509,7 +499,7 @@ export default function ChatbotEmbedClient() {
         }
         .rzw-link a {
           color: inherit;
-          text-decoration: underline;
+          text-decoration: underline.;
         }
         .rzw-qr {
           display: flex;
