@@ -1,4 +1,4 @@
-// app/superadmin/page.tsx 置き換え（Server Component のままでOK）
+// app/superadmin/page.tsx
 import dynamic from "next/dynamic";
 import { UserCog } from "lucide-react";
 
@@ -11,30 +11,30 @@ const SuperAdminEditor = dynamic(() => import("./SuperAdminEditor"), {
 
 export default function SuperadminPage() {
   return (
-    <main className="mx-auto max-w-6xl px-4 py-6">
-      <div className="mb-6">
-        <h1 className="flex items-center gap-2 text-2xl font-bold">
-          <UserCog aria-hidden="true" className="w-6 h-6" />
+    <main className="mx-auto w-full max-w-6xl px-3 sm:px-6 lg:px-8 py-4 sm:py-6">
+      <div className="mb-4 sm:mb-6">
+        <h1 className="flex items-center gap-2 text-xl sm:text-2xl font-bold">
+          <UserCog aria-hidden="true" className="h-5 w-5 sm:h-6 sm:w-6" />
           <span>アカウント管理</span>
         </h1>
-        <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
+        <p className="mt-1 text-xs sm:text-sm text-gray-600 dark:text-gray-300">
           アカウント・権限の設定と、ユーザー管理を行います。
         </p>
       </div>
 
       {/* Super Admin 管理 */}
-      <div className="mb-6">
+      <section className="mb-4 sm:mb-6">
         <SuperAdminEditor />
-      </div>
+      </section>
 
       {/* ユーザー管理 */}
       <section className="card">
         <div className="card-header">
-          <h2 className="font-semibold text-gray-900 dark:text-gray-100">
+          <h2 className="font-semibold text-gray-900 dark:text-gray-100 text-sm sm:text-base">
             ユーザー管理
           </h2>
         </div>
-        <div className="card-body">
+        <div className="card-body p-3 sm:p-6">
           <UsersEditor />
         </div>
       </section>

@@ -6,9 +6,7 @@ import { Shield, Trash2, Plus, Copy } from "lucide-react";
 import { useSession } from "next-auth/react";
 
 interface Props {
-  /** 任意: 省略時は /api/super-admins をフェッチ */
   superAdmins?: string[];
-  /** 任意: 省略時はセッションから取得 */
   currentUserEmail?: string;
 }
 
@@ -65,10 +63,7 @@ export default function SuperAdminEditor(props: Props) {
         body: JSON.stringify({ action: "add", email: newAdminEmail, schoolId }),
       });
       const text = await res.text();
-      if (!res.ok) {
-        toast("err", `追加に失敗しました: ${text}`);
-        return;
-      }
+      if (!res.ok) return toast("err", `追加に失敗しました: ${text}`);
       setAdmins((prev) => [...prev, newAdminEmail]);
       setNewAdminEmail("");
       toast("ok", "✅ 追加しました");
@@ -80,7 +75,6 @@ export default function SuperAdminEditor(props: Props) {
   const handleRemoveAdmin = async (email: string) => {
     const confirmed = confirm(`「${email}」を Super Admin から削除しますか？`);
     if (!confirmed) return;
-
     try {
       const res = await fetch("/api/super-admins", {
         method: "POST",
@@ -88,10 +82,7 @@ export default function SuperAdminEditor(props: Props) {
         body: JSON.stringify({ action: "remove", email }),
       });
       const text = await res.text();
-      if (!res.ok) {
-        toast("err", `削除に失敗しました: ${text}`);
-        return;
-      }
+      if (!res.ok) return toast("err", `削除に失敗しました: ${text}`);
       setAdmins((prev) => prev.filter((e) => e !== email));
       toast("ok", "✅ 削除しました");
     } catch (e: any) {
@@ -104,47 +95,52 @@ export default function SuperAdminEditor(props: Props) {
       <div className="card-header">
         <div className="flex items-center gap-2">
           <Shield className="text-amber-500 dark:text-amber-300" size={18} />
-          <h2 className="font-semibold text-gray-900 dark:text-gray-100">
+          <h2 className="font-semibold text-gray-900 dark:text-gray-100 text-sm sm:text-base">
             Super Admin 管理
           </h2>
         </div>
       </div>
 
-      <div className="card-body space-y-6">
+      <div className="card-body space-y-5 sm:space-y-6 p-3 sm:p-6">
         {/* 追加フォーム */}
-        <div className="rounded-xl border border-amber-200 bg-amber-50/60 dark:border-amber-700 dark:bg-amber-900/20 p-4">
-          <div className="grid gap-3 md:grid-cols-3">
-            <div className="md:col-span-2">
-              <label className="mb-1 block text-sm text-gray-700 dark:text-gray-200">
+        <div className="rounded-xl border border-amber-200 bg-amber-50/60 dark:border-amber-700 dark:bg-amber-900/20 p-3 sm:p-4">
+          <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
+            <div className="sm:col-span-2">
+              <label className="mb-1 block text-xs sm:text-sm text-gray-700 dark:text-gray-200">
                 追加するメールアドレス
               </label>
               <input
                 type="email"
+                inputMode="email"
+                autoComplete="email"
                 placeholder="admin@example.com"
                 value={newAdminEmail}
                 onChange={(e) => setNewAdminEmail(e.target.value)}
-                className="input"
+                className="input w-full"
               />
             </div>
 
             <div>
-              <label className="mb-1 block text-sm text-gray-700 dark:text-gray-200">
+              <label className="mb-1 block text-xs sm:text-sm text-gray-700 dark:text-gray-200">
                 自動生成された schoolId
               </label>
-              <div className="flex gap-2">
+
+              {/* ▼ 1カラム（SP）→ 1fr/auto（sm+）。幅に収まらない場合は自然に段落ち */}
+              <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-2 sm:items-start">
                 <input
                   type="text"
                   value={schoolId}
                   disabled
-                  className="input text-gray-600 dark:text-gray-300"
+                  className="input w-full text-gray-600 dark:text-gray-300 min-w-0"
                 />
                 <button
                   type="button"
-                  className="btn-ghost shrink-0"
+                  className="btn-ghost sm:shrink-0"
                   onClick={() =>
                     schoolId && navigator.clipboard.writeText(schoolId)
                   }
                   title="schoolId をコピー"
+                  aria-label="schoolId をコピー"
                 >
                   <Copy size={16} />
                 </button>
@@ -152,16 +148,17 @@ export default function SuperAdminEditor(props: Props) {
             </div>
           </div>
 
-          <div className="mt-3 flex items-center justify-between">
-            <p className="text-xs text-gray-600 dark:text-gray-300">
+          <div className="mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <p className="text-[11px] sm:text-xs text-gray-600 dark:text-gray-300">
               ※ メールの @ の前を schoolId として登録します
             </p>
             <button
               onClick={handleAddAdmin}
-              className="btn-primary inline-flex items-center disabled:opacity-50"
+              className="btn-primary inline-flex items-center justify-center gap-1.5 w-full sm:w-auto min-h-[40px] disabled:opacity-50"
               disabled={!newAdminEmail}
             >
-              <Plus size={16} /> 追加
+              <Plus size={16} />
+              <span>追加</span>
             </button>
           </div>
 
@@ -197,10 +194,15 @@ export default function SuperAdminEditor(props: Props) {
               {admins.map((email) => (
                 <li
                   key={email}
-                  className="flex items-center justify-between px-4 py-3"
+                  // ▼ 1カラム（SP）→ 左:情報 / 右:アクション（sm+）
+                  className="px-3 sm:px-4 py-3 grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3 sm:gap-4 items-start"
                 >
-                  <div className="flex items-center gap-2">
-                    <span className="inline-flex items-center rounded-full bg-gray-100 dark:bg-gray-800 px-2.5 py-1 text-xs font-medium text-gray-700 dark:text-gray-200">
+                  {/* 左：情報（長文でも収まるよう min-w-0） */}
+                  <div className="min-w-0 flex items-start gap-2">
+                    <span
+                      className="inline-flex max-w-full items-center rounded-full bg-gray-100 dark:bg-gray-800 px-2.5 py-1 text-xs font-medium text-gray-700 dark:text-gray-200 whitespace-nowrap truncate"
+                      title={email}
+                    >
                       {email}
                     </span>
                     {email === currentEmail && (
@@ -210,14 +212,17 @@ export default function SuperAdminEditor(props: Props) {
                     )}
                   </div>
 
+                  {/* 右：アクション（SPでは下段に落ちて全幅） */}
                   {email !== currentEmail && (
-                    <button
-                      onClick={() => handleRemoveAdmin(email)}
-                      className="inline-flex items-center gap-1 rounded-md bg-red-600 px-2.5 py-1.5 text-xs font-medium text-white hover:bg-red-700 dark:bg-red-500 dark:hover:bg-red-600"
-                    >
-                      <Trash2 size={14} />
-                      削除
-                    </button>
+                    <div className="flex sm:justify-end">
+                      <button
+                        onClick={() => handleRemoveAdmin(email)}
+                        className="inline-flex items-center justify-center gap-1 rounded-md bg-red-600 px-3 py-2 text-xs font-medium text-white hover:bg-red-700 dark:bg-red-500 dark:hover:bg-red-600 w-full sm:w-auto"
+                      >
+                        <Trash2 size={14} />
+                        削除
+                      </button>
+                    </div>
                   )}
                 </li>
               ))}

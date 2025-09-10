@@ -233,13 +233,10 @@ export default function Sidebar({
               >
                 <span className="flex items-center gap-3">
                   <Bot size={18} />
-                  <span>チャットボット（小窓）</span>
+                  <span>プレビュー</span>
                 </span>
                 <span className="flex items-center gap-2">
                   <ExternalLink size={14} className="opacity-70" aria-hidden />
-                  <span className="text-[10px] rounded-full border px-1.5 py-0.5 text-gray-600 dark:text-gray-300 border-gray-300 dark:border-gray-700">
-                    420×720
-                  </span>
                 </span>
               </button>
             </nav>
