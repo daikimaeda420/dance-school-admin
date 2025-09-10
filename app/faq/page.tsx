@@ -4,7 +4,7 @@
 import { useSession } from "next-auth/react";
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { produce } from "immer";
-import { MessagesSquare } from "lucide-react";
+import { MessagesSquare, CodeXml, BadgeCheck } from "lucide-react";
 import { FAQEditor } from "../../components/FAQEditor";
 
 // schoolId を含む型
@@ -404,7 +404,10 @@ export default function FAQPage() {
         {/* 埋め込みコード（script方式） */}
         <section className="card">
           <div className="card-header">
-            <h3 className="font-semibold">🧩 埋め込みコード（script）</h3>
+            <h3 className="font-semibold flex items-center gap-2">
+              <CodeXml aria-hidden="true" className="w-5 h-5" />{" "}
+              <span>埋め込みコード（script）</span>
+            </h3>
           </div>
           <div className="card-body">
             <p className="mb-2 text-sm text-gray-600 dark:text-gray-300">
@@ -440,7 +443,10 @@ export default function FAQPage() {
         {/* バリデーション */}
         <section className="card">
           <div className="card-header">
-            <h3 className="font-semibold">✅ バリデーション</h3>
+            <h3 className="font-semibold flex items-center gap-2">
+              <BadgeCheck aria-hidden="true" className="w-5 h-5" />{" "}
+              <span>バリデーション</span>
+            </h3>
           </div>
           <div className="card-body text-sm">
             {errors.size === 0 ? (

@@ -3,6 +3,7 @@
 
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
+import Image from "next/image";
 
 export type FAQItem =
   | {
@@ -38,7 +39,7 @@ export default function ChatbotEmbedClient() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // --- session id を確保（従来ロジック踏襲） ---
+  // ==== session id（元コード準拠） ====
   const getSessionId = () => {
     if (typeof window === "undefined") return "";
     let sid = localStorage.getItem("sessionId");
@@ -49,7 +50,7 @@ export default function ChatbotEmbedClient() {
     return sid;
   };
 
-  // --- ログ送信（従来の /api/logs を利用） ---
+  // ==== ログ送信（元コード準拠） ====
   const logToServer = async (
     question: string,
     answer: string = "",
@@ -57,6 +58,7 @@ export default function ChatbotEmbedClient() {
   ) => {
     if (!schoolId) return;
     const sessionId = getSessionId();
+
     try {
       await fetch("/api/logs", {
         method: "POST",
@@ -75,45 +77,43 @@ export default function ChatbotEmbedClient() {
     }
   };
 
-  // --- FAQ 取得 ---
+  // ==== FAQ 取得 ====
   useEffect(() => {
     if (!schoolId) return;
-    (async () => {
-      try {
-        const res = await fetch(
-          `/api/faq?school=${encodeURIComponent(schoolId)}`
-        );
-        const data = (await res.json()) as FAQItem[] | null;
-        setFaq(Array.isArray(data) ? data : []);
-      } catch {
-        setFaq([]);
-      }
-    })();
+    fetch(`/api/faq?school=${encodeURIComponent(schoolId)}`)
+      .then((res) => res.json())
+      .then((data) => setFaq(Array.isArray(data) ? data : []))
+      .catch(() => setFaq([]));
   }, [schoolId]);
 
-  // --- 初期メッセージ（トップが select の場合は選択肢提示） ---
+  // ==== 初期メッセージ（画像のようにチャット内で選択肢提示） ====
   useEffect(() => {
     if (!faq.length) return;
-    const top = faq[0];
+
     const greet: Message = {
       role: "bot",
       text: "ご不明な点はありますか？ お気軽にお問合せください。",
     };
-    if (top?.type === "select" && top.options?.length) {
+
+    const first = faq[0];
+    if (first?.type === "select" && first.options?.length) {
       setMessages([
         greet,
-        ...(top.answer
-          ? ([{ role: "bot", text: top.answer }] as Message[])
-          : []),
-        { role: "bot", text: top.question, options: top.options },
+        ...(first.answer ? [{ role: "bot", text: first.answer }] : []),
+        { role: "bot", text: first.question, options: first.options },
       ]);
-      logToServer(top.question, "(選択肢)");
+      logToServer(first.question, "(選択肢)");
     } else {
-      setMessages([greet]);
+      // トップがselectでない/複数ある場合は一覧を選択肢化
+      const opts = faq.map((it) => ({ label: it.question, next: it }));
+      setMessages([
+        greet,
+        { role: "bot", text: "項目をお選びください。", options: opts },
+      ]);
     }
   }, [faq]);
 
-  // --- 親へ高さ通知（ローダーの自動リサイズ互換） ---
+  // ==== 親へ高さ通知（embed.js と連携） ====
   useEffect(() => {
     const postResize = () => {
       const h = rootRef.current?.scrollHeight ?? 600;
@@ -125,20 +125,31 @@ export default function ChatbotEmbedClient() {
     return () => ro.disconnect();
   }, []);
 
-  // --- オートスクロール ---
+  // ==== オートスクロール ====
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [messages.length]);
 
-  // --- ユーザが選択肢をクリック ---
+  // ==== 検索用に全questionを平坦化 ====
+  const flat = useMemo(() => {
+    const list: { question: string; node: FAQItem }[] = [];
+    const walk = (n: FAQItem) => {
+      if (n.type === "question")
+        list.push({ question: n.question || "", node: n });
+      if (n.type === "select") n.options?.forEach((o) => walk(o.next));
+    };
+    faq.forEach(walk);
+    return list;
+  }, [faq]);
+
+  // ==== 選択肢クリック ====
   const handleOptionSelect = (option: { label: string; next: FAQItem }) => {
     setMessages((prev) => [...prev, { role: "user", text: option.label }]);
     setTimeout(() => renderFAQ(option.next, false), 120);
   };
 
-  // --- FAQノードを描画（従来ロジックを拡張） ---
-  const renderFAQ = (item: FAQItem, fromUserClick: boolean = true) => {
-    if (!item) return;
+  // ==== ノード表示 ====
+  const renderFAQ = (item: FAQItem, fromUserClick = true) => {
     if (fromUserClick) {
       setMessages((prev) => [...prev, { role: "user", text: item.question }]);
     }
@@ -147,61 +158,39 @@ export default function ChatbotEmbedClient() {
       setMessages((prev) => [
         ...prev,
         { role: "bot", text: item.answer, url: item.url },
-        // 追質問の導線を軽く提示
-        ...makeTopFollowup(),
+        ...makeFollowup(),
       ]);
       logToServer(item.question, item.answer, item.url ?? "");
       return;
     }
 
-    // select
-    if (item.answer) {
-      setMessages((prev) => [...prev, { role: "bot", text: item.answer }]);
-    }
-    setMessages((prev) => [
-      ...prev,
-      { role: "bot", text: item.question, options: item.options || [] },
-    ]);
-    logToServer(item.question, "(選択肢)");
-  };
-
-  // --- 画面下「再スタート」相当（セッションもリセット） ---
-  const handleReset = () => {
-    setMessages([]);
-    localStorage.removeItem("sessionId");
-    // 初期案内を再生成
-    if (!faq.length) return;
-    const top = faq[0];
-    const greet: Message = {
-      role: "bot",
-      text: "ご不明な点はありますか？ お気軽にお問合せください。",
-    };
-    if (top?.type === "select" && top.options?.length) {
-      setMessages([
-        greet,
-        ...(top.answer
-          ? ([{ role: "bot", text: top.answer }] as Message[])
-          : []),
-        { role: "bot", text: top.question, options: top.options },
+    if (item.type === "select") {
+      if (item.answer) {
+        setMessages((prev) => [...prev, { role: "bot", text: item.answer }]);
+      }
+      setMessages((prev) => [
+        ...prev,
+        { role: "bot", text: item.question, options: item.options || [] },
       ]);
-    } else {
-      setMessages([greet]);
+      logToServer(item.question, "(選択肢)");
     }
   };
 
-  // --- FAQを平坦化（簡易検索用） ---
-  const flat = useMemo(() => {
-    const list: { question: string; node: FAQItem }[] = [];
-    const walk = (node: FAQItem) => {
-      if (node.type === "question")
-        list.push({ question: node.question || "", node });
-      if (node.type === "select") node.options?.forEach((o) => walk(o.next));
-    };
-    faq.forEach(walk);
-    return list;
-  }, [faq]);
+  const makeFollowup = (): Message[] => {
+    const first = faq[0];
+    if (first?.type === "select" && first.options?.length) {
+      return [
+        {
+          role: "bot",
+          text: "他にもご質問はありますか？",
+          options: first.options,
+        },
+      ];
+    }
+    return [];
+  };
 
-  // --- テキスト送信（部分一致検索） ---
+  // ==== 入力送信（部分一致検索） ====
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const text = input.trim();
@@ -218,13 +207,14 @@ export default function ChatbotEmbedClient() {
         ) ?? null;
 
       if (!hit) {
+        const first = faq[0];
         setMessages((prev) => [
           ...prev,
           {
             role: "bot",
-            text: "うまく見つかりませんでした。カテゴリーからお選びいただくか、別のキーワードでお試しください。",
-            ...(faq[0]?.type === "select" && faq[0].options?.length
-              ? { options: faq[0].options }
+            text: "うまく見つかりませんでした。カテゴリーからお選びください。",
+            ...(first?.type === "select" && first.options?.length
+              ? { options: first.options }
               : {}),
           },
         ]);
@@ -234,67 +224,96 @@ export default function ChatbotEmbedClient() {
     }, 140);
   };
 
-  // --- 右上の「×」で親に閉じる通知 ---
+  // ==== 右上の× → 親に閉じる通知 ====
   const closeParent = () => {
     window.parent?.postMessage({ type: "RIZBO_CLOSE" }, "*");
   };
 
-  // --- 追質問の導線を生成（トップが select のとき） ---
-  const makeTopFollowup = (): Message[] => {
-    const top = faq[0];
-    if (top?.type === "select" && top.options?.length) {
-      return [
-        {
-          role: "bot",
-          text: "他にもご質問はありますか？",
-          options: top.options,
-        },
-      ];
+  // ==== セッション初期化 ====
+  const handleReset = () => {
+    setMessages([]);
+    localStorage.removeItem("sessionId");
+    // 初期メッセージを再構築
+    if (!faq.length) return;
+    const first = faq[0];
+    const greet: Message = {
+      role: "bot",
+      text: "ご不明な点はありますか？ お気軽にお問合せください。",
+    };
+    if (first?.type === "select" && first.options?.length) {
+      setMessages([
+        greet,
+        ...(first.answer ? [{ role: "bot", text: first.answer }] : []),
+        { role: "bot", text: first.question, options: first.options },
+      ]);
+    } else {
+      const opts = faq.map((it) => ({ label: it.question, next: it }));
+      setMessages([
+        greet,
+        { role: "bot", text: "項目をお選びください。", options: opts },
+      ]);
     }
-    return [];
   };
 
-  // ===== Render =====
   return (
     <div
       ref={rootRef}
       className={`rzw-root ${theme === "dark" ? "rzw-dark" : ""}`}
-      style={{ color: "#000" }} // 文字は黒基調
     >
       <div className="rzw-card">
-        {/* Header */}
+        {/* ヘッダー */}
         <header className="rzw-head">
           <div className="rzw-head-left">
-            <div className="rzw-avatar" />
-            <div className="rzw-title">前田 大輝</div>
+            <Image
+              src="/logo_w.svg" // ここをあなたのロゴに
+              alt="サイトロゴ"
+              width={96}
+              height={20}
+              className="rzw-logo"
+              priority
+            />
           </div>
-          <button className="rzw-x" aria-label="閉じる" onClick={closeParent}>
-            <svg width="18" height="18" viewBox="0 0 24 24">
-              <path
-                d="M18 6 6 18M6 6l12 12"
-                stroke="#fff"
-                strokeWidth="2"
-                strokeLinecap="round"
-              />
-            </svg>
-          </button>
+          <div className="rzw-head-actions">
+            <button
+              className="rzw-reset"
+              title="再スタート"
+              onClick={handleReset}
+            >
+              🔁
+            </button>
+            <button className="rzw-x" aria-label="閉じる" onClick={closeParent}>
+              <svg width="18" height="18" viewBox="0 0 24 24">
+                <path
+                  d="M18 6 6 18M6 6l12 12"
+                  stroke="#fff"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                />
+              </svg>
+            </button>
+          </div>
         </header>
 
-        {/* Body */}
+        {/* 本文（メッセージ） */}
         <main className="rzw-body">
           {messages.map((m, i) => (
             <div
               key={i}
-              className={`rzw-msg ${
-                m.role === "user" ? "rzw-msg-out" : "rzw-msg-in"
+              className={`rzw-row ${
+                m.role === "user" ? "rzw-right" : "rzw-left"
               }`}
             >
-              <div
-                className={`rzw-bubble ${
-                  m.role === "user" ? "rzw-bubble-out" : "rzw-bubble-in"
-                }`}
-              >
-                <div style={{ whiteSpace: "pre-wrap" }}>{m.text}</div>
+              {m.role === "bot" && (
+                <img
+                  src="/apple-touch-icon.png"
+                  width={32}
+                  height={32}
+                  alt="サイトロゴ"
+                  className="logo-icon"
+                />
+              )}
+              <div className={`rzw-bubble ${m.role === "user" ? "out" : "in"}`}>
+                <div className="rzw-text">{m.text}</div>
 
                 {m.url?.trim() && (
                   <p className="rzw-link">
@@ -322,8 +341,9 @@ export default function ChatbotEmbedClient() {
           ))}
 
           {loading && (
-            <div className="rzw-msg rzw-msg-in">
-              <div className="rzw-bubble rzw-bubble-in">
+            <div className="rzw-row rzw-left">
+              <div className="rzw-mini-avatar" />
+              <div className="rzw-bubble in">
                 <span className="rzw-dots">
                   <i />
                   <i />
@@ -332,19 +352,11 @@ export default function ChatbotEmbedClient() {
               </div>
             </div>
           )}
+
           <div ref={endRef} />
         </main>
 
-        {/* Input / Controls */}
-        <div className="rzw-controls">
-          <button
-            className="rzw-reset"
-            onClick={handleReset}
-            title="再スタート"
-          >
-            🔁
-          </button>
-        </div>
+        {/* 入力欄 */}
         <form className="rzw-input" onSubmit={onSubmit}>
           <input
             className="rzw-field"
@@ -382,6 +394,7 @@ export default function ChatbotEmbedClient() {
           --rz-text-out: #fff;
           --rz-border: #233446;
         }
+
         .rzw-root {
           width: 100%;
           height: 100%;
@@ -389,6 +402,7 @@ export default function ChatbotEmbedClient() {
           display: flex;
           align-items: flex-end;
           justify-content: flex-end;
+          color: #000;
         }
         .rzw-card {
           width: 100%;
@@ -398,6 +412,7 @@ export default function ChatbotEmbedClient() {
           display: flex;
           flex-direction: column;
           overflow: hidden;
+          box-shadow: none;
         }
         .rzw-head {
           background: var(--rz-primary);
@@ -421,6 +436,19 @@ export default function ChatbotEmbedClient() {
         .rzw-title {
           font-weight: 700;
         }
+        .rzw-head-actions {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+        }
+        .rzw-reset {
+          background: transparent;
+          border: none;
+          color: #fff;
+          cursor: pointer;
+          padding: 4px;
+          border-radius: 6px;
+        }
         .rzw-x {
           background: transparent;
           border: none;
@@ -428,39 +456,48 @@ export default function ChatbotEmbedClient() {
           padding: 4px;
           border-radius: 6px;
         }
-        .rzw-x:hover {
+        .rzw-x:hover,
+        .rzw-reset:hover {
           background: rgba(255, 255, 255, 0.12);
         }
+
         .rzw-body {
           flex: 1;
           background: var(--rz-bg);
-          padding: 12px 12px 0;
+          padding: 12px;
           overflow: auto;
         }
-        .rzw-msg {
+        .rzw-row {
           display: flex;
           margin-bottom: 10px;
+          gap: 8px;
         }
-        .rzw-msg-in {
+        .rzw-left {
           justify-content: flex-start;
         }
-        .rzw-msg-out {
+        .rzw-right {
           justify-content: flex-end;
         }
+        .rzw-mini-avatar {
+          width: 22px;
+          height: 22px;
+          border-radius: 50%;
+          background: #d9e1e8;
+          align-self: flex-start;
+        }
         .rzw-bubble {
+          max-width: 85%;
           border-radius: 12px;
           padding: 10px 12px;
-          max-width: 85%;
-          border: 1px solid transparent;
-          word-break: break-word;
           line-height: 1.5;
+          border: 1px solid transparent;
         }
-        .rzw-bubble-in {
+        .rzw-bubble.in {
           background: var(--rz-bubble-in);
           color: var(--rz-text-in);
           border-color: rgba(0, 0, 0, 0.02);
         }
-        .rzw-bubble-out {
+        .rzw-bubble.out {
           background: var(--rz-bubble-out);
           color: var(--rz-text-out);
         }
@@ -489,17 +526,7 @@ export default function ChatbotEmbedClient() {
         .rzw-chip:hover {
           border-color: var(--rz-primary);
         }
-        .rzw-controls {
-          display: flex;
-          justify-content: flex-end;
-          padding: 8px 12px 0;
-        }
-        .rzw-reset {
-          border: none;
-          background: transparent;
-          cursor: pointer;
-          font-size: 16px;
-        }
+
         .rzw-input {
           display: flex;
           gap: 8px;
@@ -516,7 +543,6 @@ export default function ChatbotEmbedClient() {
           padding: 0 42px 0 14px;
           outline: none;
           background: #fff;
-          color: #000;
         }
         .rzw-field::placeholder {
           color: #9aa7b6;
@@ -530,6 +556,7 @@ export default function ChatbotEmbedClient() {
           color: var(--rz-primary);
           cursor: pointer;
         }
+
         .rzw-dots {
           display: inline-flex;
           gap: 4px;
@@ -559,6 +586,21 @@ export default function ChatbotEmbedClient() {
           40% {
             opacity: 1;
             transform: translateY(-2px);
+          }
+        }
+        .logo-icon {
+          width: 32px;
+          height: 32px;
+        }
+
+        .rzw-logo {
+          height: 18px;
+          width: auto;
+          display: block;
+        }
+        @media (max-width: 360px) {
+          .rzw-logo {
+            max-width: 120px;
           }
         }
       `}</style>
