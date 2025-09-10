@@ -136,7 +136,7 @@ export default function UsersEditor() {
       {/* トップ情報 */}
       <div className="flex items-center justify-between">
         <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">
-          ユーザー管理
+          ユーザー一覧
         </h2>
         <div className="text-xs text-gray-600 dark:text-gray-300">
           総数 <span className="font-semibold">{total}</span>・ SuperAdmin{" "}
