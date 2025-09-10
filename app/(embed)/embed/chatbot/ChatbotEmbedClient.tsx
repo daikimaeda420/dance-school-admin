@@ -33,22 +33,22 @@ export default function ChatbotEmbedClient() {
   const theme = (params.get("theme") ?? "light").toLowerCase(); // light|dark
 
   const rootRef = useRef<HTMLDivElement>(null);
-  const endRef = useRef<HTMLDivElement>(null);
+  const bodyRef = useRef<HTMLDivElement>(null);
 
   const [faq, setFaq] = useState<FAQItem[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // ---- helpers (型固定) ----
+  // ---- helpers ----
   const bot = (text: string, extras: Partial<Message> = {}): Message => ({
-    role: "bot" as const,
+    role: "bot",
     text,
     ...extras,
   });
-  const userMsg = (text: string): Message => ({ role: "user" as const, text });
+  const userMsg = (text: string): Message => ({ role: "user", text });
 
-  // ==== session id（元コード準拠） ====
+  // ==== session id ====
   const getSessionId = () => {
     if (typeof window === "undefined") return "";
     let sid = localStorage.getItem("sessionId");
@@ -59,7 +59,7 @@ export default function ChatbotEmbedClient() {
     return sid;
   };
 
-  // ==== ログ送信（元コード準拠） ====
+  // ==== ログ送信 ====
   const logToServer = async (
     question: string,
     answer: string = "",
@@ -67,7 +67,6 @@ export default function ChatbotEmbedClient() {
   ) => {
     if (!schoolId) return;
     const sessionId = getSessionId();
-
     try {
       await fetch("/api/logs", {
         method: "POST",
@@ -95,34 +94,30 @@ export default function ChatbotEmbedClient() {
       .catch(() => setFaq([]));
   }, [schoolId]);
 
-  // ==== 初期メッセージ（画像のようにチャット内で選択肢提示） ====
+  // ==== 初期メッセージ ====
   useEffect(() => {
     if (!faq.length) return;
 
     const greet = bot("ご不明な点はありますか？ お気軽にお問合せください。");
-
     const first = faq[0];
+
     if (first?.type === "select" && first.options?.length) {
-      const initial: Message[] = [
+      setMessages([
         greet,
         ...(first.answer ? [bot(first.answer)] : []),
         bot(first.question, { options: first.options }),
-      ];
-      setMessages(initial);
+      ]);
       logToServer(first.question, "(選択肢)");
     } else {
-      // トップがselectでない/複数ある場合は一覧を選択肢化
       const opts = faq.map((it) => ({ label: it.question, next: it }));
-      const initial: Message[] = [
-        greet,
-        bot("項目をお選びください。", { options: opts }),
-      ];
-      setMessages(initial);
+      setMessages([greet, bot("項目をお選びください。", { options: opts })]);
     }
   }, [faq]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ==== 親へ高さ通知（embed.js と連携） ====
+  // ==== 親へ高さ通知（無効化して本文のみスクロールに） ====
+  const enableAutoResize = false;
   useEffect(() => {
+    if (!enableAutoResize) return;
     const postResize = () => {
       const h = rootRef.current?.scrollHeight ?? 600;
       window.parent?.postMessage({ type: "RIZBO_RESIZE", height: h }, "*");
@@ -131,11 +126,13 @@ export default function ChatbotEmbedClient() {
     const ro = new ResizeObserver(postResize);
     if (rootRef.current) ro.observe(rootRef.current);
     return () => ro.disconnect();
-  }, []);
+  }, [enableAutoResize]);
 
-  // ==== オートスクロール ====
+  // ==== オートスクロール（本文のみ） ====
   useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+    const el = bodyRef.current;
+    if (!el) return;
+    el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
   }, [messages.length]);
 
   // ==== 検索用に全questionを平坦化 ====
@@ -239,19 +236,14 @@ export default function ChatbotEmbedClient() {
     const greet = bot("ご不明な点はありますか？ お気軽にお問合せください。");
 
     if (first?.type === "select" && first.options?.length) {
-      const initial: Message[] = [
+      setMessages([
         greet,
         ...(first.answer ? [bot(first.answer)] : []),
         bot(first.question, { options: first.options }),
-      ];
-      setMessages(initial);
+      ]);
     } else {
       const opts = faq.map((it) => ({ label: it.question, next: it }));
-      const initial: Message[] = [
-        greet,
-        bot("項目をお選びください。", { options: opts }),
-      ];
-      setMessages(initial);
+      setMessages([greet, bot("項目をお選びください。", { options: opts })]);
     }
   };
 
@@ -296,7 +288,7 @@ export default function ChatbotEmbedClient() {
         </header>
 
         {/* 本文（メッセージ） */}
-        <main className="rzw-body overflow-y-auto">
+        <main ref={bodyRef} className="rzw-body">
           {messages.map((m, i) => (
             <div
               key={i}
@@ -353,8 +345,6 @@ export default function ChatbotEmbedClient() {
               </div>
             </div>
           )}
-
-          <div ref={endRef} />
         </main>
 
         {/* 入力欄 */}
@@ -406,14 +396,13 @@ export default function ChatbotEmbedClient() {
           color: #000;
         }
         .rzw-card {
-          min-height: 100dvh;
+          height: 100dvh; /* 本体の高さを固定（必要なら 100svh に） */
           width: 100%;
-          height: 100%;
           background: #fff;
           border-radius: 16px;
           display: flex;
           flex-direction: column;
-          overflow: hidden;
+          overflow: hidden; /* 子(main)以外は溢れない */
           box-shadow: none;
         }
         .rzw-head {
@@ -434,20 +423,14 @@ export default function ChatbotEmbedClient() {
           align-items: center;
           gap: 4px;
         }
-        .rzw-reset {
-          background: transparent;
-          border: none;
-          color: #fff;
-          cursor: pointer;
-          padding: 4px;
-          border-radius: 6px;
-        }
+        .rzw-reset,
         .rzw-x {
           background: transparent;
           border: none;
           cursor: pointer;
           padding: 4px;
           border-radius: 6px;
+          color: #fff;
         }
         .rzw-x:hover,
         .rzw-reset:hover {
@@ -458,7 +441,10 @@ export default function ChatbotEmbedClient() {
           flex: 1;
           background: var(--rz-bg);
           padding: 12px;
-          overflow: auto;
+          overflow-y: auto; /* ← 本文だけスクロール */
+          overflow-x: hidden;
+          overscroll-behavior: contain; /* 親への伝播を抑制 */
+          scrollbar-gutter: stable;
         }
         .rzw-row {
           display: flex;
@@ -471,7 +457,8 @@ export default function ChatbotEmbedClient() {
         .rzw-right {
           justify-content: flex-end;
         }
-        .rzw-mini-avatar {
+        .rzw-mini-avatar,
+        .logo-icon {
           width: 22px;
           height: 22px;
           border-radius: 50%;
@@ -500,7 +487,7 @@ export default function ChatbotEmbedClient() {
         }
         .rzw-link a {
           color: inherit;
-          text-decoration: underline.;
+          text-decoration: underline; /* ← 誤記修正 */
         }
         .rzw-qr {
           display: flex;
@@ -581,10 +568,6 @@ export default function ChatbotEmbedClient() {
             transform: translateY(-2px);
           }
         }
-        .logo-icon {
-          width: 32px;
-          height: 32px;
-        }
 
         .rzw-logo {
           height: 18px;
@@ -595,6 +578,16 @@ export default function ChatbotEmbedClient() {
           .rzw-logo {
             max-width: 120px;
           }
+        }
+      `}</style>
+
+      {/* 親(body)のスクロールを止める */}
+      <style jsx global>{`
+        html,
+        body,
+        #__next {
+          height: 100%;
+          overflow: hidden; /* body 全体はスクロールさせない */
         }
       `}</style>
     </div>
