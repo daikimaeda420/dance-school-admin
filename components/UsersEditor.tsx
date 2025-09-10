@@ -15,6 +15,7 @@ type User = {
 export default function UsersEditor() {
   const { data: session } = useSession();
   const currentEmail = session?.user?.email;
+  const currentSchoolId = (session?.user as any)?.schoolId || "";
 
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
@@ -61,26 +62,48 @@ export default function UsersEditor() {
   };
 
   const saveEdit = async (email: string) => {
+    const original = users.find((u) => u.email === email);
+    const payload: any = {
+      email,
+      name: editData.name ?? original?.name,
+      role: editData.role ?? original?.role,
+      schoolId: original?.schoolId || currentSchoolId,
+    };
+
+    // 空文字の password は送らない（API バリデーション回避）
+    if (editData.password && editData.password.trim() !== "") {
+      payload.password = editData.password.trim();
+    }
+
+    if (!payload.schoolId) {
+      toast("err", "schoolId が未設定です");
+      return;
+    }
+
     const res = await fetch("/api/users", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, ...editData }),
+      body: JSON.stringify(payload),
     });
+
     if (res.ok) {
       const updatedUsers = users.map((u) =>
-        u.email === email ? ({ ...u, ...editData } as User) : u
+        u.email === email ? ({ ...u, ...payload } as User) : u
       );
       setUsers(updatedUsers);
       cancelEditing();
       toast("ok", "✅ 更新しました");
     } else {
-      toast("err", "更新に失敗しました");
+      const err = await res.json().catch(() => ({}));
+      toast("err", `更新に失敗しました: ${err.error || res.statusText}`);
     }
   };
 
   const deleteUser = async (email: string) => {
     if (!confirm("本当に削除しますか？")) return;
-    const res = await fetch(`/api/users?email=${email}`, { method: "DELETE" });
+    const res = await fetch(`/api/users?email=${encodeURIComponent(email)}`, {
+      method: "DELETE",
+    });
     if (res.ok) {
       setUsers(users.filter((u) => u.email !== email));
       toast("ok", "✅ 削除しました");
@@ -92,14 +115,27 @@ export default function UsersEditor() {
 
   const addUser = async () => {
     const { email, name, role, password } = newUser;
-    if (!email || !name || !role || !password) {
+    const payload: any = {
+      email,
+      name,
+      role,
+      password,
+      schoolId: newUser.schoolId || currentSchoolId,
+    };
+
+    if (!payload.email || !payload.name || !payload.role || !payload.password) {
       toast("err", "全ての項目を入力してください");
       return;
     }
+    if (!payload.schoolId) {
+      toast("err", "schoolId が未設定です");
+      return;
+    }
+
     const res = await fetch("/api/users", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(newUser),
+      body: JSON.stringify(payload),
     });
     if (res.ok) {
       const refreshed = await fetch("/api/users").then((r) => r.json());
@@ -108,7 +144,7 @@ export default function UsersEditor() {
       toast("ok", "✅ 追加しました");
     } else {
       const err = await res.json().catch(() => ({}));
-      toast("err", "追加に失敗しました: " + (err.error || ""));
+      toast("err", "追加に失敗しました: " + (err.error || res.statusText));
     }
   };
 
@@ -199,7 +235,7 @@ export default function UsersEditor() {
                     <td className="px-3 py-2">
                       {isEditing ? (
                         <input
-                          value={editData.name || ""}
+                          value={editData.name ?? u.name ?? ""}
                           onChange={(e) =>
                             setEditData((d) => ({ ...d, name: e.target.value }))
                           }
@@ -213,7 +249,7 @@ export default function UsersEditor() {
                     <td className="px-3 py-2">
                       {isEditing ? (
                         <select
-                          value={editData.role || ""}
+                          value={editData.role ?? u.role ?? ""}
                           onChange={(e) =>
                             setEditData((d) => ({ ...d, role: e.target.value }))
                           }
