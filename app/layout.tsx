@@ -2,10 +2,8 @@
 import "./globals.css";
 import Script from "next/script";
 import type { Metadata, Viewport } from "next";
-import Header from "@/components/Header";
-import Sidebar from "@/components/Sidebar";
-import Footer from "@/components/Footer";
 import AuthProvider from "@/components/AuthProvider";
+import RootShell from "./RootShell";
 
 export const metadata: Metadata = {
   title: {
@@ -30,10 +28,8 @@ export const metadata: Metadata = {
     statusBarStyle: "default",
     title: "rizbo",
   },
-  // themeColor はここに置かない
 };
 
-// ✅ こちらに移動
 export const viewport: Viewport = {
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#ffffff" },
@@ -49,7 +45,6 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ja" suppressHydrationWarning>
-      {/* 👇 ここで head を明示し、Script を head 内に置く */}
       <head>
         <Script id="theme-init" strategy="beforeInteractive">{`
           try {
@@ -62,16 +57,7 @@ export default function RootLayout({
       </head>
       <body className="min-h-screen bg-gray-50 text-gray-900 dark:bg-gray-950 dark:text-gray-100 w-dvw">
         <AuthProvider>
-          <Header />
-          <div className="mx-auto px-4">
-            <div className="flex gap-6">
-              <Sidebar showDesktop />
-              <div className="flex-1 w-full min-h-[calc(100vh-4rem)]">
-                <main className="min-h-[87vh] py-6">{children}</main>
-                <Footer siteName="Rizbo" startYear={2025} />
-              </div>
-            </div>
-          </div>
+          <RootShell>{children}</RootShell>
         </AuthProvider>
       </body>
     </html>

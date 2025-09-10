@@ -1,9 +1,14 @@
-import dynamic from "next/dynamic";
+// app/(embed)/embed/layout.tsx
+import type { ReactNode } from "react";
 
-const ChatbotEmbedClient = dynamic(() => import("./ChatbotEmbedClient"), {
-  ssr: false,
-});
+// もし埋め込みページ用のグローバルCSSを足すなら、クライアント子で styled-jsx
+// import EmbedGlobalStyle from "@/components/EmbedGlobalStyle";
 
-export default function Page() {
-  return <ChatbotEmbedClient />;
+export default function EmbedLayout({ children }: { children: ReactNode }) {
+  return (
+    <>
+      {/* <EmbedGlobalStyle /> */}
+      {children}
+    </>
+  );
 }
