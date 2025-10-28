@@ -1,0 +1,20 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL") // Session/pooled 接続（例: pgBouncer）
+  directUrl = env("DIRECT_URL")   // 直接接続（例: 5432）
+}
+
+model Faq {
+  id        String   @id @default(uuid())
+  schoolId  String   @unique
+  items     Json
+  updatedBy String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

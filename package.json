@@ -5,9 +5,11 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "build:basecoat": "basecoat build"
+    "build:basecoat": "basecoat build",
+    "db:import": "node ./scripts/importFaq.cjs"
   },
   "dependencies": {
+    "@prisma/client": "^6.18.0",
     "@radix-ui/react-alert-dialog": "^1.1.14",
     "@radix-ui/react-avatar": "^1.1.10",
     "@radix-ui/react-slot": "^1.2.3",
@@ -20,7 +22,8 @@
     "next-auth": "^4.24.5",
     "react": "18.2.0",
     "react-dom": "18.2.0",
-    "tailwind-merge": "^3.3.1"
+    "tailwind-merge": "^3.3.1",
+    "zod": "^4.1.5"
   },
   "devDependencies": {
     "@types/node": "24.0.14",
@@ -28,7 +31,9 @@
     "autoprefixer": "^10.4.21",
     "basecoat": "^0.1.0",
     "postcss": "^8.5.6",
+    "prisma": "^6.18.0",
     "tailwindcss": "^3.4.17",
+    "tsx": "^4.20.6",
     "tw-animate-css": "^1.3.5",
     "typescript": "5.8.3"
   }

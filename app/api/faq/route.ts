@@ -1,116 +1,97 @@
 // app/api/faq/route.ts
-import { promises as fs } from "fs";
-import path from "path";
+import { NextResponse } from "next/server";
+import prisma from "@/lib/prisma"; // ← lib/prisma.ts のやつ
+
+function normalizeItems(raw: any[]): any[] {
+  return (Array.isArray(raw) ? raw : []).map((item: any) => {
+    if (item?.type === "select") {
+      const options = Array.isArray(item.options) ? item.options : [];
+      return {
+        ...item,
+        options: options.map((opt: any) => ({
+          label: typeof opt?.label === "string" ? opt.label : "",
+          next: {
+            type: "question",
+            question: opt?.next?.question ?? "",
+            answer: opt?.next?.answer ?? "",
+            url: opt?.next?.url ?? "",
+          },
+        })),
+      };
+    }
+    return item;
+  });
+}
+
+function validateItems(body: any[]): { ok: true } | { ok: false; msg: string } {
+  if (!Array.isArray(body))
+    return { ok: false, msg: "FAQは配列である必要があります" };
+  for (const item of body) {
+    if (!item?.type || !item?.question)
+      return { ok: false, msg: "type と question は必須です" };
+    if (item.type === "question" && typeof item.answer !== "string") {
+      return { ok: false, msg: "answer が不正です" };
+    }
+    if (item.type === "select") {
+      if (!Array.isArray(item.options)) item.options = [];
+      else {
+        item.options = item.options.filter(
+          (opt: any) =>
+            typeof opt?.label === "string" &&
+            opt?.next &&
+            typeof opt.next.question === "string" &&
+            typeof opt.next.answer === "string"
+        );
+      }
+    }
+  }
+  return { ok: true };
+}
 
 export async function GET(req: Request) {
-  const { searchParams } = new URL(req.url);
-  const school = searchParams.get("school");
-  if (!school) {
-    return new Response(JSON.stringify([]), {
-      status: 400,
-      headers: { "Content-Type": "application/json" },
-    });
-  }
-
-  const filePath = path.join(process.cwd(), "public", "faq", `${school}.json`);
-
   try {
-    const fileData = await fs.readFile(filePath, "utf8");
-    const raw = JSON.parse(fileData);
+    const { searchParams } = new URL(req.url);
+    const school = searchParams.get("school");
+    if (!school) return NextResponse.json([], { status: 400 });
 
-    // options 内の next を最低限補完
-    const normalized = raw.map((item: any) => {
-      if (item.type === "select") {
-        const options = Array.isArray(item.options) ? item.options : [];
-        return {
-          ...item,
-          options: options.map((opt: any) => ({
-            label: opt.label || "",
-            next: {
-              type: "question",
-              question: opt?.next?.question || "",
-              answer: opt?.next?.answer || "",
-              url: opt?.next?.url || "",
-            },
-          })),
-        };
-      }
-      return item;
+    const rec = await prisma.faq.findUnique({
+      where: { schoolId: school },
+      select: { items: true },
     });
 
-    return new Response(JSON.stringify(normalized, null, 2), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-    });
+    return NextResponse.json(normalizeItems(rec?.items ?? []), { status: 200 });
   } catch (err) {
-    return new Response(JSON.stringify([]), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-    });
+    return NextResponse.json([], { status: 200 });
   }
 }
 
 export async function POST(req: Request) {
-  const { searchParams } = new URL(req.url);
-  const school = searchParams.get("school");
-  if (!school) {
-    return new Response(
-      JSON.stringify({ error: "school が指定されていません" }),
-      { status: 400 }
-    );
-  }
-
-  const filePath = path.join(process.cwd(), "public", "faq", `${school}.json`);
-
   try {
-    const body = await req.json();
-
-    if (!Array.isArray(body)) {
-      return new Response(
-        JSON.stringify({ error: "FAQは配列である必要があります" }),
+    const { searchParams } = new URL(req.url);
+    const school = searchParams.get("school");
+    if (!school)
+      return NextResponse.json(
+        { error: "school が指定されていません" },
         { status: 400 }
       );
-    }
 
-    // 簡易バリデーション
-    for (const item of body) {
-      if (!item.type || !item.question) {
-        return new Response(
-          JSON.stringify({ error: "type と question は必須です" }),
-          { status: 400 }
-        );
-      }
-      if (item.type === "question" && typeof item.answer !== "string") {
-        return new Response(JSON.stringify({ error: "answer が不正です" }), {
-          status: 400,
-        });
-      }
-      if (item.type === "select") {
-        if (!Array.isArray(item.options)) {
-          item.options = [];
-        } else {
-          item.options = item.options.filter(
-            (opt: any) =>
-              typeof opt.label === "string" &&
-              opt.next &&
-              typeof opt.next.question === "string" &&
-              typeof opt.next.answer === "string"
-          );
-        }
-      }
-    }
+    const body = await req.json();
+    console.log("POST /api/faq body =", body); // ← デバッグ表示
 
-    await fs.mkdir(path.dirname(filePath), { recursive: true });
-    await fs.writeFile(filePath, JSON.stringify(body, null, 2), "utf8");
+    const v = validateItems(body);
+    if (!v.ok) return NextResponse.json({ error: v.msg }, { status: 400 });
 
-    return new Response(JSON.stringify({ ok: true }), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
+    const result = await prisma.faq.upsert({
+      where: { schoolId: school },
+      update: { items: body, updatedBy: "api" },
+      create: { schoolId: school, items: body, updatedBy: "api" },
+      select: { id: true, schoolId: true },
     });
+
+    console.log("upsert result =", result); // ← ここも見えると安心
+    return NextResponse.json({ ok: true }, { status: 200 });
   } catch (err) {
-    console.error("FAQ保存エラー:", err);
-    return new Response(JSON.stringify({ error: "保存に失敗しました" }), {
-      status: 500,
-    });
+    console.error("POST /api/faq error:", err);
+    return NextResponse.json({ error: "保存に失敗しました" }, { status: 500 });
   }
 }
