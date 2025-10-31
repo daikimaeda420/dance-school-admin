@@ -39,6 +39,19 @@ export type FAQItem =
       options: { label: string; next: FAQItem }[];
     };
 
+/** {items:[...]} / [...] どちらでも“配列”に正規化する */
+function asArray(maybe: unknown): FAQItem[] {
+  if (Array.isArray(maybe)) return maybe as FAQItem[];
+  if (
+    maybe &&
+    typeof maybe === "object" &&
+    Array.isArray((maybe as any).items)
+  ) {
+    return (maybe as any).items as FAQItem[];
+  }
+  return [];
+}
+
 // 入力検証：空の質問、空の回答（question型）、空のラベルなどを検出
 function validateFAQ(items: FAQItem[]) {
   const errors = new Set<string>();
@@ -113,14 +126,15 @@ export default function FAQPage() {
     localStorage.setItem(`chatbot_palette:${schoolId}`, palette);
   }, [palette, schoolId]);
 
-  // 取得
+  // 取得（← ここを“配列正規化”で安全化）
   useEffect(() => {
     if (status === "authenticated" && schoolId) {
-      fetch(`/api/faq?school=${schoolId}`)
+      fetch(`/api/faq?school=${schoolId}`, { cache: "no-store" })
         .then((res) => res.json())
         .then((data) => {
-          setFaq(data || []);
-          initialRef.current = JSON.stringify(data || []);
+          const arr = asArray(data);
+          setFaq(arr);
+          initialRef.current = JSON.stringify(arr);
         })
         .catch(() => {
           setFaq([]);
@@ -437,7 +451,7 @@ export default function FAQPage() {
         {/* 🎨 テーマカラー */}
         <section className="card">
           <div className="card-header">
-            <h3 className="font-semibold flex items-center gap-2">
+            <h3 className="font-semibold flex items中心 gap-2">
               <Palette aria-hidden="true" className="w-5 h-5" />
               <span>テーマカラー</span>
             </h3>
