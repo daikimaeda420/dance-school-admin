@@ -5,11 +5,10 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")  // 6543
-  directUrl = env("DIRECT_URL")    // 5432（shadow 用）
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  // directUrl は一旦削除（必要になったら戻す）
 }
-
 
 model Faq {
   id        String   @id @default(uuid())
@@ -18,7 +17,4 @@ model Faq {
   updatedBy String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
-  @@index([updatedAt])
 }
-
