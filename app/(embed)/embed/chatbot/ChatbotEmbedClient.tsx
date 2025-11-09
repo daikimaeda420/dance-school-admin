@@ -50,14 +50,12 @@ const PALETTES = new Set([
 
 /** API のベースURL（常に rizbo を指す） */
 function getApiBase() {
-  // Vercel の環境変数などに https://rizbo.dansul.jp を入れておくと安心
+  // Vercel に NEXT_PUBLIC_RIZBO_API_ORIGIN を入れていればそれを優先
   const envBase = process.env.NEXT_PUBLIC_RIZBO_API_ORIGIN;
   if (envBase) return envBase.replace(/\/+$/, "");
 
-  if (typeof window !== "undefined") {
-    return window.location.origin.replace(/\/+$/, "");
-  }
-  return "";
+  // 未設定なら固定で rizbo を使う
+  return "https://rizbo.dansul.jp";
 }
 
 /** APIレスポンス（配列 or Document）を統一形式(配列)へ */
@@ -156,37 +154,37 @@ export default function ChatbotEmbedClient({
 
   // ==== FAQ 取得 ====
   useEffect(() => {
-    if (!schoolId) return;
+    if (!schoolId) {
+      console.warn(
+        "[rizbo-chatbot] schoolId が空です。?school=xxx もしくは data-rizbo-school が渡っているか確認してください。"
+      );
+      return;
+    }
 
     let aborted = false;
     const run = async () => {
       const base = getApiBase();
-      if (!base) {
-        console.warn("API base URL が解決できませんでした");
-        return;
-      }
+      console.log("[rizbo-chatbot] FAQ fetch start", { base, schoolId });
 
       try {
-        // 1) 現行形式: /api/faq?school=ID
-        const r1 = await fetch(
-          `${base}/api/faq?school=${encodeURIComponent(schoolId)}`,
-          { cache: "no-store", mode: "cors" }
-        );
+        const url1 = `${base}/api/faq?school=${encodeURIComponent(schoolId)}`;
+        const r1 = await fetch(url1, { cache: "no-store", mode: "cors" });
+        console.log("[rizbo-chatbot] /api/faq?school= status", r1.status);
+
         if (r1.ok) {
           const d1 = await r1.json();
           if (!aborted) setFaq(normalizeFaq(d1));
           return;
         }
 
-        // 2) フォールバック: /api/faq/{school}
-        const r2 = await fetch(
-          `${base}/api/faq/${encodeURIComponent(schoolId)}`,
-          { cache: "no-store", mode: "cors" }
-        );
+        const url2 = `${base}/api/faq/${encodeURIComponent(schoolId)}`;
+        const r2 = await fetch(url2, { cache: "no-store", mode: "cors" });
+        console.log("[rizbo-chatbot] /api/faq/:school status", r2.status);
+
         const d2 = r2.ok ? await r2.json() : null;
         if (!aborted) setFaq(normalizeFaq(d2));
       } catch (e) {
-        console.error("FAQ取得失敗:", e);
+        console.error("[rizbo-chatbot] FAQ取得失敗:", e);
         if (!aborted) setFaq([]);
       }
     };
@@ -198,9 +196,17 @@ export default function ChatbotEmbedClient({
 
   // ==== 初期メッセージ ====
   useEffect(() => {
-    if (!faq.length) return;
-
     const greet = bot("ご不明な点はありますか？ お気軽にお問合せください。");
+
+    // FAQゼロのときも無言にしない
+    if (!faq.length) {
+      setMessages([
+        greet,
+        bot("このスクールのFAQはまだ登録されていないようです。"),
+      ]);
+      return;
+    }
+
     const first = faq[0];
 
     if (first?.type === "select" && first.options?.length) {
