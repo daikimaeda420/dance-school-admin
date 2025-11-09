@@ -1,5 +1,5 @@
 // app/api/faq/route.ts
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma"; // ← lib/prisma.ts は named export を推奨
 
 type FaqQuestion = {
@@ -17,37 +17,78 @@ type FaqSelect = {
 
 type FaqItem = FaqQuestion | FaqSelect;
 
+/**
+ * question アイテムの正規化
+ */
+function normalizeQuestion(item: any): FaqQuestion {
+  const question =
+    typeof item?.question === "string"
+      ? item.question
+      : String(item?.question ?? "");
+  const answer =
+    typeof item?.answer === "string" ? item.answer : String(item?.answer ?? "");
+
+  const url =
+    typeof item?.url === "string" && item.url.trim().length > 0
+      ? item.url
+      : undefined;
+
+  return {
+    type: "question",
+    question,
+    answer,
+    url,
+  };
+}
+
+/**
+ * select アイテムの正規化
+ */
+function normalizeSelect(item: any): FaqSelect {
+  const question =
+    typeof item?.question === "string"
+      ? item.question
+      : String(item?.question ?? "");
+
+  const rawOptions = Array.isArray(item?.options) ? item.options : [];
+
+  const options = rawOptions.map((opt: any) => {
+    const label = typeof opt?.label === "string" ? opt.label : "";
+    // select 内の next は question 固定
+    const next = normalizeQuestion(opt?.next ?? {});
+    return { label, next };
+  });
+
+  return {
+    type: "select",
+    question,
+    options,
+  };
+}
+
+/**
+ * 全アイテム共通の正規化
+ */
 function normalizeItems(raw: unknown): FaqItem[] {
   const arr = Array.isArray(raw) ? raw : [];
   return arr.map((item: any) => {
     if (item?.type === "select") {
-      const options = Array.isArray(item.options) ? item.options : [];
-      return {
-        ...item,
-        options: options.map((opt: any) => ({
-          label: typeof opt?.label === "string" ? opt.label : "",
-          next: {
-            type: "question",
-            question: opt?.next?.question ?? "",
-            answer: opt?.next?.answer ?? "",
-            url: opt?.next?.url ?? "",
-          } as FaqQuestion,
-        })),
-      } as FaqSelect;
+      return normalizeSelect(item);
     }
-    // question の場合
-    return {
-      type: "question",
-      question: String(item?.question ?? ""),
-      answer: String(item?.answer ?? ""),
-      url: typeof item?.url === "string" ? item.url : undefined,
-    } as FaqQuestion;
+    // type が不正 or question の場合は question として扱う
+    return normalizeQuestion(item);
   });
 }
 
-function validateItems(
-  body: unknown
-): { ok: true } | { ok: false; msg: string } {
+/**
+ * バリデーション結果の型
+ */
+type ValidateResult = {
+  ok: boolean;
+  msg?: string;
+};
+
+function validateItems(body: unknown): ValidateResult {
   if (!Array.isArray(body))
     return { ok: false, msg: "FAQは配列である必要があります" };
 
@@ -102,7 +143,7 @@ function withNoCache<T>(data: T, init?: ResponseInit) {
   return res;
 }
 
-export async function GET(req: Request) {
+export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const school = searchParams.get("school");
@@ -131,7 +172,7 @@ export async function GET(req: Request) {
   }
 }
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const school = searchParams.get("school");
@@ -141,12 +182,17 @@ export async function POST(req: Request) {
         { status: 400 }
       );
 
-    // 本文をパース（App Routerでは必須）
+    // 本文をパース
     const raw = await req.json();
 
     // まずバリデーション（副作用なし）
     const v = validateItems(raw);
-    if (!v.ok) return withNoCache({ error: v.msg }, { status: 400 });
+    if (!v.ok) {
+      return withNoCache(
+        { error: v.msg ?? "不正なリクエストです" },
+        { status: 400 }
+      );
+    }
 
     // 形式を揃える（保存前に normalize）
     const items = normalizeItems(raw);
