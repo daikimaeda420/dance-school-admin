@@ -25,7 +25,7 @@
   const paletteColorMap = {
     navy: "#2f5c7a",
     emerald: "#0f766e",
-    orange: "#ff9761",
+    orange: "#ea580c",
     purple: "#6d28d9",
     rose: "#be123c",
     gray: "#374151",
