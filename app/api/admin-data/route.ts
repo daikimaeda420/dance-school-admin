@@ -34,7 +34,7 @@ type ValidationResult = {
   msg?: string;
 };
 
-/** fs版と同等の簡易バリデーション */
+/** fs版と同等の簡易バリデーション（副作用あり: optionsを整形） */
 function validateItems(body: unknown): ValidationResult {
   if (!Array.isArray(body)) {
     return { ok: false, msg: "FAQは配列である必要があります" };
@@ -80,7 +80,8 @@ export async function GET(req: Request) {
 
     const items = normalizeItems(rec?.items);
     return NextResponse.json(items, { status: 200 });
-  } catch {
+  } catch (err) {
+    console.error("GET /api/faq error:", err);
     // fs版互換：エラーでも空配列を返す
     return NextResponse.json([], { status: 200 });
   }
@@ -107,10 +108,13 @@ export async function POST(req: Request) {
       );
     }
 
+    // 保存前に一応 normalize しておく（JSON構造を揃える）
+    const items = normalizeItems(body);
+
     await prisma.faq.upsert({
       where: { schoolId: school },
-      update: { items: body, updatedBy: "api" },
-      create: { schoolId: school, items: body, updatedBy: "api" },
+      update: { items, updatedBy: "api" },
+      create: { schoolId: school, items, updatedBy: "api" },
     });
 
     return NextResponse.json({ ok: true }, { status: 200 });
