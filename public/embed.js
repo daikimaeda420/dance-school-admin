@@ -8,7 +8,11 @@
   // 設定（data-rizbo-* を優先）
   const school = s.dataset.rizboSchool || s.dataset.school || "";
   const theme = s.dataset.rizboTheme || s.dataset.theme || "light";
-  const palette = s.dataset.rizboPalette || s.dataset.palette || "gray";
+  const palette = (
+    s.dataset.rizboPalette ||
+    s.dataset.palette ||
+    "gray"
+  ).toLowerCase(); // navy / emerald / orange / purple / rose / gray
   const side = s.dataset.rizboSide || s.dataset.side || "right"; // left | right
   const openByDefault = (s.dataset.rizboOpen ?? s.dataset.open) === "true";
   const width = parseInt(s.dataset.rizboWidth || s.dataset.width || "380", 10);
@@ -16,6 +20,21 @@
     s.dataset.rizboHeight || s.dataset.height || "520",
     10
   );
+
+  // paletteごとのボタンカラー（ChatbotEmbedClient の --rz-primary と対応）
+  const paletteColorMap = {
+    navy: "#2f5c7a",
+    emerald: "#0f766e",
+    orange: "#ea580c",
+    purple: "#6d28d9",
+    rose: "#be123c",
+    gray: "#374151",
+  };
+
+  // 直接指定があれば data-rizbo-color を優先することもできます（必要なら）
+  const customColor = s.dataset.rizboColor;
+  const color =
+    customColor || paletteColorMap[palette] || paletteColorMap["navy"];
 
   // origin / path
   let autoOrigin = location.origin;
@@ -36,7 +55,7 @@
   // スタイル（衝突しにくい接頭辞）
   const css = `
   .rzb-launcher{position:fixed; z-index:2147483000; width:56px;height:56px;border-radius:50%;
-    background:#2f5c7a;color:#fff;display:flex;align-items:center;justify-content:center;
+    background:${color};color:#fff;display:flex;align-items:center;justify-content:center;
     box-shadow:0 10px 30px rgba(0,0,0,.25); cursor:pointer; border:none}
   .rzb-launcher.rzb-right{right:24px;bottom:24px} .rzb-launcher.rzb-left{left:24px;bottom:24px}
   .rzb-panel{position:fixed; z-index:2147483001; background:#fff; overflow:hidden;
