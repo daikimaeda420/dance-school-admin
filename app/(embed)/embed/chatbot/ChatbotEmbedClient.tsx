@@ -488,10 +488,10 @@ export default function ChatbotEmbedClient({
         }
         /* palette: orange */
         .rzw-theme-orange {
-          --rz-primary: #ea580c;
+          --rz-primary: #ff9761;
           --rz-bg: #fff8f3;
           --rz-bubble-in: #fff2e8;
-          --rz-bubble-out: #ea580c;
+          --rz-bubble-out: #ff9761;
           --rz-text-in: #5b3219;
           --rz-text-out: #ffffff;
           --rz-border: #f4d3bf;
