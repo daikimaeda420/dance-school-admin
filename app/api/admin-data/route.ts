@@ -6,8 +6,10 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma"; // ← lib/prisma.ts（@prisma/client を包むやつ）
 
 /** fs版と同等の最小正規化 */
-function normalizeItems(raw: any[]): any[] {
-  return (Array.isArray(raw) ? raw : []).map((item: any) => {
+function normalizeItems(raw: unknown): any[] {
+  const arr = Array.isArray(raw) ? raw : [];
+
+  return arr.map((item: any) => {
     if (item?.type === "select") {
       const options = Array.isArray(item.options) ? item.options : [];
       return {
@@ -28,18 +30,25 @@ function normalizeItems(raw: any[]): any[] {
 }
 
 /** fs版と同等の簡易バリデーション */
-function validateItems(body: any[]): { ok: true } | { ok: false; msg: string } {
-  if (!Array.isArray(body))
+function validateItems(
+  body: unknown
+): { ok: true } | { ok: false; msg: string } {
+  if (!Array.isArray(body)) {
     return { ok: false, msg: "FAQは配列である必要があります" };
-  for (const item of body) {
+  }
+
+  for (const item of body as any[]) {
     if (!item?.type || !item?.question)
       return { ok: false, msg: "type と question は必須です" };
+
     if (item.type === "question" && typeof item.answer !== "string") {
       return { ok: false, msg: "answer が不正です" };
     }
+
     if (item.type === "select") {
-      if (!Array.isArray(item.options)) item.options = [];
-      else {
+      if (!Array.isArray(item.options)) {
+        item.options = [];
+      } else {
         item.options = item.options.filter(
           (opt: any) =>
             typeof opt?.label === "string" &&
@@ -64,7 +73,8 @@ export async function GET(req: Request) {
       select: { items: true },
     });
 
-    return NextResponse.json(normalizeItems(rec?.items ?? []), { status: 200 });
+    const items = normalizeItems(rec?.items);
+    return NextResponse.json(items, { status: 200 });
   } catch {
     // fs版互換：エラーでも空配列を返す
     return NextResponse.json([], { status: 200 });
