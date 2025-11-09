@@ -1,14 +1,21 @@
+// public/embed.js（元 isEmptyBindingElement.js）
 (() => {
-  const s = document.currentScript;
+  const s =
+    document.currentScript ||
+    document.querySelector("script[data-rizbo-school],script[data-school]");
   if (!s) return;
 
-  // 設定
-  const school = s.dataset.school || "";
-  const theme = s.dataset.theme || "light";
-  const side = s.dataset.side || "right"; // left | right
-  const openByDefault = s.dataset.open === "true";
-  const width = parseInt(s.dataset.width || "380", 10);
-  const height = parseInt(s.dataset.height || "520", 10);
+  // 設定（data-rizbo-* を優先）
+  const school = s.dataset.rizboSchool || s.dataset.school || "";
+  const theme = s.dataset.rizboTheme || s.dataset.theme || "light";
+  const palette = s.dataset.rizboPalette || s.dataset.palette || "gray";
+  const side = s.dataset.rizboSide || s.dataset.side || "right"; // left | right
+  const openByDefault = (s.dataset.rizboOpen ?? s.dataset.open) === "true";
+  const width = parseInt(s.dataset.rizboWidth || s.dataset.width || "380", 10);
+  const height = parseInt(
+    s.dataset.rizboHeight || s.dataset.height || "520",
+    10
+  );
 
   // origin / path
   let autoOrigin = location.origin;
@@ -17,9 +24,11 @@
   } catch {}
   const origin = s.dataset.origin || autoOrigin;
   const path = s.dataset.path || "/embed/chatbot";
+
   const src = `${origin}${path}?${new URLSearchParams({
     school,
     theme,
+    palette,
     v: "2025-09-09",
     mode: "bubble",
   })}`;
@@ -84,7 +93,6 @@
   const open = () => {
     panel.classList.add("rzb-open");
     btn.setAttribute("aria-label", "チャットを閉じる");
-    // ランチャーを「×」風に
     btn.innerHTML = `<svg width="22" height="22" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
       <path d="M18 6 6 18M6 6l12 12" stroke="white" stroke-width="2" stroke-linecap="round"/></svg>`;
     iframe.focus();
