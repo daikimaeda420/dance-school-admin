@@ -20,6 +20,13 @@ export type FAQItem =
       options: { label: string; next: FAQItem }[];
     };
 
+type FAQDocument = {
+  school: string;
+  version: number;
+  updatedAt: string;
+  root: FAQItem;
+};
+
 type Message = {
   role: "bot" | "user";
   text: string;
@@ -35,6 +42,32 @@ const PALETTES = new Set([
   "rose",
   "gray",
 ]);
+
+/** APIレスポンス（配列 or Document）を統一形式(配列)へ */
+function normalizeFaq(data: unknown): FAQItem[] {
+  try {
+    // ① 配列形式
+    if (Array.isArray(data)) return data as FAQItem[];
+
+    // ② 新形式（FAQDocument）
+    if (data && typeof data === "object") {
+      const d = data as any;
+
+      // ✅ 現在のAPI形式（items配列を持つ）
+      if (Array.isArray(d.items)) {
+        return d.items as FAQItem[];
+      }
+
+      // ✅ ドキュメント形式（rootを持つ）
+      if (d.root) {
+        return [d.root as FAQItem];
+      }
+    }
+  } catch (e) {
+    console.warn("normalizeFaq error:", e);
+  }
+  return [];
+}
 
 export default function ChatbotEmbedClient() {
   const params = useSearchParams();
@@ -96,13 +129,36 @@ export default function ChatbotEmbedClient() {
     }
   };
 
-  // ==== FAQ 取得 ====
+  // ==== FAQ 取得（/api/faq?school=... を優先、ダメなら /api/faq/{school} も試す） ====
   useEffect(() => {
     if (!schoolId) return;
-    fetch(`/api/faq?school=${encodeURIComponent(schoolId)}`)
-      .then((res) => res.json())
-      .then((data) => setFaq(Array.isArray(data) ? data : []))
-      .catch(() => setFaq([]));
+
+    let aborted = false;
+    const run = async () => {
+      try {
+        const r1 = await fetch(
+          `/api/faq?school=${encodeURIComponent(schoolId)}`,
+          { cache: "no-store" }
+        );
+        if (r1.ok) {
+          const d1 = await r1.json();
+          if (!aborted) setFaq(normalizeFaq(d1));
+          return;
+        }
+        // フォールバック（ドキュメント形式API想定）
+        const r2 = await fetch(`/api/faq/${encodeURIComponent(schoolId)}`, {
+          cache: "no-store",
+        });
+        const d2 = r2.ok ? await r2.json() : null;
+        if (!aborted) setFaq(normalizeFaq(d2));
+      } catch {
+        if (!aborted) setFaq([]);
+      }
+    };
+    run();
+    return () => {
+      aborted = true;
+    };
   }, [schoolId]);
 
   // ==== 初期メッセージ ====
@@ -123,21 +179,8 @@ export default function ChatbotEmbedClient() {
       const opts = faq.map((it) => ({ label: it.question, next: it }));
       setMessages([greet, bot("項目をお選びください。", { options: opts })]);
     }
-  }, [faq]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // ==== 親へ高さ通知（本文だけスクロールにするので無効化） ====
-  const enableAutoResize = false;
-  useEffect(() => {
-    if (!enableAutoResize) return;
-    const postResize = () => {
-      const h = rootRef.current?.scrollHeight ?? 600;
-      window.parent?.postMessage({ type: "RIZBO_RESIZE", height: h }, "*");
-    };
-    postResize();
-    const ro = new ResizeObserver(postResize);
-    if (rootRef.current) ro.observe(rootRef.current);
-    return () => ro.disconnect();
-  }, [enableAutoResize]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [faq]);
 
   // ==== オートスクロール（本文のみ） ====
   useEffect(() => {
@@ -443,7 +486,7 @@ export default function ChatbotEmbedClient() {
           --rz-border: #d1d5db;
         }
 
-        /* ---- ダークモード時の上書き（パレット別にチューニング） ---- */
+        /* ---- ダークモード ---- */
         .rzw-dark.rzw-theme-navy {
           --rz-bg: #0f1720;
           --rz-bubble-in: #1b2a38;
