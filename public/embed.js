@@ -1,15 +1,15 @@
+// public/embed.js（元 isEmptyBindingElement.js）
 (() => {
   const s =
     document.currentScript ||
     document.querySelector("script[data-rizbo-school],script[data-school]");
   if (!s) return;
 
-  // ========= 設定 =========
+  // 設定（data-rizbo-* を優先）
   const school = s.dataset.rizboSchool || s.dataset.school || "";
   const theme = s.dataset.rizboTheme || s.dataset.theme || "light";
   const palette = s.dataset.rizboPalette || s.dataset.palette || "gray";
-  const color = s.dataset.rizboColor || "#2f5c7a"; // ★ カスタムカラー対応
-  const side = s.dataset.rizboSide || s.dataset.side || "right";
+  const side = s.dataset.rizboSide || s.dataset.side || "right"; // left | right
   const openByDefault = (s.dataset.rizboOpen ?? s.dataset.open) === "true";
   const width = parseInt(s.dataset.rizboWidth || s.dataset.width || "380", 10);
   const height = parseInt(
@@ -17,7 +17,7 @@
     10
   );
 
-  // ========= origin / path =========
+  // origin / path
   let autoOrigin = location.origin;
   try {
     autoOrigin = new URL(s.src).origin;
@@ -33,20 +33,17 @@
     mode: "bubble",
   })}`;
 
-  // ========= スタイル =========
+  // スタイル（衝突しにくい接頭辞）
   const css = `
   .rzb-launcher{position:fixed; z-index:2147483000; width:56px;height:56px;border-radius:50%;
-    background:${color};color:#fff;display:flex;align-items:center;justify-content:center;
-    box-shadow:0 10px 30px rgba(0,0,0,.25); cursor:pointer; border:none;transition:opacity .25s ease}
-  .rzb-launcher:hover{opacity:.9;}
-  .rzb-launcher.rzb-right{right:24px;bottom:24px}
-  .rzb-launcher.rzb-left{left:24px;bottom:24px}
+    background:#2f5c7a;color:#fff;display:flex;align-items:center;justify-content:center;
+    box-shadow:0 10px 30px rgba(0,0,0,.25); cursor:pointer; border:none}
+  .rzb-launcher.rzb-right{right:24px;bottom:24px} .rzb-launcher.rzb-left{left:24px;bottom:24px}
   .rzb-panel{position:fixed; z-index:2147483001; background:#fff; overflow:hidden;
     width:${width}px; height:${height}px; border-radius:16px; box-shadow:0 20px 50px rgba(0,0,0,.25);
     display:none}
   .rzb-panel.rzb-open{display:block}
-  .rzb-panel.rzb-right{right:24px;bottom:96px}
-  .rzb-panel.rzb-left{left:24px;bottom:96px}
+  .rzb-panel.rzb-right{right:24px;bottom:96px} .rzb-panel.rzb-left{left:24px;bottom:96px}
   .rzb-iframe{width:100%;height:100%;border:none;display:block}
   @media (max-width:640px){
     .rzb-panel{right:0!important;left:0!important;bottom:0!important;width:100%!important;
@@ -57,26 +54,18 @@
   style.textContent = css;
   document.head.appendChild(style);
 
-  // ========= ランチャー =========
+  // ランチャー
   const btn = document.createElement("button");
   btn.className = `rzb-launcher rzb-${side}`;
   btn.setAttribute("aria-label", "チャットを開く");
+  btn.innerHTML = `
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none"
+      xmlns="http://www.w3.org/2000/svg">
+      <path d="M21 12c0 4.418-4.03 8-9 8-1.04 0-2.04-.14-2.97-.4L3 21l1.46-4.38C3.55 15.18 3 13.65 3 12c0-4.42 4.03-8 9-8s9 3.58 9 8Z" stroke="white" stroke-width="2" />
+    </svg>
+  `;
 
-  // ★ SVG stroke にも color を反映
-  const getIcon = (type = "chat") =>
-    type === "chat"
-      ? `<svg width="24" height="24" viewBox="0 0 24 24" fill="none"
-          xmlns="http://www.w3.org/2000/svg">
-          <path d="M21 12c0 4.418-4.03 8-9 8-1.04 0-2.04-.14-2.97-.4L3 21l1.46-4.38C3.55 15.18 3 13.65 3 12
-          c0-4.42 4.03-8 9-8s9 3.58 9 8Z" stroke="white" stroke-width="2" />
-        </svg>`
-      : `<svg width="22" height="22" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-          <path d="M18 6 6 18M6 6l12 12" stroke="white" stroke-width="2" stroke-linecap="round"/>
-        </svg>`;
-
-  btn.innerHTML = getIcon("chat");
-
-  // ========= パネル =========
+  // パネル
   const panel = document.createElement("div");
   panel.className = `rzb-panel rzb-${side}`;
   const iframe = document.createElement("iframe");
@@ -96,19 +85,26 @@
   iframe.setAttribute("allow", "clipboard-write; fullscreen");
   panel.appendChild(iframe);
 
+  // DOM 追加
   document.body.appendChild(panel);
   document.body.appendChild(btn);
 
-  // ========= 開閉動作 =========
+  // 開閉
   const open = () => {
     panel.classList.add("rzb-open");
     btn.setAttribute("aria-label", "チャットを閉じる");
-    btn.innerHTML = getIcon("close");
+    btn.innerHTML = `<svg width="22" height="22" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <path d="M18 6 6 18M6 6l12 12" stroke="white" stroke-width="2" stroke-linecap="round"/></svg>`;
+    iframe.focus();
   };
   const close = () => {
     panel.classList.remove("rzb-open");
     btn.setAttribute("aria-label", "チャットを開く");
-    btn.innerHTML = getIcon("chat");
+    btn.innerHTML = `
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none"
+        xmlns="http://www.w3.org/2000/svg">
+        <path d="M21 12c0 4.418-4.03 8-9 8-1.04 0-2.04-.14-2.97-.4L3 21l1.46-4.38C3.55 15.18 3 13.65 3 12c0-4.42 4.03-8 9-8s9 3.58 9 8Z" stroke="white" stroke-width="2" />
+      </svg>`;
   };
   btn.addEventListener("click", () => {
     panel.classList.contains("rzb-open") ? close() : open();
@@ -117,7 +113,7 @@
     if (e.key === "Escape" && panel.classList.contains("rzb-open")) close();
   });
 
-  // ========= 子 → 親連携 =========
+  // 子 → 親 連携
   const childOrigin = (() => {
     try {
       return new URL(iframe.src).origin;
