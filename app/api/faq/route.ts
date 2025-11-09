@@ -137,9 +137,19 @@ function validateItems(body: unknown): ValidateResult {
   return { ok: true };
 }
 
-function withNoCache<T>(data: T, init?: ResponseInit) {
+function withNoCache<T>(data: T, init: ResponseInit = {}) {
   const res = NextResponse.json(data, init);
   res.headers.set("Cache-Control", "no-store");
+
+  // ▼ ここから CORS 設定
+  res.headers.set("Access-Control-Allow-Origin", "*");
+  res.headers.set("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
+  res.headers.set(
+    "Access-Control-Allow-Headers",
+    "Content-Type, Authorization"
+  );
+  // ▲ ここまで CORS 設定
+
   return res;
 }
 
@@ -226,7 +236,8 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// 必要なら OPTIONS を追加（CORS用）
-// export async function OPTIONS() {
-//   return withNoCache({}, { status: 204 });
-// }
+// CORSプリフライト用
+export async function OPTIONS(_req: NextRequest) {
+  // ボディは空で OK。ヘッダーは withNoCache が付ける
+  return withNoCache({}, { status: 204 });
+}
