@@ -34,6 +34,11 @@ type Message = {
   options?: { label: string; next: FAQItem }[];
 };
 
+type ChatbotEmbedClientProps = {
+  /** サーバー側（page.tsx）から渡される school ID。なければ URL クエリを参照 */
+  school?: string;
+};
+
 const PALETTES = new Set([
   "navy",
   "emerald",
@@ -69,9 +74,13 @@ function normalizeFaq(data: unknown): FAQItem[] {
   return [];
 }
 
-export default function ChatbotEmbedClient() {
+export default function ChatbotEmbedClient({
+  school,
+}: ChatbotEmbedClientProps) {
   const params = useSearchParams();
-  const schoolId = params.get("school") ?? "";
+
+  // props が優先。なければ URL クエリから取得
+  const schoolId = school ?? params.get("school") ?? "";
   const theme = (params.get("theme") ?? "light").toLowerCase(); // light|dark
   const paletteParam = (params.get("palette") ?? "navy").toLowerCase();
   const palette = PALETTES.has(paletteParam) ? paletteParam : "navy";
