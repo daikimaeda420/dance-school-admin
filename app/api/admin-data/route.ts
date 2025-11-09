@@ -1,125 +1,172 @@
-// app/api/faq/route.ts
-export const runtime = "nodejs"; // PrismaはNodeランタイム推奨
-export const dynamic = "force-dynamic"; // キャッシュ回避
+// app/admin-data/route.ts
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
 
-import { NextResponse } from "next/server";
-import prisma from "@/lib/prisma"; // ← lib/prisma.ts（@prisma/client を包むやつ）
+type FaqQuestion = {
+  type: "question";
+  question: string;
+  answer: string;
+  url?: string;
+};
 
-/** fs版と同等の最小正規化 */
-function normalizeItems(raw: unknown): any[] {
+type FaqSelect = {
+  type: "select";
+  question: string;
+  options: { label: string; next: FaqQuestion }[];
+};
+
+type FaqItem = FaqQuestion | FaqSelect;
+
+/**
+ * question アイテムの正規化
+ */
+function normalizeQuestion(item: any): FaqQuestion {
+  const question =
+    typeof item?.question === "string"
+      ? item.question
+      : String(item?.question ?? "");
+  const answer =
+    typeof item?.answer === "string" ? item.answer : String(item?.answer ?? "");
+
+  const url =
+    typeof item?.url === "string" && item.url.trim().length > 0
+      ? item.url
+      : undefined;
+
+  return {
+    type: "question",
+    question,
+    answer,
+    url,
+  };
+}
+
+/**
+ * select アイテムの正規化
+ */
+function normalizeSelect(item: any): FaqSelect {
+  const question =
+    typeof item?.question === "string"
+      ? item.question
+      : String(item?.question ?? "");
+
+  const rawOptions = Array.isArray(item?.options) ? item.options : [];
+
+  const options = rawOptions.map((opt: any) => {
+    const label = typeof opt?.label === "string" ? opt.label : "";
+    const next = normalizeQuestion(opt?.next ?? {});
+    return { label, next };
+  });
+
+  return {
+    type: "select",
+    question,
+    options,
+  };
+}
+
+/**
+ * 全アイテム共通の正規化
+ */
+function normalizeItems(raw: unknown): FaqItem[] {
   const arr = Array.isArray(raw) ? raw : [];
-
   return arr.map((item: any) => {
     if (item?.type === "select") {
-      const options = Array.isArray(item.options) ? item.options : [];
-      return {
-        ...item,
-        options: options.map((opt: any) => ({
-          label: typeof opt?.label === "string" ? opt.label : "",
-          next: {
-            type: "question",
-            question: opt?.next?.question ?? "",
-            answer: opt?.next?.answer ?? "",
-            url: opt?.next?.url ?? "",
-          },
-        })),
-      };
+      return normalizeSelect(item);
     }
-    return item;
+    // type が不正 or question の場合は question として扱う
+    return normalizeQuestion(item);
   });
 }
 
-type ValidationResult = {
-  ok: boolean;
-  msg?: string;
-};
+function withNoCache<T>(data: T, init?: ResponseInit) {
+  const res = NextResponse.json(data, init);
+  res.headers.set("Cache-Control", "no-store");
+  return res;
+}
 
-/** fs版と同等の簡易バリデーション（副作用あり: optionsを整形） */
-function validateItems(body: unknown): ValidationResult {
-  if (!Array.isArray(body)) {
-    return { ok: false, msg: "FAQは配列である必要があります" };
-  }
+/**
+ * 管理画面用 FAQ 一覧 / 詳細取得
+ *
+ * - GET /admin-data                : 全スクール分の FAQ 一覧
+ * - GET /admin-data?school=XXXX    : 特定スクールの FAQ 詳細
+ */
+export async function GET(req: NextRequest) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const school = searchParams.get("school");
 
-  for (const item of body as any[]) {
-    if (!item?.type || !item?.question) {
-      return { ok: false, msg: "type と question は必須です" };
-    }
+    // 特定スクール指定あり → 1件だけ返す
+    if (school) {
+      const rec = await prisma.faq.findUnique({
+        where: { schoolId: school },
+        select: {
+          id: true,
+          schoolId: true,
+          items: true,
+          updatedAt: true,
+          updatedBy: true,
+        },
+      });
 
-    if (item.type === "question" && typeof item.answer !== "string") {
-      return { ok: false, msg: "answer が不正です" };
-    }
-
-    if (item.type === "select") {
-      if (!Array.isArray(item.options)) {
-        item.options = [];
-      } else {
-        item.options = item.options.filter(
-          (opt: any) =>
-            typeof opt?.label === "string" &&
-            opt?.next &&
-            typeof opt.next.question === "string" &&
-            typeof opt.next.answer === "string"
+      if (!rec) {
+        return withNoCache(
+          {
+            ok: true,
+            data: null,
+          },
+          { status: 200 }
         );
       }
-    }
-  }
 
-  return { ok: true };
-}
-
-export async function GET(req: Request) {
-  try {
-    const { searchParams } = new URL(req.url);
-    const school = searchParams.get("school");
-    if (!school) return NextResponse.json([], { status: 400 });
-
-    const rec = await prisma.faq.findUnique({
-      where: { schoolId: school },
-      select: { items: true },
-    });
-
-    const items = normalizeItems(rec?.items);
-    return NextResponse.json(items, { status: 200 });
-  } catch (err) {
-    console.error("GET /api/faq error:", err);
-    // fs版互換：エラーでも空配列を返す
-    return NextResponse.json([], { status: 200 });
-  }
-}
-
-export async function POST(req: Request) {
-  try {
-    const { searchParams } = new URL(req.url);
-    const school = searchParams.get("school");
-    if (!school) {
-      return NextResponse.json(
-        { error: "school が指定されていません" },
-        { status: 400 }
+      return withNoCache(
+        {
+          ok: true,
+          data: {
+            id: rec.id,
+            schoolId: rec.schoolId,
+            items: normalizeItems(rec.items ?? []),
+            updatedAt: rec.updatedAt,
+            updatedBy: rec.updatedBy,
+          },
+        },
+        { status: 200 }
       );
     }
 
-    const body = await req.json();
-    const v = validateItems(body);
-
-    if (!v.ok) {
-      return NextResponse.json(
-        { error: v.msg ?? "FAQデータが不正です" },
-        { status: 400 }
-      );
-    }
-
-    // 保存前に一応 normalize しておく（JSON構造を揃える）
-    const items = normalizeItems(body);
-
-    await prisma.faq.upsert({
-      where: { schoolId: school },
-      update: { items, updatedBy: "api" },
-      create: { schoolId: school, items, updatedBy: "api" },
+    // school 指定なし → 全件一覧
+    const recs = await prisma.faq.findMany({
+      orderBy: { updatedAt: "desc" },
+      select: {
+        id: true,
+        schoolId: true,
+        items: true,
+        updatedAt: true,
+        updatedBy: true,
+      },
     });
 
-    return NextResponse.json({ ok: true }, { status: 200 });
+    const data = recs.map((rec) => ({
+      id: rec.id,
+      schoolId: rec.schoolId,
+      items: normalizeItems(rec.items ?? []),
+      updatedAt: rec.updatedAt,
+      updatedBy: rec.updatedBy,
+    }));
+
+    return withNoCache(
+      {
+        ok: true,
+        count: data.length,
+        data,
+      },
+      { status: 200 }
+    );
   } catch (err) {
-    console.error("POST /api/faq error:", err);
-    return NextResponse.json({ error: "保存に失敗しました" }, { status: 500 });
+    console.error("GET /admin-data error:", err);
+    return withNoCache(
+      { ok: false, error: "Internal Server Error" },
+      { status: 500 }
+    );
   }
 }
