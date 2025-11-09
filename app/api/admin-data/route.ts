@@ -29,17 +29,21 @@ function normalizeItems(raw: unknown): any[] {
   });
 }
 
+type ValidationResult = {
+  ok: boolean;
+  msg?: string;
+};
+
 /** fs版と同等の簡易バリデーション */
-function validateItems(
-  body: unknown
-): { ok: true } | { ok: false; msg: string } {
+function validateItems(body: unknown): ValidationResult {
   if (!Array.isArray(body)) {
     return { ok: false, msg: "FAQは配列である必要があります" };
   }
 
   for (const item of body as any[]) {
-    if (!item?.type || !item?.question)
+    if (!item?.type || !item?.question) {
       return { ok: false, msg: "type と question は必須です" };
+    }
 
     if (item.type === "question" && typeof item.answer !== "string") {
       return { ok: false, msg: "answer が不正です" };
@@ -59,6 +63,7 @@ function validateItems(
       }
     }
   }
+
   return { ok: true };
 }
 
@@ -94,7 +99,13 @@ export async function POST(req: Request) {
 
     const body = await req.json();
     const v = validateItems(body);
-    if (!v.ok) return NextResponse.json({ error: v.msg }, { status: 400 });
+
+    if (!v.ok) {
+      return NextResponse.json(
+        { error: v.msg ?? "FAQデータが不正です" },
+        { status: 400 }
+      );
+    }
 
     await prisma.faq.upsert({
       where: { schoolId: school },
