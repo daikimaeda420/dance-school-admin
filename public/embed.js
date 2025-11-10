@@ -80,8 +80,8 @@
   btn.innerHTML = `
   <img src="https://rizbo.dansul.jp/apple-touch-icon.png"
     alt="チャットを開く"
-    width="32"
-    height="32"
+    width="40"
+    height="40"
     style="border-radius:50%;"/>
   `;
 
@@ -121,7 +121,7 @@
     panel.classList.remove("rzb-open");
     btn.setAttribute("aria-label", "チャットを開く");
     btn.innerHTML = `
-    <img src="/apple-touch-icon.png" alt="チャットを開く" width="32" height="32" style="border-radius:50%;"/>
+    <img src="https://rizbo.dansul.jp/outline-logo.png" alt="チャットを開く" width="40" height="40" style="border-radius:50%;"/>
   `;
   };
 
