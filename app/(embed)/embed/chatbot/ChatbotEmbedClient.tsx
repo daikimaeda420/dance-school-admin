@@ -354,7 +354,7 @@ export default function ChatbotEmbedClient({
         <header className="rzw-head">
           <div className="rzw-head-left">
             <Image
-              src="/outline-logo-w.svg"
+              src="/outline-logo-w.png"
               alt="サイトロゴ"
               width={96}
               height={20}
