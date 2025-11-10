@@ -78,11 +78,11 @@
   btn.className = `rzb-launcher rzb-${side}`;
   btn.setAttribute("aria-label", "チャットを開く");
   btn.innerHTML = `
-  <img src="https://rizbo.dansul.jp/apple-touch-icon.png"
+  <img src="https://rizbo.dansul.jp/outline-logo.png"
     alt="チャットを開く"
-    width="40"
-    height="40"
-    style="border-radius:50%;"/>
+    width="42"
+    height="42"
+    style="width: auto;"/>
   `;
 
   // パネル
@@ -121,7 +121,7 @@
     panel.classList.remove("rzb-open");
     btn.setAttribute("aria-label", "チャットを開く");
     btn.innerHTML = `
-    <img src="https://rizbo.dansul.jp/outline-logo.png" alt="チャットを開く" width="40" height="40" style="border-radius:50%;"/>
+    <img src="https://rizbo.dansul.jp/outline-logo.png" alt="チャットを開く" width="42" height="42" style="width: auto;"/>
   `;
   };
 
