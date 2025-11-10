@@ -78,10 +78,11 @@
   btn.className = `rzb-launcher rzb-${side}`;
   btn.setAttribute("aria-label", "チャットを開く");
   btn.innerHTML = `
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none"
-      xmlns="http://www.w3.org/2000/svg">
-      <path d="M21 12c0 4.418-4.03 8-9 8-1.04 0-2.04-.14-2.97-.4L3 21l1.46-4.38C3.55 15.18 3 13.65 3 12c0-4.42 4.03-8 9-8s9 3.58 9 8Z" stroke="white" stroke-width="2" />
-    </svg>
+  <img src="https://rizbo.dansul.jp/apple-touch-icon.png"
+    alt="チャットを開く"
+    width="32"
+    height="32"
+    style="border-radius:50%;"/>
   `;
 
   // パネル
