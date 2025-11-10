@@ -8,19 +8,21 @@ import Footer from "@/components/Footer";
 export default function RootShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isEmbed = pathname.startsWith("/embed"); // /embed 配下はヘッダ/フッタ非表示
+  const isLoginPage = pathname === "/login"; // ← 追加：ログインページ判定
 
+  // 埋め込みページは中身だけ描画
   if (isEmbed) {
-    // 埋め込みページは中身だけ描画
     return <>{children}</>;
   }
 
-  // 通常ページは従来の枠で描画
+  // 通常ページ
   return (
     <>
       <Header />
       <div className="mx-auto px-4">
         <div className="flex gap-6">
-          <Sidebar showDesktop />
+          {/* /login のときは Sidebar を非表示 */}
+          {!isLoginPage && <Sidebar showDesktop />}
           <div className="flex-1 w-full min-h-[calc(100vh-4rem)]">
             <main className="min-h-[87vh] py-6">{children}</main>
             <Footer siteName="Rizbo" startYear={2025} />
