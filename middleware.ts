@@ -11,17 +11,20 @@ export default withAuth({
         req.nextUrl.pathname
       );
       console.log("[middleware]", "token=", token);
+      // token があればログイン扱い
       return !!token;
     },
   },
 });
 
+// ここで「ログイン必須」にしたいパスを指定
 export const config = {
   matcher: [
-    "/after-login",
-    "/schools/:path*",
-    "/superadmin/:path*",
-    "/admin/:path*",
-    ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
+    "/", // トップ
+    "/faq", // FAQ
+    "/help", // ヘルプ
+    "/admin/:path*", // 例: /admin/chat-history など全部
+    "/superadmin/:path*", // 例: /superadmin や配下
+    // 必要なら "/after-login" も足せる
   ],
 };
