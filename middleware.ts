@@ -1,42 +1,54 @@
 // middleware.ts
-import { withAuth } from "next-auth/middleware";
 import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import { getToken } from "next-auth/jwt";
 
-export default withAuth(
-  function middleware(req) {
-    const token = req.nextauth.token;
-    const { pathname } = req.nextUrl;
+export async function middleware(req: NextRequest) {
+  const { pathname } = req.nextUrl;
 
-    // ✅ ログイン済みで /login に来た場合はトップへリダイレクト
-    if (pathname === "/login" && token) {
-      const url = new URL("/", req.url);
-      return NextResponse.redirect(url);
-    }
+  // NextAuth の JWT を取得（ログイン状態かどうか）
+  const token = await getToken({
+    req,
+    secret: process.env.NEXTAUTH_SECRET,
+  });
 
-    // 通常通り進行
-    return NextResponse.next();
-  },
-  {
-    pages: {
-      signIn: "/login", // 未ログイン時のリダイレクト先
-    },
-    callbacks: {
-      authorized({ token }) {
-        // token があれば認証済み
-        return !!token;
-      },
-    },
+  const isLoginPage = pathname === "/login" || pathname === "/login/";
+
+  const isProtectedRoute =
+    ["/", "/faq", "/help"].includes(pathname) ||
+    pathname.startsWith("/admin") ||
+    pathname.startsWith("/superadmin");
+
+  // ✅ ① ログイン済みで /login に来たらトップへリダイレクト
+  if (token && isLoginPage) {
+    return NextResponse.redirect(new URL("/", req.url));
   }
-);
 
-// ✅ middleware を適用するパスを指定
+  // ✅ ② 未ログインで保護ページに来たら /login へリダイレクト
+  if (!token && isProtectedRoute) {
+    const loginUrl = new URL("/login", req.url);
+
+    // 任意：元のURLに戻したい場合は callbackUrl を付与
+    loginUrl.searchParams.set(
+      "callbackUrl",
+      req.nextUrl.pathname + req.nextUrl.search
+    );
+
+    return NextResponse.redirect(loginUrl);
+  }
+
+  // それ以外はそのまま通す
+  return NextResponse.next();
+}
+
+// どのパスで middleware を走らせるか
 export const config = {
   matcher: [
-    "/",
-    "/faq",
-    "/help",
-    "/admin/:path*",
-    "/superadmin/:path*",
-    "/login", // ← これが重要（これがないと/login では走らない）
+    "/", // トップ
+    "/faq", // FAQ
+    "/help", // ヘルプ
+    "/admin/:path*", // /admin 以下
+    "/superadmin/:path*", // /superadmin 以下
+    "/login", // ログインページ自身
   ],
 };
