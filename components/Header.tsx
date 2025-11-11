@@ -242,7 +242,7 @@ export default function Header() {
                 {/* PC：ログイン */}
                 <Link
                   href="/login"
-                  className="hidden sm:inline-flex rounded-md bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-400 dark:focus:ring-primary-700"
+                  className="hidden sm:inline-flex rounded-md bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-400 dark:focus:ring-primary-700 hover:bg-gray-900 dark:bg-gray-700 dark:hover:bg-gray-600"
                 >
                   ログイン
                 </Link>
