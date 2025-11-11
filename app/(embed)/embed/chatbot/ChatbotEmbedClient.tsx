@@ -95,13 +95,16 @@ export default function ChatbotEmbedClient({
   const paletteParam = (params.get("palette") ?? "navy").toLowerCase();
   const palette = PALETTES.has(paletteParam) ? paletteParam : "navy";
 
+  // 下部 CTA 用（なければ CTA 自体を表示しない）
+  const ctaLabel =
+    params.get("ctaLabel") ?? "お問い合わせ・体験のお申し込みはこちら";
+  const ctaUrl = params.get("ctaUrl") ?? "";
+
   const rootRef = useRef<HTMLDivElement>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
 
   const [faq, setFaq] = useState<FAQItem[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
-  const [input, setInput] = useState("");
-  const [loading, setLoading] = useState(false);
 
   // ---- helpers ----
   const bot = (text: string, extras: Partial<Message> = {}): Message => ({
@@ -230,18 +233,6 @@ export default function ChatbotEmbedClient({
     el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
   }, [messages.length]);
 
-  // ==== 検索用に全questionを平坦化 ====
-  const flat = useMemo(() => {
-    const list: { question: string; node: FAQItem }[] = [];
-    const walk = (n: FAQItem) => {
-      if (n.type === "question")
-        list.push({ question: n.question || "", node: n });
-      if (n.type === "select") n.options?.forEach((o) => walk(o.next));
-    };
-    faq.forEach(walk);
-    return list;
-  }, [faq]);
-
   // ==== 選択肢クリック ====
   const handleOptionSelect = (option: { label: string; next: FAQItem }) => {
     setMessages((prev) => [...prev, userMsg(option.label)]);
@@ -282,38 +273,6 @@ export default function ChatbotEmbedClient({
       return [bot("他にもご質問はありますか？", { options: first.options })];
     }
     return [];
-  };
-
-  // ==== 入力送信（部分一致検索） ====
-  const onSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const text = input.trim();
-    if (!text) return;
-    setInput("");
-    setMessages((prev) => [...prev, userMsg(text)]);
-    setLoading(true);
-
-    setTimeout(() => {
-      setLoading(false);
-      const hit =
-        flat.find((f) =>
-          f.question.toLowerCase().includes(text.toLowerCase())
-        ) ?? null;
-
-      if (!hit) {
-        const first = faq[0];
-        setMessages((prev) => [
-          ...prev,
-          bot("うまく見つかりませんでした。カテゴリーからお選びください。", {
-            ...(first?.type === "select" && first.options?.length
-              ? { options: first.options }
-              : {}),
-          }),
-        ]);
-        return;
-      }
-      renderFAQ(hit.node, false);
-    }, 140);
   };
 
   // ==== 右上の× → 親に閉じる通知 ====
@@ -429,39 +388,21 @@ export default function ChatbotEmbedClient({
               </div>
             </div>
           ))}
-
-          {loading && (
-            <div className="rzw-row rzw-left">
-              <div className="rzw-mini-avatar" />
-              <div className="rzw-bubble in">
-                <span className="rzw-dots">
-                  <i />
-                  <i />
-                  <i />
-                </span>
-              </div>
-            </div>
-          )}
         </main>
 
-        {/* 入力欄 */}
-        <form className="rzw-input" onSubmit={onSubmit}>
-          <input
-            className="rzw-field"
-            placeholder="何でもご依頼ください..."
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-          />
-          <button
-            className="rzw-send"
-            aria-label="送信"
-            disabled={!input.trim()}
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24">
-              <path d="M3 20l18-8L3 4l4 6 6 2-6 2-4 6z" fill="currentColor" />
-            </svg>
-          </button>
-        </form>
+        {/* 下部 CTA ボタン（URL が指定されているときのみ表示） */}
+        {ctaUrl && (
+          <div className="rzw-cta">
+            <a
+              href={ctaUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="rzw-cta-btn"
+            >
+              {ctaLabel}
+            </a>
+          </div>
+        )}
       </div>
 
       <style jsx>{`
@@ -692,34 +633,29 @@ export default function ChatbotEmbedClient({
           border-color: var(--rz-primary);
         }
 
-        .rzw-input {
-          display: flex;
-          gap: 8px;
-          align-items: center;
+        /* 下部 CTA */
+        .rzw-cta {
           padding: 12px;
           background: #fff;
           border-top: 1px solid var(--rz-border);
         }
-        .rzw-field {
-          flex: 1;
-          min-height: 40px;
-          border: 1px solid var(--rz-border);
+        .rzw-cta-btn {
+          display: inline-flex;
+          width: 100%;
+          align-items: center;
+          justify-content: center;
           border-radius: 999px;
-          padding: 0 42px 0 14px;
-          outline: none;
-          background: #fff;
-        }
-        .rzw-field::placeholder {
-          color: #9aa7b6;
-        }
-        .rzw-send {
-          margin-left: -40px;
-          width: 36px;
-          height: 36px;
+          padding: 10px 16px;
+          font-size: 14px;
+          font-weight: 600;
+          background: var(--rz-primary);
+          color: #fff;
+          text-decoration: none;
           border: none;
-          background: transparent;
-          color: var(--rz-primary);
           cursor: pointer;
+        }
+        .rzw-cta-btn:hover {
+          opacity: 0.92;
         }
 
         .rzw-dots {
