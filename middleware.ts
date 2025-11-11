@@ -7,26 +7,29 @@ export default withAuth(
     const token = req.nextauth.token;
     const { pathname } = req.nextUrl;
 
-    // ✅ ログイン済みで /login に来た場合はトップへ
+    // ✅ ログイン済みで /login に来た場合はトップへリダイレクト
     if (pathname === "/login" && token) {
-      return NextResponse.redirect(new URL("/", req.url));
+      const url = new URL("/", req.url);
+      return NextResponse.redirect(url);
     }
 
-    // それ以外はデフォルトの動作に任せる
+    // 通常通り進行
     return NextResponse.next();
   },
   {
-    pages: { signIn: "/login" },
+    pages: {
+      signIn: "/login", // 未ログイン時のリダイレクト先
+    },
     callbacks: {
       authorized({ token }) {
-        // token があればログイン扱い
+        // token があれば認証済み
         return !!token;
       },
     },
   }
 );
 
-// ✅ ログイン必須にしたいパスを指定
+// ✅ middleware を適用するパスを指定
 export const config = {
   matcher: [
     "/",
@@ -34,6 +37,6 @@ export const config = {
     "/help",
     "/admin/:path*",
     "/superadmin/:path*",
-    "/login", // ← これを追加することで /login にも middleware が反応
+    "/login", // ← これが重要（これがないと/login では走らない）
   ],
 };
