@@ -10,15 +10,19 @@ datasource db {
   directUrl = env("DIRECT_URL")    // 5432（shadow 用）
 }
 
-
 model Faq {
   id        String   @id @default(uuid())
   schoolId  String   @unique
   items     Json
+
+  // ▲ 追加：チャットボットの見た目・CTA 用
+  palette   String   @default("gray") // テーマカラー（例: "gray" / "navy" など）
+  ctaLabel  String?                    // ボタン文言
+  ctaUrl    String?                    // ボタンリンク先 URL
+
   updatedBy String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([updatedAt])
 }
-
