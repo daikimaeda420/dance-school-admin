@@ -50,33 +50,24 @@ const PALETTES = new Set([
 
 /** API のベースURL（常に rizbo を指す） */
 function getApiBase() {
-  // Vercel に NEXT_PUBLIC_RIZBO_API_ORIGIN を入れていればそれを優先
   const envBase = process.env.NEXT_PUBLIC_RIZBO_API_ORIGIN;
   if (envBase) return envBase.replace(/\/+$/, "");
-
-  // 未設定なら固定で rizbo を使う
   return "https://rizbo.dansul.jp";
 }
 
 /** APIレスポンス（配列 or Document）を統一形式(配列)へ */
 function normalizeFaq(data: unknown): FAQItem[] {
   try {
-    // ① 配列形式
     if (Array.isArray(data)) return data as FAQItem[];
 
-    // ② 新形式（FAQDocument）
     if (data && typeof data === "object") {
       const d = data as any;
 
-      // ✅ 現在のAPI形式（items配列を持つ）
-      if (Array.isArray(d.items)) {
-        return d.items as FAQItem[];
-      }
+      // items 配列形式
+      if (Array.isArray(d.items)) return d.items as FAQItem[];
 
-      // ✅ ドキュメント形式（rootを持つ）
-      if (d.root) {
-        return [d.root as FAQItem];
-      }
+      // root 単体形式
+      if (d.root) return [d.root as FAQItem];
     }
   } catch (e) {
     console.warn("normalizeFaq error:", e);
@@ -95,10 +86,10 @@ export default function ChatbotEmbedClient({
   const paletteParam = (params.get("palette") ?? "navy").toLowerCase();
   const palette = PALETTES.has(paletteParam) ? paletteParam : "navy";
 
-  // 下部 CTA 用（なければ CTA 自体を表示しない）
-  const ctaLabel =
-    params.get("ctaLabel") ?? "お問い合わせ・体験のお申し込みはこちら";
-  const ctaUrl = params.get("ctaUrl") ?? "";
+  // ✅ 下部CTA：ラベルとURLが両方あるときだけ表示
+  const ctaLabelParam = params.get("ctaLabel")?.trim() ?? "";
+  const ctaUrlParam = params.get("ctaUrl")?.trim() ?? "";
+  const hasCta = !!ctaLabelParam && !!ctaUrlParam;
 
   const rootRef = useRef<HTMLDivElement>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
@@ -232,6 +223,18 @@ export default function ChatbotEmbedClient({
     if (!el) return;
     el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
   }, [messages.length]);
+
+  // ==== 検索用に全questionを平坦化（今後の拡張用。現状は未使用でもOK） ====
+  const flat = useMemo(() => {
+    const list: { question: string; node: FAQItem }[] = [];
+    const walk = (n: FAQItem) => {
+      if (n.type === "question")
+        list.push({ question: n.question || "", node: n });
+      if (n.type === "select") n.options?.forEach((o) => walk(o.next));
+    };
+    faq.forEach(walk);
+    return list;
+  }, [faq]);
 
   // ==== 選択肢クリック ====
   const handleOptionSelect = (option: { label: string; next: FAQItem }) => {
@@ -390,16 +393,16 @@ export default function ChatbotEmbedClient({
           ))}
         </main>
 
-        {/* 下部 CTA ボタン（URL が指定されているときのみ表示） */}
-        {ctaUrl && (
+        {/* ✅ 下部 CTA：ラベル＆URLが両方ある時だけ表示 */}
+        {hasCta && (
           <div className="rzw-cta">
             <a
-              href={ctaUrl}
+              href={ctaUrlParam}
               target="_blank"
               rel="noopener noreferrer"
               className="rzw-cta-btn"
             >
-              {ctaLabel}
+              {ctaLabelParam}
             </a>
           </div>
         )}
@@ -633,7 +636,7 @@ export default function ChatbotEmbedClient({
           border-color: var(--rz-primary);
         }
 
-        /* 下部 CTA */
+        /* 下部CTA */
         .rzw-cta {
           padding: 12px;
           background: #fff;
