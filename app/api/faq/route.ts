@@ -88,11 +88,14 @@ type ValidateResult = {
   msg?: string;
 };
 
-function validateItems(body: unknown): ValidateResult {
-  if (!Array.isArray(body))
+/**
+ * FAQ items 部分のみのバリデーション
+ */
+function validateItems(items: unknown): ValidateResult {
+  if (!Array.isArray(items))
     return { ok: false, msg: "FAQは配列である必要があります" };
 
-  for (const item of body) {
+  for (const item of items as any[]) {
     const type = (item as any)?.type;
     const question = (item as any)?.question;
 
@@ -110,7 +113,7 @@ function validateItems(body: unknown): ValidateResult {
           ok: false,
           msg: "select の options は配列である必要があります",
         };
-      for (const opt of options) {
+      for (const opt of options as any[]) {
         if (typeof opt?.label !== "string")
           return {
             ok: false,
@@ -135,6 +138,34 @@ function validateItems(body: unknown): ValidateResult {
   }
 
   return { ok: true };
+}
+
+/**
+ * リクエスト body から items / palette / cta 系を抽出
+ * - 旧形式: [ ... ] の場合 → items にそのまま入り、meta は undefined
+ * - 新形式: { items, palette, ctaLabel, ctaUrl } の場合 → 各プロパティに展開
+ */
+function extractPayload(raw: unknown): {
+  items: unknown;
+  palette?: string | null;
+  ctaLabel?: string | null;
+  ctaUrl?: string | null;
+} {
+  if (Array.isArray(raw)) {
+    return { items: raw };
+  }
+  if (raw && typeof raw === "object") {
+    const r = raw as any;
+    return {
+      items: Array.isArray(r.items) ? r.items : [],
+      palette:
+        typeof r.palette === "string" && r.palette.trim() ? r.palette : null,
+      ctaLabel:
+        typeof r.ctaLabel === "string" && r.ctaLabel.trim() ? r.ctaLabel : null,
+      ctaUrl: typeof r.ctaUrl === "string" && r.ctaUrl.trim() ? r.ctaUrl : null,
+    };
+  }
+  return { items: [] };
 }
 
 function withNoCache<T>(data: T, init: ResponseInit = {}) {
@@ -165,12 +196,25 @@ export async function GET(req: NextRequest) {
 
     const rec = await prisma.faq.findUnique({
       where: { schoolId: school },
-      select: { items: true, updatedAt: true, updatedBy: true },
+      select: {
+        items: true,
+        palette: true,
+        ctaLabel: true,
+        ctaUrl: true,
+        updatedAt: true,
+        updatedBy: true,
+      },
     });
+
+    // items は常に配列に正規化して返す（ChatbotEmbedClient 互換）
+    const items = normalizeItems(rec?.items ?? []);
 
     return withNoCache(
       {
-        items: normalizeItems(rec?.items ?? []),
+        items,
+        palette: rec?.palette ?? null,
+        ctaLabel: rec?.ctaLabel ?? null,
+        ctaUrl: rec?.ctaUrl ?? null,
         updatedAt: rec?.updatedAt ?? null,
         updatedBy: rec?.updatedBy ?? null,
       },
@@ -195,8 +239,11 @@ export async function POST(req: NextRequest) {
     // 本文をパース
     const raw = await req.json();
 
-    // まずバリデーション（副作用なし）
-    const v = validateItems(raw);
+    // 旧形式・新形式どちらでも対応
+    const { items: rawItems, palette, ctaLabel, ctaUrl } = extractPayload(raw);
+
+    // まず items 部分だけバリデーション
+    const v = validateItems(rawItems);
     if (!v.ok) {
       return withNoCache(
         { error: v.msg ?? "不正なリクエストです" },
@@ -205,7 +252,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 形式を揃える（保存前に normalize）
-    const items = normalizeItems(raw);
+    const items = normalizeItems(rawItems);
 
     // 既存有無チェック（結果応答に使う）
     const exists = await prisma.faq.findUnique({
@@ -215,8 +262,21 @@ export async function POST(req: NextRequest) {
 
     const saved = await prisma.faq.upsert({
       where: { schoolId: school },
-      update: { items, updatedBy: "api" },
-      create: { schoolId: school, items, updatedBy: "api" },
+      update: {
+        items,
+        palette: palette ?? null,
+        ctaLabel: ctaLabel ?? null,
+        ctaUrl: ctaUrl ?? null,
+        updatedBy: "api",
+      },
+      create: {
+        schoolId: school,
+        items,
+        palette: palette ?? null,
+        ctaLabel: ctaLabel ?? null,
+        ctaUrl: ctaUrl ?? null,
+        updatedBy: "api",
+      },
       select: { id: true, schoolId: true, updatedAt: true },
     });
 

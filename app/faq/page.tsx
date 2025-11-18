@@ -97,6 +97,9 @@ function validateFAQ(items: FAQItem[]) {
   };
 }
 
+// HTML属性用の簡易エスケープ（ダブルクォートのみ）
+const escAttr = (s: string) => s.replace(/"/g, "&quot;");
+
 export default function FAQPage() {
   const { data: session, status } = useSession();
   const user = session?.user as UserWithSchool;
@@ -108,25 +111,14 @@ export default function FAQPage() {
   const [collapsed, setCollapsed] = useState<Record<number, boolean>>({});
   const [query, setQuery] = useState("");
 
-  // ▼ 追加：テーマパレット
+  // ▼ テーマパレット（DBから読み書きするメタ）
   const [palette, setPalette] = useState<PaletteValue>("navy");
-  // schoolId 決定後に復元
-  useEffect(() => {
-    if (!schoolId) return;
-    const saved = localStorage.getItem(
-      `chatbot_palette:${schoolId}`
-    ) as PaletteValue | null;
-    if (saved && PALETTES.some((p) => p.value === saved)) {
-      setPalette(saved);
-    }
-  }, [schoolId]);
-  // 変更を保存
-  useEffect(() => {
-    if (!schoolId) return;
-    localStorage.setItem(`chatbot_palette:${schoolId}`, palette);
-  }, [palette, schoolId]);
 
-  // 取得（← ここを“配列正規化”で安全化）
+  // ▼ CTA設定（DBから読み書き）
+  const [ctaLabel, setCtaLabel] = useState("");
+  const [ctaUrl, setCtaUrl] = useState("");
+
+  // 取得（FAQ + メタ）
   useEffect(() => {
     if (status === "authenticated" && schoolId) {
       fetch(`/api/faq?school=${schoolId}`, { cache: "no-store" })
@@ -135,6 +127,18 @@ export default function FAQPage() {
           const arr = asArray(data);
           setFaq(arr);
           initialRef.current = JSON.stringify(arr);
+
+          if (data && typeof data === "object") {
+            const d = data as any;
+            if (
+              typeof d.palette === "string" &&
+              PALETTES.some((p) => p.value === d.palette)
+            ) {
+              setPalette(d.palette as PaletteValue);
+            }
+            if (typeof d.ctaLabel === "string") setCtaLabel(d.ctaLabel);
+            if (typeof d.ctaUrl === "string") setCtaUrl(d.ctaUrl);
+          }
         })
         .catch(() => {
           setFaq([]);
@@ -148,7 +152,7 @@ export default function FAQPage() {
     [faq]
   );
 
-  // 未保存警告
+  // 未保存警告（FAQの変更のみ対象。CTAやpaletteはメタなので別扱いでもOKならこのままで）
   useEffect(() => {
     const onBeforeUnload = (e: BeforeUnloadEvent) => {
       if (!dirty) return;
@@ -174,10 +178,19 @@ export default function FAQPage() {
   const saveFAQ = async () => {
     if (!schoolId) return;
     setSaving(true);
+
+    // ★ 配列だけではなく、メタ情報もまとめて送信
+    const payload = {
+      items: faq,
+      palette,
+      ctaLabel: ctaLabel.trim() || null,
+      ctaUrl: ctaUrl.trim() || null,
+    };
+
     const res = await fetch(`/api/faq?school=${schoolId}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(faq),
+      body: JSON.stringify(payload),
     });
     setSaving(false);
 
@@ -231,17 +244,25 @@ export default function FAQPage() {
     }
   };
 
-  // ▼▼ script方式（palette 反映版） ▼▼
+  // ▼ script方式（palette & CTA を反映）
   const baseUrl =
     process.env.NEXT_PUBLIC_BASE_URL ||
     (typeof window !== "undefined" ? window.location.origin : "");
-  const embedScriptCode = `<script src="${baseUrl}/embed.js"
-  data-rizbo-school="${schoolId}"
-  data-rizbo-palette="${palette}"
-  data-rizbo-theme="light"
-  async
-></script>`;
-  // ▲▲ ここまで ▲▲
+
+  // data 属性は空文字なら出力しない
+  const attrs = [
+    `src="${baseUrl}/embed.js"`,
+    `data-rizbo-school="${schoolId}"`,
+    `data-rizbo-palette="${palette}"`,
+    `data-rizbo-theme="light"`,
+    ctaLabel.trim() ? `data-rizbo-cta-label="${escAttr(ctaLabel.trim())}"` : "",
+    ctaUrl.trim() ? `data-rizbo-cta-url="${escAttr(ctaUrl.trim())}"` : "",
+    "async",
+  ]
+    .filter(Boolean)
+    .join("\n  ");
+
+  const embedScriptCode = `<script ${attrs}></script>`;
 
   const empty = useMemo(() => faq.length === 0, [faq.length]);
 
@@ -451,7 +472,7 @@ export default function FAQPage() {
         {/* 🎨 テーマカラー */}
         <section className="card">
           <div className="card-header">
-            <h3 className="font-semibold flex items中心 gap-2">
+            <h3 className="font-semibold flex items-center gap-2">
               <Palette aria-hidden="true" className="w-5 h-5" />
               <span>テーマカラー</span>
             </h3>
@@ -486,8 +507,49 @@ export default function FAQPage() {
               })}
             </div>
             <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-              選択はブラウザに保存され、下の埋め込みコードに反映されます。
+              選択したカラーは埋め込みコードの <code>data-rizbo-palette</code>{" "}
+              に反映されます。
             </p>
+          </div>
+        </section>
+
+        {/* ✅ CTA設定 */}
+        <section className="card">
+          <div className="card-header">
+            <h3 className="font-semibold">CTA設定（任意）</h3>
+            <p className="text-xs text-gray-500">
+              ここで設定した内容は DB に保存され、下の埋め込みコードの{" "}
+              <code>data-rizbo-cta-*</code> に反映されます。
+              両方入力した場合のみ、チャットボット下部に CTA
+              ボタンが表示されます。
+            </p>
+          </div>
+          <div className="card-body grid gap-3 sm:grid-cols-2">
+            <div>
+              <label className="block text-sm font-medium mb-1">
+                CTAボタン文言 <span className="text-gray-500">(ctaLabel)</span>
+              </label>
+              <input
+                className="input w-full"
+                value={ctaLabel}
+                onChange={(e) => setCtaLabel(e.target.value)}
+                placeholder="例）無料体験のお申し込みはこちら"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">
+                CTAボタンURL <span className="text-gray-500">(ctaUrl)</span>
+              </label>
+              <input
+                className="input w-full"
+                value={ctaUrl}
+                onChange={(e) => setCtaUrl(e.target.value)}
+                placeholder="例）https://example.com/entry"
+              />
+              <p className="mt-1 text-xs text-gray-500">
+                先頭は <code>https://</code> で入力してください。
+              </p>
+            </div>
           </div>
         </section>
 
@@ -502,12 +564,13 @@ export default function FAQPage() {
           <div className="card-body">
             <p className="mb-2 text-sm text-gray-600 dark:text-gray-300">
               外部サイトには下記の <code>&lt;script&gt;</code>{" "}
-              を貼り付けてください。
+              を貼り付けてください。 テーマカラーと CTA 設定は{" "}
+              <code>data-rizbo-*</code> 属性として渡されます。
             </p>
             <div className="flex items-start gap-2">
               <textarea
                 readOnly
-                rows={5}
+                rows={Math.min(12, embedScriptCode.split("\n").length + 1)}
                 value={embedScriptCode}
                 className="input font-mono"
               />
@@ -522,11 +585,6 @@ export default function FAQPage() {
                 コピー
               </button>
             </div>
-            <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-              ※ <code>public/embed.js</code> が <code>data-rizbo-school</code> /{" "}
-              <code>data-rizbo-palette</code> / <code>data-rizbo-theme</code>{" "}
-              を読み込み、iframe に反映します。
-            </p>
           </div>
         </section>
 
