@@ -107,7 +107,17 @@ export default function FAQPage() {
 
   const [faq, setFaq] = useState<FAQItem[]>([]);
   const [saving, setSaving] = useState(false);
-  const initialRef = useRef<string>("[]");
+
+  // 初期状態（items + palette + CTA）を保持する
+  const initialRef = useRef<string>(
+    JSON.stringify({
+      items: [] as FAQItem[],
+      palette: "navy" as PaletteValue,
+      ctaLabel: "",
+      ctaUrl: "",
+    })
+  );
+
   const [collapsed, setCollapsed] = useState<Record<number, boolean>>({});
   const [query, setQuery] = useState("");
 
@@ -125,8 +135,10 @@ export default function FAQPage() {
         .then((res) => res.json())
         .then((data) => {
           const arr = asArray(data);
-          setFaq(arr);
-          initialRef.current = JSON.stringify(arr);
+
+          let nextPalette: PaletteValue = "navy";
+          let nextCtaLabel = "";
+          let nextCtaUrl = "";
 
           if (data && typeof data === "object") {
             const d = data as any;
@@ -134,25 +146,53 @@ export default function FAQPage() {
               typeof d.palette === "string" &&
               PALETTES.some((p) => p.value === d.palette)
             ) {
-              setPalette(d.palette as PaletteValue);
+              nextPalette = d.palette as PaletteValue;
             }
-            if (typeof d.ctaLabel === "string") setCtaLabel(d.ctaLabel);
-            if (typeof d.ctaUrl === "string") setCtaUrl(d.ctaUrl);
+            if (typeof d.ctaLabel === "string") nextCtaLabel = d.ctaLabel;
+            if (typeof d.ctaUrl === "string") nextCtaUrl = d.ctaUrl;
           }
+
+          setFaq(arr);
+          setPalette(nextPalette);
+          setCtaLabel(nextCtaLabel);
+          setCtaUrl(nextCtaUrl);
+
+          // items + palette + CTA をまとめて初期値として保存
+          initialRef.current = JSON.stringify({
+            items: arr,
+            palette: nextPalette,
+            ctaLabel: nextCtaLabel,
+            ctaUrl: nextCtaUrl,
+          });
         })
         .catch(() => {
+          const emptyState = {
+            items: [] as FAQItem[],
+            palette: "navy" as PaletteValue,
+            ctaLabel: "",
+            ctaUrl: "",
+          };
           setFaq([]);
-          initialRef.current = "[]";
+          setPalette(emptyState.palette);
+          setCtaLabel(emptyState.ctaLabel);
+          setCtaUrl(emptyState.ctaUrl);
+          initialRef.current = JSON.stringify(emptyState);
         });
     }
   }, [status, schoolId]);
 
-  const dirty = useMemo(
-    () => JSON.stringify(faq) !== initialRef.current,
-    [faq]
-  );
+  // FAQ / palette / CTA のどれかが初期値と異なれば dirty
+  const dirty = useMemo(() => {
+    const current = JSON.stringify({
+      items: faq,
+      palette,
+      ctaLabel,
+      ctaUrl,
+    });
+    return current !== initialRef.current;
+  }, [faq, palette, ctaLabel, ctaUrl]);
 
-  // 未保存警告（FAQの変更のみ対象。CTAやpaletteはメタなので別扱いでもOKならこのままで）
+  // 未保存警告
   useEffect(() => {
     const onBeforeUnload = (e: BeforeUnloadEvent) => {
       if (!dirty) return;
@@ -195,7 +235,13 @@ export default function FAQPage() {
     setSaving(false);
 
     if (res.ok) {
-      initialRef.current = JSON.stringify(faq);
+      // 保存後の状態を新しい初期値として記録
+      initialRef.current = JSON.stringify({
+        items: faq,
+        palette,
+        ctaLabel: ctaLabel.trim() || "",
+        ctaUrl: ctaUrl.trim() || "",
+      });
       alert("保存しました！");
     } else {
       const err = await res.json().catch(() => ({}));
