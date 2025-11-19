@@ -17,12 +17,31 @@ model Faq {
 
   // ▲ 追加：チャットボットの見た目・CTA 用
   palette   String   @default("gray") // テーマカラー（例: "gray" / "navy" など）
-  ctaLabel  String?                    // ボタン文言
-  ctaUrl    String?                    // ボタンリンク先 URL
+  ctaLabel  String?                   // ボタン文言
+  ctaUrl    String?                   // ボタンリンク先 URL
 
   updatedBy String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([updatedAt])
+}
+
+model FaqLog {
+  id        Int      @id @default(autoincrement())
+  school    String   // 例: "daiki.maeda.web"
+  sessionId String
+  timestamp DateTime // 質問が行われた時刻（ISO文字列を Date にパースして保存）
+
+  // 質問・回答はとりあえず文字列で保存
+  // （将来 JSON にしたくなったら Json 型に変更すればOK）
+  question  String
+  answer    String?
+  url       String?
+
+  createdAt DateTime @default(now())
+
+  @@index([school])
+  @@index([sessionId])
+  @@index([timestamp])
 }
