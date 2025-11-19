@@ -295,18 +295,14 @@ export default function FAQPage() {
     process.env.NEXT_PUBLIC_BASE_URL ||
     (typeof window !== "undefined" ? window.location.origin : "");
 
-  // data 属性は空文字なら出力しない
+  // data 属性は CTA を含めず、school / palette / theme のみ
   const attrs = [
     `src="${baseUrl}/embed.js"`,
     `data-rizbo-school="${schoolId}"`,
     `data-rizbo-palette="${palette}"`,
     `data-rizbo-theme="light"`,
-    ctaLabel.trim() ? `data-rizbo-cta-label="${escAttr(ctaLabel.trim())}"` : "",
-    ctaUrl.trim() ? `data-rizbo-cta-url="${escAttr(ctaUrl.trim())}"` : "",
     "async",
-  ]
-    .filter(Boolean)
-    .join("\n  ");
+  ].join("\n  ");
 
   const embedScriptCode = `<script ${attrs}></script>`;
 
