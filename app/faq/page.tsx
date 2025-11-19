@@ -2,7 +2,7 @@
 "use client";
 
 import { useSession } from "next-auth/react";
-import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { produce } from "immer";
 import { MessagesSquare, CodeXml, BadgeCheck, Palette } from "lucide-react";
 import { FAQEditor } from "../../components/FAQEditor";
@@ -97,20 +97,6 @@ function validateFAQ(items: FAQItem[]) {
   };
 }
 
-// ✅ FAQ + メタ情報を「dirty判定用」に正規化して文字列にする
-const snapshot = (
-  items: FAQItem[],
-  palette: PaletteValue,
-  ctaLabel: string,
-  ctaUrl: string
-) =>
-  JSON.stringify({
-    items,
-    palette,
-    ctaLabel: (ctaLabel ?? "").trim(),
-    ctaUrl: (ctaUrl ?? "").trim(),
-  });
-
 export default function FAQPage() {
   const { data: session, status } = useSession();
   const user = session?.user as UserWithSchool;
@@ -118,9 +104,7 @@ export default function FAQPage() {
 
   const [faq, setFaq] = useState<FAQItem[]>([]);
   const [saving, setSaving] = useState(false);
-
-  // 初期状態（items + palette + CTA）を保持する
-  const initialRef = useRef<string>(snapshot([], "navy", "", ""));
+  const [dirty, setDirty] = useState(false); // ← 単純な dirty フラグに変更
 
   const [collapsed, setCollapsed] = useState<Record<number, boolean>>({});
   const [query, setQuery] = useState("");
@@ -160,41 +144,17 @@ export default function FAQPage() {
           setPalette(nextPalette);
           setCtaLabel(nextCtaLabel);
           setCtaUrl(nextCtaUrl);
-
-          // items + palette + CTA をまとめて初期値として保存（正規化して）
-          initialRef.current = snapshot(
-            arr,
-            nextPalette,
-            nextCtaLabel,
-            nextCtaUrl
-          );
+          setDirty(false); // ← サーバーから読み込んだ直後は「保存済み」扱い
         })
         .catch(() => {
-          const emptyState = {
-            items: [] as FAQItem[],
-            palette: "navy" as PaletteValue,
-            ctaLabel: "",
-            ctaUrl: "",
-          };
           setFaq([]);
-          setPalette(emptyState.palette);
-          setCtaLabel(emptyState.ctaLabel);
-          setCtaUrl(emptyState.ctaUrl);
-          initialRef.current = snapshot(
-            emptyState.items,
-            emptyState.palette,
-            emptyState.ctaLabel,
-            emptyState.ctaUrl
-          );
+          setPalette("navy");
+          setCtaLabel("");
+          setCtaUrl("");
+          setDirty(false); // 空データ読み込みも保存済み扱い
         });
     }
   }, [status, schoolId]);
-
-  // FAQ / palette / CTA のどれかが初期値と異なれば dirty
-  const dirty = useMemo(() => {
-    const current = snapshot(faq, palette, ctaLabel, ctaUrl);
-    return current !== initialRef.current;
-  }, [faq, palette, ctaLabel, ctaUrl]);
 
   // 未保存警告
   useEffect(() => {
@@ -239,8 +199,7 @@ export default function FAQPage() {
     setSaving(false);
 
     if (res.ok) {
-      // 保存後の状態を新しい初期値として記録（こちらも snapshot で正規化）
-      initialRef.current = snapshot(faq, palette, ctaLabel, ctaUrl);
+      setDirty(false); // ← 保存成功したら「保存済み」
       alert("保存しました！");
     } else {
       const err = await res.json().catch(() => ({}));
@@ -257,6 +216,7 @@ export default function FAQPage() {
           current[path[path.length - 1]] = updated;
         })
       );
+      setDirty(true); // ← 内容をいじったら dirty
     },
     []
   );
@@ -363,16 +323,17 @@ export default function FAQPage() {
           </div>
           <button
             type="button"
-            onClick={() =>
-              setFaq([...faq, { type: "question", question: "", answer: "" }])
-            }
+            onClick={() => {
+              setFaq([...faq, { type: "question", question: "", answer: "" }]);
+              setDirty(true);
+            }}
             className="btn-ghost"
           >
             ＋ 通常の質問
           </button>
           <button
             type="button"
-            onClick={() =>
+            onClick={() => {
               setFaq([
                 ...faq,
                 {
@@ -386,8 +347,9 @@ export default function FAQPage() {
                     },
                   ],
                 },
-              ])
-            }
+              ]);
+              setDirty(true);
+            }}
             className="btn-ghost"
           >
             ＋ 選択肢ブロック
@@ -447,6 +409,7 @@ export default function FAQPage() {
                         setFaq((prev) => {
                           const next = [...prev];
                           [next[i - 1], next[i]] = [next[i], next[i - 1]];
+                          setDirty(true);
                           return next;
                         })
                       }
@@ -461,6 +424,7 @@ export default function FAQPage() {
                         setFaq((prev) => {
                           const next = [...prev];
                           [next[i + 1], next[i]] = [next[i], next[i + 1]];
+                          setDirty(true);
                           return next;
                         })
                       }
@@ -471,11 +435,15 @@ export default function FAQPage() {
                       type="button"
                       className="btn-ghost text-xs"
                       onClick={() =>
-                        setFaq((prev) => [
-                          ...prev.slice(0, i + 1),
-                          JSON.parse(JSON.stringify(item)),
-                          ...prev.slice(i + 1),
-                        ])
+                        setFaq((prev) => {
+                          const next = [
+                            ...prev.slice(0, i + 1),
+                            JSON.parse(JSON.stringify(item)),
+                            ...prev.slice(i + 1),
+                          ];
+                          setDirty(true);
+                          return next;
+                        })
                       }
                     >
                       ⧉ 複製
@@ -483,7 +451,11 @@ export default function FAQPage() {
                     <button
                       type="button"
                       onClick={() =>
-                        setFaq((prev) => prev.filter((_, j) => j !== i))
+                        setFaq((prev) => {
+                          const next = prev.filter((_, j) => j !== i);
+                          setDirty(true);
+                          return next;
+                        })
                       }
                       className="text-sm text-red-600 hover:underline"
                     >
@@ -522,7 +494,10 @@ export default function FAQPage() {
                   <button
                     key={p.value}
                     type="button"
-                    onClick={() => setPalette(p.value)}
+                    onClick={() => {
+                      setPalette(p.value);
+                      setDirty(true);
+                    }}
                     className={[
                       "rounded-xl border px-3 py-2 text-left transition",
                       active
@@ -567,7 +542,10 @@ export default function FAQPage() {
               <input
                 className="input w-full"
                 value={ctaLabel}
-                onChange={(e) => setCtaLabel(e.target.value)}
+                onChange={(e) => {
+                  setCtaLabel(e.target.value);
+                  setDirty(true);
+                }}
                 placeholder="例）無料体験のお申し込みはこちら"
               />
             </div>
@@ -578,7 +556,10 @@ export default function FAQPage() {
               <input
                 className="input w-full"
                 value={ctaUrl}
-                onChange={(e) => setCtaUrl(e.target.value)}
+                onChange={(e) => {
+                  setCtaUrl(e.target.value);
+                  setDirty(true);
+                }}
                 placeholder="例）https://example.com/entry"
               />
               <p className="mt-1 text-xs text-gray-500">
