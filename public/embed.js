@@ -110,8 +110,8 @@
     btn.innerHTML = `
   <img src="https://rizbo.dansul.jp/outline-logo.png"
     alt="チャットを開く"
-    width="38"
-    height="38"
+    width="34"
+    height="34"
     style="width: auto;"/>
   `;
 
@@ -151,7 +151,7 @@
       panel.classList.remove("rzb-open");
       btn.setAttribute("aria-label", "チャットを開く");
       btn.innerHTML = `
-    <img src="https://rizbo.dansul.jp/outline-logo.png" alt="チャットを開く" width="38" height="38" style="width: auto;"/>
+    <img src="https://rizbo.dansul.jp/outline-logo.png" alt="チャットを開く" width="34" height="34" style="width: auto;"/>
   `;
     };
 
