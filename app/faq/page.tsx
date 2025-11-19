@@ -97,8 +97,19 @@ function validateFAQ(items: FAQItem[]) {
   };
 }
 
-// HTML属性用の簡易エスケープ（ダブルクォートのみ）
-const escAttr = (s: string) => s.replace(/"/g, "&quot;");
+// ✅ FAQ + メタ情報を「dirty判定用」に正規化して文字列にする
+const snapshot = (
+  items: FAQItem[],
+  palette: PaletteValue,
+  ctaLabel: string,
+  ctaUrl: string
+) =>
+  JSON.stringify({
+    items,
+    palette,
+    ctaLabel: (ctaLabel ?? "").trim(),
+    ctaUrl: (ctaUrl ?? "").trim(),
+  });
 
 export default function FAQPage() {
   const { data: session, status } = useSession();
@@ -109,14 +120,7 @@ export default function FAQPage() {
   const [saving, setSaving] = useState(false);
 
   // 初期状態（items + palette + CTA）を保持する
-  const initialRef = useRef<string>(
-    JSON.stringify({
-      items: [] as FAQItem[],
-      palette: "navy" as PaletteValue,
-      ctaLabel: "",
-      ctaUrl: "",
-    })
-  );
+  const initialRef = useRef<string>(snapshot([], "navy", "", ""));
 
   const [collapsed, setCollapsed] = useState<Record<number, boolean>>({});
   const [query, setQuery] = useState("");
@@ -157,13 +161,13 @@ export default function FAQPage() {
           setCtaLabel(nextCtaLabel);
           setCtaUrl(nextCtaUrl);
 
-          // items + palette + CTA をまとめて初期値として保存
-          initialRef.current = JSON.stringify({
-            items: arr,
-            palette: nextPalette,
-            ctaLabel: nextCtaLabel,
-            ctaUrl: nextCtaUrl,
-          });
+          // items + palette + CTA をまとめて初期値として保存（正規化して）
+          initialRef.current = snapshot(
+            arr,
+            nextPalette,
+            nextCtaLabel,
+            nextCtaUrl
+          );
         })
         .catch(() => {
           const emptyState = {
@@ -176,19 +180,19 @@ export default function FAQPage() {
           setPalette(emptyState.palette);
           setCtaLabel(emptyState.ctaLabel);
           setCtaUrl(emptyState.ctaUrl);
-          initialRef.current = JSON.stringify(emptyState);
+          initialRef.current = snapshot(
+            emptyState.items,
+            emptyState.palette,
+            emptyState.ctaLabel,
+            emptyState.ctaUrl
+          );
         });
     }
   }, [status, schoolId]);
 
   // FAQ / palette / CTA のどれかが初期値と異なれば dirty
   const dirty = useMemo(() => {
-    const current = JSON.stringify({
-      items: faq,
-      palette,
-      ctaLabel,
-      ctaUrl,
-    });
+    const current = snapshot(faq, palette, ctaLabel, ctaUrl);
     return current !== initialRef.current;
   }, [faq, palette, ctaLabel, ctaUrl]);
 
@@ -235,13 +239,8 @@ export default function FAQPage() {
     setSaving(false);
 
     if (res.ok) {
-      // 保存後の状態を新しい初期値として記録
-      initialRef.current = JSON.stringify({
-        items: faq,
-        palette,
-        ctaLabel: ctaLabel.trim() || "",
-        ctaUrl: ctaUrl.trim() || "",
-      });
+      // 保存後の状態を新しい初期値として記録（こちらも snapshot で正規化）
+      initialRef.current = snapshot(faq, palette, ctaLabel, ctaUrl);
       alert("保存しました！");
     } else {
       const err = await res.json().catch(() => ({}));
@@ -290,12 +289,11 @@ export default function FAQPage() {
     }
   };
 
-  // ▼ script方式（palette & CTA を反映）
+  // ▼ script方式（school のみ反映。テーマ/CTA は DB の値を使用）
   const baseUrl =
     process.env.NEXT_PUBLIC_BASE_URL ||
     (typeof window !== "undefined" ? window.location.origin : "");
 
-  // data 属性は CTA を含めず、school / palette / theme のみ
   const attrs = [
     `src="${baseUrl}/embed.js"`,
     `data-rizbo-school="${schoolId}"`,
@@ -546,8 +544,7 @@ export default function FAQPage() {
               })}
             </div>
             <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-              選択したカラーは埋め込みコードの <code>data-rizbo-palette</code>{" "}
-              に反映されます。
+              選択したカラーはチャットボットのテーマカラーとして反映されます。
             </p>
           </div>
         </section>
@@ -557,9 +554,8 @@ export default function FAQPage() {
           <div className="card-header">
             <h3 className="font-semibold">CTA設定（任意）</h3>
             <p className="text-xs text-gray-500">
-              ここで設定した内容は DB に保存され、下の埋め込みコードの{" "}
-              <code>data-rizbo-cta-*</code> に反映されます。
-              両方入力した場合のみ、チャットボット下部に CTA
+              ここで設定した内容は DB に保存され、チャットボット下部の CTA
+              ボタンとして表示されます。 両方入力した場合のみ、CTA
               ボタンが表示されます。
             </p>
           </div>
@@ -603,8 +599,8 @@ export default function FAQPage() {
           <div className="card-body">
             <p className="mb-2 text-sm text-gray-600 dark:text-gray-300">
               外部サイトには下記の <code>&lt;script&gt;</code>{" "}
-              を貼り付けてください。 テーマカラーと CTA 設定は{" "}
-              <code>data-rizbo-*</code> 属性として渡されます。
+              を貼り付けてください。 テーマカラーと CTA 設定は DB
+              に保存された内容が自動で使用されます。
             </p>
             <div className="flex items-start gap-2">
               <textarea
