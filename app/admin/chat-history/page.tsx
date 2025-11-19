@@ -6,7 +6,8 @@ import ChatLogTreeView from "@/components/ChatLogTreeView";
 import { TimerReset } from "lucide-react";
 
 type FaqLog = {
-  sessionId?: string;
+  school: string;
+  sessionId: string;
   timestamp: string;
   question: any;
   answer?: any;
@@ -19,18 +20,50 @@ export default function ChatHistoryPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    setLoading(true);
-    fetch("/api/logs")
-      .then((res) => {
-        if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-        return res.json();
-      })
-      .then((data) => setLogs(Array.isArray(data) ? data : []))
-      .catch((err) => {
+    const fetchLogs = async () => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        const res = await fetch("/api/logs");
+
+        if (!res.ok) {
+          throw new Error(`${res.status} ${res.statusText}`);
+        }
+
+        const data: unknown = await res.json();
+
+        // ① /api/logs が配列を返すパターン
+        // ② /api/logs が { logs: [...] } を返すパターン
+        let normalized: FaqLog[] = [];
+
+        if (Array.isArray(data)) {
+          normalized = data as FaqLog[];
+        } else if (
+          data &&
+          typeof data === "object" &&
+          Array.isArray((data as any).logs)
+        ) {
+          normalized = (data as any).logs as FaqLog[];
+        }
+
+        // timestamp がある前提で並び替え（新しい順）
+        normalized.sort((a, b) => {
+          const ta = new Date(a.timestamp).getTime() || 0;
+          const tb = new Date(b.timestamp).getTime() || 0;
+          return tb - ta;
+        });
+
+        setLogs(normalized);
+      } catch (err) {
         console.error("ログ取得失敗:", err);
         setError("ログの取得に失敗しました");
-      })
-      .finally(() => setLoading(false));
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchLogs();
   }, []);
 
   const { sessionCount, totalCount } = useMemo(() => {
