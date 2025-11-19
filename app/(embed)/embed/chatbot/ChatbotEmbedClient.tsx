@@ -86,16 +86,16 @@ export default function ChatbotEmbedClient({
   const paletteParam = (params.get("palette") ?? "navy").toLowerCase();
   const palette = PALETTES.has(paletteParam) ? paletteParam : "navy";
 
-  // ✅ 下部CTA：ラベルとURLが両方あるときだけ表示
-  const ctaLabelParam = params.get("ctaLabel")?.trim() ?? "";
-  const ctaUrlParam = params.get("ctaUrl")?.trim() ?? "";
-  const hasCta = !!ctaLabelParam && !!ctaUrlParam;
-
   const rootRef = useRef<HTMLDivElement>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
 
   const [faq, setFaq] = useState<FAQItem[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
+
+  // ✅ 下部CTA（DBから取得した値を持つ）
+  const [ctaLabel, setCtaLabel] = useState<string | null>(null);
+  const [ctaUrl, setCtaUrl] = useState<string | null>(null);
+  const hasCta = !!ctaLabel && !!ctaUrl;
 
   // ---- helpers ----
   const bot = (text: string, extras: Partial<Message> = {}): Message => ({
@@ -146,7 +146,7 @@ export default function ChatbotEmbedClient({
     }
   };
 
-  // ==== FAQ 取得 ====
+  // ==== FAQ + CTA 取得 ====
   useEffect(() => {
     if (!schoolId) {
       console.warn(
@@ -167,7 +167,23 @@ export default function ChatbotEmbedClient({
 
         if (r1.ok) {
           const d1 = await r1.json();
-          if (!aborted) setFaq(normalizeFaq(d1));
+          if (!aborted) {
+            setFaq(normalizeFaq(d1));
+
+            if (d1 && typeof d1 === "object") {
+              const d = d1 as any;
+              setCtaLabel(
+                typeof d.ctaLabel === "string" && d.ctaLabel.trim()
+                  ? d.ctaLabel
+                  : null
+              );
+              setCtaUrl(
+                typeof d.ctaUrl === "string" && d.ctaUrl.trim()
+                  ? d.ctaUrl
+                  : null
+              );
+            }
+          }
           return;
         }
 
@@ -176,10 +192,30 @@ export default function ChatbotEmbedClient({
         console.log("[rizbo-chatbot] /api/faq/:school status", r2.status);
 
         const d2 = r2.ok ? await r2.json() : null;
-        if (!aborted) setFaq(normalizeFaq(d2));
+        if (!aborted) {
+          setFaq(normalizeFaq(d2));
+          if (d2 && typeof d2 === "object") {
+            const d = d2 as any;
+            setCtaLabel(
+              typeof d.ctaLabel === "string" && d.ctaLabel.trim()
+                ? d.ctaLabel
+                : null
+            );
+            setCtaUrl(
+              typeof d.ctaUrl === "string" && d.ctaUrl.trim() ? d.ctaUrl : null
+            );
+          } else {
+            setCtaLabel(null);
+            setCtaUrl(null);
+          }
+        }
       } catch (e) {
         console.error("[rizbo-chatbot] FAQ取得失敗:", e);
-        if (!aborted) setFaq([]);
+        if (!aborted) {
+          setFaq([]);
+          setCtaLabel(null);
+          setCtaUrl(null);
+        }
       }
     };
     run();
@@ -393,16 +429,16 @@ export default function ChatbotEmbedClient({
           ))}
         </main>
 
-        {/* ✅ 下部 CTA：ラベル＆URLが両方ある時だけ表示 */}
+        {/* ✅ 下部 CTA：DB から取得したラベル＆URLが両方ある時だけ表示 */}
         {hasCta && (
           <div className="rzw-cta">
             <a
-              href={ctaUrlParam}
+              href={ctaUrl!}
               target="_blank"
               rel="noopener noreferrer"
               className="rzw-cta-btn"
             >
-              {ctaLabelParam}
+              {ctaLabel}
             </a>
           </div>
         )}
