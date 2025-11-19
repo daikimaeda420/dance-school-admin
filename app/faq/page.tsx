@@ -299,9 +299,6 @@ export default function FAQPage() {
   const attrs = [
     `src="${baseUrl}/embed.js"`,
     `data-rizbo-school="${schoolId}"`,
-    `data-rizbo-palette="${palette}"`,
-    `data-rizbo-theme="light"`,
-    "async",
   ].join("\n  ");
 
   const embedScriptCode = `<script ${attrs}></script>`;
