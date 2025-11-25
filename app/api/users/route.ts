@@ -16,11 +16,33 @@ async function ensureSuperAdmin() {
     return { session, currentEmail, isSuperAdmin: false };
   }
 
-  const superAdmin = await prisma.superAdmin.findUnique({
+  // ① User テーブルの role で判定
+  const user = await prisma.user.findUnique({
     where: { email: currentEmail },
   });
 
-  return { session, currentEmail, isSuperAdmin: !!superAdmin };
+  const isUserSuperAdmin = user?.role === UserRole.SUPERADMIN;
+
+  // ② SuperAdmin テーブルも念のためチェック
+  const superAdminRow = await prisma.superAdmin.findUnique({
+    where: { email: currentEmail },
+  });
+
+  let isSuperAdmin = isUserSuperAdmin || !!superAdminRow;
+
+  // ③ User が SUPERADMIN なのに SuperAdmin テーブルに無ければ自動同期
+  if (isUserSuperAdmin && !superAdminRow && user?.schoolId) {
+    await prisma.superAdmin
+      .upsert({
+        where: { email: currentEmail },
+        update: { schoolId: user.schoolId },
+        create: { email: currentEmail, schoolId: user.schoolId },
+      })
+      .catch(() => {});
+    isSuperAdmin = true;
+  }
+
+  return { session, currentEmail, isSuperAdmin };
 }
 
 // ユーザー一覧取得
@@ -81,7 +103,6 @@ export async function POST(req: NextRequest) {
     const emailLower = String(email).trim().toLowerCase();
     const schoolId = emailLower.split("@")[0];
 
-    // role 文字列 → enum
     const dbRole =
       role === "superadmin" || role === "SUPERADMIN"
         ? UserRole.SUPERADMIN
@@ -174,7 +195,6 @@ export async function DELETE(req: NextRequest) {
       where: { email: targetEmail },
     });
 
-    // SUPERADMIN テーブルからも削除（存在しなくても OK）
     await prisma.superAdmin
       .delete({ where: { email: targetEmail } })
       .catch(() => {});
@@ -242,7 +262,6 @@ export async function PUT(req: NextRequest) {
       data: updateData,
     });
 
-    // SUPERADMIN テーブル同期
     if (dbRole === UserRole.SUPERADMIN) {
       await prisma.superAdmin.upsert({
         where: { email: emailLower },
@@ -250,7 +269,6 @@ export async function PUT(req: NextRequest) {
         create: { email: emailLower, schoolId },
       });
     } else {
-      // SUPERADMIN → SCHOOL_ADMIN に落とした場合は SuperAdmin から削除
       await prisma.superAdmin
         .delete({ where: { email: emailLower } })
         .catch(() => {});
