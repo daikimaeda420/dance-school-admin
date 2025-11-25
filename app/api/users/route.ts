@@ -10,7 +10,7 @@ import { UserRole } from "@prisma/client";
 // 共通: SuperAdmin かどうかチェック
 async function ensureSuperAdmin() {
   const session = await getServerSession(authOptions);
-  const currentEmail = session?.user?.email?.toLowerCase() ?? "";
+  const currentEmail = session?.user?.email?.toLowerCase().trim() ?? "";
 
   if (!session || !currentEmail) {
     return { session, currentEmail, isSuperAdmin: false };
@@ -38,11 +38,11 @@ export async function GET() {
       orderBy: { createdAt: "asc" },
     });
 
-    // パスワードハッシュは返さず、role は従来の文字列に戻す
+    // パスワードハッシュは返さず、role は元の文字列形式に変換
     const users = dbUsers.map((u) => ({
       email: u.email,
       name: u.name,
-      role: u.role === "SUPERADMIN" ? "superadmin" : "school-admin",
+      role: u.role === UserRole.SUPERADMIN ? "superadmin" : "school-admin",
       schoolId: u.schoolId,
       createdAt: u.createdAt,
       updatedAt: u.updatedAt,
@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { email, name, password, role } = body;
+    const { email, name, password, role } = body ?? {};
 
     if (!email || !name || !password || !role) {
       return new Response(
@@ -96,12 +96,12 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    const passwordHash = await hash(password, 10);
+    const passwordHash = await hash(String(password), 10);
 
     await prisma.user.create({
       data: {
         email: emailLower,
-        name,
+        name: String(name),
         role: dbRole,
         schoolId,
         passwordHash,
@@ -151,7 +151,7 @@ export async function DELETE(req: NextRequest) {
       );
     }
 
-    const targetEmail = emailParam.toLowerCase();
+    const targetEmail = emailParam.toLowerCase().trim();
 
     if (currentEmail === targetEmail) {
       return new Response(
@@ -200,7 +200,7 @@ export async function PUT(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { email, name, password, role } = body;
+    const { email, name, password, role } = body ?? {};
 
     if (!email || !name || !role) {
       return new Response(
@@ -228,13 +228,13 @@ export async function PUT(req: NextRequest) {
         : UserRole.SCHOOL_ADMIN;
 
     const updateData: any = {
-      name,
+      name: String(name),
       role: dbRole,
       schoolId,
     };
 
     if (password) {
-      updateData.passwordHash = await hash(password, 10);
+      updateData.passwordHash = await hash(String(password), 10);
     }
 
     await prisma.user.update({
