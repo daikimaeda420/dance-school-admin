@@ -45,3 +45,11 @@ model FaqLog {
   @@index([sessionId])
   @@index([timestamp])
 }
+
+model SuperAdmin {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  schoolId  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
