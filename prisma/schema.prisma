@@ -46,6 +46,29 @@ model FaqLog {
   @@index([timestamp])
 }
 
+// ユーザーの権限ロール
+enum UserRole {
+  SUPERADMIN
+  SCHOOL_ADMIN
+}
+
+// JSON の users を移行する先のテーブル
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  passwordHash String
+  role         UserRole
+  schoolId     String
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([schoolId])
+  @@index([role])
+}
+
+// SuperAdmin 一覧（メール＋schoolId）
 model SuperAdmin {
   id        String   @id @default(cuid())
   email     String   @unique
