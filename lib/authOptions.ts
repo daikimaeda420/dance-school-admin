@@ -1,50 +1,55 @@
+// lib/authOptions.ts
+
 import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { compare } from "bcryptjs";
-import path from "path";
-import { readFile } from "fs/promises";
+import { PrismaClient, UserRole } from "@prisma/client";
 
-// 🔧 独自User型（NextAuthのUserに必要な型を明示）
+const prisma = new PrismaClient();
+
 type CustomUser = {
   id: string;
   name: string;
   email: string;
-  role: string;
-  schoolId: string | null;
-  passwordHash?: string;
+  role: UserRole;
+  schoolId: string;
 };
-
-const USERS_PATH = path.join(process.cwd(), "data", "users.json");
 
 export const authOptions: NextAuthOptions = {
   providers: [
     CredentialsProvider({
       name: "Credentials",
       credentials: {
+        // 両方定義しておいてどちらでも受け取れるようにする
+        email: { label: "メールアドレス", type: "text" },
         username: { label: "メールアドレス", type: "text" },
         password: { label: "パスワード", type: "password" },
       },
       async authorize(credentials): Promise<CustomUser | null> {
-        const { username, password } = credentials ?? {};
-        if (!username || !password) return null;
+        // フォーム側が email でも username でも取れるようにする
+        const rawId =
+          credentials?.email?.toString() || credentials?.username?.toString();
+        const password = credentials?.password?.toString() ?? "";
 
-        const raw = await readFile(USERS_PATH, "utf8");
-        const users: CustomUser[] = JSON.parse(raw);
+        if (!rawId || !password) return null;
 
-        const user = users.find(
-          (u) => u.email.toLowerCase() === username.toLowerCase()
-        );
+        const email = rawId.toLowerCase().trim();
+
+        const user = await prisma.user.findUnique({
+          where: { email },
+        });
+
         if (!user) return null;
 
-        const isValid = await compare(password, user.passwordHash || "");
-        if (!isValid) return null;
+        const ok = await compare(password, user.passwordHash);
+        if (!ok) return null;
 
         return {
-          id: user.email, // 👈 emailをidとして使用
+          id: user.id,
           name: user.name,
           email: user.email,
           role: user.role,
-          schoolId: user.schoolId ?? null,
+          schoolId: user.schoolId,
         };
       },
     }),
@@ -52,20 +57,25 @@ export const authOptions: NextAuthOptions = {
   pages: {
     signIn: "/login",
   },
+  session: {
+    strategy: "jwt",
+  },
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
+        token.id = (user as any).id;
         token.name = user.name;
         token.email = user.email;
         token.role = (user as any).role;
-        token.schoolId = (user as any).schoolId ?? null;
+        token.schoolId = (user as any).schoolId;
       }
       return token;
     },
     async session({ session, token }) {
-      if (token) {
+      if (session.user && token) {
         session.user.name = token.name as string;
         session.user.email = token.email as string;
+        (session.user as any).id = token.id;
         (session.user as any).role = token.role;
         (session.user as any).schoolId = token.schoolId;
       }
