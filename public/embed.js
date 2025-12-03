@@ -87,7 +87,7 @@
   .rzb-launcher{position:fixed; z-index:2147483000; width:56px;height:56px;border-radius:50%;
     background:${color};color:#fff;display:flex;align-items:center;justify-content:center;
     box-shadow:0 10px 30px rgba(0,0,0,.25); cursor:pointer; border:none}
-  rzb-launcher img{filter: drop-shadow(0px 0px 4px #000);}
+  rzb-launcher img{filter: drop-shadow(0px 0px 4px rgba(0, 0, 0, 0.3));}
   .rzb-launcher.rzb-right{right:24px;bottom:24px} .rzb-launcher.rzb-left{left:24px;bottom:24px}
   .rzb-panel{position:fixed; z-index:2147483001; background:#fff; overflow:hidden;
     width:${width}px; height:${height}px; border-radius:16px; box-shadow:0 20px 50px rgba(0,0,0,.25);
