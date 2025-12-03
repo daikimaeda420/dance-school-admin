@@ -116,7 +116,7 @@ export default function ChatbotEmbedClient({
     return sid;
   };
 
-  // ==== ログ送信 ====
+  // ==== ログ送信（FAQ用） ====
   const logToServer = async (
     question: string,
     answer: string = "",
@@ -143,6 +143,33 @@ export default function ChatbotEmbedClient({
       });
     } catch (err) {
       console.error("ログ送信失敗:", err);
+    }
+  };
+
+  // ✅ CTAクリックログ送信
+  const logCtaClick = async () => {
+    if (!schoolId || !ctaLabel || !ctaUrl) return;
+    const base = getApiBase();
+    if (!base) return;
+
+    const sessionId = getSessionId();
+    try {
+      await fetch(`${base}/api/logs`, {
+        method: "POST",
+        mode: "cors",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "cta",
+          school: schoolId,
+          sessionId,
+          ctaId: "bottom_cta",
+          ctaLabel,
+          url: ctaUrl,
+          timestamp: new Date().toISOString(),
+        }),
+      });
+    } catch (err) {
+      console.error("CTAログ送信失敗:", err);
     }
   };
 
@@ -437,6 +464,7 @@ export default function ChatbotEmbedClient({
               target="_blank"
               rel="noopener noreferrer"
               className="rzw-cta-btn"
+              onClick={logCtaClick}
             >
               {ctaLabel}
             </a>

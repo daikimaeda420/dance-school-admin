@@ -69,16 +69,38 @@ export async function GET(req: NextRequest) {
 }
 
 // ------------------------------
-// POST: ログ保存（チャットボット用）
+// POST: ログ保存（チャットボット用 ＋ CTA用）
 // ------------------------------
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { school, question, answer, url = "", timestamp, sessionId } = body;
 
-    if (!school || !question || !timestamp || !sessionId) {
+    const {
+      school,
+      question,
+      answer,
+      url = "",
+      timestamp,
+      sessionId,
+      // 追加: CTA 用フィールド
+      type,
+      ctaId,
+      ctaLabel,
+    } = body;
+
+    // 共通必須項目
+    if (!school || !timestamp || !sessionId) {
       return NextResponse.json(
-        { message: "必要な項目が足りません" },
+        { message: "school / timestamp / sessionId は必須です" },
+        { status: 400 }
+      );
+    }
+
+    // type: "cta" のときは question 不要
+    // それ以外（通常のFAQログ）は従来どおり question 必須
+    if (type !== "cta" && !question) {
+      return NextResponse.json(
+        { message: "FAQログでは question が必須です" },
         { status: 400 }
       );
     }
@@ -92,16 +114,38 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // 保存する question / answer の文字列を組み立て
+    let questionValue: string;
+    let answerValue: string;
+
+    if (type === "cta") {
+      // CTAログは question カラムに JSON 文字列で保存
+      // 例: {"type":"cta","ctaId":"trial_button","ctaLabel":"無料体験レッスン"}
+      const payload = {
+        type: "cta" as const,
+        ctaId: ctaId ?? null,
+        ctaLabel: ctaLabel ?? null,
+      };
+      questionValue = JSON.stringify(payload);
+      answerValue = "";
+    } else {
+      // 通常のFAQログ（従来どおり）
+      questionValue =
+        typeof question === "string" ? question : JSON.stringify(question);
+
+      if (answer === undefined || answer === null) {
+        answerValue = "";
+      } else {
+        answerValue =
+          typeof answer === "string" ? answer : JSON.stringify(answer);
+      }
+    }
+
     await prisma.faqLog.create({
       data: {
         school,
-        question:
-          typeof question === "string" ? question : JSON.stringify(question),
-        answer: answer
-          ? typeof answer === "string"
-            ? answer
-            : JSON.stringify(answer)
-          : "",
+        question: questionValue,
+        answer: answerValue,
         url: url || null,
         timestamp: ts,
         sessionId,
