@@ -143,13 +143,14 @@ function validateItems(items: unknown): ValidateResult {
 /**
  * リクエスト body から items / palette / cta 系を抽出
  * - 旧形式: [ ... ] の場合 → items にそのまま入り、meta は undefined
- * - 新形式: { items, palette, ctaLabel, ctaUrl } の場合 → 各プロパティに展開
+ * - 新形式: { items, palette, ctaLabel, ctaUrl, launcherText } の場合 → 各プロパティに展開
  */
 function extractPayload(raw: unknown): {
   items: unknown;
   palette?: string | null;
   ctaLabel?: string | null;
   ctaUrl?: string | null;
+  launcherText?: string | null;
 } {
   if (Array.isArray(raw)) {
     return { items: raw };
@@ -163,6 +164,10 @@ function extractPayload(raw: unknown): {
       ctaLabel:
         typeof r.ctaLabel === "string" && r.ctaLabel.trim() ? r.ctaLabel : null,
       ctaUrl: typeof r.ctaUrl === "string" && r.ctaUrl.trim() ? r.ctaUrl : null,
+      launcherText:
+        typeof r.launcherText === "string" && r.launcherText.trim()
+          ? r.launcherText
+          : null,
     };
   }
   return { items: [] };
@@ -201,6 +206,7 @@ export async function GET(req: NextRequest) {
         palette: true,
         ctaLabel: true,
         ctaUrl: true,
+        launcherText: true, // ★ 追加
         updatedAt: true,
         updatedBy: true,
       },
@@ -215,6 +221,7 @@ export async function GET(req: NextRequest) {
         palette: rec?.palette ?? null,
         ctaLabel: rec?.ctaLabel ?? null,
         ctaUrl: rec?.ctaUrl ?? null,
+        launcherText: rec?.launcherText ?? null, // ★ 追加
         updatedAt: rec?.updatedAt ?? null,
         updatedBy: rec?.updatedBy ?? null,
       },
@@ -240,7 +247,13 @@ export async function POST(req: NextRequest) {
     const raw = await req.json();
 
     // 旧形式・新形式どちらでも対応
-    const { items: rawItems, palette, ctaLabel, ctaUrl } = extractPayload(raw);
+    const {
+      items: rawItems,
+      palette,
+      ctaLabel,
+      ctaUrl,
+      launcherText,
+    } = extractPayload(raw);
 
     // まず items 部分だけバリデーション
     const v = validateItems(rawItems);
@@ -267,6 +280,7 @@ export async function POST(req: NextRequest) {
         palette: palette ?? null,
         ctaLabel: ctaLabel ?? null,
         ctaUrl: ctaUrl ?? null,
+        launcherText: launcherText ?? null, // ★ 追加
         updatedBy: "api",
       },
       create: {
@@ -275,6 +289,7 @@ export async function POST(req: NextRequest) {
         palette: palette ?? null,
         ctaLabel: ctaLabel ?? null,
         ctaUrl: ctaUrl ?? null,
+        launcherText: launcherText ?? null, // ★ 追加
         updatedBy: "api",
       },
       select: { id: true, schoolId: true, updatedAt: true },

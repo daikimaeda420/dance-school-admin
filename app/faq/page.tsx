@@ -116,6 +116,9 @@ export default function FAQPage() {
   const [ctaLabel, setCtaLabel] = useState("");
   const [ctaUrl, setCtaUrl] = useState("");
 
+  // ▼ ランチャー吹き出しテキスト（DBから読み書き）
+  const [launcherText, setLauncherText] = useState("質問はコチラ");
+
   // 取得（FAQ + メタ）
   useEffect(() => {
     if (status === "authenticated" && schoolId) {
@@ -127,6 +130,7 @@ export default function FAQPage() {
           let nextPalette: PaletteValue = "navy";
           let nextCtaLabel = "";
           let nextCtaUrl = "";
+          let nextLauncherText = "質問はコチラ";
 
           if (data && typeof data === "object") {
             const d = data as any;
@@ -138,12 +142,16 @@ export default function FAQPage() {
             }
             if (typeof d.ctaLabel === "string") nextCtaLabel = d.ctaLabel;
             if (typeof d.ctaUrl === "string") nextCtaUrl = d.ctaUrl;
+            if (typeof d.launcherText === "string" && d.launcherText.trim()) {
+              nextLauncherText = d.launcherText;
+            }
           }
 
           setFaq(arr);
           setPalette(nextPalette);
           setCtaLabel(nextCtaLabel);
           setCtaUrl(nextCtaUrl);
+          setLauncherText(nextLauncherText);
           setDirty(false); // ← サーバーから読み込んだ直後は「保存済み」扱い
         })
         .catch(() => {
@@ -151,6 +159,7 @@ export default function FAQPage() {
           setPalette("navy");
           setCtaLabel("");
           setCtaUrl("");
+          setLauncherText("質問はコチラ");
           setDirty(false); // 空データ読み込みも保存済み扱い
         });
     }
@@ -189,6 +198,7 @@ export default function FAQPage() {
       palette,
       ctaLabel: ctaLabel.trim() || null,
       ctaUrl: ctaUrl.trim() || null,
+      launcherText: launcherText.trim() || null,
     };
 
     const res = await fetch(`/api/faq?school=${schoolId}`, {
@@ -569,6 +579,33 @@ export default function FAQPage() {
           </div>
         </section>
 
+        {/* ✅ ランチャー吹き出しテキスト設定 */}
+        <section className="card">
+          <div className="card-header">
+            <h3 className="font-semibold">
+              ランチャー吹き出しテキスト（任意）
+            </h3>
+            <p className="text-xs text-gray-500">
+              画面右下のチャットボットアイコンの上部に表示される吹き出しの文言です。
+              未入力の場合は「質問はコチラ」が表示されます。
+            </p>
+          </div>
+          <div className="card-body">
+            <label className="block text-sm font-medium mb-1">
+              吹き出し文言 <span className="text-gray-500">(launcherText)</span>
+            </label>
+            <input
+              className="input w-full"
+              value={launcherText}
+              onChange={(e) => {
+                setLauncherText(e.target.value);
+                setDirty(true);
+              }}
+              placeholder="例）質問はコチラ／チャットで相談できます"
+            />
+          </div>
+        </section>
+
         {/* 埋め込みコード（script方式） */}
         <section className="card">
           <div className="card-header">
@@ -580,7 +617,8 @@ export default function FAQPage() {
           <div className="card-body">
             <p className="mb-2 text-sm text-gray-600 dark:text-gray-300">
               外部サイトには下記の <code>&lt;script&gt;</code>{" "}
-              を貼り付けてください。 テーマカラーと CTA 設定は DB
+              を貼り付けてください。 テーマカラーと CTA
+              設定、ランチャー吹き出しテキストは DB
               に保存された内容が自動で使用されます。
             </p>
             <div className="flex items-start gap-2">
