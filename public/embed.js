@@ -111,7 +111,7 @@
   .rzb-launcher-bubble{
     position:absolute;
     bottom:64px;
-    right:0;
+    right:-10px;
     transform-origin:100% 100%;
     background:#ffffff;
     color:#111827;
