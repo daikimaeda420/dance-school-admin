@@ -74,3 +74,62 @@ model SuperAdmin {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
+/////////////////////////////////////////
+// ここから診断機能用のモデルを追加
+/////////////////////////////////////////
+
+// クラス（コース）情報
+model SchoolClass {
+  id        String   @id @default(cuid())
+  schoolId  String
+  name      String                    // 例: "K-POP 超入門クラス"
+  description String?
+  // マッチング用タグ
+  levels    String[]                  // 例: ["Lv0_超入門", "Lv1_入門"]
+  targets   String[]                  // 例: ["Age_Teen", "Age_Student", "Age_Adult_Work"]
+  genres    String[]                  // 例: ["Genre_KPOP"]
+  schedule  String?                   // 例: "土曜・平日夜"
+  isActive  Boolean   @default(true)
+
+  teachers  TeacherClass[]            // 中間テーブル経由で Teacher へ
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([schoolId])
+  @@index([isActive])
+}
+
+// 講師情報
+model Teacher {
+  id        String   @id @default(cuid())
+  schoolId  String
+  name      String
+  photoUrl  String?
+  styles    String[]                  // 例: ["Style_Healing", "Style_Friendly"]
+  bio       String?
+
+  classes   TeacherClass[]            // 担当クラスとの中間
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([schoolId])
+}
+
+// クラス×講師の中間テーブル
+model TeacherClass {
+  id         String      @id @default(cuid())
+  classId    String
+  teacherId  String
+
+  clazz      SchoolClass @relation(fields: [classId], references: [id])
+  teacher    Teacher     @relation(fields: [teacherId], references: [id])
+
+  createdAt  DateTime    @default(now())
+
+  @@index([classId])
+  @@index([teacherId])
+  @@unique([classId, teacherId])
+}
