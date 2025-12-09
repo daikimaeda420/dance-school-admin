@@ -1,18 +1,23 @@
 // app/(embed)/embed/diagnosis/page.tsx
 
+import { Suspense } from "react";
 import DiagnosisEmbedClient from "./DiagnosisEmbedClient";
 
+// URLクエリなどに依存するので、静的生成ではなく動的にする
+export const dynamic = "force-dynamic";
+
 export default function DiagnosisPage() {
-  // ここで schoolId を固定したければ props で渡してもOK
-  // 例: <DiagnosisEmbedClient schoolIdProp="links" />
-  // 今回は URL クエリ (?school=links) 優先なので props なし
   return (
-    <html lang="ja">
-      <body className="m-0 bg-transparent">
-        <div className="min-h-screen flex items-center justify-center">
-          <DiagnosisEmbedClient />
-        </div>
-      </body>
-    </html>
+    <div className="min-h-screen flex items-center justify-center bg-transparent">
+      <Suspense
+        fallback={
+          <div className="rounded-2xl border bg-white px-4 py-3 text-xs text-gray-500 shadow">
+            診断ウィジェットを読み込み中です…
+          </div>
+        }
+      >
+        <DiagnosisEmbedClient />
+      </Suspense>
+    </div>
   );
 }
