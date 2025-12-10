@@ -2,7 +2,7 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { QUESTIONS, DiagnosisQuestionId } from "@/lib/diagnosis/config";
 
 type AnswersState = Partial<Record<DiagnosisQuestionId, string>>;
@@ -44,7 +44,6 @@ type DiagnosisResult = {
 };
 
 type Props = {
-  // embed側から直接渡したい場合用（なければURLパラメータ school を見る）
   schoolIdProp?: string;
   onClose?: () => void;
 };
@@ -60,21 +59,18 @@ export default function DiagnosisEmbedClient({ schoolIdProp, onClose }: Props) {
 
   const schoolId = useMemo(() => {
     if (schoolIdProp) return schoolIdProp;
-    // URL例: https://rizbo.dansul.jp/embed/diagnosis?school=links
     return searchParams.get("school") ?? "";
   }, [schoolIdProp, searchParams]);
 
   const questions = QUESTIONS;
   const currentQuestion = questions[stepIndex];
-
   const totalSteps = questions.length;
-
-  // 現在の質問に回答済みかどうか
   const currentAnswer = currentQuestion
     ? answers[currentQuestion.id]
     : undefined;
 
   const canGoNext = !!currentAnswer || !!result;
+  const progressPercent = ((stepIndex + 1) / totalSteps) * 100;
 
   const handleSelectOption = (qId: DiagnosisQuestionId, optionId: string) => {
     setAnswers((prev) => ({
@@ -110,7 +106,6 @@ export default function DiagnosisEmbedClient({ schoolIdProp, onClose }: Props) {
       return;
     }
 
-    // 必須の Q1〜Q5 が埋まっているかチェック
     const missing: string[] = [];
     (["Q1", "Q2", "Q3", "Q4", "Q5"] as DiagnosisQuestionId[]).forEach((id) => {
       if (!answers[id]) missing.push(id);
@@ -151,12 +146,12 @@ export default function DiagnosisEmbedClient({ schoolIdProp, onClose }: Props) {
     }
   };
 
-  // すでに診断結果がある場合は結果画面を表示
+  // ===== 診断結果画面 =====
   if (result) {
     return (
-      <div className="w-full max-w-md rounded-2xl border bg-white p-4 shadow-xl text-gray-900">
+      <div className="w-full max-w-2xl rounded-3xl border bg-white p-6 shadow-xl text-gray-900">
         {/* ヘッダー */}
-        <div className="mb-4 flex items-start justify-between gap-2">
+        <div className="mb-4 flex items-start justify-between gap-4">
           <div>
             <div className="text-sm font-semibold text-gray-500">マッチ度</div>
             <div className="text-3xl font-extrabold">
@@ -175,7 +170,7 @@ export default function DiagnosisEmbedClient({ schoolIdProp, onClose }: Props) {
           {onClose && (
             <button
               type="button"
-              className="rounded-full border border-gray-200 px-2 py-1 text-xs text-gray-500 hover:bg-gray-100"
+              className="rounded-full border border-gray-200 px-3 py-1 text-xs text-gray-500 hover:bg-gray-100"
               onClick={onClose}
             >
               ✕
@@ -184,7 +179,7 @@ export default function DiagnosisEmbedClient({ schoolIdProp, onClose }: Props) {
         </div>
 
         {/* メイン提案エリア */}
-        <div className="mb-4 rounded-xl bg-gray-50 p-3">
+        <div className="mb-4 rounded-2xl bg-gray-50 p-4">
           <div className="text-xs font-semibold text-gray-500">
             あなたにおすすめのクラス
           </div>
@@ -278,10 +273,11 @@ export default function DiagnosisEmbedClient({ schoolIdProp, onClose }: Props) {
     );
   }
 
-  // 質問ステップ画面
+  // ===== 質問ステップ画面 =====
   return (
-    <div className="w-full max-w-md rounded-2xl border bg-white p-4 shadow-xl text-gray-900">
-      <div className="mb-3 flex items-center justify-between gap-2">
+    <div className="w-full max-w-2xl rounded-3xl border bg-white p-6 shadow-xl text-gray-900">
+      {/* 上部ヘッダー＋ステータスバー */}
+      <div className="mb-4 flex items-start justify-between gap-2">
         <div>
           <div className="text-[11px] font-semibold text-blue-600">
             ダンススクール相性診断
@@ -293,7 +289,7 @@ export default function DiagnosisEmbedClient({ schoolIdProp, onClose }: Props) {
         {onClose && (
           <button
             type="button"
-            className="rounded-full border border-gray-200 px-2 py-1 text-xs text-gray-500 hover:bg-gray-100"
+            className="rounded-full border border-gray-200 px-3 py-1 text-xs text-gray-500 hover:bg-gray-100"
             onClick={onClose}
           >
             ✕
@@ -301,57 +297,55 @@ export default function DiagnosisEmbedClient({ schoolIdProp, onClose }: Props) {
         )}
       </div>
 
-      {/* ステップインジケータ */}
-      <div className="mb-3 flex items-center justify-between text-[11px] text-gray-500">
-        <div>
-          質問 {stepIndex + 1} / {totalSteps}
-        </div>
-        <div className="flex gap-1">
-          {questions.map((q, idx) => (
+      {/* 中央の横長プログレスバー */}
+      <div className="mb-6 flex items-center justify-center">
+        <div className="w-full max-w-xs">
+          <div className="h-1.5 w-full rounded-full bg-gray-200">
             <div
-              key={q.id}
-              className={[
-                "h-1.5 w-6 rounded-full",
-                idx === stepIndex
-                  ? "bg-blue-600"
-                  : idx < stepIndex
-                  ? "bg-blue-200"
-                  : "bg-gray-200",
-              ].join(" ")}
+              className="h-1.5 rounded-full bg-blue-600 transition-all"
+              style={{ width: `${progressPercent}%` }}
             />
-          ))}
+          </div>
+          <div className="mt-1 text-center text-[11px] text-gray-500">
+            質問 {stepIndex + 1} / {totalSteps}
+          </div>
         </div>
       </div>
 
       {/* 質問本体 */}
-      <div className="mb-4">
+      <div className="mb-4 text-center">
         <div className="text-sm font-semibold">{currentQuestion.title}</div>
         {currentQuestion.description && (
           <div className="mt-1 text-xs text-gray-500">
             {currentQuestion.description}
           </div>
         )}
+      </div>
 
-        <div className="mt-3 space-y-2">
-          {currentQuestion.options.map((opt) => {
-            const selected = answers[currentQuestion.id] === opt.id;
-            return (
-              <button
-                key={opt.id}
-                type="button"
-                onClick={() => handleSelectOption(currentQuestion.id, opt.id)}
-                className={[
-                  "w-full rounded-xl border px-3 py-2 text-left text-xs transition",
-                  selected
-                    ? "border-blue-600 bg-blue-50 text-blue-700"
-                    : "border-gray-200 bg-white text-gray-800 hover:border-blue-300 hover:bg-blue-50/40",
-                ].join(" ")}
-              >
-                {opt.label}
-              </button>
-            );
-          })}
-        </div>
+      {/* 質問項目：PCで2カラム（md以上） */}
+      <div className="mb-4 grid gap-3 md:grid-cols-2">
+        {currentQuestion.options.map((opt) => {
+          const selected = answers[currentQuestion.id] === opt.id;
+          return (
+            <button
+              key={opt.id}
+              type="button"
+              onClick={() => handleSelectOption(currentQuestion.id, opt.id)}
+              className={[
+                "flex h-full items-start gap-3 rounded-2xl border px-3 py-3 text-left text-xs transition",
+                selected
+                  ? "border-blue-600 bg-blue-50 text-blue-700 shadow-sm"
+                  : "border-gray-200 bg-white text-gray-800 hover:border-blue-300 hover:bg-blue-50/40",
+              ].join(" ")}
+            >
+              {/* 仮アイコン画像枠（あとで実画像に差し替え予定） */}
+              <div className="mt-0.5 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-gray-100 text-[10px] text-gray-400">
+                IMG
+              </div>
+              <div className="flex-1 leading-snug">{opt.label}</div>
+            </button>
+          );
+        })}
       </div>
 
       {/* エラーメッセージ */}
