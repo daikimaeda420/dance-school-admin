@@ -72,40 +72,16 @@ export default function DiagnosisEmbedClient({ schoolIdProp, onClose }: Props) {
   const canGoNext = !!currentAnswer || !!result;
   const progressPercent = ((stepIndex + 1) / totalSteps) * 100;
 
-  const handleSelectOption = (qId: DiagnosisQuestionId, optionId: string) => {
-    setAnswers((prev) => ({
-      ...prev,
-      [qId]: optionId,
-    }));
-  };
-
-  const handleNext = () => {
-    if (stepIndex < totalSteps - 1) {
-      setStepIndex((prev) => prev + 1);
-      setError(null);
-    }
-  };
-
-  const handlePrev = () => {
-    if (stepIndex > 0) {
-      setStepIndex((prev) => prev - 1);
-      setError(null);
-    }
-  };
-
-  const handleRestart = () => {
-    setAnswers({});
-    setStepIndex(0);
-    setResult(null);
-    setError(null);
-  };
-
+  // -----------------------
+  // 共通: 診断実行
+  // -----------------------
   const handleSubmit = async () => {
     if (!schoolId) {
       setError("schoolId が指定されていません。（URLクエリ param: school）");
       return;
     }
 
+    // 必須の Q1〜Q5 が埋まっているかチェック
     const missing: string[] = [];
     (["Q1", "Q2", "Q3", "Q4", "Q5"] as DiagnosisQuestionId[]).forEach((id) => {
       if (!answers[id]) missing.push(id);
@@ -114,6 +90,8 @@ export default function DiagnosisEmbedClient({ schoolIdProp, onClose }: Props) {
       setError("未回答の質問があります。");
       return;
     }
+
+    if (isSubmitting) return;
 
     setIsSubmitting(true);
     setError(null);
@@ -144,6 +122,55 @@ export default function DiagnosisEmbedClient({ schoolIdProp, onClose }: Props) {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  // -----------------------
+  // 質問を選択したときの処理（自動で次へ）
+  // -----------------------
+  const handleSelectOption = (qId: DiagnosisQuestionId, optionId: string) => {
+    setAnswers((prev) => ({
+      ...prev,
+      [qId]: optionId,
+    }));
+
+    // 今表示している質問を選択したタイミングで自動で進める
+    if (qId === currentQuestion.id) {
+      const isLastStep = stepIndex === totalSteps - 1;
+
+      if (isLastStep) {
+        // 最後の質問なら自動で診断実行
+        setTimeout(() => {
+          void handleSubmit();
+        }, 150); // ちょっとだけ間を空けて選択状態が見えるように
+      } else {
+        // 次の質問へ
+        setTimeout(() => {
+          setStepIndex((prev) => prev + 1);
+          setError(null);
+        }, 150);
+      }
+    }
+  };
+
+  const handleNext = () => {
+    if (stepIndex < totalSteps - 1) {
+      setStepIndex((prev) => prev + 1);
+      setError(null);
+    }
+  };
+
+  const handlePrev = () => {
+    if (stepIndex > 0) {
+      setStepIndex((prev) => prev - 1);
+      setError(null);
+    }
+  };
+
+  const handleRestart = () => {
+    setAnswers({});
+    setStepIndex(0);
+    setResult(null);
+    setError(null);
   };
 
   // ===== 診断結果画面 =====
@@ -248,7 +275,7 @@ export default function DiagnosisEmbedClient({ schoolIdProp, onClose }: Props) {
         </div>
 
         {/* CTAエリア */}
-        <div className="mt-2 flex flex-col gap-2">
+        <div className="mt-2flex flex-col gap-2">
           <a
             href={
               result.bestMatch.classId
@@ -276,8 +303,8 @@ export default function DiagnosisEmbedClient({ schoolIdProp, onClose }: Props) {
   // ===== 質問ステップ画面 =====
   return (
     <div className="w-full max-w-2xl rounded-3xl border bg-white p-6 shadow-xl text-gray-900">
-      {/* 上部ヘッダー＋ステータスバー */}
-      <div className="mb-4 flex items-start justify-between gap-2">
+      {/* 上部ヘッダー */}
+      <div className="mb-3 flex items-start justify-between gap-2">
         <div>
           <div className="text-[11px] font-semibold text-blue-600">
             ダンススクール相性診断
@@ -297,22 +324,22 @@ export default function DiagnosisEmbedClient({ schoolIdProp, onClose }: Props) {
         )}
       </div>
 
-      {/* 中央の横長プログレスバー */}
-      <div className="mb-6 flex items-center justify-center">
-        <div className="w-full max-w-xs">
+      {/* 中央の横長プログレスバー（間に余白多め） */}
+      <div className="mb-8 flex items-center justify-center">
+        <div className="w-full max-w-sm">
           <div className="h-1.5 w-full rounded-full bg-gray-200">
             <div
               className="h-1.5 rounded-full bg-blue-600 transition-all"
               style={{ width: `${progressPercent}%` }}
             />
           </div>
-          <div className="mt-1 text-center text-[11px] text-gray-500">
+          <div className="mt-3 text-center text-[11px] text-gray-500">
             質問 {stepIndex + 1} / {totalSteps}
           </div>
         </div>
       </div>
 
-      {/* 質問本体 */}
+      {/* 質問タイトル */}
       <div className="mb-4 text-center">
         <div className="text-sm font-semibold">{currentQuestion.title}</div>
         {currentQuestion.description && (
@@ -322,7 +349,7 @@ export default function DiagnosisEmbedClient({ schoolIdProp, onClose }: Props) {
         )}
       </div>
 
-      {/* 質問項目：PCで2カラム（md以上） */}
+      {/* 質問項目：PCで2カラム */}
       <div className="mb-4 grid gap-3 md:grid-cols-2">
         {currentQuestion.options.map((opt) => {
           const selected = answers[currentQuestion.id] === opt.id;
@@ -338,7 +365,7 @@ export default function DiagnosisEmbedClient({ schoolIdProp, onClose }: Props) {
                   : "border-gray-200 bg-white text-gray-800 hover:border-blue-300 hover:bg-blue-50/40",
               ].join(" ")}
             >
-              {/* 仮アイコン画像枠（あとで実画像に差し替え予定） */}
+              {/* 仮アイコン画像枠 */}
               <div className="mt-0.5 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-gray-100 text-[10px] text-gray-400">
                 IMG
               </div>
@@ -355,7 +382,7 @@ export default function DiagnosisEmbedClient({ schoolIdProp, onClose }: Props) {
         </div>
       )}
 
-      {/* フッター操作ボタン */}
+      {/* フッター操作ボタン（手動で進みたい人向けに一応残す） */}
       <div className="mt-2 flex items-center justify-between">
         <button
           type="button"
