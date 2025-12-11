@@ -152,13 +152,6 @@ export default function DiagnosisEmbedClient({ schoolIdProp, onClose }: Props) {
     }
   };
 
-  const handleNext = () => {
-    if (stepIndex < totalSteps - 1) {
-      setStepIndex((prev) => prev + 1);
-      setError(null);
-    }
-  };
-
   const handlePrev = () => {
     if (stepIndex > 0) {
       setStepIndex((prev) => prev - 1);
@@ -393,7 +386,7 @@ export default function DiagnosisEmbedClient({ schoolIdProp, onClose }: Props) {
         </div>
       )}
 
-      {/* フッター操作（手動で進みたい人向けに残しておく） */}
+      {/* フッター操作：次へ進むボタンは削除 */}
       <div className="mt-2 flex items-center justify-between">
         <button
           type="button"
@@ -403,16 +396,9 @@ export default function DiagnosisEmbedClient({ schoolIdProp, onClose }: Props) {
         >
           戻る
         </button>
-        {stepIndex < totalSteps - 1 ? (
-          <button
-            type="button"
-            className="rounded-full bg-blue-600 px-4 py-1.5 text-xs font-semibold text-white disabled:opacity-40"
-            onClick={handleNext}
-            disabled={!canGoNext || isSubmitting}
-          >
-            次へ進む
-          </button>
-        ) : (
+
+        {/* 最後のステップだけ「診断結果を見る」を表示（自動診断も走るので補助的なボタン） */}
+        {stepIndex === totalSteps - 1 && (
           <button
             type="button"
             className="rounded-full bg-blue-600 px-4 py-1.5 text-xs font-semibold text-white disabled:opacity-40"
