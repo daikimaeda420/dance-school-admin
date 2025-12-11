@@ -14,6 +14,7 @@ import {
   X,
   Bot,
   ExternalLink,
+  ListChecks, // ★ 追加：診断編集アイコン
 } from "lucide-react";
 import { useEffect, MouseEvent } from "react";
 import { useSession } from "next-auth/react";
@@ -47,6 +48,12 @@ export default function Sidebar({
   const embedHref = `/embed/chatbot${
     schoolId ? `?school=${encodeURIComponent(schoolId)}` : ""
   }`;
+
+  // 診断編集 管理画面へのリンク（schoolId があればクエリ付き）
+  const diagnosisHref = `/admin/diagnosis/campuses${
+    schoolId ? `?schoolId=${encodeURIComponent(schoolId)}` : ""
+  }`;
+
   const isActive = (href: string) =>
     pathname === href || pathname.startsWith(href + "/");
 
@@ -143,6 +150,21 @@ export default function Sidebar({
               );
             })}
 
+            {/* ★ 診断編集 管理画面へのリンク */}
+            <Link
+              href={diagnosisHref}
+              aria-current={
+                isActive("/admin/diagnosis/campuses") ? "page" : undefined
+              }
+              className={[
+                baseLink,
+                isActive("/admin/diagnosis/campuses") ? active : inactive,
+              ].join(" ")}
+            >
+              <ListChecks size={18} />
+              <span>診断編集</span>
+            </Link>
+
             {/* 小窓プレビュー（別タブアイコン表示） */}
             <button
               type="button"
@@ -215,6 +237,23 @@ export default function Sidebar({
                   </Link>
                 );
               })}
+
+              {/* ★ 診断編集 管理画面へのリンク（モバイル） */}
+              <Link
+                href={diagnosisHref}
+                onClick={onClose}
+                aria-current={
+                  isActive("/admin/diagnosis/campuses") ? "page" : undefined
+                }
+                className={[
+                  baseLink,
+                  "w-full",
+                  isActive("/admin/diagnosis/campuses") ? active : inactive,
+                ].join(" ")}
+              >
+                <ListChecks size={18} />
+                <span>診断編集</span>
+              </Link>
 
               {/* 小窓プレビュー（別タブアイコン表示） */}
               <button
