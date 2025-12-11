@@ -83,9 +83,11 @@ export default function DiagnosisEmbedClient({ schoolIdProp, onClose }: Props) {
 
     // Q1〜Q5 が埋まっているかチェック
     const missing: string[] = [];
-    (["Q1", "Q2", "Q3", "Q4", "Q5"] as DiagnosisQuestionId[]).forEach((id) => {
-      if (!answers[id]) missing.push(id);
-    });
+    (["Q1", "Q2", "Q3", "Q4", "Q5", "Q6"] as DiagnosisQuestionId[]).forEach(
+      (id) => {
+        if (!answers[id]) missing.push(id);
+      }
+    );
     if (missing.length > 0) {
       setError("未回答の質問があります。");
       return;
