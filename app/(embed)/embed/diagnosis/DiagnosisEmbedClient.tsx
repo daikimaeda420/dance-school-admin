@@ -3,7 +3,11 @@
 
 import { useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
-import { QUESTIONS, DiagnosisQuestionId } from "@/lib/diagnosis/config";
+import {
+  QUESTIONS,
+  DiagnosisQuestionId,
+  DiagnosisQuestionOption,
+} from "@/lib/diagnosis/config";
 
 type AnswersState = Partial<Record<DiagnosisQuestionId, string>>;
 
@@ -46,13 +50,19 @@ type DiagnosisResult = {
 type Props = {
   schoolIdProp?: string;
   onClose?: () => void;
+  // 管理画面/APIから渡される「校舎一覧」
+  campusOptions?: DiagnosisQuestionOption[];
 };
 
-export default function DiagnosisEmbedClient({ schoolIdProp, onClose }: Props) {
+export default function DiagnosisEmbedClient({
+  schoolIdProp,
+  onClose,
+  campusOptions,
+}: Props) {
   const searchParams = useSearchParams();
 
   const [answers, setAnswers] = useState<AnswersState>({});
-  const [stepIndex, setStepIndex] = useState(0); // 0〜4 (Q1〜Q5)
+  const [stepIndex, setStepIndex] = useState(0); // 0〜5 (Q1〜Q6)
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [result, setResult] = useState<DiagnosisResult | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -62,7 +72,22 @@ export default function DiagnosisEmbedClient({ schoolIdProp, onClose }: Props) {
     return searchParams.get("school") ?? "";
   }, [schoolIdProp, searchParams]);
 
-  const questions = QUESTIONS;
+  // Q1 だけ campusOptions で options を差し替える
+  const questions = useMemo(() => {
+    if (!campusOptions || campusOptions.length === 0) {
+      return QUESTIONS;
+    }
+
+    return QUESTIONS.map((q) =>
+      q.id === "Q1"
+        ? {
+            ...q,
+            options: campusOptions,
+          }
+        : q
+    );
+  }, [campusOptions]);
+
   const currentQuestion = questions[stepIndex];
   const totalSteps = questions.length;
 
@@ -81,7 +106,7 @@ export default function DiagnosisEmbedClient({ schoolIdProp, onClose }: Props) {
       return;
     }
 
-    // Q1〜Q5 が埋まっているかチェック
+    // Q1〜Q6 が埋まっているかチェック
     const missing: string[] = [];
     (["Q1", "Q2", "Q3", "Q4", "Q5", "Q6"] as DiagnosisQuestionId[]).forEach(
       (id) => {
@@ -134,6 +159,8 @@ export default function DiagnosisEmbedClient({ schoolIdProp, onClose }: Props) {
       ...prev,
       [qId]: optionId,
     }));
+
+    if (!currentQuestion) return;
 
     // 今表示している質問の選択時だけ自動遷移
     if (qId === currentQuestion.id) {

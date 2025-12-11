@@ -1,23 +1,38 @@
 // app/(embed)/embed/diagnosis/page.tsx
-
-import { Suspense } from "react";
 import DiagnosisEmbedClient from "./DiagnosisEmbedClient";
+import { DiagnosisQuestionOption } from "@/lib/diagnosis/config";
 
-// URLクエリなどに依存するので、静的生成ではなく動的にする
-export const dynamic = "force-dynamic";
+async function fetchCampusOptions(
+  schoolId: string
+): Promise<DiagnosisQuestionOption[]> {
+  if (!schoolId) return [];
 
-export default function DiagnosisPage() {
+  const res = await fetch(
+    `${
+      process.env.NEXT_PUBLIC_BASE_URL
+    }/api/diagnosis/campuses?school=${encodeURIComponent(schoolId)}`,
+    {
+      cache: "no-store",
+    }
+  );
+
+  if (!res.ok) return [];
+
+  return (await res.json()) as DiagnosisQuestionOption[];
+}
+
+export default async function DiagnosisPage({
+  searchParams,
+}: {
+  searchParams: { school?: string };
+}) {
+  const schoolId = searchParams.school ?? "";
+  const campusOptions = await fetchCampusOptions(schoolId);
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-transparent">
-      <Suspense
-        fallback={
-          <div className="rounded-2xl border bg-white px-4 py-3 text-xs text-gray-500 shadow">
-            診断ウィジェットを読み込み中です…
-          </div>
-        }
-      >
-        <DiagnosisEmbedClient />
-      </Suspense>
-    </div>
+    <DiagnosisEmbedClient
+      schoolIdProp={schoolId}
+      campusOptions={campusOptions}
+    />
   );
 }
