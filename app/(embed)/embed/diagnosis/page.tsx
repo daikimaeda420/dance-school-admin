@@ -7,18 +7,25 @@ async function fetchCampusOptions(
 ): Promise<DiagnosisQuestionOption[]> {
   if (!schoolId) return [];
 
-  const res = await fetch(
-    `${
-      process.env.NEXT_PUBLIC_BASE_URL
-    }/api/diagnosis/campuses?school=${encodeURIComponent(schoolId)}`,
-    {
-      cache: "no-store",
+  try {
+    // 相対パスで叩く：ローカル・本番どちらでも動く
+    const res = await fetch(
+      `/api/diagnosis/campuses?school=${encodeURIComponent(schoolId)}`,
+      {
+        cache: "no-store",
+      }
+    );
+
+    if (!res.ok) {
+      console.error("Failed to fetch campus options", res.status);
+      return [];
     }
-  );
 
-  if (!res.ok) return [];
-
-  return (await res.json()) as DiagnosisQuestionOption[];
+    return (await res.json()) as DiagnosisQuestionOption[];
+  } catch (e) {
+    console.error("Error while fetching campus options", e);
+    return [];
+  }
 }
 
 export default async function DiagnosisPage({
