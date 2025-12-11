@@ -79,6 +79,20 @@ model SuperAdmin {
 // ここから診断機能用のモデルを追加
 /////////////////////////////////////////
 
+// エリア・校舎情報
+model DiagnosisCampus {
+  id        String   @id @default(cuid())
+  schoolId  String   // どの school の診断か
+  label     String   // 表示名（渋谷校など）
+  slug      String   // "shibuya" など（Q1の option.id に使う想定）
+  sortOrder Int      @default(0)
+  isOnline  Boolean  @default(false)
+  isActive  Boolean  @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 // クラス（コース）情報
 model SchoolClass {
   id        String   @id @default(cuid())
