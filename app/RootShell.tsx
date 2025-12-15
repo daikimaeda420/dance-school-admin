@@ -19,7 +19,7 @@ export default function RootShell({ children }: { children: React.ReactNode }) {
   return (
     <>
       <Header />
-      <div className="mx-auto px-4">
+      <div className="mx-auto">
         <div className="flex gap-6">
           {/* /login のときは Sidebar を非表示 */}
           {!isLoginPage && <Sidebar showDesktop />}
