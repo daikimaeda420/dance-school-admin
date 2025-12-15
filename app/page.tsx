@@ -847,7 +847,73 @@ export default function HomePage() {
   );
 }
 
-/* ===== LP Parts ===== */
+/* =========================
+   LP Parts (Fix: add missing components)
+========================= */
+
+function MiniStat({
+  label,
+  value,
+  note,
+}: {
+  label: string;
+  value: string;
+  note: string;
+}) {
+  return (
+    <div className="rounded-2xl border border-orange-200 bg-white p-4 shadow-sm dark:border-orange-900/60 dark:bg-zinc-950">
+      <div className="text-xs font-semibold text-orange-700 dark:text-orange-200">
+        {label}
+      </div>
+      <div className="mt-1 text-lg font-bold">{value}</div>
+      <div className="mt-1 text-xs text-zinc-600 dark:text-zinc-300">
+        {note}
+      </div>
+    </div>
+  );
+}
+
+function FeatureGroup({
+  kicker,
+  title,
+  items,
+}: {
+  kicker: string;
+  title: string;
+  items: { title: string; desc: string }[];
+}) {
+  return (
+    <div className="rounded-3xl border border-orange-200 bg-white p-6 shadow-sm dark:border-orange-900/60 dark:bg-zinc-950">
+      <div className="text-xs font-semibold text-orange-600 dark:text-orange-300">
+        {kicker}
+      </div>
+      <div className="mt-2 text-base font-semibold">{title}</div>
+
+      <div className="mt-4 space-y-4">
+        {items.map((it, idx) => (
+          <div
+            key={idx}
+            className="rounded-2xl border border-orange-200/60 bg-orange-50/40 p-4 dark:border-orange-900/40 dark:bg-orange-950/20"
+          >
+            <div className="text-sm font-semibold">{it.title}</div>
+            <div className="mt-2 text-sm text-zinc-600 dark:text-zinc-300">
+              {it.desc}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function InsightRow({ title, desc }: { title: string; desc: string }) {
+  return (
+    <div className="rounded-2xl border border-orange-200 bg-white px-4 py-3 text-sm shadow-sm dark:border-orange-900/60 dark:bg-zinc-950">
+      <div className="font-semibold">{title}</div>
+      <div className="mt-1 text-zinc-600 dark:text-zinc-300">{desc}</div>
+    </div>
+  );
+}
 
 function LPProblem({ title, desc }: { title: string; desc: string }) {
   return (
@@ -871,20 +937,24 @@ function LPSolution({ title, desc }: { title: string; desc: string }) {
   );
 }
 
-function FeatureCard({ title, desc }: { title: string; desc: string }) {
+function FlowRow({
+  left,
+  right,
+  accent,
+}: {
+  left: string;
+  right: string;
+  accent?: boolean;
+}) {
   return (
-    <div className="rounded-2xl border border-zinc-200 p-5 dark:border-zinc-800">
-      <div className="text-sm font-semibold">{title}</div>
-      <div className="mt-2 text-sm text-zinc-600 dark:text-zinc-300">
-        {desc}
-      </div>
-    </div>
-  );
-}
-
-function FlowRow({ left, right }: { left: string; right: string }) {
-  return (
-    <div className="flex items-center justify-between gap-3 rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm dark:border-zinc-800 dark:bg-zinc-900/50">
+    <div
+      className={
+        "flex items-center justify-between gap-3 rounded-2xl border px-4 py-3 text-sm " +
+        (accent
+          ? "border-orange-200 bg-orange-50 dark:border-orange-900/60 dark:bg-orange-950/20"
+          : "border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900/50")
+      }
+    >
       <span className="text-zinc-600 dark:text-zinc-300">{left}</span>
       <span className="font-semibold">{right}</span>
     </div>
@@ -896,11 +966,13 @@ function ContactBox({
   desc,
   cta,
   href,
+  primary,
 }: {
   title: string;
   desc: string;
   cta: string;
   href: string;
+  primary?: boolean;
 }) {
   return (
     <div className="rounded-3xl border border-zinc-200 bg-white p-7 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
@@ -911,7 +983,12 @@ function ContactBox({
       <div className="mt-5">
         <Link
           href={href}
-          className="inline-flex items-center justify-center rounded-2xl bg-zinc-900 px-5 py-3 text-sm font-semibold text-white hover:opacity-90 dark:bg-zinc-100 dark:text-zinc-950"
+          className={
+            "inline-flex items-center justify-center rounded-2xl px-5 py-3 text-sm font-semibold transition " +
+            (primary
+              ? "bg-orange-600 text-white hover:bg-orange-700"
+              : "ring-1 ring-orange-200 hover:bg-orange-50 dark:ring-orange-900/60 dark:hover:bg-orange-950/30")
+          }
         >
           {cta}
         </Link>
