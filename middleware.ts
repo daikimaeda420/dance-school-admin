@@ -14,21 +14,23 @@ export async function middleware(req: NextRequest) {
 
   const isLoginPage = pathname === "/login" || pathname === "/login/";
 
+  // 🔒 管理系のみ保護（トップ "/" は含めない）
   const isProtectedRoute =
-    ["/", "/faq", "/help"].includes(pathname) ||
     pathname.startsWith("/admin") ||
-    pathname.startsWith("/superadmin");
+    pathname.startsWith("/superadmin") ||
+    pathname === "/faq" ||
+    pathname === "/help";
 
-  // ✅ ① ログイン済みで /login に来たらトップへリダイレクト
+  // ✅ ① ログイン済みで /login に来たらトップ（LP or Dashboard判定は page.tsx 側）
   if (token && isLoginPage) {
     return NextResponse.redirect(new URL("/", req.url));
   }
 
-  // ✅ ② 未ログインで保護ページに来たら /login へリダイレクト
+  // ✅ ② 未ログインで管理系に来たら /login
   if (!token && isProtectedRoute) {
     const loginUrl = new URL("/login", req.url);
 
-    // 任意：元のURLに戻したい場合は callbackUrl を付与
+    // 任意：元のURLに戻したい場合
     loginUrl.searchParams.set(
       "callbackUrl",
       req.nextUrl.pathname + req.nextUrl.search
@@ -41,14 +43,14 @@ export async function middleware(req: NextRequest) {
   return NextResponse.next();
 }
 
-// どのパスで middleware を走らせるか
+// middleware を動かすパス
 export const config = {
   matcher: [
-    "/", // トップ
-    "/faq", // FAQ
-    "/help", // ヘルプ
-    "/admin/:path*", // /admin 以下
-    "/superadmin/:path*", // /superadmin 以下
-    "/login", // ログインページ自身
+    "/", // ← ここは通すだけ（LP表示）
+    "/faq",
+    "/help",
+    "/admin/:path*",
+    "/superadmin/:path*",
+    "/login",
   ],
 };
