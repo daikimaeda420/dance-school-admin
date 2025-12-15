@@ -1,5 +1,5 @@
 // app/page.tsx — Home (未ログインLP + ログイン後Dashboard / NURO風LP)
-// "use client";
+"use client";
 
 import { useSession } from "next-auth/react";
 import Link from "next/link";
