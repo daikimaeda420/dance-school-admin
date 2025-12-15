@@ -13,6 +13,7 @@ import {
   Bot,
   ExternalLink,
   ListChecks, // 診断編集アイコン
+  ClipboardList, // ← 追加（相性診断プレビュー用アイコン）
 } from "lucide-react";
 import { useEffect, MouseEvent } from "react";
 import { useSession } from "next-auth/react";
@@ -52,6 +53,13 @@ export default function Sidebar({
   const diagnosisHref = `/admin/diagnosis/campuses${
     schoolId ? `?schoolId=${encodeURIComponent(schoolId)}` : ""
   }`;
+
+  // ★ 相性診断プレビュー（外部URL：school を動的差し込み）
+  const diagnosisPreviewUrl = schoolId
+    ? `https://rizbo.dansul.jp/embed/diagnosis?school=${encodeURIComponent(
+        schoolId
+      )}`
+    : "https://rizbo.dansul.jp/embed/diagnosis";
 
   const isActive = (href: string) =>
     pathname === href || pathname.startsWith(href + "/");
@@ -159,7 +167,7 @@ export default function Sidebar({
               );
             })}
 
-            {/* 小窓プレビュー */}
+            {/* 小窓プレビュー（チャットボット） */}
             <button
               type="button"
               onClick={openPreviewPopup}
@@ -176,6 +184,25 @@ export default function Sidebar({
               </span>
               <ExternalLink size={14} className="opacity-70" aria-hidden />
             </button>
+
+            {/* ★ 追加：相性診断プレビュー（一番下） */}
+            <a
+              href={diagnosisPreviewUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              title="相性診断プレビュー"
+              className={[
+                baseLink,
+                inactive,
+                "w-full justify-between text-left",
+              ].join(" ")}
+            >
+              <span className="flex items-center gap-3">
+                <ClipboardList size={18} />
+                <span>相性診断プレビュー</span>
+              </span>
+              <ExternalLink size={14} className="opacity-70" aria-hidden />
+            </a>
           </nav>
         </aside>
       )}
@@ -250,7 +277,7 @@ export default function Sidebar({
                 );
               })}
 
-              {/* プレビュー */}
+              {/* プレビュー（チャットボット） */}
               <button
                 type="button"
                 onClick={(e) => {
@@ -270,6 +297,26 @@ export default function Sidebar({
                 </span>
                 <ExternalLink size={14} className="opacity-70" aria-hidden />
               </button>
+
+              {/* ★ 追加：相性診断プレビュー（一番下） */}
+              <a
+                href={diagnosisPreviewUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={onClose}
+                className={[
+                  baseLink,
+                  "w-full",
+                  inactive,
+                  "justify-between text-left",
+                ].join(" ")}
+              >
+                <span className="flex items-center gap-3">
+                  <ClipboardList size={18} />
+                  <span>相性診断プレビュー</span>
+                </span>
+                <ExternalLink size={14} className="opacity-70" aria-hidden />
+              </a>
             </nav>
           </aside>
         </div>
