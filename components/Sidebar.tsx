@@ -56,7 +56,7 @@ export default function Sidebar({
 
   // ★ 相性診断プレビュー（外部URL：school を動的差し込み）
   const diagnosisPreviewUrl = schoolId
-    ? `https://rizbo.dansul.jp/embed/diagnosis?school=${encodeURIComponent(
+    ? `https://rizbo.dansul.jp/embed/diagnosis?schoolId=${encodeURIComponent(
         schoolId
       )}`
     : "https://rizbo.dansul.jp/embed/diagnosis";
