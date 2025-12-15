@@ -3,6 +3,7 @@ import "./globals.css";
 import Script from "next/script";
 import type { Metadata, Viewport } from "next";
 import AuthProvider from "@/components/AuthProvider";
+import LayoutShell from "@/components/LayoutShell";
 
 export const metadata: Metadata = {
   title: {
@@ -54,8 +55,11 @@ export default function RootLayout({
           } catch (e) {}
         `}</Script>
       </head>
+
       <body className="min-h-screen bg-gray-50 text-gray-900 dark:bg-gray-950 dark:text-gray-100 w-dvw">
-        <AuthProvider>{children}</AuthProvider>
+        <AuthProvider>
+          <LayoutShell>{children}</LayoutShell>
+        </AuthProvider>
       </body>
     </html>
   );

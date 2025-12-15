@@ -4,7 +4,7 @@
 import { ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
-import Sidebar from "@/components/Sidebar";
+import RootShell from "@/app/RootShell"; // ← ここは実際のパスに合わせてOK（元が "./RootShell" なら "@/app/RootShell" でOK）
 
 export default function LayoutShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
@@ -13,17 +13,12 @@ export default function LayoutShell({ children }: { children: ReactNode }) {
   const isLoginPage = pathname === "/login" || pathname === "/login/";
   const isTopPage = pathname === "/";
 
-  // ✅ /login は常にサイドバー無し
+  // ✅ /login は常にヘッダー/サイドバーなし
   if (isLoginPage) return <>{children}</>;
 
-  // ✅ 未ログイン時の / はLP扱い（サイドバー・ヘッダー無し）
+  // ✅ 未ログイン時の / はLP（ヘッダー/サイドバーなし）
   if (isTopPage && status !== "authenticated") return <>{children}</>;
 
-  // ✅ それ以外（ログイン中の / を含む）は管理画面レイアウト
-  return (
-    <div className="min-h-screen flex">
-      <Sidebar showDesktop />
-      <div className="flex-1">{children}</div>
-    </div>
-  );
+  // ✅ それ以外は管理画面殻（ヘッダー/サイドバーあり）
+  return <RootShell>{children}</RootShell>;
 }
