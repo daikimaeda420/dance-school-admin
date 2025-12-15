@@ -8,9 +8,8 @@ async function fetchCampusOptions(
   if (!schoolId) return [];
 
   try {
-    // 相対パスで叩く：ローカル・本番どちらでも動く
     const res = await fetch(
-      `/api/diagnosis/campuses?school=${encodeURIComponent(schoolId)}`,
+      `/api/diagnosis/campuses?schoolId=${encodeURIComponent(schoolId)}`,
       {
         cache: "no-store",
       }
@@ -31,9 +30,11 @@ async function fetchCampusOptions(
 export default async function DiagnosisPage({
   searchParams,
 }: {
-  searchParams: { school?: string };
+  searchParams: { school?: string; schoolId?: string };
 }) {
-  const schoolId = searchParams.school ?? "";
+  // ★ ここが超重要：両対応
+  const schoolId = searchParams.schoolId ?? searchParams.school ?? "";
+
   const campusOptions = await fetchCampusOptions(schoolId);
 
   return (
