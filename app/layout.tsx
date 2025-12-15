@@ -3,7 +3,6 @@ import "./globals.css";
 import Script from "next/script";
 import type { Metadata, Viewport } from "next";
 import AuthProvider from "@/components/AuthProvider";
-import RootShell from "./RootShell";
 
 export const metadata: Metadata = {
   title: {
@@ -56,9 +55,7 @@ export default function RootLayout({
         `}</Script>
       </head>
       <body className="min-h-screen bg-gray-50 text-gray-900 dark:bg-gray-950 dark:text-gray-100 w-dvw">
-        <AuthProvider>
-          <RootShell>{children}</RootShell>
-        </AuthProvider>
+        <AuthProvider>{children}</AuthProvider>
       </body>
     </html>
   );

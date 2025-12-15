@@ -1,6 +1,5 @@
-// app/page.tsx — Home (未ログインLP + ログイン後Dashboard)
-// ※既存Dashboard実装を保持しつつ、未ログイン時はLPを表示する版
-"use client";
+// app/page.tsx — Home (未ログインLP + ログイン後Dashboard / NURO風LP)
+// "use client";
 
 import { useSession } from "next-auth/react";
 import Link from "next/link";
@@ -72,7 +71,6 @@ export default function HomePage() {
   };
 
   const fetchDashboard = useCallback(async () => {
-    // 未ログイン中は取得しない
     if (status !== "authenticated") return;
 
     setLoading(true);
@@ -91,7 +89,7 @@ export default function HomePage() {
       setActivities(data.activities ?? []);
       setTasks(data.tasks ?? []);
       setSystem(data.system ?? null);
-    } catch (e: any) {
+    } catch {
       showToast("err", "ダッシュボードの取得に失敗しました");
       setKpis([]);
       setActivities([]);
@@ -106,7 +104,6 @@ export default function HomePage() {
     }
   }, [schoolId, range, status]);
 
-  // ログイン後のみダッシュボード取得
   useEffect(() => {
     if (status === "authenticated") fetchDashboard();
   }, [fetchDashboard, status]);
@@ -118,7 +115,6 @@ export default function HomePage() {
     return "";
   }, [status, schoolId]);
 
-  // 埋め込みコードコピー
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "";
   const iframeCode = `<iframe src="${baseUrl}/embed/chatbot?school=${
     schoolId ?? ""
@@ -133,7 +129,6 @@ export default function HomePage() {
     }
   };
 
-  // ログCSVエクスポート（クライアント生成）
   const onExportLogs = async () => {
     try {
       const q = new URLSearchParams();
@@ -196,120 +191,305 @@ export default function HomePage() {
     }
   };
 
-  // ========= 未ログインLP =========
+  // ==========================
+  // 未ログインLP（NURO風）
+  // ==========================
   if (status === "unauthenticated") {
     return (
       <main className="min-h-screen bg-white text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100">
-        <header className="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-6">
-          <div className="flex items-center gap-3">
-            <div className="h-9 w-9 rounded-xl bg-zinc-900 dark:bg-zinc-100" />
-            <div className="font-semibold tracking-tight">Rizbo</div>
-          </div>
+        {/* Header */}
+        <header className="sticky top-0 z-30 border-b border-zinc-200/60 bg-white/80 backdrop-blur dark:border-zinc-800/60 dark:bg-zinc-950/70">
+          <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-4">
+            <div className="flex items-center gap-3">
+              <div className="h-9 w-9 rounded-xl bg-zinc-900 dark:bg-zinc-100" />
+              <div className="font-semibold tracking-tight">Rizbo</div>
+            </div>
 
-          <nav className="flex items-center gap-3">
-            <Link
-              href="/api/auth/signin"
-              className="rounded-xl px-4 py-2 text-sm font-medium ring-1 ring-zinc-200 hover:bg-zinc-50 dark:ring-zinc-800 dark:hover:bg-zinc-900"
-            >
-              ログイン
-            </Link>
-          </nav>
+            <nav className="hidden items-center gap-5 text-sm text-zinc-600 dark:text-zinc-300 sm:flex">
+              <a
+                href="#issues"
+                className="hover:text-zinc-900 dark:hover:text-zinc-100"
+              >
+                課題
+              </a>
+              <a
+                href="#solution"
+                className="hover:text-zinc-900 dark:hover:text-zinc-100"
+              >
+                解決
+              </a>
+              <a
+                href="#about"
+                className="hover:text-zinc-900 dark:hover:text-zinc-100"
+              >
+                サービス概要
+              </a>
+              <a
+                href="#functions"
+                className="hover:text-zinc-900 dark:hover:text-zinc-100"
+              >
+                主要機能
+              </a>
+              <a
+                href="#contact"
+                className="hover:text-zinc-900 dark:hover:text-zinc-100"
+              >
+                お問い合わせ
+              </a>
+            </nav>
+
+            <div className="flex items-center gap-2">
+              <Link
+                href="/api/auth/signin"
+                className="rounded-xl px-4 py-2 text-sm font-semibold ring-1 ring-zinc-200 hover:bg-zinc-50 dark:ring-zinc-800 dark:hover:bg-zinc-900"
+              >
+                ログイン
+              </Link>
+            </div>
+          </div>
         </header>
 
-        <section className="mx-auto w-full max-w-6xl px-6 pt-10">
-          <div className="rounded-3xl border border-zinc-200 bg-gradient-to-b from-zinc-50 to-white p-10 shadow-sm dark:border-zinc-800 dark:from-zinc-900 dark:to-zinc-950">
-            <p className="text-sm font-medium text-zinc-600 dark:text-zinc-300">
-              ダンススクール向け FAQ / 診断 / 埋め込みチャット
-            </p>
+        {/* Hero */}
+        <section className="mx-auto w-full max-w-6xl px-6 pt-12">
+          <div className="grid items-center gap-10 lg:grid-cols-2">
+            <div>
+              <p className="text-sm font-medium text-zinc-600 dark:text-zinc-300">
+                ダンススクール向け AIチャットボット / FAQ / 診断
+              </p>
+              <h1 className="mt-4 text-3xl font-bold leading-tight tracking-tight sm:text-5xl">
+                AI活用で
+                <br />
+                問い合わせ対応時間を
+                <br />
+                大幅削減
+              </h1>
+              <p className="mt-4 max-w-xl text-base text-zinc-600 dark:text-zinc-300">
+                すぐに使えるテンプレートと、分岐（診断）＋ナレッジ運用で
+                「よくある質問」を自動化。埋め込みでサイトに簡単導入できます。
+              </p>
 
-            <h1 className="mt-4 text-3xl font-bold leading-tight tracking-tight sm:text-5xl">
-              ダンススクールの問い合わせ対応を、
-              <br />
-              サイトに貼るだけで自動化。
-            </h1>
+              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+                <Link
+                  href="/api/auth/signin"
+                  className="inline-flex items-center justify-center rounded-2xl bg-zinc-900 px-6 py-3 text-sm font-semibold text-white hover:opacity-90 dark:bg-zinc-100 dark:text-zinc-950"
+                >
+                  ログインして使う
+                </Link>
+                <a
+                  href="#contact"
+                  className="inline-flex items-center justify-center rounded-2xl px-6 py-3 text-sm font-semibold ring-1 ring-zinc-200 hover:bg-zinc-50 dark:ring-zinc-800 dark:hover:bg-zinc-900"
+                >
+                  お問い合わせ
+                </a>
+              </div>
 
-            <p className="mt-4 max-w-2xl text-base text-zinc-600 dark:text-zinc-300">
-              管理画面でQ&Aや分岐（診断）を編集し、埋め込みでサイトに表示。
-              質問ログを見ながら改善できます。
-            </p>
+              <div className="mt-8 flex flex-wrap gap-2 text-xs text-zinc-600 dark:text-zinc-300">
+                <span className="rounded-full border border-zinc-200 px-3 py-1 dark:border-zinc-800">
+                  埋め込み（script）
+                </span>
+                <span className="rounded-full border border-zinc-200 px-3 py-1 dark:border-zinc-800">
+                  分岐FAQ/診断
+                </span>
+                <span className="rounded-full border border-zinc-200 px-3 py-1 dark:border-zinc-800">
+                  ログで改善
+                </span>
+              </div>
+            </div>
+
+            <div className="rounded-3xl border border-zinc-200 bg-gradient-to-b from-zinc-50 to-white p-6 shadow-sm dark:border-zinc-800 dark:from-zinc-900 dark:to-zinc-950">
+              <div className="rounded-2xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
+                <div className="text-sm font-semibold">モックアップ</div>
+                <div className="mt-3 space-y-2">
+                  <div className="h-10 rounded-xl bg-zinc-100 dark:bg-zinc-900" />
+                  <div className="h-16 rounded-xl bg-zinc-100 dark:bg-zinc-900" />
+                  <div className="h-12 rounded-xl bg-zinc-100 dark:bg-zinc-900" />
+                </div>
+                <p className="mt-3 text-xs text-zinc-500 dark:text-zinc-400">
+                  ※ここはスクリーンショットや実機GIFに差し替え想定
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Issues */}
+        <section id="issues" className="mx-auto w-full max-w-6xl px-6 py-14">
+          <h2 className="text-xl font-bold tracking-tight sm:text-2xl">
+            問い合わせ対応にお悩みはありませんか？
+          </h2>
+
+          <div className="mt-6 grid gap-4 sm:grid-cols-3">
+            <LPProblem
+              title="問い合わせ対応に追われてしまう"
+              desc="体験/料金/持ち物/予約などの対応が増えると、本来の業務が圧迫されます。"
+            />
+            <LPProblem
+              title="何度も同じ質問がくる"
+              desc="FAQが整備されていないと、同じ質問が繰り返され、対応品質もブレがちです。"
+            />
+            <LPProblem
+              title="導入したいのに時間が取れない"
+              desc="チャットボットやAIを入れたくても、初期データ作成や運用設計が負担になります。"
+            />
+          </div>
+        </section>
+
+        {/* Solution */}
+        <section id="solution" className="mx-auto w-full max-w-6xl px-6 pb-14">
+          <div className="rounded-3xl border border-zinc-200 bg-gradient-to-b from-zinc-50 to-white p-8 shadow-sm dark:border-zinc-800 dark:from-zinc-900 dark:to-zinc-950">
+            <h2 className="text-xl font-bold tracking-tight sm:text-2xl">
+              そのお悩み、Rizboで解決
+            </h2>
+
+            <div className="mt-6 grid gap-4 sm:grid-cols-3">
+              <LPSolution
+                title="AIが問い合わせ対応"
+                desc="よくある質問は自動応答。スタッフ対応の工数を大幅削減。"
+              />
+              <LPSolution
+                title="質問をナレッジ化"
+                desc="人が対応したやりとりをFAQとして蓄積し、次回から自動化。"
+              />
+              <LPSolution
+                title="最少工数で立ち上げ"
+                desc="テンプレート＋分岐設計で、学習期間なしに運用を開始できます。"
+              />
+            </div>
 
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Link
                 href="/api/auth/signin"
                 className="inline-flex items-center justify-center rounded-2xl bg-zinc-900 px-6 py-3 text-sm font-semibold text-white hover:opacity-90 dark:bg-zinc-100 dark:text-zinc-950"
               >
-                ログインして管理画面へ
+                ログインして始める
               </Link>
-
-              <Link
-                href="/help"
+              <a
+                href="#functions"
                 className="inline-flex items-center justify-center rounded-2xl px-6 py-3 text-sm font-semibold ring-1 ring-zinc-200 hover:bg-zinc-50 dark:ring-zinc-800 dark:hover:bg-zinc-900"
               >
-                使い方を見る
-              </Link>
-            </div>
-
-            <div className="mt-10 grid gap-4 sm:grid-cols-3">
-              <LPFeature
-                title="埋め込みチャット"
-                desc="script/埋め込みで設置。テーマ/色/位置も切替。"
-              />
-              <LPFeature
-                title="Q&A編集（分岐対応）"
-                desc="質問→回答、選択肢→次の質問のツリーを管理画面で編集。"
-              />
-              <LPFeature
-                title="ログで改善"
-                desc="どの質問が押されたかを蓄積し、導線を最適化。"
-              />
+                主要機能を見る
+              </a>
             </div>
           </div>
         </section>
 
-        <section className="mx-auto w-full max-w-6xl px-6 py-14">
-          <h2 className="text-xl font-bold tracking-tight sm:text-2xl">
-            導入は3ステップ
-          </h2>
-          <div className="mt-6 grid gap-4 sm:grid-cols-3">
-            <LPStep
-              n="1"
-              title="管理画面で作る"
-              desc="FAQ/診断を編集して公開準備。"
-            />
-            <LPStep
-              n="2"
-              title="埋め込みを貼る"
-              desc="Webサイトにタグを追加。"
-            />
-            <LPStep
-              n="3"
-              title="ログを見て改善"
-              desc="質問傾向を見て内容を更新。"
-            />
-          </div>
-        </section>
+        {/* About */}
+        <section id="about" className="mx-auto w-full max-w-6xl px-6 pb-14">
+          <div className="grid gap-8 lg:grid-cols-2">
+            <div>
+              <p className="text-sm font-semibold text-zinc-500 dark:text-zinc-400">
+                ABOUT
+              </p>
+              <h2 className="mt-2 text-xl font-bold tracking-tight sm:text-2xl">
+                Rizboとは
+              </h2>
+              <p className="mt-4 text-sm leading-7 text-zinc-600 dark:text-zinc-300">
+                Rizboは、テンプレートと効率的な運用導線を備えた
+                ダンススクール向けAIチャットボットです。
+                サイト埋め込みで「体験予約」や「よくある質問」対応を自動化し、
+                ログを見ながら継続的に改善できます。
+              </p>
 
-        <section className="mx-auto w-full max-w-6xl px-6 pb-16">
-          <div className="rounded-3xl border border-zinc-200 p-8 dark:border-zinc-800">
-            <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
-              <div>
-                <h3 className="text-lg font-bold">
-                  管理画面にログインして始める
-                </h3>
-                <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-300">
-                  Q&A編集 / 診断編集 / ログ確認を1つの管理画面で。
-                </p>
+              <div className="mt-6 space-y-2 text-sm text-zinc-600 dark:text-zinc-300">
+                <div className="flex items-start gap-2">
+                  <span className="mt-1 inline-block h-2 w-2 rounded-full bg-zinc-400" />
+                  <span>テナント（school）ごとにFAQ/診断を切替</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="mt-1 inline-block h-2 w-2 rounded-full bg-zinc-400" />
+                  <span>テーマ・パレット・位置などを埋め込み属性で制御</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="mt-1 inline-block h-2 w-2 rounded-full bg-zinc-400" />
+                  <span>Q&A編集とログ確認を管理画面で完結</span>
+                </div>
               </div>
-              <Link
-                href="/api/auth/signin"
-                className="inline-flex items-center justify-center rounded-2xl bg-zinc-900 px-6 py-3 text-sm font-semibold text-white hover:opacity-90 dark:bg-zinc-100 dark:text-zinc-950"
-              >
-                ログイン
-              </Link>
+            </div>
+
+            <div className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+              <div className="text-sm font-semibold">運用フロー（例）</div>
+              <div className="mt-4 space-y-3">
+                <FlowRow left="従業員/ユーザー" right="チャットで質問" />
+                <FlowRow left="Rizbo" right="自動回答（FAQ/診断）" />
+                <FlowRow left="管理者" right="未解決のみ対応 → FAQ化" />
+                <FlowRow left="Rizbo" right="次回から自動回答" />
+              </div>
+              <p className="mt-4 text-xs text-zinc-500 dark:text-zinc-400">
+                ※図や画像に差し替え可能（PNG/SVG推奨）
+              </p>
             </div>
           </div>
+        </section>
 
-          <footer className="mt-8 text-xs text-zinc-500 dark:text-zinc-400">
+        {/* Functions */}
+        <section id="functions" className="mx-auto w-full max-w-6xl px-6 pb-14">
+          <h2 className="text-xl font-bold tracking-tight sm:text-2xl">
+            ユーザーと管理者 それぞれに便利な機能
+          </h2>
+
+          <div className="mt-8 grid gap-8 lg:grid-cols-2">
+            {/* User */}
+            <div className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+              <p className="text-sm font-semibold text-zinc-500 dark:text-zinc-400">
+                ユーザー向け機能
+              </p>
+              <div className="mt-4 space-y-4">
+                <FeatureCard
+                  title="AIチャット（分岐対応）"
+                  desc="質問に対して、対話形式で自動応答。必要に応じてURL誘導も可能。"
+                />
+                <FeatureCard
+                  title="スムーズなエスカレーション設計"
+                  desc="チャットで解決しない場合は、問い合わせ導線へ自然に誘導（LP/フォーム/LINEなど）。"
+                />
+              </div>
+            </div>
+
+            {/* Admin */}
+            <div className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+              <p className="text-sm font-semibold text-zinc-500 dark:text-zinc-400">
+                管理者向け機能
+              </p>
+              <div className="mt-4 space-y-4">
+                <FeatureCard
+                  title="Q&A/診断編集（管理画面）"
+                  desc="質問→回答、選択肢→次の質問のツリーを編集。公開/運用を高速化。"
+                />
+                <FeatureCard
+                  title="ログ確認・CSV出力"
+                  desc="よく押される質問を把握して改善。必要ならCSVで分析ツールへ連携。"
+                />
+                <FeatureCard
+                  title="テナント切替・権限運用"
+                  desc="school単位でデータを管理し、運用を分離。"
+                />
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Contact */}
+        <section id="contact" className="mx-auto w-full max-w-6xl px-6 pb-16">
+          <h2 className="text-xl font-bold tracking-tight sm:text-2xl">
+            ご不明な点はお気軽にお問い合わせください
+          </h2>
+
+          <div className="mt-6 grid gap-4 lg:grid-cols-2">
+            <ContactBox
+              title="まずは機能について詳しく知りたい"
+              desc="管理画面・埋め込み・運用フローなどを確認したい方はこちら。"
+              cta="ログインして確認"
+              href="/api/auth/signin"
+            />
+            <ContactBox
+              title="料金プランや詳細を聞きたい"
+              desc="導入方法・運用設計・要件整理など、相談したい方はこちら。"
+              cta="お問い合わせ（仮）"
+              href="/help"
+            />
+          </div>
+
+          <footer className="mt-10 border-t border-zinc-200 pt-6 text-xs text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">
             © {new Date().getFullYear()} Rizbo
           </footer>
         </section>
@@ -317,7 +497,7 @@ export default function HomePage() {
     );
   }
 
-  // ========= 認証状態ロード中 =========
+  // 認証状態ロード中
   if (status === "loading") {
     return (
       <div className="mx-auto max-w-6xl px-4 py-6">
@@ -329,7 +509,9 @@ export default function HomePage() {
     );
   }
 
-  // ========= ログイン後Dashboard =========
+  // ==========================
+  // ログイン後Dashboard（既存のまま）
+  // ==========================
   return (
     <div className="mx-auto max-w-6xl px-4 py-6">
       {/* ヘッダー */}
@@ -344,7 +526,6 @@ export default function HomePage() {
             {subtitle || "Q&A運用状況のハイライトとクイックアクション"}
           </p>
 
-          {/* schoolIdが無い場合の注意 */}
           {status === "authenticated" && !schoolId && (
             <p className="mt-2 text-xs text-amber-700 dark:text-amber-200">
               ※ schoolId が未設定です（埋め込み・集計の精度に影響します）
@@ -353,7 +534,6 @@ export default function HomePage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          {/* 範囲切替 */}
           <select
             value={range}
             onChange={(e) => setRange(Number(e.target.value))}
@@ -367,7 +547,6 @@ export default function HomePage() {
             ))}
           </select>
 
-          {/* 再取得 */}
           <button
             onClick={fetchDashboard}
             className="btn-ghost inline-flex items-center gap-1"
@@ -441,7 +620,6 @@ export default function HomePage() {
 
       {/* クイックアクション & タスク */}
       <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-3">
-        {/* クイックアクション */}
         <div className="card p-5 lg:col-span-2">
           <div className="mb-3 flex items-center gap-2">
             <Rocket className="h-5 w-5" />
@@ -481,14 +659,8 @@ export default function HomePage() {
               日）
             </button>
           </div>
-
-          {/* 埋め込みコードの表示（必要ならONに） */}
-          {/* <pre className="mt-4 rounded-xl border p-3 text-xs overflow-x-auto">
-            {iframeCode}
-          </pre> */}
         </div>
 
-        {/* アラート & タスク */}
         <div className="card p-5">
           <div className="mb-3 flex items-center gap-2">
             <AlertCircle className="h-5 w-5" />
@@ -591,9 +763,11 @@ export default function HomePage() {
   );
 }
 
-function LPFeature({ title, desc }: { title: string; desc: string }) {
+/* ===== LP Parts ===== */
+
+function LPProblem({ title, desc }: { title: string; desc: string }) {
   return (
-    <div className="rounded-2xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
+    <div className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
       <div className="text-sm font-semibold">{title}</div>
       <div className="mt-2 text-sm text-zinc-600 dark:text-zinc-300">
         {desc}
@@ -602,25 +776,61 @@ function LPFeature({ title, desc }: { title: string; desc: string }) {
   );
 }
 
-function LPStep({
-  n,
-  title,
-  desc,
-}: {
-  n: string;
-  title: string;
-  desc: string;
-}) {
+function LPSolution({ title, desc }: { title: string; desc: string }) {
+  return (
+    <div className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+      <div className="text-sm font-semibold">{title}</div>
+      <div className="mt-2 text-sm text-zinc-600 dark:text-zinc-300">
+        {desc}
+      </div>
+    </div>
+  );
+}
+
+function FeatureCard({ title, desc }: { title: string; desc: string }) {
   return (
     <div className="rounded-2xl border border-zinc-200 p-5 dark:border-zinc-800">
-      <div className="flex items-center gap-3">
-        <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-zinc-900 text-sm font-bold text-white dark:bg-zinc-100 dark:text-zinc-950">
-          {n}
-        </div>
-        <div className="text-sm font-semibold">{title}</div>
-      </div>
-      <div className="mt-3 text-sm text-zinc-600 dark:text-zinc-300">
+      <div className="text-sm font-semibold">{title}</div>
+      <div className="mt-2 text-sm text-zinc-600 dark:text-zinc-300">
         {desc}
+      </div>
+    </div>
+  );
+}
+
+function FlowRow({ left, right }: { left: string; right: string }) {
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm dark:border-zinc-800 dark:bg-zinc-900/50">
+      <span className="text-zinc-600 dark:text-zinc-300">{left}</span>
+      <span className="font-semibold">{right}</span>
+    </div>
+  );
+}
+
+function ContactBox({
+  title,
+  desc,
+  cta,
+  href,
+}: {
+  title: string;
+  desc: string;
+  cta: string;
+  href: string;
+}) {
+  return (
+    <div className="rounded-3xl border border-zinc-200 bg-white p-7 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
+      <div className="text-base font-semibold">{title}</div>
+      <div className="mt-2 text-sm text-zinc-600 dark:text-zinc-300">
+        {desc}
+      </div>
+      <div className="mt-5">
+        <Link
+          href={href}
+          className="inline-flex items-center justify-center rounded-2xl bg-zinc-900 px-5 py-3 text-sm font-semibold text-white hover:opacity-90 dark:bg-zinc-100 dark:text-zinc-950"
+        >
+          {cta}
+        </Link>
       </div>
     </div>
   );
