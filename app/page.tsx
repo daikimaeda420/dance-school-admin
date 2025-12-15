@@ -303,17 +303,16 @@ export default function HomePage() {
               </div>
             </div>
 
-            <div className="rounded-3xl border border-zinc-200 bg-gradient-to-b from-zinc-50 to-white p-6 shadow-sm dark:border-zinc-800 dark:from-zinc-900 dark:to-zinc-950">
-              <div className="rounded-2xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950">
-                <div className="text-sm font-semibold">モックアップ</div>
-                <div className="mt-3 space-y-2">
-                  <div className="h-10 rounded-xl bg-zinc-100 dark:bg-zinc-900" />
-                  <div className="h-16 rounded-xl bg-zinc-100 dark:bg-zinc-900" />
-                  <div className="h-12 rounded-xl bg-zinc-100 dark:bg-zinc-900" />
-                </div>
-                <p className="mt-3 text-xs text-zinc-500 dark:text-zinc-400">
-                  ※ここはスクリーンショットや実機GIFに差し替え想定
-                </p>
+            <div className="rounded-3xl border border-zinc-200 bg-gradient-to-b from-zinc-50 to-white p-4 shadow-sm dark:border-zinc-800 dark:from-zinc-900 dark:to-zinc-950">
+              <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
+                <Image
+                  src="/lp/mockup.png"
+                  alt="Rizbo 管理画面モックアップ"
+                  width={1200}
+                  height={800}
+                  priority
+                  className="h-auto w-full"
+                />
               </div>
             </div>
           </div>
