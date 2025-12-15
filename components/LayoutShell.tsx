@@ -1,22 +1,27 @@
 // components/LayoutShell.tsx
 "use client";
 
-import { usePathname } from "next/navigation";
 import { ReactNode } from "react";
-import Sidebar from "@/components/Sidebar"; // ✅ default import に修正
+import { usePathname } from "next/navigation";
+import { useSession } from "next-auth/react";
+import Sidebar from "@/components/Sidebar";
 
 export default function LayoutShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  const { status } = useSession();
 
-  // LPトップとログインページではサイドバーを出さない
-  const hideSidebar =
-    pathname === "/" || pathname === "/login" || pathname === "/login/";
+  const isLoginPage = pathname === "/login" || pathname === "/login/";
+  const isTopPage = pathname === "/";
 
-  if (hideSidebar) return <>{children}</>;
+  // ✅ /login は常にサイドバー無し
+  if (isLoginPage) return <>{children}</>;
 
+  // ✅ 未ログイン時の / はLP扱い（サイドバー・ヘッダー無し）
+  if (isTopPage && status !== "authenticated") return <>{children}</>;
+
+  // ✅ それ以外（ログイン中の / を含む）は管理画面レイアウト
   return (
     <div className="min-h-screen flex">
-      {/* Sidebar 側の props 名に合わせて調整（あなたの Sidebar は showDesktop を持ってる想定） */}
       <Sidebar showDesktop />
       <div className="flex-1">{children}</div>
     </div>
