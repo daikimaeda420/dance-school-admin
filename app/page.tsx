@@ -1,6 +1,7 @@
 // app/page.tsx — Home (未ログインLP + ログイン後Dashboard / NURO風LP)
 "use client";
 
+import Image from "next/image";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -201,8 +202,14 @@ export default function HomePage() {
         <header className="sticky top-0 z-30 border-b border-zinc-200/60 bg-white/80 backdrop-blur dark:border-zinc-800/60 dark:bg-zinc-950/70">
           <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-4">
             <div className="flex items-center gap-3">
-              <div className="h-9 w-9 rounded-xl bg-zinc-900 dark:bg-zinc-100" />
-              <div className="font-semibold tracking-tight">Rizbo</div>
+              <Image
+                src="/logo.svg"
+                alt="rizbo"
+                width={120}
+                height={32}
+                priority
+                className="h-8 w-auto dark:invert"
+              />
             </div>
 
             <nav className="hidden items-center gap-5 text-sm text-zinc-600 dark:text-zinc-300 sm:flex">
