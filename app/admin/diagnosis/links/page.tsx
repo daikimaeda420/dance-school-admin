@@ -1,3 +1,4 @@
+// app/admin/diagnosis/links/page.tsx
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
@@ -12,11 +13,34 @@ type ResultRow = {
 type OptionRow = {
   id: string;
   label: string;
-  slug?: string; // 返ってくるなら表示できる
+  slug?: string;
 };
 
+const card =
+  "rounded-2xl border border-gray-200 bg-white p-4 shadow-sm " +
+  "dark:border-gray-800 dark:bg-gray-900";
+
+const input =
+  "w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 " +
+  "placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 " +
+  "disabled:opacity-50 " +
+  "dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100 dark:placeholder:text-gray-500";
+
+const selectCls = input;
+
+const infoBox =
+  "mb-3 rounded-xl border border-gray-200 bg-gray-50 p-3 text-xs text-gray-600 " +
+  "dark:border-gray-800 dark:bg-gray-950 dark:text-gray-300";
+
+const errorBox =
+  "mb-3 rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-700 " +
+  "dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-200";
+
+const warnBox =
+  "rounded-xl border border-yellow-200 bg-yellow-50 p-3 text-xs text-yellow-800 " +
+  "dark:border-yellow-900/40 dark:bg-yellow-950/30 dark:text-yellow-200";
+
 export default function DiagnosisLinksPage() {
-  // いったん手入力（あとで session の schoolId に置き換えOK）
   const [schoolId, setSchoolId] = useState("daiki.maeda.web");
 
   const [results, setResults] = useState<ResultRow[]>([]);
@@ -109,7 +133,7 @@ export default function DiagnosisLinksPage() {
     setSavingId(genreId);
     setError(null);
 
-    // 楽観更新（失敗時に巻き戻す）
+    // 楽観更新
     setLinkedGenreIds((prev) => {
       const next = new Set(prev);
       if (isLinked) next.delete(genreId);
@@ -153,41 +177,43 @@ export default function DiagnosisLinksPage() {
   };
 
   return (
-    <div className="mx-auto w-full max-w-5xl p-6 text-gray-900">
+    <div className="mx-auto w-full max-w-5xl p-6 text-gray-900 dark:text-gray-100">
       <div className="mb-4">
         <div className="text-base font-bold">
           診断編集：結果 × ジャンル紐づけ
         </div>
-        <div className="text-xs text-gray-500">
+        <div className="text-xs text-gray-500 dark:text-gray-400">
           Result を選択 → Genre
           にチェックで紐づけを更新します（_ResultGenres）。
         </div>
       </div>
 
       {/* schoolId */}
-      <div className="mb-4 rounded-2xl border bg-white p-4">
-        <div className="mb-2 text-xs font-semibold text-gray-600">schoolId</div>
+      <div className={`mb-4 ${card}`}>
+        <div className="mb-2 text-xs font-semibold text-gray-600 dark:text-gray-300">
+          schoolId
+        </div>
         <input
           value={schoolId}
           onChange={(e) => setSchoolId(e.target.value)}
-          className="w-full rounded-xl border px-3 py-2 text-sm"
+          className={input}
           placeholder="例：daiki.maeda.web"
         />
-        <div className="mt-2 text-[11px] text-gray-500">
+        <div className="mt-2 text-[11px] text-gray-500 dark:text-gray-400">
           ※ ここは後で「ログイン中ユーザーの schoolId」を自動反映にできます。
         </div>
       </div>
 
       {/* result selector */}
-      <div className="mb-4 rounded-2xl border bg-white p-4">
-        <div className="mb-2 text-xs font-semibold text-gray-600">
+      <div className={`mb-4 ${card}`}>
+        <div className="mb-2 text-xs font-semibold text-gray-600 dark:text-gray-300">
           対象の診断結果（DiagnosisResult）
         </div>
 
         <select
           value={selectedResultId}
           onChange={(e) => setSelectedResultId(e.target.value)}
-          className="w-full rounded-xl border px-3 py-2 text-sm"
+          className={selectCls}
         >
           {results.map((r) => (
             <option key={r.id} value={r.id}>
@@ -197,13 +223,16 @@ export default function DiagnosisLinksPage() {
         </select>
 
         {selectedResult && (
-          <div className="mt-2 text-[11px] text-gray-500">
-            選択中ID：<span className="font-mono">{selectedResult.id}</span>
+          <div className="mt-2 text-[11px] text-gray-500 dark:text-gray-400">
+            選択中ID：{" "}
+            <span className="font-mono text-gray-700 dark:text-gray-200">
+              {selectedResult.id}
+            </span>
           </div>
         )}
 
         {results.length === 0 && !loading && (
-          <div className="mt-2 rounded-xl bg-yellow-50 p-3 text-xs text-yellow-800">
+          <div className={`mt-2 ${warnBox}`}>
             DiagnosisResult
             がありません。先に結果（DiagnosisResult）を作成してください。
           </div>
@@ -211,30 +240,21 @@ export default function DiagnosisLinksPage() {
       </div>
 
       {/* genres */}
-      <div className="rounded-2xl border bg-white p-4">
+      <div className={card}>
         <div className="mb-3 flex items-center justify-between">
-          <div className="text-xs font-semibold text-gray-600">
+          <div className="text-xs font-semibold text-gray-600 dark:text-gray-300">
             ジャンル（DiagnosisGenre）
           </div>
-          <div className="text-[11px] text-gray-500">
+          <div className="text-[11px] text-gray-500 dark:text-gray-400">
             紐づき：{linkedGenreIds.size} 件
           </div>
         </div>
 
-        {loading && (
-          <div className="mb-3 rounded-xl bg-gray-50 p-3 text-xs text-gray-500">
-            読み込み中...
-          </div>
-        )}
-
-        {error && (
-          <div className="mb-3 rounded-xl bg-red-50 p-3 text-xs text-red-700">
-            {error}
-          </div>
-        )}
+        {loading && <div className={infoBox}>読み込み中...</div>}
+        {error && <div className={errorBox}>{error}</div>}
 
         {genres.length === 0 && !loading ? (
-          <div className="rounded-xl bg-yellow-50 p-3 text-xs text-yellow-800">
+          <div className={warnBox}>
             DiagnosisGenre
             が空です。次は「ジャンル追加（CRUD）」を管理画面に作りましょう。
           </div>
@@ -248,10 +268,11 @@ export default function DiagnosisLinksPage() {
                 <label
                   key={g.id}
                   className={[
-                    "flex items-center gap-3 rounded-2xl border px-3 py-3 text-sm",
+                    "flex items-center gap-3 rounded-2xl border px-3 py-3 text-sm transition",
+                    "hover:bg-gray-50 dark:hover:bg-gray-800/40",
                     checked
-                      ? "border-blue-500 bg-blue-50"
-                      : "border-gray-200 bg-white",
+                      ? "border-blue-500 bg-blue-50 dark:bg-blue-950/30"
+                      : "border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900",
                     busy ? "opacity-60" : "",
                   ].join(" ")}
                 >
@@ -260,15 +281,23 @@ export default function DiagnosisLinksPage() {
                     checked={checked}
                     disabled={!selectedResultId || busy}
                     onChange={() => toggleGenre(g.id)}
-                    className="h-4 w-4"
+                    className="h-4 w-4 rounded border-gray-300 dark:border-gray-700"
                   />
                   <div className="flex-1">
-                    <div className="font-semibold">{g.label}</div>
-                    <div className="mt-0.5 font-mono text-[10px] text-gray-500">
+                    <div className="font-semibold text-gray-900 dark:text-gray-100">
+                      {g.label}
+                    </div>
+                    <div className="mt-0.5 font-mono text-[10px] text-gray-500 dark:text-gray-400">
                       {g.id}
                       {g.slug ? ` / ${g.slug}` : ""}
                     </div>
                   </div>
+
+                  {busy && (
+                    <div className="text-[10px] text-gray-400 dark:text-gray-500">
+                      保存中…
+                    </div>
+                  )}
                 </label>
               );
             })}

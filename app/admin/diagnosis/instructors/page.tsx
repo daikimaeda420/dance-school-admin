@@ -1,3 +1,4 @@
+// app/admin/diagnosis/instructors/page.tsx
 import { Suspense } from "react";
 import InstructorAdminClient from "./InstructorAdminClient"; // ←実ファイル名に合わせて修正
 
