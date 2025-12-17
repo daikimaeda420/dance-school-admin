@@ -2,7 +2,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
-// GET（既存があるならそっちを残してOK）
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const schoolId = searchParams.get("schoolId") ?? "";
@@ -11,35 +10,44 @@ export async function GET(req: NextRequest) {
   const rows = await prisma.diagnosisGenre.findMany({
     where: { schoolId, isActive: true },
     orderBy: { sortOrder: "asc" },
-    select: { id: true, label: true }, // ←あなたの DiagnosisQuestionOption に合わせる
+    select: { id: true, label: true, slug: true },
   });
 
+  // Embed側は {id,label} だけでも動くが、管理画面用にslugも返してOK
   return NextResponse.json(rows);
 }
 
-// POST（管理画面から追加）
 export async function POST(req: NextRequest) {
-  const body = await req.json();
-  const { id, schoolId, label, sortOrder = 1, isActive = true } = body ?? {};
+  const body = await req.json().catch(() => null);
+  const id = body?.id;
+  const schoolId = body?.schoolId;
+  const label = body?.label;
+  const slug = body?.slug;
+  const sortOrder = body?.sortOrder ?? 1;
+  const isActive = body?.isActive ?? true;
 
-  if (!id || !schoolId || !label) {
+  if (!id || !schoolId || !label || !slug) {
     return NextResponse.json(
-      { message: "id / schoolId / label は必須です" },
+      { message: "id / schoolId / label / slug は必須です" },
       { status: 400 }
     );
   }
 
   const row = await prisma.diagnosisGenre.create({
-    data: { id, schoolId, label, sortOrder, isActive },
+    data: { id, schoolId, label, slug, sortOrder, isActive },
   });
 
   return NextResponse.json(row, { status: 201 });
 }
 
-// PUT（編集）
 export async function PUT(req: NextRequest) {
-  const body = await req.json();
-  const { id, schoolId, label, sortOrder, isActive } = body ?? {};
+  const body = await req.json().catch(() => null);
+  const id = body?.id;
+  const schoolId = body?.schoolId;
+  const label = body?.label;
+  const slug = body?.slug;
+  const sortOrder = body?.sortOrder;
+  const isActive = body?.isActive;
 
   if (!id || !schoolId) {
     return NextResponse.json(
@@ -48,31 +56,16 @@ export async function PUT(req: NextRequest) {
     );
   }
 
+  // slug が必須カラムなら、更新時に undefined にしない
   const row = await prisma.diagnosisGenre.update({
-    where: { id_schoolId: { id, schoolId } }, // ←複合uniqueが無いなら where: { id } に変更
-    data: { label, sortOrder, isActive },
+    where: { id }, // ← もし複合Uniqueならここを合わせる（idがPKならこれでOK）
+    data: {
+      ...(label !== undefined ? { label } : {}),
+      ...(slug !== undefined ? { slug } : {}),
+      ...(sortOrder !== undefined ? { sortOrder } : {}),
+      ...(isActive !== undefined ? { isActive } : {}),
+    },
   });
 
   return NextResponse.json(row);
-}
-
-// DELETE（削除 or 論理削除推奨）
-export async function DELETE(req: NextRequest) {
-  const { searchParams } = new URL(req.url);
-  const id = searchParams.get("id") ?? "";
-  const schoolId = searchParams.get("schoolId") ?? "";
-  if (!id || !schoolId) {
-    return NextResponse.json(
-      { message: "id/schoolId required" },
-      { status: 400 }
-    );
-  }
-
-  // 論理削除が安全
-  await prisma.diagnosisGenre.update({
-    where: { id_schoolId: { id, schoolId } }, // 同上
-    data: { isActive: false },
-  });
-
-  return NextResponse.json({ ok: true });
 }
