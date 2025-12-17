@@ -22,6 +22,17 @@ type PatchableField = keyof Pick<
   "label" | "slug" | "sortOrder" | "isOnline" | "isActive"
 >;
 
+const inputBase =
+  "rounded border px-2 py-1 text-sm text-gray-900 bg-white border-gray-300 " +
+  "placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 " +
+  "disabled:opacity-50 " +
+  "dark:bg-gray-950 dark:text-gray-100 dark:border-gray-700 dark:placeholder:text-gray-500";
+
+const cellInputBase =
+  "w-full rounded border px-1 py-0.5 text-gray-900 bg-white border-gray-300 " +
+  "focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 " +
+  "dark:bg-gray-950 dark:text-gray-100 dark:border-gray-700";
+
 export default function CampusAdminClient({ schoolId }: Props) {
   const [campuses, setCampuses] = useState<Campus[]>([]);
   const [loading, setLoading] = useState(false);
@@ -48,7 +59,6 @@ export default function CampusAdminClient({ schoolId }: Props) {
   const fetchCampuses = async () => {
     if (!schoolId) return;
 
-    // 前のリクエストをキャンセル
     abortRef.current?.abort();
     const controller = new AbortController();
     abortRef.current = controller;
@@ -146,14 +156,11 @@ export default function CampusAdminClient({ schoolId }: Props) {
     field: PatchableField,
     value: string | number | boolean
   ) => {
-    // saving中の連打を防ぐ
     if (saving) return;
 
-    // 直前の状態と同じならPATCHしない
     const current = campuses.find((c) => c.id === id);
     if (current && (current as any)[field] === value) return;
 
-    // UIを先に反映（楽観的更新）
     setCampuses((prev) =>
       prev.map((c) => (c.id === id ? ({ ...c, [field]: value } as Campus) : c))
     );
@@ -172,12 +179,10 @@ export default function CampusAdminClient({ schoolId }: Props) {
       if (!res.ok) {
         const data = await res.json().catch(() => null);
         setError(data?.message ?? "更新に失敗しました。");
-        // 失敗時は再取得して整合性を戻す
         await fetchCampuses();
         return;
       }
 
-      // 成功しても並び替えなどがあるなら再取得
       await fetchCampuses();
     } catch (e) {
       console.error(e);
@@ -195,7 +200,6 @@ export default function CampusAdminClient({ schoolId }: Props) {
     setSaving(true);
     setError(null);
 
-    // 先にUIから消す（楽観的）
     const snapshot = campuses;
     setCampuses((prev) => prev.filter((c) => c.id !== id));
 
@@ -208,7 +212,6 @@ export default function CampusAdminClient({ schoolId }: Props) {
       if (!res.ok) {
         const data = await res.json().catch(() => null);
         setError(data?.message ?? "削除に失敗しました。");
-        // 戻す
         setCampuses(snapshot);
         return;
       }
@@ -224,7 +227,7 @@ export default function CampusAdminClient({ schoolId }: Props) {
   return (
     <div className="space-y-6">
       {/* 新規追加フォーム */}
-      <div className="rounded-xl border bg-white p-4 shadow-sm border-gray-200 dark:border-gray-700 dark:bg-gray-900">
+      <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900">
         <h2 className="mb-3 text-sm font-semibold text-gray-900 dark:text-gray-100">
           新しい校舎を追加
         </h2>
@@ -235,10 +238,11 @@ export default function CampusAdminClient({ schoolId }: Props) {
               校舎名（label）
             </label>
             <input
-              className="rounded border px-2 py-1 text-sm bg-white text-gray-900 border-gray-300 dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600"
+              className={inputBase}
               value={newLabel}
               onChange={(e) => setNewLabel(e.target.value)}
               disabled={disabled || saving}
+              placeholder="例：渋谷校"
             />
           </div>
 
@@ -247,7 +251,7 @@ export default function CampusAdminClient({ schoolId }: Props) {
               スラッグ（slug）※Q1のID
             </label>
             <input
-              className="rounded border px-2 py-1 text-sm bg-white text-gray-900 border-gray-300 dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600"
+              className={inputBase}
               value={newSlug}
               onChange={(e) => setNewSlug(e.target.value)}
               placeholder="shibuya など"
@@ -261,7 +265,7 @@ export default function CampusAdminClient({ schoolId }: Props) {
             </label>
             <input
               type="number"
-              className="rounded border px-2 py-1 text-sm bg-white text-gray-900 border-gray-300 dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600"
+              className={inputBase}
               value={newSortOrder}
               onChange={(e) => setNewSortOrder(Number(e.target.value) || 0)}
               disabled={disabled || saving}
@@ -269,13 +273,13 @@ export default function CampusAdminClient({ schoolId }: Props) {
           </div>
 
           <div className="flex flex-col justify-center gap-1">
-            <label className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-300">
+            <label className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-200">
               <input
                 type="checkbox"
                 checked={newIsOnline}
                 onChange={(e) => setNewIsOnline(e.target.checked)}
                 disabled={disabled || saving}
-                className="rounded border-gray-300 dark:border-gray-600"
+                className="rounded border-gray-300 dark:border-gray-700"
               />
               オンライン校舎（【オンライン】自宅で受講）
             </label>
@@ -286,14 +290,16 @@ export default function CampusAdminClient({ schoolId }: Props) {
           type="button"
           onClick={handleCreate}
           disabled={disabled || saving}
-          className="rounded-full bg-blue-600 px-4 py-1.5 text-xs font-semibold text-white disabled:opacity-40 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-400"
+          className="rounded-full bg-blue-600 px-4 py-1.5 text-xs font-semibold text-white
+                     hover:bg-blue-700 disabled:opacity-40
+                     dark:bg-blue-500 dark:hover:bg-blue-400"
         >
           {saving ? "保存中..." : "校舎を追加"}
         </button>
       </div>
 
       {/* 一覧 */}
-      <div className="rounded-xl border bg-white p-4 shadow-sm border-gray-200 dark:border-gray-700 dark:bg-gray-900">
+      <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900">
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
             校舎一覧
@@ -309,7 +315,8 @@ export default function CampusAdminClient({ schoolId }: Props) {
               type="button"
               onClick={fetchCampuses}
               disabled={disabled || loading || saving}
-              className="text-[11px] underline text-gray-600 hover:text-gray-800 disabled:opacity-40 dark:text-gray-300 dark:hover:text-gray-100"
+              className="text-[11px] underline text-gray-600 hover:text-gray-800 disabled:opacity-40
+                         dark:text-gray-300 dark:hover:text-gray-100"
             >
               再読み込み
             </button>
@@ -317,7 +324,10 @@ export default function CampusAdminClient({ schoolId }: Props) {
         </div>
 
         {error && (
-          <div className="mb-3 rounded-md bg-red-50 px-2 py-1 text-xs text-red-700 dark:bg-red-900/40 dark:text-red-300">
+          <div
+            className="mb-3 rounded-md border border-red-200 bg-red-50 px-2 py-1 text-xs text-red-700
+                          dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-200"
+          >
             {error}
           </div>
         )}
@@ -328,9 +338,12 @@ export default function CampusAdminClient({ schoolId }: Props) {
           </p>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[600px] text-left text-xs">
+            <table className="w-full min-w-[700px] text-left text-xs">
               <thead>
-                <tr className="border-b bg-gray-50 text-[11px] text-gray-600 border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">
+                <tr
+                  className="border-b border-gray-200 bg-gray-50 text-[11px] text-gray-600
+                               dark:border-gray-800 dark:bg-gray-950 dark:text-gray-300"
+                >
                   <th className="px-2 py-1">校舎名</th>
                   <th className="px-2 py-1">slug</th>
                   <th className="px-2 py-1">sort</th>
@@ -344,11 +357,12 @@ export default function CampusAdminClient({ schoolId }: Props) {
                 {campuses.map((c) => (
                   <tr
                     key={c.id}
-                    className="border-b border-gray-100 last:border-none dark:border-gray-800"
+                    className="border-b border-gray-100 last:border-none hover:bg-gray-50
+                               dark:border-gray-800 dark:hover:bg-gray-800/40"
                   >
                     <td className="px-2 py-1">
                       <input
-                        className="w-full rounded border px-1 py-0.5 bg-white text-gray-900 border-gray-300 dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600"
+                        className={cellInputBase}
                         defaultValue={c.label}
                         onBlur={(e) => {
                           const v = e.target.value;
@@ -361,7 +375,7 @@ export default function CampusAdminClient({ schoolId }: Props) {
 
                     <td className="px-2 py-1">
                       <input
-                        className="w-full rounded border px-1 py-0.5 bg-white text-gray-900 border-gray-300 dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600"
+                        className={cellInputBase}
                         defaultValue={c.slug}
                         onBlur={(e) => {
                           const v = e.target.value;
@@ -374,7 +388,9 @@ export default function CampusAdminClient({ schoolId }: Props) {
                     <td className="px-2 py-1">
                       <input
                         type="number"
-                        className="w-20 rounded border px-1 py-0.5 bg-white text-gray-900 border-gray-300 dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600"
+                        className={
+                          "w-20 " + cellInputBase.replace("w-full ", "").trim()
+                        }
                         defaultValue={c.sortOrder}
                         onBlur={(e) => {
                           const v = Number(e.target.value) || 0;
@@ -393,7 +409,7 @@ export default function CampusAdminClient({ schoolId }: Props) {
                           handleUpdateField(c.id, "isOnline", e.target.checked)
                         }
                         disabled={saving}
-                        className="rounded border-gray-300 dark:border-gray-600"
+                        className="rounded border-gray-300 dark:border-gray-700"
                       />
                     </td>
 
@@ -405,7 +421,7 @@ export default function CampusAdminClient({ schoolId }: Props) {
                           handleUpdateField(c.id, "isActive", e.target.checked)
                         }
                         disabled={saving}
-                        className="rounded border-gray-300 dark:border-gray-600"
+                        className="rounded border-gray-300 dark:border-gray-700"
                       />
                     </td>
 
@@ -413,7 +429,8 @@ export default function CampusAdminClient({ schoolId }: Props) {
                       <button
                         type="button"
                         onClick={() => handleDelete(c.id)}
-                        className="text-[11px] text-red-600 underline hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 disabled:opacity-40"
+                        className="text-[11px] text-red-600 underline hover:text-red-700 disabled:opacity-40
+                                   dark:text-red-300 dark:hover:text-red-200"
                         disabled={saving}
                       >
                         削除
