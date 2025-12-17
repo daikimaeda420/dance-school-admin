@@ -1,3 +1,4 @@
+// app/(embed)/embed/diagnosis/DiagnosisEmbedClient.tsx
 "use client";
 
 import { useSearchParams } from "next/navigation";
