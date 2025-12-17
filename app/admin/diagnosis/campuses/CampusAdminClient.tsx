@@ -1,7 +1,7 @@
 // app/admin/diagnosis/campuses/CampusAdminClient.tsx
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 type Campus = {
   id: string;
@@ -17,6 +17,11 @@ type Props = {
   schoolId: string;
 };
 
+type PatchableField = keyof Pick<
+  Campus,
+  "label" | "slug" | "sortOrder" | "isOnline" | "isActive"
+>;
+
 export default function CampusAdminClient({ schoolId }: Props) {
   const [campuses, setCampuses] = useState<Campus[]>([]);
   const [loading, setLoading] = useState(false);
@@ -31,22 +36,42 @@ export default function CampusAdminClient({ schoolId }: Props) {
 
   const disabled = !schoolId;
 
+  // schoolId切替時に古い fetch が勝って上書きするのを防ぐ
+  const abortRef = useRef<AbortController | null>(null);
+
+  const apiBase = useMemo(
+    () =>
+      `/api/admin/diagnosis/campuses?schoolId=${encodeURIComponent(schoolId)}`,
+    [schoolId]
+  );
+
   const fetchCampuses = async () => {
     if (!schoolId) return;
+
+    // 前のリクエストをキャンセル
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+
     setLoading(true);
     setError(null);
 
     try {
-      const res = await fetch(
-        `/api/admin/diagnosis/campuses?schoolId=${encodeURIComponent(schoolId)}`
-      );
+      const res = await fetch(apiBase, {
+        method: "GET",
+        cache: "no-store",
+        signal: controller.signal,
+      });
+
       if (!res.ok) {
         setError("校舎一覧の取得に失敗しました。");
         return;
       }
+
       const data = (await res.json()) as Campus[];
       setCampuses(data);
-    } catch (e) {
+    } catch (e: any) {
+      if (e?.name === "AbortError") return;
       console.error(e);
       setError("通信エラーが発生しました。");
     } finally {
@@ -55,13 +80,26 @@ export default function CampusAdminClient({ schoolId }: Props) {
   };
 
   useEffect(() => {
+    if (!schoolId) {
+      setCampuses([]);
+      setError(null);
+      return;
+    }
     fetchCampuses();
+
+    return () => {
+      abortRef.current?.abort();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [schoolId]);
 
   const handleCreate = async () => {
     if (!schoolId) return;
-    if (!newLabel || !newSlug) {
+
+    const label = newLabel.trim();
+    const slug = newSlug.trim();
+
+    if (!label || !slug) {
       setError("校舎名とスラッグは必須です。");
       return;
     }
@@ -73,10 +111,11 @@ export default function CampusAdminClient({ schoolId }: Props) {
       const res = await fetch("/api/admin/diagnosis/campuses", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        cache: "no-store",
         body: JSON.stringify({
           schoolId,
-          label: newLabel,
-          slug: newSlug,
+          label,
+          slug,
           sortOrder: newSortOrder,
           isOnline: newIsOnline,
         }),
@@ -104,12 +143,21 @@ export default function CampusAdminClient({ schoolId }: Props) {
 
   const handleUpdateField = async (
     id: string,
-    field: keyof Pick<
-      Campus,
-      "label" | "slug" | "sortOrder" | "isOnline" | "isActive"
-    >,
+    field: PatchableField,
     value: string | number | boolean
   ) => {
+    // saving中の連打を防ぐ
+    if (saving) return;
+
+    // 直前の状態と同じならPATCHしない
+    const current = campuses.find((c) => c.id === id);
+    if (current && (current as any)[field] === value) return;
+
+    // UIを先に反映（楽観的更新）
+    setCampuses((prev) =>
+      prev.map((c) => (c.id === id ? ({ ...c, [field]: value } as Campus) : c))
+    );
+
     setSaving(true);
     setError(null);
 
@@ -117,45 +165,57 @@ export default function CampusAdminClient({ schoolId }: Props) {
       const res = await fetch(`/api/admin/diagnosis/campuses/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
+        cache: "no-store",
         body: JSON.stringify({ [field]: value }),
       });
 
       if (!res.ok) {
         const data = await res.json().catch(() => null);
         setError(data?.message ?? "更新に失敗しました。");
+        // 失敗時は再取得して整合性を戻す
+        await fetchCampuses();
         return;
       }
 
+      // 成功しても並び替えなどがあるなら再取得
       await fetchCampuses();
     } catch (e) {
       console.error(e);
       setError("通信エラーが発生しました。");
+      await fetchCampuses();
     } finally {
       setSaving(false);
     }
   };
 
   const handleDelete = async (id: string) => {
+    if (saving) return;
     if (!window.confirm("この校舎を削除しますか？")) return;
 
     setSaving(true);
     setError(null);
 
+    // 先にUIから消す（楽観的）
+    const snapshot = campuses;
+    setCampuses((prev) => prev.filter((c) => c.id !== id));
+
     try {
       const res = await fetch(`/api/admin/diagnosis/campuses/${id}`, {
         method: "DELETE",
+        cache: "no-store",
       });
 
       if (!res.ok) {
         const data = await res.json().catch(() => null);
         setError(data?.message ?? "削除に失敗しました。");
+        // 戻す
+        setCampuses(snapshot);
         return;
       }
-
-      setCampuses((prev) => prev.filter((c) => c.id !== id));
     } catch (e) {
       console.error(e);
       setError("通信エラーが発生しました。");
+      setCampuses(snapshot);
     } finally {
       setSaving(false);
     }
@@ -168,6 +228,7 @@ export default function CampusAdminClient({ schoolId }: Props) {
         <h2 className="mb-3 text-sm font-semibold text-gray-900 dark:text-gray-100">
           新しい校舎を追加
         </h2>
+
         <div className="mb-2 grid gap-3 md:grid-cols-4">
           <div className="flex flex-col gap-1">
             <label className="text-xs text-gray-500 dark:text-gray-400">
@@ -180,6 +241,7 @@ export default function CampusAdminClient({ schoolId }: Props) {
               disabled={disabled || saving}
             />
           </div>
+
           <div className="flex flex-col gap-1">
             <label className="text-xs text-gray-500 dark:text-gray-400">
               スラッグ（slug）※Q1のID
@@ -192,6 +254,7 @@ export default function CampusAdminClient({ schoolId }: Props) {
               disabled={disabled || saving}
             />
           </div>
+
           <div className="flex flex-col gap-1">
             <label className="text-xs text-gray-500 dark:text-gray-400">
               表示順（sortOrder）
@@ -204,6 +267,7 @@ export default function CampusAdminClient({ schoolId }: Props) {
               disabled={disabled || saving}
             />
           </div>
+
           <div className="flex flex-col justify-center gap-1">
             <label className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-300">
               <input
@@ -217,6 +281,7 @@ export default function CampusAdminClient({ schoolId }: Props) {
             </label>
           </div>
         </div>
+
         <button
           type="button"
           onClick={handleCreate}
@@ -233,11 +298,22 @@ export default function CampusAdminClient({ schoolId }: Props) {
           <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
             校舎一覧
           </h2>
-          {loading && (
-            <span className="text-xs text-gray-400 dark:text-gray-500">
-              読み込み中...
-            </span>
-          )}
+
+          <div className="flex items-center gap-3">
+            {loading && (
+              <span className="text-xs text-gray-400 dark:text-gray-500">
+                読み込み中...
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={fetchCampuses}
+              disabled={disabled || loading || saving}
+              className="text-[11px] underline text-gray-600 hover:text-gray-800 disabled:opacity-40 dark:text-gray-300 dark:hover:text-gray-100"
+            >
+              再読み込み
+            </button>
+          </div>
         </div>
 
         {error && (
@@ -263,6 +339,7 @@ export default function CampusAdminClient({ schoolId }: Props) {
                   <th className="px-2 py-1"></th>
                 </tr>
               </thead>
+
               <tbody>
                 {campuses.map((c) => (
                   <tr
@@ -272,66 +349,42 @@ export default function CampusAdminClient({ schoolId }: Props) {
                     <td className="px-2 py-1">
                       <input
                         className="w-full rounded border px-1 py-0.5 bg-white text-gray-900 border-gray-300 dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600"
-                        value={c.label}
-                        onChange={(e) =>
-                          setCampuses((prev) =>
-                            prev.map((p) =>
-                              p.id === c.id
-                                ? { ...p, label: e.target.value }
-                                : p
-                            )
-                          )
-                        }
-                        onBlur={(e) =>
-                          handleUpdateField(c.id, "label", e.target.value)
-                        }
+                        defaultValue={c.label}
+                        onBlur={(e) => {
+                          const v = e.target.value;
+                          if (v !== c.label)
+                            handleUpdateField(c.id, "label", v);
+                        }}
                         disabled={saving}
                       />
                     </td>
+
                     <td className="px-2 py-1">
                       <input
                         className="w-full rounded border px-1 py-0.5 bg-white text-gray-900 border-gray-300 dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600"
-                        value={c.slug}
-                        onChange={(e) =>
-                          setCampuses((prev) =>
-                            prev.map((p) =>
-                              p.id === c.id ? { ...p, slug: e.target.value } : p
-                            )
-                          )
-                        }
-                        onBlur={(e) =>
-                          handleUpdateField(c.id, "slug", e.target.value)
-                        }
+                        defaultValue={c.slug}
+                        onBlur={(e) => {
+                          const v = e.target.value;
+                          if (v !== c.slug) handleUpdateField(c.id, "slug", v);
+                        }}
                         disabled={saving}
                       />
                     </td>
+
                     <td className="px-2 py-1">
                       <input
                         type="number"
                         className="w-20 rounded border px-1 py-0.5 bg-white text-gray-900 border-gray-300 dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600"
-                        value={c.sortOrder}
-                        onChange={(e) =>
-                          setCampuses((prev) =>
-                            prev.map((p) =>
-                              p.id === c.id
-                                ? {
-                                    ...p,
-                                    sortOrder: Number(e.target.value) || 0,
-                                  }
-                                : p
-                            )
-                          )
-                        }
-                        onBlur={(e) =>
-                          handleUpdateField(
-                            c.id,
-                            "sortOrder",
-                            Number(e.target.value) || 0
-                          )
-                        }
+                        defaultValue={c.sortOrder}
+                        onBlur={(e) => {
+                          const v = Number(e.target.value) || 0;
+                          if (v !== c.sortOrder)
+                            handleUpdateField(c.id, "sortOrder", v);
+                        }}
                         disabled={saving}
                       />
                     </td>
+
                     <td className="px-2 py-1">
                       <input
                         type="checkbox"
@@ -343,6 +396,7 @@ export default function CampusAdminClient({ schoolId }: Props) {
                         className="rounded border-gray-300 dark:border-gray-600"
                       />
                     </td>
+
                     <td className="px-2 py-1">
                       <input
                         type="checkbox"
@@ -354,11 +408,12 @@ export default function CampusAdminClient({ schoolId }: Props) {
                         className="rounded border-gray-300 dark:border-gray-600"
                       />
                     </td>
+
                     <td className="px-2 py-1 text-right">
                       <button
                         type="button"
                         onClick={() => handleDelete(c.id)}
-                        className="text-[11px] text-red-600 underline hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+                        className="text-[11px] text-red-600 underline hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 disabled:opacity-40"
                         disabled={saving}
                       >
                         削除
@@ -368,6 +423,12 @@ export default function CampusAdminClient({ schoolId }: Props) {
                 ))}
               </tbody>
             </table>
+
+            {saving && (
+              <div className="mt-2 text-[11px] text-gray-400 dark:text-gray-500">
+                保存中...
+              </div>
+            )}
           </div>
         )}
       </div>

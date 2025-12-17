@@ -1,5 +1,9 @@
 // app/admin/diagnosis/campuses/page.tsx
+import { Suspense } from "react";
 import CampusAdminClient from "./CampusAdminClient";
+
+// 管理画面は静的生成させない（SSG/Export時のprerender事故を防ぐ）
+export const dynamic = "force-dynamic";
 
 export default function DiagnosisCampusesPage({
   searchParams,
@@ -22,7 +26,12 @@ export default function DiagnosisCampusesPage({
         </p>
       )}
 
-      <CampusAdminClient schoolId={schoolId} />
+      {/* useSearchParams() を使うクライアント側を Suspense で包む */}
+      <Suspense
+        fallback={<div className="text-sm text-gray-500">Loading...</div>}
+      >
+        <CampusAdminClient schoolId={schoolId} />
+      </Suspense>
     </div>
   );
 }
