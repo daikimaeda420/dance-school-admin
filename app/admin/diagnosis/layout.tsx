@@ -1,4 +1,6 @@
+// app/admin/diagnosis/layout.tsx
 import type { ReactNode } from "react";
+import { Suspense } from "react";
 import DiagnosisAdminNav from "./_components/DiagnosisAdminNav";
 
 export default function DiagnosisAdminLayout({
@@ -8,8 +10,10 @@ export default function DiagnosisAdminLayout({
 }) {
   return (
     <div className="mx-auto w-full max-w-6xl p-6 text-gray-900">
-      <DiagnosisAdminNav />
-      {children}
+      <Suspense fallback={null}>
+        <DiagnosisAdminNav />
+        {children}
+      </Suspense>
     </div>
   );
 }
