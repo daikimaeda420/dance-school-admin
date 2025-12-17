@@ -1,11 +1,14 @@
 // app/admin/diagnosis/courses/page.tsx
+import { Suspense } from "react";
 import CourseAdminClient from "./CourseAdminClient";
 
-export default function DiagnosisCoursesPage({
-  searchParams,
-}: {
-  searchParams: { schoolId?: string };
-}) {
+type Props = {
+  searchParams: {
+    schoolId?: string;
+  };
+};
+
+export default function DiagnosisCoursesPage({ searchParams }: Props) {
   const schoolId = searchParams.schoolId ?? "";
 
   return (
@@ -22,7 +25,9 @@ export default function DiagnosisCoursesPage({
         </p>
       )}
 
-      <CourseAdminClient schoolId={schoolId} />
+      <Suspense fallback={null}>
+        <CourseAdminClient schoolId={schoolId} />
+      </Suspense>
     </div>
   );
 }
