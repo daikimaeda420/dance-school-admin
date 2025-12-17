@@ -1,4 +1,3 @@
-// app/(embed)/embed/diagnosis/DiagnosisEmbedClient.tsx
 "use client";
 
 import { useSearchParams } from "next/navigation";
@@ -50,43 +49,62 @@ type DiagnosisResult = {
 type Props = {
   schoolIdProp?: string;
   onClose?: () => void;
-  // 管理画面/APIから渡される「校舎一覧」
+
+  // 管理画面/APIから渡される「選択肢一覧」
   campusOptions?: DiagnosisQuestionOption[];
+  courseOptions?: DiagnosisQuestionOption[];
+  genreOptions?: DiagnosisQuestionOption[];
+  instructorOptions?: DiagnosisQuestionOption[];
 };
 
 export default function DiagnosisEmbedClient({
   schoolIdProp,
   onClose,
   campusOptions,
+  courseOptions,
+  genreOptions,
+  instructorOptions,
 }: Props) {
   const searchParams = useSearchParams();
 
   const [answers, setAnswers] = useState<AnswersState>({});
-  const [stepIndex, setStepIndex] = useState(0); // 0〜5 (Q1〜Q6)
+  const [stepIndex, setStepIndex] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [result, setResult] = useState<DiagnosisResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // ✅ schoolId / school どっちでも受ける（ここ重要）
   const schoolId = useMemo(() => {
     if (schoolIdProp) return schoolIdProp;
-    return searchParams.get("school") ?? "";
+    return searchParams.get("schoolId") ?? searchParams.get("school") ?? "";
   }, [schoolIdProp, searchParams]);
 
-  // Q1 だけ campusOptions で options を差し替える
+  // ✅ Q1=校舎, Q2=コース, Q3=ジャンル, Q4=講師 を差し替え
   const questions = useMemo(() => {
-    if (!campusOptions || campusOptions.length === 0) {
-      return QUESTIONS;
-    }
+    const hasAny =
+      (campusOptions?.length ?? 0) > 0 ||
+      (courseOptions?.length ?? 0) > 0 ||
+      (genreOptions?.length ?? 0) > 0 ||
+      (instructorOptions?.length ?? 0) > 0;
 
-    return QUESTIONS.map((q) =>
-      q.id === "Q1"
-        ? {
-            ...q,
-            options: campusOptions,
-          }
-        : q
-    );
-  }, [campusOptions]);
+    if (!hasAny) return QUESTIONS;
+
+    return QUESTIONS.map((q) => {
+      if (q.id === "Q1" && campusOptions && campusOptions.length > 0) {
+        return { ...q, options: campusOptions };
+      }
+      if (q.id === "Q2" && courseOptions && courseOptions.length > 0) {
+        return { ...q, options: courseOptions };
+      }
+      if (q.id === "Q3" && genreOptions && genreOptions.length > 0) {
+        return { ...q, options: genreOptions };
+      }
+      if (q.id === "Q4" && instructorOptions && instructorOptions.length > 0) {
+        return { ...q, options: instructorOptions };
+      }
+      return q;
+    });
+  }, [campusOptions, courseOptions, genreOptions, instructorOptions]);
 
   const currentQuestion = questions[stepIndex];
   const totalSteps = questions.length;
@@ -102,11 +120,13 @@ export default function DiagnosisEmbedClient({
   // -----------------------
   const handleSubmit = async () => {
     if (!schoolId) {
-      setError("schoolId が指定されていません。（URLクエリ param: school）");
+      setError(
+        "schoolId が指定されていません。（URL: ?schoolId=xxx もしくは ?school=xxx）"
+      );
       return;
     }
 
-    // Q1〜Q6 が埋まっているかチェック
+    // Q1〜Q6 が埋まっているかチェック（QUESTIONSに合わせる）
     const missing: string[] = [];
     (["Q1", "Q2", "Q3", "Q4", "Q5", "Q6"] as DiagnosisQuestionId[]).forEach(
       (id) => {
@@ -126,13 +146,8 @@ export default function DiagnosisEmbedClient({
     try {
       const res = await fetch("/api/diagnosis/result", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          schoolId,
-          answers,
-        }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ schoolId, answers }),
       });
 
       if (!res.ok) {
@@ -162,17 +177,14 @@ export default function DiagnosisEmbedClient({
 
     if (!currentQuestion) return;
 
-    // 今表示している質問の選択時だけ自動遷移
     if (qId === currentQuestion.id) {
       const isLastStep = stepIndex === totalSteps - 1;
 
       if (isLastStep) {
-        // 最終質問 → 自動で診断実行
         setTimeout(() => {
           void handleSubmit();
         }, 150);
       } else {
-        // それ以外 → 次の質問へ
         setTimeout(() => {
           setStepIndex((prev) => prev + 1);
           setError(null);
@@ -350,7 +362,7 @@ export default function DiagnosisEmbedClient({
         )}
       </div>
 
-      {/* ステップインジケータ（1個1個に余白あり） */}
+      {/* ステップインジケータ */}
       <div className="mb-8 flex flex-col items-center">
         <div className="flex gap-3">
           {questions.map((q, idx) => (
@@ -382,7 +394,7 @@ export default function DiagnosisEmbedClient({
         )}
       </div>
 
-      {/* 質問項目：PCで2カラム */}
+      {/* 質問項目 */}
       <div className="mb-4 grid gap-3 md:grid-cols-2">
         {currentQuestion.options.map((opt) => {
           const selected = answers[currentQuestion.id] === opt.id;
@@ -398,7 +410,6 @@ export default function DiagnosisEmbedClient({
                   : "border-gray-200 bg-white text-gray-800 hover:border-blue-300 hover:bg-blue-50/40",
               ].join(" ")}
             >
-              {/* 仮アイコン枠（あとで画像に差し替え） */}
               <div className="mt-0.5 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-gray-100 text-[10px] text-gray-400">
                 IMG
               </div>
@@ -415,7 +426,7 @@ export default function DiagnosisEmbedClient({
         </div>
       )}
 
-      {/* フッター操作：次へ進むボタンは削除 */}
+      {/* フッター */}
       <div className="mt-2 flex items-center justify-between">
         <button
           type="button"
@@ -426,7 +437,6 @@ export default function DiagnosisEmbedClient({
           戻る
         </button>
 
-        {/* 最後のステップだけ「診断結果を見る」を表示（自動診断も走るので補助的なボタン） */}
         {stepIndex === totalSteps - 1 && (
           <button
             type="button"
@@ -439,12 +449,11 @@ export default function DiagnosisEmbedClient({
         )}
       </div>
 
-      {/* schoolIdが無い場合の注意（デバッグ用） */}
       {!schoolId && (
         <div className="mt-2 text-[10px] text-red-400">
-          ※ URLクエリ param「school」が指定されていません。
+          ※ URLクエリ param「schoolId」または「school」が指定されていません。
           <br />
-          例: <code className="rounded bg-gray-100 px-1">?school=links</code>
+          例: <code className="rounded bg-gray-100 px-1">?schoolId=links</code>
         </div>
       )}
     </div>

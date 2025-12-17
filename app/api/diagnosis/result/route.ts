@@ -6,13 +6,6 @@ import {
   concernMessages,
   ConcernMessageKey,
 } from "@/lib/diagnosis/config";
-import {
-  MatchContext,
-  selectMatches,
-  ClassLike,
-  TeacherLike,
-  PairLike,
-} from "@/lib/diagnosis/score";
 
 // JSON から schoolId と answers を取り出す用の型
 type DiagnosisRequestBody = {
@@ -20,85 +13,78 @@ type DiagnosisRequestBody = {
   answers?: Record<string, string>;
 };
 
-// Q1〜Q5 のID
-const REQUIRED_QUESTION_IDS = ["Q1", "Q2", "Q3", "Q4", "Q5"] as const;
+// クライアント側がQ1〜Q6を必須にしているので合わせる
+const REQUIRED_QUESTION_IDS = ["Q1", "Q2", "Q3", "Q4", "Q5", "Q6"] as const;
 
-// ユーザー回答から、判定用タグ & 不安メッセージキーを取り出す
-function extractContextAndConcern(answers: Record<string, string>): {
-  ctx: MatchContext;
-  concernKey: ConcernMessageKey;
-} {
-  const qMap = Object.fromEntries(QUESTIONS.map((q) => [q.id, q]));
-
-  const getTag = (qid: string): string => {
-    const q = qMap[qid];
-    if (!q) return "";
-    const optionId = answers[qid];
-    const opt = q.options.find((o) => o.id === optionId);
-    return opt?.tag ?? "";
-  };
-
-  const getConcernKey = (): ConcernMessageKey => {
-    const q = qMap["Q5"];
-    const optionId = answers["Q5"];
-    const opt = q?.options.find((o) => o.id === optionId);
-    const key = opt?.messageKey ?? "Msg_Consult";
-    return key as ConcernMessageKey;
-  };
-
-  const ctx: MatchContext = {
-    userLevel: getTag("Q1"),
-    userAge: getTag("Q2"),
-    userGenre: getTag("Q3"),
-    userTeacherStyle: getTag("Q4"),
-  };
-
-  const concernKey = getConcernKey();
-  return { ctx, concernKey };
+function getConcernKey(answers: Record<string, string>): ConcernMessageKey {
+  const q5 = QUESTIONS.find((q) => q.id === "Q5");
+  const optionId = answers["Q5"];
+  const opt = q5?.options.find((o) => o.id === optionId);
+  const key = opt?.messageKey ?? "Msg_Consult";
+  return key as ConcernMessageKey;
 }
 
-// Prisma から取ってきたクラス&講師を、スコア計算用のシンプルな形に変換
-function toPairsFromPrisma(classes: any[]): PairLike<ClassLike, TeacherLike>[] {
-  const pairs: PairLike<ClassLike, TeacherLike>[] = [];
+async function resolveOptionIdBySlug(args: {
+  schoolId: string;
+  model:
+    | "DiagnosisCampus"
+    | "DiagnosisCourse"
+    | "DiagnosisGenre"
+    | "DiagnosisInstructor";
+  slug: string;
+}) {
+  const { schoolId, model, slug } = args;
 
-  for (const clazz of classes) {
-    const baseClass: ClassLike = {
-      id: clazz.id,
-      name: clazz.name,
-      levels: clazz.levels ?? [],
-      targets: clazz.targets ?? [],
-      genres: clazz.genres ?? [],
-    };
-
-    // clazz.teachers は、中間テーブル（TeacherClass）的な想定
-    for (const tc of clazz.teachers ?? []) {
-      if (!tc.teacher) continue;
-      const t = tc.teacher;
-      const teacher: TeacherLike = {
-        id: t.id,
-        name: t.name,
-        photoUrl: t.photoUrl,
-        styles: t.styles ?? [],
-      };
-      pairs.push({ clazz: baseClass, teacher });
-    }
+  // Prismaのモデルアクセスを分岐（型安全寄り）
+  if (model === "DiagnosisCampus") {
+    return prisma.diagnosisCampus.findFirst({
+      where: { schoolId, slug, isActive: true },
+      select: { id: true, label: true, slug: true },
+    });
   }
-
-  return pairs;
+  if (model === "DiagnosisCourse") {
+    return prisma.diagnosisCourse.findFirst({
+      where: { schoolId, slug, isActive: true },
+      select: { id: true, label: true, slug: true },
+    });
+  }
+  if (model === "DiagnosisGenre") {
+    return prisma.diagnosisGenre.findFirst({
+      where: { schoolId, slug, isActive: true },
+      select: { id: true, label: true, slug: true },
+    });
+  }
+  return prisma.diagnosisInstructor.findFirst({
+    where: { schoolId, slug, isActive: true },
+    select: { id: true, label: true, slug: true },
+  });
 }
+
+type ResultRow = {
+  id: string;
+  schoolId: string;
+  title: string;
+  body: string | null;
+  ctaLabel: string | null;
+  ctaUrl: string | null;
+  sortOrder: number;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+};
 
 export async function POST(req: NextRequest) {
   let body: DiagnosisRequestBody;
   try {
     body = await req.json();
-  } catch (e) {
+  } catch {
     return NextResponse.json(
       { error: "INVALID_JSON", message: "JSONの形式が不正です。" },
       { status: 400 }
     );
   }
 
-  const schoolId = body.schoolId;
+  const schoolId = body.schoolId ?? "";
   const answers = body.answers ?? {};
 
   if (!schoolId) {
@@ -120,105 +106,158 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // 回答から判定コンテキスト & 不安メッセージキーを抽出
-  const { ctx, concernKey } = extractContextAndConcern(answers);
+  // ここでの answers は「option.id=slug」を想定（あなたのAPIが slug を返している）
+  const campusSlug = answers["Q1"];
+  const courseSlug = answers["Q2"];
+  const genreSlug = answers["Q3"];
+  const instructorSlug = answers["Q4"];
 
-  // schoolId に紐づくクラス & 講師を取得
-  // ※ ここは Prisma のモデル名・リレーション名に合わせて調整してください
-  const classes = await prisma.schoolClass.findMany({
-    where: {
+  // slug → 実テーブルの id に解決（中間テーブルは id 同士で結ぶ想定）
+  const [campus, course, genre, instructor] = await Promise.all([
+    resolveOptionIdBySlug({
       schoolId,
-      isActive: true,
-    },
-    include: {
-      teachers: {
-        include: {
-          teacher: true,
-        },
-      },
-    },
-  });
+      model: "DiagnosisCampus",
+      slug: campusSlug,
+    }),
+    resolveOptionIdBySlug({
+      schoolId,
+      model: "DiagnosisCourse",
+      slug: courseSlug,
+    }),
+    resolveOptionIdBySlug({
+      schoolId,
+      model: "DiagnosisGenre",
+      slug: genreSlug,
+    }),
+    resolveOptionIdBySlug({
+      schoolId,
+      model: "DiagnosisInstructor",
+      slug: instructorSlug,
+    }),
+  ]);
 
-  if (!classes.length) {
+  if (!campus) {
     return NextResponse.json(
       {
-        error: "NO_CLASS",
-        message: "診断対象のクラスが登録されていません。",
+        error: "NO_CAMPUS",
+        message:
+          "選択した校舎が見つかりません（管理画面の登録/有効化を確認してください）。",
+      },
+      { status: 400 }
+    );
+  }
+  if (!course) {
+    return NextResponse.json(
+      {
+        error: "NO_COURSE",
+        message:
+          "選択したコース（レベル）が見つかりません（管理画面の登録/有効化を確認してください）。",
+      },
+      { status: 400 }
+    );
+  }
+  if (!genre) {
+    return NextResponse.json(
+      {
+        error: "NO_GENRE",
+        message:
+          "選択したジャンルが見つかりません（管理画面の登録/有効化を確認してください）。",
+      },
+      { status: 400 }
+    );
+  }
+  if (!instructor) {
+    return NextResponse.json(
+      {
+        error: "NO_INSTRUCTOR",
+        message:
+          "選択した講師が見つかりません（管理画面の登録/有効化を確認してください）。",
       },
       { status: 400 }
     );
   }
 
-  // Prismaの結果をスコア計算用の形に変換
-  const pairs = toPairsFromPrisma(classes);
+  // ✅ 診断結果：紐づきで 1件返す（sortOrder昇順で最上位）
+  // 中間テーブルの A/B がどちら向きか分からなくても動くように OR を入れて両対応にしています
+  const rows = await prisma.$queryRaw<ResultRow[]>`
+    select r.*
+    from "DiagnosisResult" r
+    where r."schoolId" = ${schoolId}
+      and r."isActive" = true
 
-  if (!pairs.length) {
+      and exists (
+        select 1 from "_ResultCampuses" x
+        where (x."A" = r."id" and x."B" = ${campus.id})
+           or (x."B" = r."id" and x."A" = ${campus.id})
+      )
+
+      and exists (
+        select 1 from "_ResultCourses" x
+        where (x."A" = r."id" and x."B" = ${course.id})
+           or (x."B" = r."id" and x."A" = ${course.id})
+      )
+
+      and exists (
+        select 1 from "_ResultGenres" x
+        where (x."A" = r."id" and x."B" = ${genre.id})
+           or (x."B" = r."id" and x."A" = ${genre.id})
+      )
+
+      and exists (
+        select 1 from "_ResultInstructors" x
+        where (x."A" = r."id" and x."B" = ${instructor.id})
+           or (x."B" = r."id" and x."A" = ${instructor.id})
+      )
+
+    order by r."sortOrder" asc
+    limit 1
+  `;
+
+  const best = rows[0];
+  if (!best) {
     return NextResponse.json(
       {
-        error: "NO_PAIR",
-        message: "クラスと講師の組み合わせが存在しません。",
+        error: "NO_MATCHED_RESULT",
+        message:
+          "この回答パターンに紐づく診断結果が見つかりません。管理画面で「診断結果」と各項目（校舎/コース/ジャンル/講師）の紐づけを作成してください。",
       },
       { status: 400 }
     );
   }
 
-  // スコアリング & ベスト/ワースト選定
-  const { pattern, best, worst, scored } = selectMatches(pairs, ctx);
-
-  const score = best.score;
-
-  // ヘッダーのキャッチコピー
-  let headerLabel = "";
-  if (score >= 95) {
-    headerLabel = "運命のクラスかも！？相性バッチリ！";
-  } else if (score >= 80) {
-    headerLabel = "かなりおすすめ！楽しく続けられそう";
-  } else {
-    headerLabel = "概ねマッチ！まずは体験で確認を";
-  }
-
-  // パターンB用の追加ラベル（要相談/特別プラン）
-  const patternMessage =
-    pattern === "A"
-      ? null
-      : "診断結果：要相談/特別プラン（体験時にスタッフがじっくりご相談に乗ります）";
-
+  const concernKey = getConcernKey(answers);
   const concernMessage = concernMessages[concernKey];
 
+  // 既存フロントの表示を壊さないため、レスポンス形は“近い形”で返す
   return NextResponse.json({
-    pattern, // "A" or "B"
-    patternMessage,
-    score,
-    headerLabel, // ①ヘッダーエリアの文言
+    pattern: "A",
+    patternMessage: null,
+    score: 100,
+    headerLabel: "あなたにおすすめの診断結果です",
     bestMatch: {
-      // ②メイン提案エリア
-      classId: best.clazz.id,
-      className: best.clazz.name,
-      genres: best.clazz.genres,
-      levels: best.clazz.levels,
-      targets: best.clazz.targets,
+      classId: best.id, // 互換のため classId に resultId を入れる
+      className: best.title, // 互換のため className に title
+      genres: [genre.label],
+      levels: [course.label],
+      targets: [],
     },
     teacher: {
-      id: best.teacher.id,
-      name: best.teacher.name,
-      photoUrl: best.teacher.photoUrl,
-      styles: best.teacher.styles,
+      id: instructor.id,
+      name: instructor.label,
+      photoUrl: null,
+      styles: [],
     },
-    breakdown: best.breakdown, // ③マッチング分析チャート用の内訳
-    worstMatch:
-      pattern === "A"
-        ? {
-            className: worst.clazz.name,
-            teacherName: worst.teacher.name,
-            score: worst.score,
-          }
-        : null, // ④ワーストマッチ（オプション）
-    concernMessage, // ⑤CVR特化メッセージ（Q5に紐づく不安解消メッセージ）
-    // デバッグ用に全候補のスコア一覧を返しておく（必要なければ削ってOK）
-    allScores: scored.map((s) => ({
-      className: s.clazz.name,
-      teacherName: s.teacher.name,
-      score: s.score,
-    })),
+    breakdown: [],
+    worstMatch: null,
+    concernMessage,
+
+    // ✅ 新しい情報（必要ならフロントで使える）
+    result: {
+      id: best.id,
+      title: best.title,
+      body: best.body,
+      ctaLabel: best.ctaLabel,
+      ctaUrl: best.ctaUrl,
+    },
   });
 }

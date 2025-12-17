@@ -11,7 +11,8 @@ function getOriginFromHeaders() {
   return `${proto}://${host}`;
 }
 
-async function fetchCampusOptions(
+async function fetchOptions(
+  path: "campuses" | "courses" | "genres" | "instructors",
   schoolId: string
 ): Promise<DiagnosisQuestionOption[]> {
   if (!schoolId) return [];
@@ -24,22 +25,20 @@ async function fetchCampusOptions(
     }
 
     const res = await fetch(
-      `${origin}/api/diagnosis/campuses?schoolId=${encodeURIComponent(
+      `${origin}/api/diagnosis/${path}?schoolId=${encodeURIComponent(
         schoolId
       )}`,
-      {
-        cache: "no-store",
-      }
+      { cache: "no-store" }
     );
 
     if (!res.ok) {
-      console.error("Failed to fetch campus options", res.status);
+      console.error(`Failed to fetch ${path} options`, res.status);
       return [];
     }
 
     return (await res.json()) as DiagnosisQuestionOption[];
   } catch (e) {
-    console.error("Error while fetching campus options", e);
+    console.error(`Error while fetching ${path} options`, e);
     return [];
   }
 }
@@ -52,12 +51,21 @@ export default async function DiagnosisPage({
   // ★ 両対応（schoolId 優先）
   const schoolId = searchParams.schoolId ?? searchParams.school ?? "";
 
-  const campusOptions = await fetchCampusOptions(schoolId);
+  const [campusOptions, courseOptions, genreOptions, instructorOptions] =
+    await Promise.all([
+      fetchOptions("campuses", schoolId),
+      fetchOptions("courses", schoolId),
+      fetchOptions("genres", schoolId),
+      fetchOptions("instructors", schoolId),
+    ]);
 
   return (
     <DiagnosisEmbedClient
       schoolIdProp={schoolId}
       campusOptions={campusOptions}
+      courseOptions={courseOptions}
+      genreOptions={genreOptions}
+      instructorOptions={instructorOptions}
     />
   );
 }
