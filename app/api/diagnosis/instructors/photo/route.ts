@@ -20,21 +20,20 @@ export async function GET(req: NextRequest) {
 
   const row = await prisma.diagnosisInstructor.findFirst({
     where: { id, schoolId },
-    select: { photoData: true, photoMime: true, updatedAt: true },
+    select: { photoData: true, photoMime: true },
   });
 
   if (!row?.photoData || !row.photoMime) {
     return new Response("Not Found", { status: 404 });
   }
 
-  // Prisma Bytes -> Buffer
-  const buf = Buffer.from(row.photoData as any);
+  // Prisma Bytes は Uint8Array として扱える
+  const bytes = row.photoData as unknown as Uint8Array;
 
-  return new Response(buf, {
+  return new Response(bytes, {
     status: 200,
     headers: {
       "Content-Type": row.photoMime,
-      // 管理画面想定なので強めにキャッシュしない
       "Cache-Control": "no-store",
     },
   });

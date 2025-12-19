@@ -20,7 +20,7 @@ function toNum(v: any, fallback: number) {
   return Number.isFinite(n) ? n : fallback;
 }
 
-const MAX_IMAGE_BYTES = 3 * 1024 * 1024; // 3MB（必要なら増やしてOK）
+const MAX_IMAGE_BYTES = 3 * 1024 * 1024; // 3MB
 
 // GET /api/diagnosis/instructors?schoolId=xxx
 export async function GET(req: NextRequest) {
@@ -47,7 +47,6 @@ export async function GET(req: NextRequest) {
       sortOrder: true,
       isActive: true,
       photoMime: true,
-      // photoData は一覧では重いので返さない（プレビューは /photo を使う）
     },
   });
 
@@ -55,8 +54,8 @@ export async function GET(req: NextRequest) {
 }
 
 // POST /api/diagnosis/instructors
+// - multipart/form-data: {id, schoolId, label, slug, sortOrder, isActive, file?}
 // - JSON: {id, schoolId, label, slug, sortOrder, isActive}
-// - multipart/form-data: 上記 + file
 export async function POST(req: NextRequest) {
   const session = await ensureLoggedIn();
   if (!session)
@@ -83,7 +82,7 @@ export async function POST(req: NextRequest) {
     }
 
     const file = fd.get("file");
-    let photoData: Buffer | null = null;
+    let photoData: Uint8Array | null = null;
     let photoMime: string | null = null;
 
     if (file && file instanceof File) {
@@ -97,7 +96,7 @@ export async function POST(req: NextRequest) {
       }
       photoMime = file.type || "application/octet-stream";
       const ab = await file.arrayBuffer();
-      photoData = Buffer.from(ab);
+      photoData = new Uint8Array(ab); // ★ BufferじゃなくUint8Array
     }
 
     const created = await prisma.diagnosisInstructor.create({
@@ -164,8 +163,8 @@ export async function POST(req: NextRequest) {
 }
 
 // PUT /api/diagnosis/instructors
+// - multipart/form-data: {id, schoolId, label, slug, sortOrder, isActive, file?, clearPhoto?}
 // - JSON: {id, schoolId, label, slug, sortOrder, isActive}
-// - multipart/form-data: 上記 + file（入れた時だけ画像差し替え）
 export async function PUT(req: NextRequest) {
   const session = await ensureLoggedIn();
   if (!session)
@@ -217,7 +216,7 @@ export async function PUT(req: NextRequest) {
         );
       }
       data.photoMime = file.type || "application/octet-stream";
-      data.photoData = Buffer.from(await file.arrayBuffer());
+      data.photoData = new Uint8Array(await file.arrayBuffer()); // ★ Uint8Array
     }
 
     const updated = await prisma.diagnosisInstructor.update({
