@@ -6,5 +6,6 @@ export default function Page({
 }: {
   searchParams: { schoolId?: string };
 }) {
-  return <GenreAdminClient initialSchoolId={searchParams.schoolId ?? ""} />;
+  const initialSchoolId = searchParams.schoolId ?? "";
+  return <GenreAdminClient initialSchoolId={initialSchoolId} />;
 }

@@ -3,6 +3,10 @@
 
 import { useEffect, useMemo, useState } from "react";
 
+type Props = {
+  initialSchoolId?: string;
+};
+
 type GenreRow = {
   id: string;
   schoolId: string;
@@ -53,8 +57,9 @@ const btnDanger =
   "hover:bg-red-50 disabled:opacity-50 " +
   "dark:border-red-900/50 dark:bg-gray-900 dark:text-red-300 dark:hover:bg-red-950/40";
 
-export default function DiagnosisGenresPage() {
-  const [schoolId, setSchoolId] = useState("daiki.maeda.web");
+export default function GenreAdminClient({ initialSchoolId }: Props) {
+  // URLの schoolId を初期値に。無ければ空（手入力して読み込み）
+  const [schoolId, setSchoolId] = useState<string>(initialSchoolId ?? "");
 
   const [rows, setRows] = useState<GenreRow[]>([]);
   const [loading, setLoading] = useState(false);
@@ -78,6 +83,7 @@ export default function DiagnosisGenresPage() {
     setLoading(true);
     setError(null);
     try {
+      // ※ もし admin 配下のAPIに寄せたいなら /api/admin/diagnosis/genres に変更
       const res = await fetch(
         `/api/diagnosis/genres?schoolId=${encodeURIComponent(schoolId)}`,
         { cache: "no-store" }
@@ -103,7 +109,8 @@ export default function DiagnosisGenresPage() {
   };
 
   useEffect(() => {
-    void fetchList();
+    // schoolIdが入っている時だけ自動ロード
+    if (canLoad) void fetchList();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [schoolId]);
 
@@ -260,7 +267,7 @@ export default function DiagnosisGenresPage() {
           value={schoolId}
           onChange={(e) => setSchoolId(e.target.value)}
           className={input}
-          placeholder="例：daiki.maeda.web"
+          placeholder="例：daiki.maeda.web（他のIDでもOK）"
         />
       </div>
 
@@ -552,8 +559,7 @@ export default function DiagnosisGenresPage() {
       </div>
 
       <div className="mt-4 text-xs text-gray-500 dark:text-gray-400">
-        次：
-        <code className={codePill}>/admin/diagnosis/links</code>
+        次：<code className={codePill}>/admin/diagnosis/links</code>
         に戻って、Result と Genre をチェックで紐づけしてください。
       </div>
     </div>
