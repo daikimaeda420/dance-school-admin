@@ -1,3 +1,4 @@
+// app/admin/diagnosis/genres/page.tsx
 import GenreAdminClient from "./GenreAdminClient";
 
 export default function Page({
@@ -5,6 +6,5 @@ export default function Page({
 }: {
   searchParams: { schoolId?: string };
 }) {
-  const schoolId = searchParams.schoolId ?? "daiki.maeda.web";
-  return <GenreAdminClient initialSchoolId={schoolId} />;
+  return <GenreAdminClient initialSchoolId={searchParams.schoolId ?? ""} />;
 }
