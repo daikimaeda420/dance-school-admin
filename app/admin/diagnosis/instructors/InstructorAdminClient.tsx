@@ -202,11 +202,11 @@ export default function InstructorAdminClient({
                 <td className="p-2">
                   <input
                     className="border rounded px-2 py-1 w-full"
-                    value={r.name}
+                    value={r.label}
                     onChange={(e) =>
                       setRows((p) =>
                         p.map((x) =>
-                          x.id === r.id ? { ...x, name: e.target.value } : x
+                          x.id === r.id ? { ...x, label: e.target.value } : x
                         )
                       )
                     }
