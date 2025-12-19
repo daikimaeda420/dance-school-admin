@@ -22,19 +22,32 @@ function toNum(v: any, fallback: number) {
 
 const MAX_IMAGE_BYTES = 3 * 1024 * 1024; // 3MB
 
+type InstructorRow = {
+  id: string;
+  schoolId: string;
+  label: string;
+  slug: string;
+  sortOrder: number;
+  isActive: boolean;
+  photoMime: string | null;
+  hasPhoto: boolean;
+};
+
 // GET /api/diagnosis/instructors?schoolId=xxx
 export async function GET(req: NextRequest) {
   const session = await ensureLoggedIn();
-  if (!session)
+  if (!session) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+  }
 
   const { searchParams } = new URL(req.url);
   const schoolId = searchParams.get("schoolId")?.trim();
-  if (!schoolId)
+  if (!schoolId) {
     return NextResponse.json(
       { message: "schoolId が必要です" },
       { status: 400 }
     );
+  }
 
   const rows = await prisma.diagnosisInstructor.findMany({
     where: { schoolId },
@@ -47,10 +60,22 @@ export async function GET(req: NextRequest) {
       sortOrder: true,
       isActive: true,
       photoMime: true,
+      photoData: true, // hasPhoto 判定用に取得（返さない）
     },
   });
 
-  return NextResponse.json(rows);
+  const normalized: InstructorRow[] = rows.map((r) => ({
+    id: r.id,
+    schoolId: r.schoolId,
+    label: r.label,
+    slug: r.slug,
+    sortOrder: r.sortOrder,
+    isActive: r.isActive,
+    photoMime: r.photoMime ?? null,
+    hasPhoto: !!r.photoData && r.photoData.length > 0,
+  }));
+
+  return NextResponse.json(normalized);
 }
 
 // POST /api/diagnosis/instructors
@@ -58,8 +83,9 @@ export async function GET(req: NextRequest) {
 // - JSON: {id, schoolId, label, slug, sortOrder, isActive}
 export async function POST(req: NextRequest) {
   const session = await ensureLoggedIn();
-  if (!session)
+  if (!session) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+  }
 
   const ct = req.headers.get("content-type") || "";
 
@@ -82,10 +108,10 @@ export async function POST(req: NextRequest) {
     }
 
     const file = fd.get("file");
-    let photoData: Uint8Array | null = null;
+    let photoData: Buffer | null = null;
     let photoMime: string | null = null;
 
-    if (file && file instanceof File) {
+    if (file && file instanceof File && file.size > 0) {
       if (file.size > MAX_IMAGE_BYTES) {
         return NextResponse.json(
           {
@@ -95,8 +121,8 @@ export async function POST(req: NextRequest) {
         );
       }
       photoMime = file.type || "application/octet-stream";
-      const ab = (await file.arrayBuffer()) as ArrayBuffer; // ★型を確定
-      photoData = new Uint8Array(ab) as unknown as Uint8Array; // ★Prisma側の型に合わせて固定
+      const ab = await file.arrayBuffer();
+      photoData = Buffer.from(ab); // ✅ Bufferだけ
     }
 
     const created = await prisma.diagnosisInstructor.create({
@@ -117,12 +143,23 @@ export async function POST(req: NextRequest) {
         slug: true,
         sortOrder: true,
         isActive: true,
-        photoData: photoData ? (photoData as unknown as Uint8Array) : null, // ★ここ
         photoMime: true,
+        photoData: true, // hasPhoto用
       },
     });
 
-    return NextResponse.json(created, { status: 201 });
+    const res: InstructorRow = {
+      id: created.id,
+      schoolId: created.schoolId,
+      label: created.label,
+      slug: created.slug,
+      sortOrder: created.sortOrder,
+      isActive: created.isActive,
+      photoMime: created.photoMime ?? null,
+      hasPhoto: !!created.photoData && created.photoData.length > 0,
+    };
+
+    return NextResponse.json(res, { status: 201 });
   }
 
   // JSON
@@ -157,10 +194,22 @@ export async function POST(req: NextRequest) {
       sortOrder: true,
       isActive: true,
       photoMime: true,
+      photoData: true,
     },
   });
 
-  return NextResponse.json(created, { status: 201 });
+  const res: InstructorRow = {
+    id: created.id,
+    schoolId: created.schoolId,
+    label: created.label,
+    slug: created.slug,
+    sortOrder: created.sortOrder,
+    isActive: created.isActive,
+    photoMime: created.photoMime ?? null,
+    hasPhoto: !!created.photoData && created.photoData.length > 0,
+  };
+
+  return NextResponse.json(res, { status: 201 });
 }
 
 // PUT /api/diagnosis/instructors
@@ -168,8 +217,9 @@ export async function POST(req: NextRequest) {
 // - JSON: {id, schoolId, label, slug, sortOrder, isActive}
 export async function PUT(req: NextRequest) {
   const session = await ensureLoggedIn();
-  if (!session)
+  if (!session) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+  }
 
   const ct = req.headers.get("content-type") || "";
 
@@ -192,12 +242,14 @@ export async function PUT(req: NextRequest) {
 
     const existing = await prisma.diagnosisInstructor.findFirst({
       where: { id, schoolId },
+      select: { id: true },
     });
-    if (!existing)
+    if (!existing) {
       return NextResponse.json(
         { message: "対象が見つかりません" },
         { status: 404 }
       );
+    }
 
     const file = fd.get("file");
     const clearPhoto = toBool(fd.get("clearPhoto"), false);
@@ -217,7 +269,8 @@ export async function PUT(req: NextRequest) {
         );
       }
       data.photoMime = file.type || "application/octet-stream";
-      data.photoData = new Uint8Array(await file.arrayBuffer()); // ★ Uint8Array
+      const ab = await file.arrayBuffer();
+      data.photoData = Buffer.from(ab); // ✅ Bufferだけ
     }
 
     const updated = await prisma.diagnosisInstructor.update({
@@ -231,10 +284,22 @@ export async function PUT(req: NextRequest) {
         sortOrder: true,
         isActive: true,
         photoMime: true,
+        photoData: true,
       },
     });
 
-    return NextResponse.json(updated);
+    const res: InstructorRow = {
+      id: updated.id,
+      schoolId: updated.schoolId,
+      label: updated.label,
+      slug: updated.slug,
+      sortOrder: updated.sortOrder,
+      isActive: updated.isActive,
+      photoMime: updated.photoMime ?? null,
+      hasPhoto: !!updated.photoData && updated.photoData.length > 0,
+    };
+
+    return NextResponse.json(res);
   }
 
   // JSON
@@ -254,12 +319,14 @@ export async function PUT(req: NextRequest) {
 
   const existing = await prisma.diagnosisInstructor.findFirst({
     where: { id: body.id.trim(), schoolId: body.schoolId.trim() },
+    select: { id: true },
   });
-  if (!existing)
+  if (!existing) {
     return NextResponse.json(
       { message: "対象が見つかりません" },
       { status: 404 }
     );
+  }
 
   const updated = await prisma.diagnosisInstructor.update({
     where: { id: existing.id },
@@ -277,17 +344,30 @@ export async function PUT(req: NextRequest) {
       sortOrder: true,
       isActive: true,
       photoMime: true,
+      photoData: true,
     },
   });
 
-  return NextResponse.json(updated);
+  const res: InstructorRow = {
+    id: updated.id,
+    schoolId: updated.schoolId,
+    label: updated.label,
+    slug: updated.slug,
+    sortOrder: updated.sortOrder,
+    isActive: updated.isActive,
+    photoMime: updated.photoMime ?? null,
+    hasPhoto: !!updated.photoData && updated.photoData.length > 0,
+  };
+
+  return NextResponse.json(res);
 }
 
 // DELETE /api/diagnosis/instructors?id=xxx&schoolId=yyy（無効化）
 export async function DELETE(req: NextRequest) {
   const session = await ensureLoggedIn();
-  if (!session)
+  if (!session) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+  }
 
   const { searchParams } = new URL(req.url);
   const id = searchParams.get("id")?.trim();
@@ -302,12 +382,14 @@ export async function DELETE(req: NextRequest) {
 
   const existing = await prisma.diagnosisInstructor.findFirst({
     where: { id, schoolId },
+    select: { id: true },
   });
-  if (!existing)
+  if (!existing) {
     return NextResponse.json(
       { message: "対象が見つかりません" },
       { status: 404 }
     );
+  }
 
   const updated = await prisma.diagnosisInstructor.update({
     where: { id: existing.id },
@@ -320,8 +402,20 @@ export async function DELETE(req: NextRequest) {
       sortOrder: true,
       isActive: true,
       photoMime: true,
+      photoData: true,
     },
   });
 
-  return NextResponse.json(updated);
+  const res: InstructorRow = {
+    id: updated.id,
+    schoolId: updated.schoolId,
+    label: updated.label,
+    slug: updated.slug,
+    sortOrder: updated.sortOrder,
+    isActive: updated.isActive,
+    photoMime: updated.photoMime ?? null,
+    hasPhoto: !!updated.photoData && updated.photoData.length > 0,
+  };
+
+  return NextResponse.json(res);
 }
