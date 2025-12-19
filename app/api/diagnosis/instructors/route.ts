@@ -95,8 +95,8 @@ export async function POST(req: NextRequest) {
         );
       }
       photoMime = file.type || "application/octet-stream";
-      const ab = await file.arrayBuffer();
-      photoData = new Uint8Array(ab); // ★ BufferじゃなくUint8Array
+      const ab = (await file.arrayBuffer()) as ArrayBuffer; // ★型を確定
+      photoData = new Uint8Array(ab) as unknown as Uint8Array; // ★Prisma側の型に合わせて固定
     }
 
     const created = await prisma.diagnosisInstructor.create({
@@ -117,6 +117,7 @@ export async function POST(req: NextRequest) {
         slug: true,
         sortOrder: true,
         isActive: true,
+        photoData: photoData ? (photoData as unknown as Uint8Array) : null, // ★ここ
         photoMime: true,
       },
     });
