@@ -24,7 +24,7 @@ export async function PATCH(
   const updated = await prisma.diagnosisInstructor.update({
     where: { id: params.id },
     data: {
-      name: typeof body.name === "string" ? body.name : undefined,
+      label: typeof body.label === "string" ? body.label : undefined, // ✅ name -> label
       slug: typeof body.slug === "string" ? body.slug : undefined,
       sortOrder:
         typeof body.sortOrder === "number" ? body.sortOrder : undefined,

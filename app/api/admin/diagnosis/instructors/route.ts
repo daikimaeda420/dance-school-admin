@@ -42,11 +42,11 @@ export async function POST(req: NextRequest) {
   if (
     !body ||
     typeof body.schoolId !== "string" ||
-    typeof body.name !== "string" ||
+    typeof body.label !== "string" || // ✅
     typeof body.slug !== "string"
   ) {
     return NextResponse.json(
-      { message: "schoolId / name / slug は必須です" },
+      { message: "schoolId / label / slug は必須です" },
       { status: 400 }
     );
   }
@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
   const created = await prisma.diagnosisInstructor.create({
     data: {
       schoolId: body.schoolId,
-      name: body.name,
+      label: body.label, // ✅
       slug: body.slug,
       sortOrder,
       isActive: body.isActive !== false,

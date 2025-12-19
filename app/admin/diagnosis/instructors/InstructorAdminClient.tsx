@@ -5,11 +5,13 @@ import { useEffect, useState } from "react";
 type Instructor = {
   id: string;
   schoolId: string;
-  name: string;
+  label: string; // ✅
   slug: string;
   sortOrder: number;
   isActive: boolean;
 };
+
+const [newLabel, setNewLabel] = useState("");
 
 export default function InstructorAdminClient({
   schoolId,
@@ -64,7 +66,7 @@ export default function InstructorAdminClient({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           schoolId,
-          name: newName,
+          label: newLabel,
           slug: newSlug,
           sortOrder: newSortOrder,
           isActive: newIsActive,
@@ -90,7 +92,7 @@ export default function InstructorAdminClient({
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: r.name,
+          label: r.label,
           slug: r.slug,
           sortOrder: r.sortOrder,
           isActive: r.isActive,
