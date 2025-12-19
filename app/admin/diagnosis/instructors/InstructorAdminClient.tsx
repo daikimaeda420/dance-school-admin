@@ -12,6 +12,7 @@ type InstructorRow = {
   schoolId: string;
   label: string;
   slug: string;
+  photoUrl?: string | null;
   sortOrder: number;
   isActive: boolean;
 };
@@ -57,6 +58,10 @@ const btnDanger =
   "hover:bg-red-50 disabled:opacity-50 " +
   "dark:border-red-900/50 dark:bg-gray-900 dark:text-red-300 dark:hover:bg-red-950/40";
 
+const thumb =
+  "h-12 w-12 rounded-xl border border-gray-200 object-cover " +
+  "dark:border-gray-800";
+
 export default function InstructorAdminClient({ initialSchoolId }: Props) {
   const [schoolId, setSchoolId] = useState<string>(initialSchoolId ?? "");
 
@@ -69,6 +74,7 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
   const [newId, setNewId] = useState("");
   const [newLabel, setNewLabel] = useState("");
   const [newSlug, setNewSlug] = useState("");
+  const [newPhotoUrl, setNewPhotoUrl] = useState("");
   const [newSortOrder, setNewSortOrder] = useState<number>(1);
   const [newIsActive, setNewIsActive] = useState(true);
 
@@ -96,6 +102,7 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
         schoolId: String(d.schoolId ?? schoolId),
         label: String(d.label ?? ""),
         slug: String(d.slug ?? ""),
+        photoUrl: typeof d.photoUrl === "string" ? d.photoUrl : null,
         sortOrder: Number(d.sortOrder ?? 1),
         isActive: Boolean(d.isActive ?? true),
       }));
@@ -119,6 +126,7 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
     const id = newId.trim();
     const label = newLabel.trim();
     const slug = newSlug.trim();
+    const photoUrl = newPhotoUrl.trim();
 
     if (!id || !label || !slug) {
       setError("id / label / slug は必須です");
@@ -136,6 +144,7 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
           schoolId,
           label,
           slug,
+          photoUrl: photoUrl || null,
           sortOrder: newSortOrder,
           isActive: newIsActive,
         }),
@@ -148,6 +157,7 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
       setNewId("");
       setNewLabel("");
       setNewSlug("");
+      setNewPhotoUrl("");
       setNewSortOrder(1);
       setNewIsActive(true);
 
@@ -201,6 +211,7 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
           schoolId,
           label: e.label,
           slug: e.slug,
+          photoUrl: typeof e.photoUrl === "string" ? e.photoUrl : null,
           sortOrder: e.sortOrder,
           isActive: e.isActive,
         }),
@@ -253,8 +264,7 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
       <div className="mb-4">
         <div className="text-base font-bold">診断編集：講師管理</div>
         <div className="text-xs text-gray-500 dark:text-gray-400">
-          DiagnosisInstructor を追加/編集/無効化します（slug
-          は診断ロジックで必須）。
+          DiagnosisInstructor を追加/編集/無効化します（photoUrl は任意）。
         </div>
       </div>
 
@@ -321,7 +331,32 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div>
+            <div className="mb-1 text-xs font-semibold text-gray-600 dark:text-gray-300">
+              photoUrl（画像URL）
+            </div>
+            <div className="flex items-center gap-3">
+              <img
+                src={
+                  newPhotoUrl.trim() ||
+                  "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw=="
+                }
+                alt=""
+                className={thumb}
+              />
+              <input
+                value={newPhotoUrl}
+                onChange={(e) => setNewPhotoUrl(e.target.value)}
+                className={input}
+                placeholder="例：https://.../teacher.jpg"
+              />
+            </div>
+            <div className="mt-1 text-[11px] text-gray-500 dark:text-gray-400">
+              画像URLを入れると左にプレビューします（空でもOK）。
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 md:col-span-2">
             <div>
               <div className="mb-1 text-xs font-semibold text-gray-600 dark:text-gray-300">
                 sortOrder
@@ -394,6 +429,10 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
               const e = editMap[r.id] as Partial<InstructorRow> | undefined;
               const current = editing ? (e as InstructorRow) : r;
 
+              const previewSrc =
+                (editing ? current.photoUrl : r.photoUrl) ||
+                "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==";
+
               return (
                 <div
                   key={r.id}
@@ -444,7 +483,43 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
                           )}
                         </div>
 
-                        <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <div className="text-[11px] font-semibold text-gray-600 dark:text-gray-300">
+                            photoUrl
+                          </div>
+                          <div className="mt-1 flex items-center gap-3">
+                            <img src={previewSrc} alt="" className={thumb} />
+                            {editing ? (
+                              <input
+                                value={(current.photoUrl ?? "") as any}
+                                onChange={(ev) =>
+                                  updateEditField(r.id, {
+                                    photoUrl: ev.target.value,
+                                  })
+                                }
+                                className={input}
+                                placeholder="https://.../teacher.jpg"
+                              />
+                            ) : (
+                              <div className="truncate text-[12px] text-gray-700 dark:text-gray-200">
+                                {r.photoUrl ? (
+                                  <a
+                                    href={r.photoUrl}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="underline"
+                                  >
+                                    {r.photoUrl}
+                                  </a>
+                                ) : (
+                                  <span className="text-gray-400">未設定</span>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2 md:col-span-3">
                           <div>
                             <div className="text-[11px] font-semibold text-gray-600 dark:text-gray-300">
                               sortOrder

@@ -1,3 +1,4 @@
+// app/api/diagnosis/instructors/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
@@ -9,19 +10,21 @@ async function ensureLoggedIn() {
   return session;
 }
 
-// GET /api/admin/diagnosis/instructors?schoolId=xxx
+// GET /api/diagnosis/instructors?schoolId=xxx
 export async function GET(req: NextRequest) {
   const session = await ensureLoggedIn();
   if (!session)
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
 
   const { searchParams } = new URL(req.url);
-  const schoolId = searchParams.get("schoolId");
-  if (!schoolId)
+  const schoolId = searchParams.get("schoolId")?.trim();
+
+  if (!schoolId) {
     return NextResponse.json(
       { message: "schoolId が必要です" },
       { status: 400 }
     );
+  }
 
   const rows = await prisma.diagnosisInstructor.findMany({
     where: { schoolId },
@@ -31,7 +34,7 @@ export async function GET(req: NextRequest) {
   return NextResponse.json(rows);
 }
 
-// POST /api/admin/diagnosis/instructors
+// POST /api/diagnosis/instructors
 export async function POST(req: NextRequest) {
   const session = await ensureLoggedIn();
   if (!session)
@@ -41,27 +44,122 @@ export async function POST(req: NextRequest) {
 
   if (
     !body ||
+    typeof body.id !== "string" ||
     typeof body.schoolId !== "string" ||
-    typeof body.label !== "string" || // ✅
+    typeof body.label !== "string" ||
     typeof body.slug !== "string"
   ) {
     return NextResponse.json(
-      { message: "schoolId / label / slug は必須です" },
+      { message: "id / schoolId / label / slug は必須です" },
       { status: 400 }
     );
   }
 
   const sortOrder = typeof body.sortOrder === "number" ? body.sortOrder : 0;
+  const isActive = body.isActive !== false;
+  const photoUrl =
+    typeof body.photoUrl === "string" && body.photoUrl.trim()
+      ? body.photoUrl.trim()
+      : null;
 
   const created = await prisma.diagnosisInstructor.create({
     data: {
-      schoolId: body.schoolId,
-      label: body.label, // ✅
-      slug: body.slug,
+      id: body.id.trim(),
+      schoolId: body.schoolId.trim(),
+      label: body.label.trim(),
+      slug: body.slug.trim(),
+      photoUrl,
       sortOrder,
-      isActive: body.isActive !== false,
+      isActive,
     },
   });
 
   return NextResponse.json(created, { status: 201 });
+}
+
+// PUT /api/diagnosis/instructors
+export async function PUT(req: NextRequest) {
+  const session = await ensureLoggedIn();
+  if (!session)
+    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+
+  const body = await req.json().catch(() => null);
+
+  if (
+    !body ||
+    typeof body.id !== "string" ||
+    typeof body.schoolId !== "string" ||
+    typeof body.label !== "string" ||
+    typeof body.slug !== "string"
+  ) {
+    return NextResponse.json(
+      { message: "id / schoolId / label / slug は必須です" },
+      { status: 400 }
+    );
+  }
+
+  const sortOrder = typeof body.sortOrder === "number" ? body.sortOrder : 0;
+  const isActive = body.isActive !== false;
+  const photoUrl =
+    typeof body.photoUrl === "string" ? body.photoUrl.trim() || null : null;
+
+  // idだけで更新できるが、念のため schoolId も一致するか確認
+  const existing = await prisma.diagnosisInstructor.findFirst({
+    where: { id: body.id.trim(), schoolId: body.schoolId.trim() },
+  });
+
+  if (!existing) {
+    return NextResponse.json(
+      { message: "対象が見つかりません" },
+      { status: 404 }
+    );
+  }
+
+  const updated = await prisma.diagnosisInstructor.update({
+    where: { id: existing.id },
+    data: {
+      label: body.label.trim(),
+      slug: body.slug.trim(),
+      photoUrl,
+      sortOrder,
+      isActive,
+    },
+  });
+
+  return NextResponse.json(updated);
+}
+
+// DELETE /api/diagnosis/instructors?id=xxx&schoolId=yyy  （無効化）
+export async function DELETE(req: NextRequest) {
+  const session = await ensureLoggedIn();
+  if (!session)
+    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+
+  const { searchParams } = new URL(req.url);
+  const id = searchParams.get("id")?.trim();
+  const schoolId = searchParams.get("schoolId")?.trim();
+
+  if (!id || !schoolId) {
+    return NextResponse.json(
+      { message: "id / schoolId が必要です" },
+      { status: 400 }
+    );
+  }
+
+  const existing = await prisma.diagnosisInstructor.findFirst({
+    where: { id, schoolId },
+  });
+  if (!existing) {
+    return NextResponse.json(
+      { message: "対象が見つかりません" },
+      { status: 404 }
+    );
+  }
+
+  const updated = await prisma.diagnosisInstructor.update({
+    where: { id: existing.id },
+    data: { isActive: false },
+  });
+
+  return NextResponse.json(updated);
 }

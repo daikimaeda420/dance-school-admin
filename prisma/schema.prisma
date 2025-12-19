@@ -146,6 +146,7 @@ model DiagnosisInstructor {
   schoolId  String
   label     String   // 例: "田中先生"
   slug      String   // 例: "tanaka"
+  photoUrl  String?  // 画像URL
   sortOrder Int      @default(0)
   isActive  Boolean  @default(true)
 
