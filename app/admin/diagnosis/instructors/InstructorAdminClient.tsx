@@ -1,20 +1,17 @@
-// app/admin/diagnosis/instructors/InstructorAdminClient.tsx
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
 
-type Props = {
-  initialSchoolId?: string;
-};
+type Props = { initialSchoolId?: string };
 
 type InstructorRow = {
   id: string;
   schoolId: string;
   label: string;
   slug: string;
-  photoUrl?: string | null;
   sortOrder: number;
   isActive: boolean;
+  photoMime?: string | null; // 画像の有無判定に使う
 };
 
 function slugifyJa(input: string) {
@@ -30,40 +27,32 @@ function slugifyJa(input: string) {
 const card =
   "rounded-2xl border border-gray-200 bg-white p-4 shadow-sm " +
   "dark:border-gray-800 dark:bg-gray-900";
-
 const input =
   "w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 " +
   "placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 " +
   "disabled:opacity-50 " +
   "dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100 dark:placeholder:text-gray-500";
-
 const monoInput = input + " font-mono";
-
 const codePill =
   "rounded bg-gray-100 px-1 py-0.5 text-[11px] text-gray-800 " +
   "dark:bg-gray-800 dark:text-gray-100";
-
 const btnPrimary =
   "rounded-full bg-blue-600 px-4 py-2 text-sm font-semibold text-white " +
   "hover:bg-blue-700 disabled:opacity-50 " +
   "dark:bg-blue-500 dark:hover:bg-blue-400";
-
 const btnOutline =
   "rounded-full border border-gray-300 bg-white px-4 py-2 text-sm " +
   "hover:bg-gray-50 disabled:opacity-50 " +
   "dark:border-gray-700 dark:bg-gray-900 dark:hover:bg-gray-800";
-
 const btnDanger =
   "rounded-full border border-red-200 bg-white px-3 py-1.5 text-xs text-red-600 " +
   "hover:bg-red-50 disabled:opacity-50 " +
   "dark:border-red-900/50 dark:bg-gray-900 dark:text-red-300 dark:hover:bg-red-950/40";
-
 const thumb =
-  "h-12 w-12 rounded-xl border border-gray-200 object-cover " +
-  "dark:border-gray-800";
+  "h-12 w-12 rounded-xl border border-gray-200 object-cover dark:border-gray-800";
 
 export default function InstructorAdminClient({ initialSchoolId }: Props) {
-  const [schoolId, setSchoolId] = useState<string>(initialSchoolId ?? "");
+  const [schoolId, setSchoolId] = useState(initialSchoolId ?? "");
 
   const [rows, setRows] = useState<InstructorRow[]>([]);
   const [loading, setLoading] = useState(false);
@@ -74,16 +63,27 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
   const [newId, setNewId] = useState("");
   const [newLabel, setNewLabel] = useState("");
   const [newSlug, setNewSlug] = useState("");
-  const [newPhotoUrl, setNewPhotoUrl] = useState("");
   const [newSortOrder, setNewSortOrder] = useState<number>(1);
   const [newIsActive, setNewIsActive] = useState(true);
+  const [newFile, setNewFile] = useState<File | null>(null);
 
   // 編集用（行ID単位）
   const [editMap, setEditMap] = useState<
     Record<string, Partial<InstructorRow>>
   >({});
+  const [editFileMap, setEditFileMap] = useState<Record<string, File | null>>(
+    {}
+  );
+  const [clearPhotoMap, setClearPhotoMap] = useState<Record<string, boolean>>(
+    {}
+  );
 
   const canLoad = schoolId.trim().length > 0;
+
+  const photoUrl = (id: string) =>
+    `/api/diagnosis/instructors/photo?id=${encodeURIComponent(
+      id
+    )}&schoolId=${encodeURIComponent(schoolId)}`;
 
   const fetchList = async () => {
     if (!canLoad) return;
@@ -92,7 +92,9 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
     try {
       const res = await fetch(
         `/api/diagnosis/instructors?schoolId=${encodeURIComponent(schoolId)}`,
-        { cache: "no-store" }
+        {
+          cache: "no-store",
+        }
       );
       if (!res.ok) throw new Error("DiagnosisInstructor の取得に失敗しました");
       const data = (await res.json()) as any[];
@@ -102,9 +104,9 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
         schoolId: String(d.schoolId ?? schoolId),
         label: String(d.label ?? ""),
         slug: String(d.slug ?? ""),
-        photoUrl: typeof d.photoUrl === "string" ? d.photoUrl : null,
         sortOrder: Number(d.sortOrder ?? 1),
         isActive: Boolean(d.isActive ?? true),
+        photoMime: typeof d.photoMime === "string" ? d.photoMime : null,
       }));
 
       setRows(normalized.sort((a, b) => a.sortOrder - b.sortOrder));
@@ -126,8 +128,6 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
     const id = newId.trim();
     const label = newLabel.trim();
     const slug = newSlug.trim();
-    const photoUrl = newPhotoUrl.trim();
-
     if (!id || !label || !slug) {
       setError("id / label / slug は必須です");
       return;
@@ -136,18 +136,18 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
     setSaving(true);
     setError(null);
     try {
+      const fd = new FormData();
+      fd.append("id", id);
+      fd.append("schoolId", schoolId);
+      fd.append("label", label);
+      fd.append("slug", slug);
+      fd.append("sortOrder", String(newSortOrder));
+      fd.append("isActive", String(newIsActive));
+      if (newFile) fd.append("file", newFile);
+
       const res = await fetch("/api/diagnosis/instructors", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id,
-          schoolId,
-          label,
-          slug,
-          photoUrl: photoUrl || null,
-          sortOrder: newSortOrder,
-          isActive: newIsActive,
-        }),
+        body: fd,
       });
       if (!res.ok) {
         const data = await res.json().catch(() => null);
@@ -157,9 +157,9 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
       setNewId("");
       setNewLabel("");
       setNewSlug("");
-      setNewPhotoUrl("");
       setNewSortOrder(1);
       setNewIsActive(true);
+      setNewFile(null);
 
       await fetchList();
     } catch (e: any) {
@@ -170,14 +170,23 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
   };
 
   const startEdit = (r: InstructorRow) => {
-    setEditMap((prev) => ({
-      ...prev,
-      [r.id]: { ...r },
-    }));
+    setEditMap((prev) => ({ ...prev, [r.id]: { ...r } }));
+    setEditFileMap((prev) => ({ ...prev, [r.id]: null }));
+    setClearPhotoMap((prev) => ({ ...prev, [r.id]: false }));
   };
 
   const cancelEdit = (id: string) => {
     setEditMap((prev) => {
+      const next = { ...prev };
+      delete next[id];
+      return next;
+    });
+    setEditFileMap((prev) => {
+      const next = { ...prev };
+      delete next[id];
+      return next;
+    });
+    setClearPhotoMap((prev) => {
       const next = { ...prev };
       delete next[id];
       return next;
@@ -203,18 +212,21 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
     setSaving(true);
     setError(null);
     try {
+      const fd = new FormData();
+      fd.append("id", id);
+      fd.append("schoolId", schoolId);
+      fd.append("label", String(e.label));
+      fd.append("slug", String(e.slug));
+      fd.append("sortOrder", String(e.sortOrder ?? 0));
+      fd.append("isActive", String(e.isActive ?? true));
+      fd.append("clearPhoto", String(clearPhotoMap[id] ?? false));
+
+      const file = editFileMap[id];
+      if (file) fd.append("file", file);
+
       const res = await fetch("/api/diagnosis/instructors", {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id,
-          schoolId,
-          label: e.label,
-          slug: e.slug,
-          photoUrl: typeof e.photoUrl === "string" ? e.photoUrl : null,
-          sortOrder: e.sortOrder,
-          isActive: e.isActive,
-        }),
+        body: fd,
       });
       if (!res.ok) {
         const data = await res.json().catch(() => null);
@@ -252,19 +264,23 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
     }
   };
 
-  const hintId = useMemo(() => {
-    const base = slugifyJa(newLabel) || "instructor";
-    return `instructor_${base}`;
-  }, [newLabel]);
-
+  const hintId = useMemo(
+    () => `instructor_${slugifyJa(newLabel) || "new"}`,
+    [newLabel]
+  );
   const hintSlug = useMemo(() => slugifyJa(newLabel), [newLabel]);
+
+  const previewForNew = useMemo(
+    () => (newFile ? URL.createObjectURL(newFile) : ""),
+    [newFile]
+  );
 
   return (
     <div className="mx-auto w-full max-w-5xl p-6 text-gray-900 dark:text-gray-100">
       <div className="mb-4">
         <div className="text-base font-bold">診断編集：講師管理</div>
         <div className="text-xs text-gray-500 dark:text-gray-400">
-          DiagnosisInstructor を追加/編集/無効化します（photoUrl は任意）。
+          画像は管理画面からアップロードしてDBに保存します（上限はAPI内で制御）。
         </div>
       </div>
 
@@ -333,26 +349,23 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
 
           <div>
             <div className="mb-1 text-xs font-semibold text-gray-600 dark:text-gray-300">
-              photoUrl（画像URL）
+              画像（DB保存）
             </div>
             <div className="flex items-center gap-3">
               <img
                 src={
-                  newPhotoUrl.trim() ||
+                  previewForNew ||
                   "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw=="
                 }
-                alt=""
                 className={thumb}
+                alt=""
               />
               <input
-                value={newPhotoUrl}
-                onChange={(e) => setNewPhotoUrl(e.target.value)}
+                type="file"
+                accept="image/*"
+                onChange={(e) => setNewFile(e.target.files?.[0] ?? null)}
                 className={input}
-                placeholder="例：https://.../teacher.jpg"
               />
-            </div>
-            <div className="mt-1 text-[11px] text-gray-500 dark:text-gray-400">
-              画像URLを入れると左にプレビューします（空でもOK）。
             </div>
           </div>
 
@@ -368,7 +381,6 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
                 className={input}
               />
             </div>
-
             <div className="flex items-end gap-2">
               <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-200">
                 <input
@@ -429,9 +441,9 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
               const e = editMap[r.id] as Partial<InstructorRow> | undefined;
               const current = editing ? (e as InstructorRow) : r;
 
-              const previewSrc =
-                (editing ? current.photoUrl : r.photoUrl) ||
-                "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==";
+              const file = editFileMap[r.id] ?? null;
+              const localPreview = file ? URL.createObjectURL(file) : "";
+              const hasDbPhoto = Boolean(r.photoMime);
 
               return (
                 <div
@@ -485,35 +497,66 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
 
                         <div>
                           <div className="text-[11px] font-semibold text-gray-600 dark:text-gray-300">
-                            photoUrl
+                            画像
                           </div>
+
                           <div className="mt-1 flex items-center gap-3">
-                            <img src={previewSrc} alt="" className={thumb} />
+                            <img
+                              src={
+                                localPreview ||
+                                (hasDbPhoto
+                                  ? photoUrl(r.id)
+                                  : "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==")
+                              }
+                              className={thumb}
+                              alt=""
+                            />
+
                             {editing ? (
-                              <input
-                                value={(current.photoUrl ?? "") as any}
-                                onChange={(ev) =>
-                                  updateEditField(r.id, {
-                                    photoUrl: ev.target.value,
-                                  })
-                                }
-                                className={input}
-                                placeholder="https://.../teacher.jpg"
-                              />
+                              <div className="flex w-full flex-col gap-2">
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  onChange={(ev) => {
+                                    const f = ev.target.files?.[0] ?? null;
+                                    setEditFileMap((p) => ({
+                                      ...p,
+                                      [r.id]: f,
+                                    }));
+                                    if (f)
+                                      setClearPhotoMap((p) => ({
+                                        ...p,
+                                        [r.id]: false,
+                                      }));
+                                  }}
+                                  className={input}
+                                />
+
+                                <label className="flex items-center gap-2 text-xs text-gray-700 dark:text-gray-200">
+                                  <input
+                                    type="checkbox"
+                                    checked={Boolean(
+                                      clearPhotoMap[r.id] ?? false
+                                    )}
+                                    onChange={(ev) => {
+                                      const checked = ev.target.checked;
+                                      setClearPhotoMap((p) => ({
+                                        ...p,
+                                        [r.id]: checked,
+                                      }));
+                                      if (checked)
+                                        setEditFileMap((p) => ({
+                                          ...p,
+                                          [r.id]: null,
+                                        }));
+                                    }}
+                                  />
+                                  画像を削除（DBからnullにする）
+                                </label>
+                              </div>
                             ) : (
-                              <div className="truncate text-[12px] text-gray-700 dark:text-gray-200">
-                                {r.photoUrl ? (
-                                  <a
-                                    href={r.photoUrl}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    className="underline"
-                                  >
-                                    {r.photoUrl}
-                                  </a>
-                                ) : (
-                                  <span className="text-gray-400">未設定</span>
-                                )}
+                              <div className="text-xs text-gray-500 dark:text-gray-400">
+                                {hasDbPhoto ? "DB保存済み" : "未設定"}
                               </div>
                             )}
                           </div>
@@ -588,7 +631,6 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
                           >
                             編集
                           </button>
-
                           <button
                             type="button"
                             onClick={() => deactivate(r.id)}
@@ -634,7 +676,7 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
       </div>
 
       <div className="mt-4 text-xs text-gray-500 dark:text-gray-400">
-        次：<code className={codePill}>/admin/diagnosis/links</code>
+        次：<code className={codePill}>/admin/diagnosis/links</code>{" "}
         に戻って、Result と Instructor をチェックで紐づけしてください。
       </div>
     </div>

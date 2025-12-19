@@ -150,6 +150,10 @@ model DiagnosisInstructor {
   sortOrder Int      @default(0)
   isActive  Boolean  @default(true)
 
+  // ★ 画像をDB保存（バイナリ）
+  photoData Bytes?   // 画像バイナリ
+  photoMime String?  // "image/jpeg" など
+
   // 診断結果に紐づく（多対多）
   results   DiagnosisResult[] @relation("ResultInstructors")
 
