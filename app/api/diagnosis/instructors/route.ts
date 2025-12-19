@@ -60,7 +60,6 @@ export async function GET(req: NextRequest) {
       sortOrder: true,
       isActive: true,
       photoMime: true,
-      photoData: true, // hasPhoto 判定用に取得（返さない）
     },
   });
 
@@ -133,7 +132,6 @@ export async function POST(req: NextRequest) {
         slug,
         sortOrder,
         isActive,
-        photoData,
         photoMime,
       },
       select: {
@@ -144,7 +142,6 @@ export async function POST(req: NextRequest) {
         sortOrder: true,
         isActive: true,
         photoMime: true,
-        photoData: true, // hasPhoto用
       },
     });
 
@@ -194,7 +191,6 @@ export async function POST(req: NextRequest) {
       sortOrder: true,
       isActive: true,
       photoMime: true,
-      photoData: true,
     },
   });
 
@@ -284,7 +280,6 @@ export async function PUT(req: NextRequest) {
         sortOrder: true,
         isActive: true,
         photoMime: true,
-        photoData: true,
       },
     });
 
@@ -344,7 +339,6 @@ export async function PUT(req: NextRequest) {
       sortOrder: true,
       isActive: true,
       photoMime: true,
-      photoData: true,
     },
   });
 
@@ -402,7 +396,6 @@ export async function DELETE(req: NextRequest) {
       sortOrder: true,
       isActive: true,
       photoMime: true,
-      photoData: true,
     },
   });
 
