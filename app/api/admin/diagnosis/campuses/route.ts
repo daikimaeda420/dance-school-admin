@@ -1,4 +1,4 @@
-// app/api/admin/diagnosis/campuses/route.ts
+// app/api/admin/diagnosis/courses/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
@@ -6,13 +6,11 @@ import { authOptions } from "@/lib/authOptions";
 
 async function ensureLoggedIn() {
   const session = await getServerSession(authOptions);
-  if (!session?.user?.email) {
-    return null;
-  }
+  if (!session?.user?.email) return null;
   return session;
 }
 
-// GET /api/admin/diagnosis/campuses?schoolId=xxx
+// GET /api/admin/diagnosis/courses?schoolId=xxx
 export async function GET(req: NextRequest) {
   const session = await ensureLoggedIn();
   if (!session) {
@@ -29,15 +27,15 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  const campuses = await prisma.diagnosisCampus.findMany({
+  const courses = await prisma.diagnosisCourse.findMany({
     where: { schoolId },
     orderBy: { sortOrder: "asc" },
   });
 
-  return NextResponse.json(campuses);
+  return NextResponse.json(courses);
 }
 
-// POST /api/admin/diagnosis/campuses
+// POST /api/admin/diagnosis/courses
 export async function POST(req: NextRequest) {
   const session = await ensureLoggedIn();
   if (!session) {
@@ -63,16 +61,15 @@ export async function POST(req: NextRequest) {
 
   const sortOrder = typeof body.sortOrder === "number" ? body.sortOrder : 0;
 
-  const campus = await prisma.diagnosisCampus.create({
+  const course = await prisma.diagnosisCourse.create({
     data: {
       schoolId: body.schoolId,
       label: body.label,
       slug: body.slug,
       sortOrder,
-      isOnline: !!body.isOnline,
       isActive: body.isActive !== false,
     },
   });
 
-  return NextResponse.json(campus, { status: 201 });
+  return NextResponse.json(course, { status: 201 });
 }
