@@ -21,6 +21,7 @@ function toNum(v: any, fallback: number) {
   return Number.isFinite(n) ? n : fallback;
 }
 
+const MAX_IMAGE_BYTES = 3 * 1024 * 1024; // 3MB
 function json(message: string, status = 400) {
   return NextResponse.json({ message }, { status });
 }
@@ -49,7 +50,6 @@ export async function GET(req: NextRequest) {
       },
     });
 
-    // フロントが配列前提で map するので、配列で返す
     return NextResponse.json(
       rows.map((r) => ({
         ...r,
@@ -62,71 +62,56 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// POST /api/diagnosis/instructors (multipart or json)
+// POST /api/diagnosis/instructors
+// multipart/form-data: {id, schoolId, label, slug, sortOrder, isActive, file?}
 export async function POST(req: NextRequest) {
   try {
     const session = await ensureLoggedIn();
     if (!session) return json("Unauthorized", 401);
 
     const ct = req.headers.get("content-type") || "";
-
-    // multipart/form-data
-    if (ct.includes("multipart/form-data")) {
-      const fd = await req.formData();
-
-      const id = String(fd.get("id") ?? "").trim();
-      const schoolId = String(fd.get("schoolId") ?? "").trim();
-      const label = String(fd.get("label") ?? "").trim();
-      const slug = String(fd.get("slug") ?? "").trim();
-      const sortOrder = toNum(fd.get("sortOrder"), 0);
-      const isActive = toBool(fd.get("isActive"), true);
-
-      if (!id || !schoolId || !label || !slug) {
-        return json("id / schoolId / label / slug は必須です", 400);
-      }
-
-      // 画像は /api/diagnosis/instructors/photo に任せる（ここでは保存しない）
-      // file が来ても無視してOK（UI互換のため）
-
-      const created = await prisma.diagnosisInstructor.create({
-        data: { id, schoolId, label, slug, sortOrder, isActive },
-        select: {
-          id: true,
-          schoolId: true,
-          label: true,
-          slug: true,
-          sortOrder: true,
-          isActive: true,
-          photoMime: true,
-        },
-      });
-
-      return NextResponse.json(
-        { ...created, photoMime: created.photoMime ?? null },
-        { status: 201 }
-      );
+    if (!ct.includes("multipart/form-data")) {
+      return json("multipart/form-data が必要です", 400);
     }
 
-    // JSON
-    const body = await req.json().catch(() => null);
-    if (
-      !body ||
-      typeof body.id !== "string" ||
-      typeof body.schoolId !== "string" ||
-      typeof body.label !== "string" ||
-      typeof body.slug !== "string"
-    ) {
+    const fd = await req.formData();
+    const id = String(fd.get("id") ?? "").trim();
+    const schoolId = String(fd.get("schoolId") ?? "").trim();
+    const label = String(fd.get("label") ?? "").trim();
+    const slug = String(fd.get("slug") ?? "").trim();
+    const sortOrder = toNum(fd.get("sortOrder"), 0);
+    const isActive = toBool(fd.get("isActive"), true);
+
+    if (!id || !schoolId || !label || !slug) {
       return json("id / schoolId / label / slug は必須です", 400);
+    }
+
+    const file = fd.get("file");
+    let photoMime: string | null = null;
+    let photoData: Buffer | null = null;
+
+    if (file && file instanceof File && file.size > 0) {
+      if (file.size > MAX_IMAGE_BYTES) {
+        return json(
+          `画像サイズが大きすぎます（上限 ${MAX_IMAGE_BYTES} bytes）`,
+          400
+        );
+      }
+      photoMime = file.type || "application/octet-stream";
+      const ab = await file.arrayBuffer();
+      photoData = Buffer.from(ab);
     }
 
     const created = await prisma.diagnosisInstructor.create({
       data: {
-        id: body.id.trim(),
-        schoolId: body.schoolId.trim(),
-        label: body.label.trim(),
-        slug: body.slug.trim(),
-        sortOrder: typeof body.sortOrder === "number" ? body.sortOrder : 0,
-        isActive: body.isActive !== false,
+        id,
+        schoolId,
+        label,
+        slug,
+        sortOrder,
+        isActive,
+        photoMime,
+        photoData, // ★ここで保存
       },
       select: {
         id: true,
@@ -149,87 +134,60 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// PUT /api/diagnosis/instructors (multipart or json)
+// PUT /api/diagnosis/instructors
+// multipart/form-data: {id, schoolId, label, slug, sortOrder, isActive, file?, clearPhoto?}
 export async function PUT(req: NextRequest) {
   try {
     const session = await ensureLoggedIn();
     if (!session) return json("Unauthorized", 401);
 
     const ct = req.headers.get("content-type") || "";
-
-    if (ct.includes("multipart/form-data")) {
-      const fd = await req.formData();
-
-      const id = String(fd.get("id") ?? "").trim();
-      const schoolId = String(fd.get("schoolId") ?? "").trim();
-      const label = String(fd.get("label") ?? "").trim();
-      const slug = String(fd.get("slug") ?? "").trim();
-      const sortOrder = toNum(fd.get("sortOrder"), 0);
-      const isActive = toBool(fd.get("isActive"), true);
-
-      if (!id || !schoolId || !label || !slug) {
-        return json("id / schoolId / label / slug は必須です", 400);
-      }
-
-      const existing = await prisma.diagnosisInstructor.findFirst({
-        where: { id, schoolId },
-        select: { id: true },
-      });
-      if (!existing) return json("対象が見つかりません", 404);
-
-      // 画像は photo API に任せるのでここでは触らない
-      // clearPhoto が来ても photoMime を null にするだけ（photo API と整合とるならここも不要）
-      const clearPhoto = toBool(fd.get("clearPhoto"), false);
-
-      const data: any = { label, slug, sortOrder, isActive };
-      if (clearPhoto) data.photoMime = null;
-
-      const updated = await prisma.diagnosisInstructor.update({
-        where: { id: existing.id },
-        data,
-        select: {
-          id: true,
-          schoolId: true,
-          label: true,
-          slug: true,
-          sortOrder: true,
-          isActive: true,
-          photoMime: true,
-        },
-      });
-
-      return NextResponse.json({
-        ...updated,
-        photoMime: updated.photoMime ?? null,
-      });
+    if (!ct.includes("multipart/form-data")) {
+      return json("multipart/form-data が必要です", 400);
     }
 
-    // JSON
-    const body = await req.json().catch(() => null);
-    if (
-      !body ||
-      typeof body.id !== "string" ||
-      typeof body.schoolId !== "string" ||
-      typeof body.label !== "string" ||
-      typeof body.slug !== "string"
-    ) {
+    const fd = await req.formData();
+    const id = String(fd.get("id") ?? "").trim();
+    const schoolId = String(fd.get("schoolId") ?? "").trim();
+    const label = String(fd.get("label") ?? "").trim();
+    const slug = String(fd.get("slug") ?? "").trim();
+    const sortOrder = toNum(fd.get("sortOrder"), 0);
+    const isActive = toBool(fd.get("isActive"), true);
+    const clearPhoto = toBool(fd.get("clearPhoto"), false);
+
+    if (!id || !schoolId || !label || !slug) {
       return json("id / schoolId / label / slug は必須です", 400);
     }
 
     const existing = await prisma.diagnosisInstructor.findFirst({
-      where: { id: body.id.trim(), schoolId: body.schoolId.trim() },
+      where: { id, schoolId },
       select: { id: true },
     });
     if (!existing) return json("対象が見つかりません", 404);
 
+    const data: any = { label, slug, sortOrder, isActive };
+
+    if (clearPhoto) {
+      data.photoMime = null;
+      data.photoData = null;
+    } else {
+      const file = fd.get("file");
+      if (file && file instanceof File && file.size > 0) {
+        if (file.size > MAX_IMAGE_BYTES) {
+          return json(
+            `画像サイズが大きすぎます（上限 ${MAX_IMAGE_BYTES} bytes）`,
+            400
+          );
+        }
+        data.photoMime = file.type || "application/octet-stream";
+        const ab = await file.arrayBuffer();
+        data.photoData = Buffer.from(ab);
+      }
+    }
+
     const updated = await prisma.diagnosisInstructor.update({
       where: { id: existing.id },
-      data: {
-        label: body.label.trim(),
-        slug: body.slug.trim(),
-        sortOrder: typeof body.sortOrder === "number" ? body.sortOrder : 0,
-        isActive: body.isActive !== false,
-      },
+      data,
       select: {
         id: true,
         schoolId: true,
