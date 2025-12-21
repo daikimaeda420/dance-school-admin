@@ -88,7 +88,7 @@ export async function POST(req: NextRequest) {
 
     const file = fd.get("file");
     let photoMime: string | null = null;
-    let photoData: Buffer | null = null;
+    let photoData: Uint8Array | null = null; // ✅ Buffer -> Uint8Array
 
     if (file && file instanceof File && file.size > 0) {
       if (file.size > MAX_IMAGE_BYTES) {
@@ -99,7 +99,7 @@ export async function POST(req: NextRequest) {
       }
       photoMime = file.type || "application/octet-stream";
       const ab = await file.arrayBuffer();
-      photoData = Buffer.from(ab);
+      photoData = new Uint8Array(ab); // ✅ Buffer.from -> Uint8Array
     }
 
     const created = await prisma.diagnosisInstructor.create({
@@ -181,7 +181,7 @@ export async function PUT(req: NextRequest) {
         }
         data.photoMime = file.type || "application/octet-stream";
         const ab = await file.arrayBuffer();
-        data.photoData = Buffer.from(ab);
+        data.photoData = new Uint8Array(ab); // ✅ Buffer.from -> Uint8Array
       }
     }
 
