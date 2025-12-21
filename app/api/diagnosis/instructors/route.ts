@@ -142,8 +142,6 @@ export async function POST(req: NextRequest) {
           sortOrder,
           isActive,
           photoMime,
-          // ▼ schema に photoData が無い場合、この1行を削除してください
-          photoData,
         } as any,
         select: {
           id: true,
@@ -236,7 +234,6 @@ export async function PUT(req: NextRequest) {
 
       if (clearPhoto) {
         data.photoMime = null;
-        data.photoData = null; // ▼ schema に photoData が無い場合、この行も削除
       } else if (file && file instanceof File && file.size > 0) {
         if (file.size > MAX_IMAGE_BYTES) {
           return json(
@@ -246,7 +243,6 @@ export async function PUT(req: NextRequest) {
         }
         data.photoMime = file.type || "application/octet-stream";
         const ab = await file.arrayBuffer();
-        data.photoData = Buffer.from(ab); // ▼ schema に photoData が無い場合、この行も削除
       }
 
       const updated = await prisma.diagnosisInstructor.update({
