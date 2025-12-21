@@ -63,7 +63,6 @@ export async function GET(req: NextRequest) {
 }
 
 // POST /api/diagnosis/instructors
-// multipart/form-data: {id, schoolId, label, slug, sortOrder, isActive, file?}
 export async function POST(req: NextRequest) {
   try {
     const session = await ensureLoggedIn();
@@ -88,7 +87,7 @@ export async function POST(req: NextRequest) {
 
     const file = fd.get("file");
     let photoMime: string | null = null;
-    let photoData: Uint8Array | null = null; // ✅ Buffer -> Uint8Array
+    let photoData: Uint8Array | null = null;
 
     if (file && file instanceof File && file.size > 0) {
       if (file.size > MAX_IMAGE_BYTES) {
@@ -99,7 +98,7 @@ export async function POST(req: NextRequest) {
       }
       photoMime = file.type || "application/octet-stream";
       const ab = await file.arrayBuffer();
-      photoData = new Uint8Array(ab); // ✅ Buffer.from -> Uint8Array
+      photoData = new Uint8Array(ab);
     }
 
     const created = await prisma.diagnosisInstructor.create({
@@ -111,7 +110,7 @@ export async function POST(req: NextRequest) {
         sortOrder,
         isActive,
         photoMime,
-        photoData, // ★ここで保存
+        photoData: photoData as any, // ✅ ここだけ型落とし（Prisma Bytes用）
       },
       select: {
         id: true,
@@ -135,7 +134,6 @@ export async function POST(req: NextRequest) {
 }
 
 // PUT /api/diagnosis/instructors
-// multipart/form-data: {id, schoolId, label, slug, sortOrder, isActive, file?, clearPhoto?}
 export async function PUT(req: NextRequest) {
   try {
     const session = await ensureLoggedIn();
@@ -181,7 +179,7 @@ export async function PUT(req: NextRequest) {
         }
         data.photoMime = file.type || "application/octet-stream";
         const ab = await file.arrayBuffer();
-        data.photoData = new Uint8Array(ab); // ✅ Buffer.from -> Uint8Array
+        data.photoData = new Uint8Array(ab) as any; // ✅ ここも型落とし
       }
     }
 
