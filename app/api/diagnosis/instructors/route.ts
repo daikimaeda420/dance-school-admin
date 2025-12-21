@@ -4,6 +4,12 @@ import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
 
+import { NextResponse } from "next/server";
+
+export async function GET() {
+  return NextResponse.json({ ok: true });
+}
+
 async function ensureLoggedIn() {
   const session = await getServerSession(authOptions);
   return session?.user?.email ? session : null;
