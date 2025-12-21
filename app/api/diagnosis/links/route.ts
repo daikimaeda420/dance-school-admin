@@ -10,62 +10,117 @@ async function ensureLoggedIn() {
   return session?.user?.email ? session : null;
 }
 
-function json(message: string, status = 400, extra?: any) {
-  return NextResponse.json({ message, ...extra }, { status });
+function ok(data: any) {
+  return NextResponse.json({ ok: true, ...data });
+}
+function ng(message: string, status = 400, extra?: any) {
+  return NextResponse.json({ ok: false, message, ...extra }, { status });
 }
 
-/**
- * PUT /api/diagnosis/links
- * body: { schoolId: string, resultId: string, genreIds: string[] }
- */
-export async function PUT(req: NextRequest) {
-  try {
-    const session = await ensureLoggedIn();
-    if (!session) return json("Unauthorized", 401);
+type Body =
+  | {
+      schoolId: string;
+      resultId: string;
+      genreIds: string[]; // 一括置換
+    }
+  | {
+      schoolId: string;
+      resultId: string;
+      genreId: string; // トグル
+      checked: boolean;
+    };
 
-    const body = await req.json().catch(() => null);
-    const schoolId = String(body?.schoolId ?? "").trim();
-    const resultId = String(body?.resultId ?? "").trim();
-    const genreIds = Array.isArray(body?.genreIds)
-      ? body.genreIds.map((x: any) => String(x).trim()).filter(Boolean)
-      : [];
+async function handle(req: NextRequest) {
+  const session = await ensureLoggedIn();
+  if (!session) return ng("Unauthorized", 401);
 
-    if (!schoolId || !resultId)
-      return json("schoolId / resultId が必要です", 400);
+  const body = (await req.json().catch(() => null)) as Partial<Body> | null;
+  const schoolId = String((body as any)?.schoolId ?? "").trim();
+  const resultId = String((body as any)?.resultId ?? "").trim();
 
-    // ✅ Result がその schoolId に存在するか
-    const result = await prisma.diagnosisResult.findFirst({
-      where: { id: resultId, schoolId },
-      select: { id: true },
-    });
-    if (!result) return json("DiagnosisResult が見つかりません", 404);
+  if (!schoolId || !resultId) {
+    return ng("schoolId / resultId が必要です", 400);
+  }
 
-    // ✅ Genre も同じ schoolId のものだけに絞る（他校のID混入でFK/論理破綻を防ぐ）
-    const validGenres = await prisma.diagnosisGenre.findMany({
+  // ✅ Result がこの schoolId に存在するか
+  const result = await prisma.diagnosisResult.findFirst({
+    where: { id: resultId, schoolId },
+    select: { id: true },
+  });
+  if (!result) return ng("DiagnosisResult が見つかりません", 404);
+
+  // --- A) 一括置換 { genreIds: [] } ---
+  if (Array.isArray((body as any)?.genreIds)) {
+    const genreIds = (body as any).genreIds
+      .map((x: any) => String(x).trim())
+      .filter(Boolean);
+
+    // ✅ 同一schoolIdのGenreだけ採用
+    const valid = await prisma.diagnosisGenre.findMany({
       where: { schoolId, id: { in: genreIds } },
       select: { id: true },
     });
-    const validGenreIds = validGenres.map((g) => g.id);
+    const validIds = valid.map((g) => g.id);
 
-    // ✅ ここが重要：setで全解除 → connectで付け直し
-    const updated = await prisma.diagnosisResult.update({
+    // ✅ set -> connect で置換
+    await prisma.diagnosisResult.update({
       where: { id: resultId },
       data: {
         genres: {
           set: [],
-          connect: validGenreIds.map((id) => ({ id })),
+          connect: validIds.map((id) => ({ id })),
         },
       },
       select: { id: true },
     });
 
-    return NextResponse.json({
-      ok: true,
-      resultId: updated.id,
-      linkedGenreIds: validGenreIds,
-    });
+    return ok({ mode: "replace", resultId, linkedGenreIds: validIds });
+  }
+
+  // --- B) トグル { genreId, checked } ---
+  const genreId = String((body as any)?.genreId ?? "").trim();
+  const checked = Boolean((body as any)?.checked);
+
+  if (!genreId) return ng("genreId が必要です", 400);
+
+  // ✅ Genre がこの schoolId に存在するか
+  const genre = await prisma.diagnosisGenre.findFirst({
+    where: { id: genreId, schoolId },
+    select: { id: true },
+  });
+  if (!genre) return ng("DiagnosisGenre が見つかりません", 404);
+
+  await prisma.diagnosisResult.update({
+    where: { id: resultId },
+    data: {
+      genres: checked
+        ? { connect: { id: genreId } }
+        : { disconnect: { id: genreId } },
+    },
+    select: { id: true },
+  });
+
+  return ok({ mode: "toggle", resultId, genreId, checked });
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    return await handle(req);
   } catch (e: any) {
-    console.error(e);
-    return json(e?.message ?? "紐づけ更新に失敗しました", 500);
+    console.error("links POST error:", e);
+    return ng(e?.message ?? "紐づけ更新に失敗しました", 500, {
+      detail: String(e?.meta?.cause ?? ""),
+    });
+  }
+}
+
+export async function PUT(req: NextRequest) {
+  try {
+    return await handle(req);
+  } catch (e: any) {
+    console.error("links PUT error:", e);
+    return ng(e?.message ?? "紐づけ更新に失敗しました", 500, {
+      detail: String(e?.meta?.cause ?? ""),
+    });
   }
 }
