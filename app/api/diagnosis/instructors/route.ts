@@ -1,10 +1,9 @@
-// app/api/diagnosis/instructors/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
 
-export const runtime = "nodejs"; // Buffer / Prisma のため
+export const runtime = "nodejs";
 
 async function ensureLoggedIn() {
   const session = await getServerSession(authOptions);
@@ -20,40 +19,6 @@ function toBool(v: any, fallback: boolean) {
 function toNum(v: any, fallback: number) {
   const n = typeof v === "number" ? v : Number(v);
   return Number.isFinite(n) ? n : fallback;
-}
-
-const MAX_IMAGE_BYTES = 3 * 1024 * 1024; // 3MB
-
-type InstructorRow = {
-  id: string;
-  schoolId: string;
-  label: string;
-  slug: string;
-  sortOrder: number;
-  isActive: boolean;
-  photoMime: string | null;
-  hasPhoto: boolean; // UI側が使う場合があるので付けておく
-};
-
-function normalizeInstructor(r: {
-  id: string;
-  schoolId: string;
-  label: string;
-  slug: string;
-  sortOrder: number;
-  isActive: boolean;
-  photoMime: string | null;
-}): InstructorRow {
-  return {
-    id: r.id,
-    schoolId: r.schoolId,
-    label: r.label,
-    slug: r.slug,
-    sortOrder: r.sortOrder,
-    isActive: r.isActive,
-    photoMime: r.photoMime ?? null,
-    hasPhoto: !!r.photoMime,
-  };
 }
 
 function json(message: string, status = 400) {
@@ -84,17 +49,20 @@ export async function GET(req: NextRequest) {
       },
     });
 
-    // ★フロントが data.map() するので「配列」で返す★
-    return NextResponse.json(rows.map(normalizeInstructor));
+    // フロントが配列前提で map するので、配列で返す
+    return NextResponse.json(
+      rows.map((r) => ({
+        ...r,
+        photoMime: r.photoMime ?? null,
+      }))
+    );
   } catch (e: any) {
     console.error(e);
     return json(e?.message ?? "DiagnosisInstructor の取得に失敗しました", 500);
   }
 }
 
-// POST /api/diagnosis/instructors
-// multipart/form-data: {id, schoolId, label, slug, sortOrder, isActive, file?}
-// JSON: {id, schoolId, label, slug, sortOrder, isActive}
+// POST /api/diagnosis/instructors (multipart or json)
 export async function POST(req: NextRequest) {
   try {
     const session = await ensureLoggedIn();
@@ -102,7 +70,7 @@ export async function POST(req: NextRequest) {
 
     const ct = req.headers.get("content-type") || "";
 
-    // multipart
+    // multipart/form-data
     if (ct.includes("multipart/form-data")) {
       const fd = await req.formData();
 
@@ -117,32 +85,11 @@ export async function POST(req: NextRequest) {
         return json("id / schoolId / label / slug は必須です", 400);
       }
 
-      const file = fd.get("file");
-      let photoData: Buffer | null = null;
-      let photoMime: string | null = null;
-
-      if (file && file instanceof File && file.size > 0) {
-        if (file.size > MAX_IMAGE_BYTES) {
-          return json(
-            `画像サイズが大きすぎます（上限 ${MAX_IMAGE_BYTES} bytes）`,
-            400
-          );
-        }
-        photoMime = file.type || "application/octet-stream";
-        const ab = await file.arrayBuffer();
-        photoData = Buffer.from(ab);
-      }
+      // 画像は /api/diagnosis/instructors/photo に任せる（ここでは保存しない）
+      // file が来ても無視してOK（UI互換のため）
 
       const created = await prisma.diagnosisInstructor.create({
-        data: {
-          id,
-          schoolId,
-          label,
-          slug,
-          sortOrder,
-          isActive,
-          photoMime,
-        } as any,
+        data: { id, schoolId, label, slug, sortOrder, isActive },
         select: {
           id: true,
           schoolId: true,
@@ -154,7 +101,10 @@ export async function POST(req: NextRequest) {
         },
       });
 
-      return NextResponse.json(normalizeInstructor(created), { status: 201 });
+      return NextResponse.json(
+        { ...created, photoMime: created.photoMime ?? null },
+        { status: 201 }
+      );
     }
 
     // JSON
@@ -189,17 +139,17 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    return NextResponse.json(normalizeInstructor(created), { status: 201 });
+    return NextResponse.json(
+      { ...created, photoMime: created.photoMime ?? null },
+      { status: 201 }
+    );
   } catch (e: any) {
     console.error(e);
-    // Prisma の unique 制約などもここに出る
     return json(e?.message ?? "作成に失敗しました", 500);
   }
 }
 
-// PUT /api/diagnosis/instructors
-// multipart/form-data: {id, schoolId, label, slug, sortOrder, isActive, file?, clearPhoto?}
-// JSON: {id, schoolId, label, slug, sortOrder, isActive}
+// PUT /api/diagnosis/instructors (multipart or json)
 export async function PUT(req: NextRequest) {
   try {
     const session = await ensureLoggedIn();
@@ -216,7 +166,6 @@ export async function PUT(req: NextRequest) {
       const slug = String(fd.get("slug") ?? "").trim();
       const sortOrder = toNum(fd.get("sortOrder"), 0);
       const isActive = toBool(fd.get("isActive"), true);
-      const clearPhoto = toBool(fd.get("clearPhoto"), false);
 
       if (!id || !schoolId || !label || !slug) {
         return json("id / schoolId / label / slug は必須です", 400);
@@ -228,22 +177,12 @@ export async function PUT(req: NextRequest) {
       });
       if (!existing) return json("対象が見つかりません", 404);
 
-      const file = fd.get("file");
+      // 画像は photo API に任せるのでここでは触らない
+      // clearPhoto が来ても photoMime を null にするだけ（photo API と整合とるならここも不要）
+      const clearPhoto = toBool(fd.get("clearPhoto"), false);
 
       const data: any = { label, slug, sortOrder, isActive };
-
-      if (clearPhoto) {
-        data.photoMime = null;
-      } else if (file && file instanceof File && file.size > 0) {
-        if (file.size > MAX_IMAGE_BYTES) {
-          return json(
-            `画像サイズが大きすぎます（上限 ${MAX_IMAGE_BYTES} bytes）`,
-            400
-          );
-        }
-        data.photoMime = file.type || "application/octet-stream";
-        const ab = await file.arrayBuffer();
-      }
+      if (clearPhoto) data.photoMime = null;
 
       const updated = await prisma.diagnosisInstructor.update({
         where: { id: existing.id },
@@ -259,7 +198,10 @@ export async function PUT(req: NextRequest) {
         },
       });
 
-      return NextResponse.json(normalizeInstructor(updated));
+      return NextResponse.json({
+        ...updated,
+        photoMime: updated.photoMime ?? null,
+      });
     }
 
     // JSON
@@ -299,7 +241,10 @@ export async function PUT(req: NextRequest) {
       },
     });
 
-    return NextResponse.json(normalizeInstructor(updated));
+    return NextResponse.json({
+      ...updated,
+      photoMime: updated.photoMime ?? null,
+    });
   } catch (e: any) {
     console.error(e);
     return json(e?.message ?? "更新に失敗しました", 500);
@@ -337,7 +282,10 @@ export async function DELETE(req: NextRequest) {
       },
     });
 
-    return NextResponse.json(normalizeInstructor(updated));
+    return NextResponse.json({
+      ...updated,
+      photoMime: updated.photoMime ?? null,
+    });
   } catch (e: any) {
     console.error(e);
     return json(e?.message ?? "無効化に失敗しました", 500);
