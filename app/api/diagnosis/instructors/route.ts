@@ -33,6 +33,27 @@ type InstructorRow = {
   hasPhoto: boolean;
 };
 
+function normalizeInstructor(r: {
+  id: string;
+  schoolId: string;
+  label: string;
+  slug: string;
+  sortOrder: number;
+  isActive: boolean;
+  photoMime: string | null;
+}): InstructorRow {
+  return {
+    id: r.id,
+    schoolId: r.schoolId,
+    label: r.label,
+    slug: r.slug,
+    sortOrder: r.sortOrder,
+    isActive: r.isActive,
+    photoMime: r.photoMime ?? null,
+    hasPhoto: !!r.photoMime, // ✅ photoData を参照しない
+  };
+}
+
 // GET /api/diagnosis/instructors?schoolId=xxx
 export async function GET(req: NextRequest) {
   const session = await ensureLoggedIn();
@@ -63,18 +84,7 @@ export async function GET(req: NextRequest) {
     },
   });
 
-  const normalized: InstructorRow[] = rows.map((r) => ({
-    id: r.id,
-    schoolId: r.schoolId,
-    label: r.label,
-    slug: r.slug,
-    sortOrder: r.sortOrder,
-    isActive: r.isActive,
-    photoMime: r.photoMime ?? null,
-    hasPhoto: !!r.photoData && r.photoData.length > 0,
-  }));
-
-  return NextResponse.json(normalized);
+  return NextResponse.json(rows.map(normalizeInstructor));
 }
 
 // POST /api/diagnosis/instructors
@@ -121,9 +131,10 @@ export async function POST(req: NextRequest) {
       }
       photoMime = file.type || "application/octet-stream";
       const ab = await file.arrayBuffer();
-      photoData = Buffer.from(ab); // ✅ Bufferだけ
+      photoData = Buffer.from(ab);
     }
 
+    // ✅ photoData を保存する（ここが元コードのバグ）
     const created = await prisma.diagnosisInstructor.create({
       data: {
         id,
@@ -133,6 +144,7 @@ export async function POST(req: NextRequest) {
         sortOrder,
         isActive,
         photoMime,
+        photoData, // ✅ 追加
       },
       select: {
         id: true,
@@ -145,18 +157,7 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    const res: InstructorRow = {
-      id: created.id,
-      schoolId: created.schoolId,
-      label: created.label,
-      slug: created.slug,
-      sortOrder: created.sortOrder,
-      isActive: created.isActive,
-      photoMime: created.photoMime ?? null,
-      hasPhoto: !!created.photoData && created.photoData.length > 0,
-    };
-
-    return NextResponse.json(res, { status: 201 });
+    return NextResponse.json(normalizeInstructor(created), { status: 201 });
   }
 
   // JSON
@@ -194,18 +195,7 @@ export async function POST(req: NextRequest) {
     },
   });
 
-  const res: InstructorRow = {
-    id: created.id,
-    schoolId: created.schoolId,
-    label: created.label,
-    slug: created.slug,
-    sortOrder: created.sortOrder,
-    isActive: created.isActive,
-    photoMime: created.photoMime ?? null,
-    hasPhoto: !!created.photoData && created.photoData.length > 0,
-  };
-
-  return NextResponse.json(res, { status: 201 });
+  return NextResponse.json(normalizeInstructor(created), { status: 201 });
 }
 
 // PUT /api/diagnosis/instructors
@@ -266,7 +256,7 @@ export async function PUT(req: NextRequest) {
       }
       data.photoMime = file.type || "application/octet-stream";
       const ab = await file.arrayBuffer();
-      data.photoData = Buffer.from(ab); // ✅ Bufferだけ
+      data.photoData = Buffer.from(ab);
     }
 
     const updated = await prisma.diagnosisInstructor.update({
@@ -283,18 +273,7 @@ export async function PUT(req: NextRequest) {
       },
     });
 
-    const res: InstructorRow = {
-      id: updated.id,
-      schoolId: updated.schoolId,
-      label: updated.label,
-      slug: updated.slug,
-      sortOrder: updated.sortOrder,
-      isActive: updated.isActive,
-      photoMime: updated.photoMime ?? null,
-      hasPhoto: !!updated.photoData && updated.photoData.length > 0,
-    };
-
-    return NextResponse.json(res);
+    return NextResponse.json(normalizeInstructor(updated));
   }
 
   // JSON
@@ -342,18 +321,7 @@ export async function PUT(req: NextRequest) {
     },
   });
 
-  const res: InstructorRow = {
-    id: updated.id,
-    schoolId: updated.schoolId,
-    label: updated.label,
-    slug: updated.slug,
-    sortOrder: updated.sortOrder,
-    isActive: updated.isActive,
-    photoMime: updated.photoMime ?? null,
-    hasPhoto: !!updated.photoData && updated.photoData.length > 0,
-  };
-
-  return NextResponse.json(res);
+  return NextResponse.json(normalizeInstructor(updated));
 }
 
 // DELETE /api/diagnosis/instructors?id=xxx&schoolId=yyy（無効化）
@@ -399,16 +367,5 @@ export async function DELETE(req: NextRequest) {
     },
   });
 
-  const res: InstructorRow = {
-    id: updated.id,
-    schoolId: updated.schoolId,
-    label: updated.label,
-    slug: updated.slug,
-    sortOrder: updated.sortOrder,
-    isActive: updated.isActive,
-    photoMime: updated.photoMime ?? null,
-    hasPhoto: !!updated.photoData && updated.photoData.length > 0,
-  };
-
-  return NextResponse.json(res);
+  return NextResponse.json(normalizeInstructor(updated));
 }
