@@ -131,7 +131,7 @@ export async function POST(req: NextRequest) {
       }
       photoMime = file.type || "application/octet-stream";
       const ab = await file.arrayBuffer();
-      photoData = Buffer.from(ab);
+      photoData = new Uint8Array(ab);
     }
 
     // ✅ photoData を保存する（ここが元コードのバグ）
@@ -256,7 +256,7 @@ export async function PUT(req: NextRequest) {
       }
       data.photoMime = file.type || "application/octet-stream";
       const ab = await file.arrayBuffer();
-      data.photoData = Buffer.from(ab);
+      data.photoData = new Uint8Array(ab);
     }
 
     const updated = await prisma.diagnosisInstructor.update({
