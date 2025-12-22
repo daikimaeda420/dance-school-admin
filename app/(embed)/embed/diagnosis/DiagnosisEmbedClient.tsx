@@ -80,33 +80,44 @@ export default function DiagnosisEmbedClient({
     return searchParams.get("schoolId") ?? searchParams.get("school") ?? "";
   }, [schoolIdProp, searchParams]);
 
-  // ✅ Q1=校舎, Q3=ジャンル, Q4=講師 を差し替え
-  // ⚠️ Q2は「固定回答（config.ts）」にしたいので、courseOptions で差し替えしない
+  // ✅ 差し替え方針（仕様書通り）
+  // - Q1 校舎：管理画面連動（campusOptions）
+  // - Q2 経験：固定（config.ts）
+  // - Q3 年代：固定（config.ts）
+  // - Q4 ジャンル：管理画面連動（genreOptions）
+  // - Q5 先生：固定（config.ts）
+  // - Q6 不安：固定（config.ts）
   const questions = useMemo(() => {
     const hasAny =
       (campusOptions?.length ?? 0) > 0 ||
-      (genreOptions?.length ?? 0) > 0 ||
-      (instructorOptions?.length ?? 0) > 0;
+      (instructorOptions?.length ?? 0) > 0 ||
+      (genreOptions?.length ?? 0) > 0;
 
-    // Q2は固定なので courseOptions は判定に入れない（混乱防止）
+    // 何も渡ってないなら、そのまま固定QUESTIONSを使う
     if (!hasAny) return QUESTIONS;
 
     return QUESTIONS.map((q) => {
+      // Q1: 校舎（管理画面）
       if (q.id === "Q1" && campusOptions && campusOptions.length > 0) {
         return { ...q, options: campusOptions };
       }
 
-      // ❌ Q2は固定（config.ts）なので差し替えしない
-      // if (q.id === "Q2" && courseOptions && courseOptions.length > 0) {
-      //   return { ...q, options: courseOptions };
-      // }
+      // ✅ Q2: 固定（差し替えしない）
+      // ✅ Q3: 固定（差し替えしない）
 
-      if (q.id === "Q3" && genreOptions && genreOptions.length > 0) {
+      // Q4: ジャンル（管理画面）
+      if (q.id === "Q4" && genreOptions && genreOptions.length > 0) {
         return { ...q, options: genreOptions };
       }
+
+      // Q4で講師を差し替えていた旧設計が残っている場合だけ（今回は温存）
+      // ※仕様が「Q4=ジャンル、Q5=先生」なので、講師を使うならQ5差し替えに移す必要あり
+      // ただし今は「固定質問に戻す」が主目的なので、ここはいったん触らない方針でもOK
       if (q.id === "Q4" && instructorOptions && instructorOptions.length > 0) {
-        return { ...q, options: instructorOptions };
+        // ⚠️ genreOptions を優先したいので instructorOptions は適用しない
+        // return { ...q, options: instructorOptions };
       }
+
       return q;
     });
   }, [campusOptions, genreOptions, instructorOptions]);
@@ -415,7 +426,7 @@ export default function DiagnosisEmbedClient({
                   : "border-gray-200 bg-white text-gray-800 hover:border-blue-300 hover:bg-blue-50/40",
               ].join(" ")}
             >
-              {/* ✅ IMGを消して固定文言だけ表示 */}
+              {/* ✅ IMGを消してテキストだけ表示 */}
               <div className="flex-1 leading-snug">{opt.label}</div>
             </button>
           );
