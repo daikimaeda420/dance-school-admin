@@ -106,9 +106,11 @@ export default function DiagnosisEmbedClient({
   const canGoNext = !!currentAnswer || !!result;
 
   // -----------------------
-  // 診断実行
+  // 診断実行（answersを引数で受け取れるように）
   // -----------------------
-  const handleSubmit = async () => {
+  const handleSubmit = async (answersOverride?: AnswersState) => {
+    const finalAnswers = answersOverride ?? answers;
+
     if (!schoolId) {
       setError(
         "schoolId が指定されていません。（URL: ?schoolId=xxx もしくは ?school=xxx）"
@@ -116,15 +118,17 @@ export default function DiagnosisEmbedClient({
       return;
     }
 
-    // Q1〜Q6 が埋まっているかチェック（QUESTIONSに合わせる）
+    // Q1〜Q6 が埋まっているかチェック
     const missing: string[] = [];
     (["Q1", "Q2", "Q3", "Q4", "Q5", "Q6"] as DiagnosisQuestionId[]).forEach(
       (id) => {
-        if (!answers[id]) missing.push(id);
+        if (!finalAnswers[id]) missing.push(id);
       }
     );
+
     if (missing.length > 0) {
-      setError("未回答の質問があります。");
+      // どれが未回答か分かるように（デバッグにも役立つ）
+      setError(`未回答の質問があります: ${missing.join(", ")}`);
       return;
     }
 
@@ -137,7 +141,7 @@ export default function DiagnosisEmbedClient({
       const res = await fetch("/api/diagnosis/result", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ schoolId, answers }),
+        body: JSON.stringify({ schoolId, answers: finalAnswers }),
       });
 
       if (!res.ok) {
@@ -160,27 +164,30 @@ export default function DiagnosisEmbedClient({
   // 質問を選択したとき（自動で次へ / 最後なら自動診断）
   // -----------------------
   const handleSelectOption = (qId: DiagnosisQuestionId, optionId: string) => {
-    setAnswers((prev) => ({
-      ...prev,
-      [qId]: optionId,
-    }));
-
     if (!currentQuestion) return;
 
-    if (qId === currentQuestion.id) {
-      const isLastStep = stepIndex === totalSteps - 1;
+    const isLastStep =
+      qId === currentQuestion.id && stepIndex === totalSteps - 1;
 
-      if (isLastStep) {
-        setTimeout(() => {
-          void handleSubmit();
-        }, 150);
-      } else {
-        setTimeout(() => {
-          setStepIndex((prev) => prev + 1);
-          setError(null);
-        }, 150);
+    setAnswers((prev) => {
+      const next = { ...prev, [qId]: optionId };
+
+      if (qId === currentQuestion.id) {
+        if (isLastStep) {
+          // ✅ state反映待ち問題を回避：確定値(next)で送信する
+          setTimeout(() => {
+            void handleSubmit(next);
+          }, 0);
+        } else {
+          setTimeout(() => {
+            setStepIndex((s) => s + 1);
+            setError(null);
+          }, 150);
+        }
       }
-    }
+
+      return next;
+    });
   };
 
   const handlePrev = () => {
