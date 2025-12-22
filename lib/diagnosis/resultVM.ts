@@ -1,6 +1,13 @@
 // lib/diagnosis/resultVM.ts
 import { QUESTIONS, concernMessages, DiagnosisQuestionId } from "./config";
-import { selectMatches, MatchContext, PairLike, ScoredPair } from "./score";
+import {
+  selectMatches,
+  MatchContext,
+  PairLike,
+  ScoredPair,
+  ClassLike,
+  TeacherLike,
+} from "./score";
 import {
   LEVEL_RESULT_COPY,
   AGE_RESULT_COPY,
@@ -11,7 +18,10 @@ import {
 type AnswersByQuestion = Partial<Record<DiagnosisQuestionId, string>>;
 // 例：{ Q1:"shibuya", Q2:"2-2", Q3:"3-5", ... }（option.id を入れる想定）
 
-export type DiagnosisResultVM<TClass = any, TTeacher = any> = {
+export type DiagnosisResultVM<
+  TClass extends ClassLike = ClassLike,
+  TTeacher extends TeacherLike = TeacherLike
+> = {
   pattern: "A" | "B";
   best: ScoredPair<TClass, TTeacher>;
   worst: ScoredPair<TClass, TTeacher>;
@@ -59,13 +69,15 @@ export function buildMatchContextFromAnswers(
 }
 
 export function buildDiagnosisResultVM<
-  TClass extends { name?: string; genres?: string[] },
-  TTeacher extends { name?: string }
+  TClass extends ClassLike,
+  TTeacher extends TeacherLike
 >(
   answers: AnswersByQuestion,
   pairs: PairLike<TClass, TTeacher>[]
 ): DiagnosisResultVM<TClass, TTeacher> {
   const ctx = buildMatchContextFromAnswers(answers);
+
+  // ✅ selectMatches が要求する型 (PairLike<ClassLike, TeacherLike>[]) と一致する
   const { pattern, best, worst, scored } = selectMatches(pairs, ctx);
 
   const optQ2 = getOption("Q2", answers.Q2);
