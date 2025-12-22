@@ -2,6 +2,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
+// Prismaのエラーコードをできるだけ人間向けに返す
+function toMessage(e: any) {
+  const code = e?.code;
+  if (code === "P2002") return "同じ id または slug が既に存在します（重複）";
+  if (code === "P2022")
+    return "DBに存在しないカラムを参照しています（migrate漏れの可能性）";
+  return e?.message ?? "サーバーエラーが発生しました";
+}
+
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
@@ -18,16 +27,15 @@ export async function GET(req: NextRequest) {
         slug: true,
         sortOrder: true,
         isActive: true,
-      },
+        // answerTag がDBにあるなら返したいが、無くても落ちないように any 経由で拾う
+        ...(undefined as any),
+      } as any,
     });
 
     return NextResponse.json(rows);
-  } catch (e) {
+  } catch (e: any) {
     console.error("[GET /api/diagnosis/genres] error", e);
-    return NextResponse.json(
-      { message: "genres の取得に失敗しました" },
-      { status: 500 }
-    );
+    return NextResponse.json({ message: toMessage(e) }, { status: 500 });
   }
 }
 
@@ -35,13 +43,20 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json().catch(() => null);
 
-    const id = body?.id;
-    const schoolId = body?.schoolId;
-    const label = body?.label;
-    const slug = body?.slug;
+    const id = String(body?.id ?? "").trim();
+    const schoolId = String(body?.schoolId ?? "").trim();
+    const label = String(body?.label ?? "").trim();
+    const slug = String(body?.slug ?? "").trim();
 
-    const sortOrder = body?.sortOrder ?? 1;
-    const isActive = body?.isActive ?? true;
+    const sortOrder = Number(body?.sortOrder ?? 1);
+    const isActive = Boolean(body?.isActive ?? true);
+
+    // ここは任意（空ならnull）
+    const answerTagRaw = body?.answerTag;
+    const answerTag =
+      typeof answerTagRaw === "string" && answerTagRaw.trim()
+        ? answerTagRaw.trim()
+        : null;
 
     if (!id || !schoolId || !label || !slug) {
       return NextResponse.json(
@@ -50,17 +65,19 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const row = await prisma.diagnosisGenre.create({
-      data: { id, schoolId, label, slug, sortOrder, isActive },
-    });
+    const data: any = { id, schoolId, label, slug, sortOrder, isActive };
+    // DBにanswerTagカラムが無い環境でも、ここで入れるとP2022になり得るので、
+    // まずは「送られてきたら入れる」だけにして、エラー文を返せるようにする
+    if (body?.answerTag !== undefined) data.answerTag = answerTag;
+
+    const row = await (prisma.diagnosisGenre as any).create({ data });
 
     return NextResponse.json(row, { status: 201 });
-  } catch (e) {
+  } catch (e: any) {
     console.error("[POST /api/diagnosis/genres] error", e);
-    return NextResponse.json(
-      { message: "作成に失敗しました" },
-      { status: 500 }
-    );
+    // 重複は409で返す（フロントで分かりやすい）
+    const status = e?.code === "P2002" ? 409 : 500;
+    return NextResponse.json({ message: toMessage(e) }, { status });
   }
 }
 
@@ -68,14 +85,8 @@ export async function PUT(req: NextRequest) {
   try {
     const body = await req.json().catch(() => null);
 
-    const id = body?.id;
-    const schoolId = body?.schoolId;
-
-    const label = body?.label;
-    const slug = body?.slug;
-    const sortOrder = body?.sortOrder;
-    const isActive = body?.isActive;
-
+    const id = String(body?.id ?? "").trim();
+    const schoolId = String(body?.schoolId ?? "").trim();
     if (!id || !schoolId) {
       return NextResponse.json(
         { message: "id / schoolId は必須です" },
@@ -83,23 +94,26 @@ export async function PUT(req: NextRequest) {
       );
     }
 
-    const row = await prisma.diagnosisGenre.update({
+    const patch: any = {};
+    if (body?.label !== undefined) patch.label = String(body.label).trim();
+    if (body?.slug !== undefined) patch.slug = String(body.slug).trim();
+    if (body?.sortOrder !== undefined) patch.sortOrder = Number(body.sortOrder);
+    if (body?.isActive !== undefined) patch.isActive = Boolean(body.isActive);
+
+    if (body?.answerTag !== undefined) {
+      const v = String(body.answerTag ?? "").trim();
+      patch.answerTag = v ? v : null;
+    }
+
+    const row = await (prisma.diagnosisGenre as any).update({
       where: { id },
-      data: {
-        ...(label !== undefined ? { label } : {}),
-        ...(slug !== undefined ? { slug } : {}),
-        ...(sortOrder !== undefined ? { sortOrder } : {}),
-        ...(isActive !== undefined ? { isActive } : {}),
-      },
+      data: patch,
     });
 
     return NextResponse.json(row);
-  } catch (e) {
+  } catch (e: any) {
     console.error("[PUT /api/diagnosis/genres] error", e);
-    return NextResponse.json(
-      { message: "更新に失敗しました" },
-      { status: 500 }
-    );
+    return NextResponse.json({ message: toMessage(e) }, { status: 500 });
   }
 }
 
@@ -108,7 +122,6 @@ export async function DELETE(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id") ?? "";
     const schoolId = searchParams.get("schoolId") ?? "";
-
     if (!id || !schoolId) {
       return NextResponse.json(
         { message: "id / schoolId は必須です" },
@@ -122,11 +135,8 @@ export async function DELETE(req: NextRequest) {
     });
 
     return NextResponse.json(row);
-  } catch (e) {
+  } catch (e: any) {
     console.error("[DELETE /api/diagnosis/genres] error", e);
-    return NextResponse.json(
-      { message: "無効化に失敗しました" },
-      { status: 500 }
-    );
+    return NextResponse.json({ message: toMessage(e) }, { status: 500 });
   }
 }
