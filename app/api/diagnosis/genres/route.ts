@@ -10,19 +10,30 @@ export async function GET(req: NextRequest) {
   const rows = await prisma.diagnosisGenre.findMany({
     where: { schoolId, isActive: true },
     orderBy: { sortOrder: "asc" },
-    select: { id: true, label: true, slug: true },
+    // ✅ 管理画面用に answerTag も返す
+    select: {
+      id: true,
+      schoolId: true,
+      label: true,
+      slug: true,
+      answerTag: true,
+      sortOrder: true,
+      isActive: true,
+    },
   });
 
-  // Embed側は {id,label} だけでも動くが、管理画面用にslugも返してOK
   return NextResponse.json(rows);
 }
 
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null);
+
   const id = body?.id;
   const schoolId = body?.schoolId;
   const label = body?.label;
   const slug = body?.slug;
+
+  const answerTag = body?.answerTag ?? null; // ✅ 追加（null許容）
   const sortOrder = body?.sortOrder ?? 1;
   const isActive = body?.isActive ?? true;
 
@@ -34,7 +45,7 @@ export async function POST(req: NextRequest) {
   }
 
   const row = await prisma.diagnosisGenre.create({
-    data: { id, schoolId, label, slug, sortOrder, isActive },
+    data: { id, schoolId, label, slug, answerTag, sortOrder, isActive },
   });
 
   return NextResponse.json(row, { status: 201 });
@@ -42,10 +53,13 @@ export async function POST(req: NextRequest) {
 
 export async function PUT(req: NextRequest) {
   const body = await req.json().catch(() => null);
+
   const id = body?.id;
   const schoolId = body?.schoolId;
+
   const label = body?.label;
   const slug = body?.slug;
+  const answerTag = body?.answerTag; // ✅ 追加
   const sortOrder = body?.sortOrder;
   const isActive = body?.isActive;
 
@@ -56,15 +70,43 @@ export async function PUT(req: NextRequest) {
     );
   }
 
-  // slug が必須カラムなら、更新時に undefined にしない
   const row = await prisma.diagnosisGenre.update({
-    where: { id }, // ← もし複合Uniqueならここを合わせる（idがPKならこれでOK）
+    where: { id }, // idがPKならこれでOK
     data: {
       ...(label !== undefined ? { label } : {}),
       ...(slug !== undefined ? { slug } : {}),
+      // ✅ answerTag は「空文字なら null」に寄せる（管理画面のselect対策）
+      ...(answerTag !== undefined
+        ? {
+            answerTag: String(answerTag).trim()
+              ? String(answerTag).trim()
+              : null,
+          }
+        : {}),
       ...(sortOrder !== undefined ? { sortOrder } : {}),
       ...(isActive !== undefined ? { isActive } : {}),
     },
+  });
+
+  return NextResponse.json(row);
+}
+
+export async function DELETE(req: NextRequest) {
+  const { searchParams } = new URL(req.url);
+  const id = searchParams.get("id") ?? "";
+  const schoolId = searchParams.get("schoolId") ?? "";
+
+  if (!id || !schoolId) {
+    return NextResponse.json(
+      { message: "id / schoolId は必須です" },
+      { status: 400 }
+    );
+  }
+
+  // ✅ 「無効化」仕様に合わせて isActive=false
+  const row = await prisma.diagnosisGenre.update({
+    where: { id },
+    data: { isActive: false },
   });
 
   return NextResponse.json(row);

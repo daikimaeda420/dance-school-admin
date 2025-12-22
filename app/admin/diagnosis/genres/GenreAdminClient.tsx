@@ -12,6 +12,7 @@ type GenreRow = {
   schoolId: string;
   label: string;
   slug: string;
+  answerTag?: string | null; // ✅ 追加：Q4固定回答IDと紐づけ（例: "Genre_KPOP"）
   sortOrder: number;
   isActive: boolean;
 };
@@ -57,6 +58,15 @@ const btnDanger =
   "hover:bg-red-50 disabled:opacity-50 " +
   "dark:border-red-900/50 dark:bg-gray-900 dark:text-red-300 dark:hover:bg-red-950/40";
 
+// ✅ Q4固定質問（仕様書通り）
+const GENRE_ANSWER_TAG_OPTIONS: { value: string; label: string }[] = [
+  { value: "Genre_KPOP", label: "K-POP・流行りの曲" },
+  { value: "Genre_HIPHOP", label: "重低音の効いたカッコいい洋楽" },
+  { value: "Genre_JAZZ", label: "オシャレでゆったりした曲" },
+  { value: "Genre_ThemePark", label: "とにかく明るく楽しい曲" },
+  { value: "Genre_All", label: "まだ迷っている・色々見てみたい" },
+];
+
 export default function GenreAdminClient({ initialSchoolId }: Props) {
   // URLの schoolId を初期値に。無ければ空（手入力して読み込み）
   const [schoolId, setSchoolId] = useState<string>(initialSchoolId ?? "");
@@ -70,6 +80,7 @@ export default function GenreAdminClient({ initialSchoolId }: Props) {
   const [newId, setNewId] = useState("");
   const [newLabel, setNewLabel] = useState("");
   const [newSlug, setNewSlug] = useState("");
+  const [newAnswerTag, setNewAnswerTag] = useState<string>(""); // ✅ 追加（空=未設定）
   const [newSortOrder, setNewSortOrder] = useState<number>(1);
   const [newIsActive, setNewIsActive] = useState(true);
 
@@ -96,6 +107,7 @@ export default function GenreAdminClient({ initialSchoolId }: Props) {
         schoolId: String(d.schoolId ?? schoolId),
         label: String(d.label ?? ""),
         slug: String(d.slug ?? ""),
+        answerTag: d.answerTag ?? null, // ✅ 追加
         sortOrder: Number(d.sortOrder ?? 1),
         isActive: Boolean(d.isActive ?? true),
       }));
@@ -120,6 +132,7 @@ export default function GenreAdminClient({ initialSchoolId }: Props) {
     const id = newId.trim();
     const label = newLabel.trim();
     const slug = newSlug.trim();
+    const answerTag = newAnswerTag.trim() || null;
 
     if (!id || !label || !slug) {
       setError("id / label / slug は必須です");
@@ -137,6 +150,7 @@ export default function GenreAdminClient({ initialSchoolId }: Props) {
           schoolId,
           label,
           slug,
+          answerTag, // ✅ 追加
           sortOrder: newSortOrder,
           isActive: newIsActive,
         }),
@@ -149,6 +163,7 @@ export default function GenreAdminClient({ initialSchoolId }: Props) {
       setNewId("");
       setNewLabel("");
       setNewSlug("");
+      setNewAnswerTag(""); // ✅ 追加
       setNewSortOrder(1);
       setNewIsActive(true);
 
@@ -202,6 +217,7 @@ export default function GenreAdminClient({ initialSchoolId }: Props) {
           schoolId,
           label: e.label,
           slug: e.slug,
+          answerTag: (e.answerTag ?? "").trim() || null, // ✅ 追加
           sortOrder: e.sortOrder,
           isActive: e.isActive,
         }),
@@ -249,12 +265,16 @@ export default function GenreAdminClient({ initialSchoolId }: Props) {
 
   const hintSlug = useMemo(() => slugifyJa(newLabel), [newLabel]);
 
+  const answerTagLabel = (tag?: string | null) =>
+    GENRE_ANSWER_TAG_OPTIONS.find((x) => x.value === tag)?.label ?? "未設定";
+
   return (
     <div className="mx-auto w-full max-w-5xl p-6 text-gray-900 dark:text-gray-100">
       <div className="mb-4">
         <div className="text-base font-bold">診断編集：ジャンル管理</div>
         <div className="text-xs text-gray-500 dark:text-gray-400">
-          DiagnosisGenre を追加/編集/無効化します（slug は診断ロジックで必須）。
+          DiagnosisGenre を追加/編集/無効化します（slug
+          は管理/紐づけ用。診断のQ4は answerTag で紐づけます）。
         </div>
       </div>
 
@@ -311,7 +331,7 @@ export default function GenreAdminClient({ initialSchoolId }: Props) {
 
           <div>
             <div className="mb-1 text-xs font-semibold text-gray-600 dark:text-gray-300">
-              slug（診断回答で送る値）
+              slug（管理用）
             </div>
             <input
               value={newSlug}
@@ -319,6 +339,30 @@ export default function GenreAdminClient({ initialSchoolId }: Props) {
               className={monoInput}
               placeholder="例：kpop"
             />
+          </div>
+
+          {/* ✅ 追加：answerTag（Q4固定回答） */}
+          <div>
+            <div className="mb-1 text-xs font-semibold text-gray-600 dark:text-gray-300">
+              answerTag（診断Q4の固定回答と紐づけ）
+            </div>
+            <select
+              value={newAnswerTag}
+              onChange={(e) => setNewAnswerTag(e.target.value)}
+              className={input}
+            >
+              <option value="">未設定（診断Q4と紐づけない）</option>
+              {GENRE_ANSWER_TAG_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}（{o.value}）
+                </option>
+              ))}
+            </select>
+            <div className="mt-1 text-[11px] text-gray-500 dark:text-gray-400">
+              例：Q4で「K-POP・流行りの曲」を選ぶと
+              <code className={codePill}>Genre_KPOP</code>
+              が送られます。
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
@@ -496,6 +540,47 @@ export default function GenreAdminClient({ initialSchoolId }: Props) {
                             )}
                           </div>
                         </div>
+                      </div>
+
+                      {/* ✅ 追加：answerTag 表示/編集 */}
+                      <div className="mt-3">
+                        <div className="text-[11px] font-semibold text-gray-600 dark:text-gray-300">
+                          answerTag（診断Q4と紐づけ）
+                        </div>
+                        {editing ? (
+                          <select
+                            value={(current.answerTag ?? "") as string}
+                            onChange={(ev) =>
+                              updateEditField(r.id, {
+                                answerTag: ev.target.value || null,
+                              })
+                            }
+                            className={input}
+                          >
+                            <option value="">未設定</option>
+                            {GENRE_ANSWER_TAG_OPTIONS.map((o) => (
+                              <option key={o.value} value={o.value}>
+                                {o.label}（{o.value}）
+                              </option>
+                            ))}
+                          </select>
+                        ) : (
+                          <div className="mt-1 inline-flex items-center gap-2">
+                            <span
+                              className={[
+                                "rounded-full px-2 py-0.5 text-[11px] font-semibold",
+                                r.answerTag
+                                  ? "bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-200"
+                                  : "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300",
+                              ].join(" ")}
+                            >
+                              {r.answerTag ?? "未設定"}
+                            </span>
+                            <span className="text-[11px] text-gray-500 dark:text-gray-400">
+                              {answerTagLabel(r.answerTag)}
+                            </span>
+                          </div>
+                        )}
                       </div>
                     </div>
 
