@@ -128,10 +128,11 @@ model DiagnosisGenre {
   slug      String   // 例: "kpop", "hiphop"
 
   // ✅ 追加：固定質問(Q4)の回答タグと紐づける（例: "Genre_KPOP"）
-  answerTag String?  // 未設定もOK
 
   sortOrder Int      @default(0)
   isActive  Boolean  @default(true)
+
+  answerTag String?  // 例: "Genre_KPOP"
 
   // 診断結果に紐づく（多対多）
   results   DiagnosisResult[] @relation("ResultGenres")
@@ -143,6 +144,7 @@ model DiagnosisGenre {
   @@unique([schoolId, answerTag]) // ✅ 同一school内で同じtagの二重紐づけ防止
   @@index([schoolId, sortOrder])
   @@index([schoolId, isActive])
+  @@index([schoolId, answerTag])
 }
 
 // 講師選択肢（診断で選ばせたい講師のみ）
