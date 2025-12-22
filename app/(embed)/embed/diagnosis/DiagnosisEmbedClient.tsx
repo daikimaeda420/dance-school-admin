@@ -436,7 +436,7 @@ export default function DiagnosisEmbedClient({
           <button
             type="button"
             className="rounded-full bg-blue-600 px-4 py-1.5 text-xs font-semibold text-white disabled:opacity-40"
-            onClick={handleSubmit}
+            onClick={() => void handleSubmit()}
             disabled={!canGoNext || isSubmitting}
           >
             {isSubmitting ? "診断中..." : "診断結果を見る"}
