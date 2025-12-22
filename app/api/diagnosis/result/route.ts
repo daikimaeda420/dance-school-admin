@@ -89,10 +89,6 @@ async function resolveBySlug(args: {
       select: { id: true, label: true, slug: true, isOnline: true },
     });
   }
-  return prisma.diagnosisGenre.findFirst({
-    where: { schoolId, slug, isActive: true },
-    select: { id: true, label: true, slug: true },
-  });
 }
 
 type ResultRow = {
@@ -223,7 +219,6 @@ export async function POST(req: NextRequest) {
         id: campus.id,
         label: campus.label,
         slug: campus.slug,
-        isOnline: campus.isOnline,
       },
       genre: { id: genre.id, label: genre.label, slug: genre.slug },
 
