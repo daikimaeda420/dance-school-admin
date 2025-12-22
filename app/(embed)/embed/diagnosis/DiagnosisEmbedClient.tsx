@@ -80,23 +80,27 @@ export default function DiagnosisEmbedClient({
     return searchParams.get("schoolId") ?? searchParams.get("school") ?? "";
   }, [schoolIdProp, searchParams]);
 
-  // ✅ Q1=校舎, Q2=コース, Q3=ジャンル, Q4=講師 を差し替え
+  // ✅ Q1=校舎, Q3=ジャンル, Q4=講師 を差し替え
+  // ⚠️ Q2は「固定回答（config.ts）」にしたいので、courseOptions で差し替えしない
   const questions = useMemo(() => {
     const hasAny =
       (campusOptions?.length ?? 0) > 0 ||
-      (courseOptions?.length ?? 0) > 0 ||
       (genreOptions?.length ?? 0) > 0 ||
       (instructorOptions?.length ?? 0) > 0;
 
+    // Q2は固定なので courseOptions は判定に入れない（混乱防止）
     if (!hasAny) return QUESTIONS;
 
     return QUESTIONS.map((q) => {
       if (q.id === "Q1" && campusOptions && campusOptions.length > 0) {
         return { ...q, options: campusOptions };
       }
-      if (q.id === "Q2" && courseOptions && courseOptions.length > 0) {
-        return { ...q, options: courseOptions };
-      }
+
+      // ❌ Q2は固定（config.ts）なので差し替えしない
+      // if (q.id === "Q2" && courseOptions && courseOptions.length > 0) {
+      //   return { ...q, options: courseOptions };
+      // }
+
       if (q.id === "Q3" && genreOptions && genreOptions.length > 0) {
         return { ...q, options: genreOptions };
       }
@@ -105,7 +109,7 @@ export default function DiagnosisEmbedClient({
       }
       return q;
     });
-  }, [campusOptions, courseOptions, genreOptions, instructorOptions]);
+  }, [campusOptions, genreOptions, instructorOptions]);
 
   const currentQuestion = questions[stepIndex];
   const totalSteps = questions.length;
@@ -405,15 +409,13 @@ export default function DiagnosisEmbedClient({
               type="button"
               onClick={() => handleSelectOption(currentQuestion.id, opt.id)}
               className={[
-                "flex h-full items-start gap-3 rounded-2xl border px-3 py-3 text-left text-xs transition",
+                "flex h-full items-start rounded-2xl border px-3 py-3 text-left text-xs transition",
                 selected
                   ? "border-blue-600 bg-blue-50 text-blue-700 shadow-sm"
                   : "border-gray-200 bg-white text-gray-800 hover:border-blue-300 hover:bg-blue-50/40",
               ].join(" ")}
             >
-              <div className="mt-0.5 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-gray-100 text-[10px] text-gray-400">
-                IMG
-              </div>
+              {/* ✅ IMGを消して固定文言だけ表示 */}
               <div className="flex-1 leading-snug">{opt.label}</div>
             </button>
           );
