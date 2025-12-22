@@ -80,47 +80,21 @@ export default function DiagnosisEmbedClient({
     return searchParams.get("schoolId") ?? searchParams.get("school") ?? "";
   }, [schoolIdProp, searchParams]);
 
-  // ✅ 差し替え方針（仕様書通り）
+  // ✅ 仕様書通りの差し替え方針
   // - Q1 校舎：管理画面連動（campusOptions）
-  // - Q2 経験：固定（config.ts）
-  // - Q3 年代：固定（config.ts）
-  // - Q4 ジャンル：管理画面連動（genreOptions）
-  // - Q5 先生：固定（config.ts）
-  // - Q6 不安：固定（config.ts）
+  // - Q2〜Q6：固定（config.ts）
+  //   ※ courseOptions / genreOptions / instructorOptions は使わない
   const questions = useMemo(() => {
-    const hasAny =
-      (campusOptions?.length ?? 0) > 0 ||
-      (instructorOptions?.length ?? 0) > 0 ||
-      (genreOptions?.length ?? 0) > 0;
-
-    // 何も渡ってないなら、そのまま固定QUESTIONSを使う
-    if (!hasAny) return QUESTIONS;
+    const hasCampus = (campusOptions?.length ?? 0) > 0;
+    if (!hasCampus) return QUESTIONS;
 
     return QUESTIONS.map((q) => {
-      // Q1: 校舎（管理画面）
       if (q.id === "Q1" && campusOptions && campusOptions.length > 0) {
         return { ...q, options: campusOptions };
       }
-
-      // ✅ Q2: 固定（差し替えしない）
-      // ✅ Q3: 固定（差し替えしない）
-
-      // Q4: ジャンル（管理画面）
-      if (q.id === "Q4" && genreOptions && genreOptions.length > 0) {
-        return { ...q, options: genreOptions };
-      }
-
-      // Q4で講師を差し替えていた旧設計が残っている場合だけ（今回は温存）
-      // ※仕様が「Q4=ジャンル、Q5=先生」なので、講師を使うならQ5差し替えに移す必要あり
-      // ただし今は「固定質問に戻す」が主目的なので、ここはいったん触らない方針でもOK
-      if (q.id === "Q4" && instructorOptions && instructorOptions.length > 0) {
-        // ⚠️ genreOptions を優先したいので instructorOptions は適用しない
-        // return { ...q, options: instructorOptions };
-      }
-
-      return q;
+      return q; // ✅ Q2〜Q6 は固定のまま
     });
-  }, [campusOptions, genreOptions, instructorOptions]);
+  }, [campusOptions]);
 
   const currentQuestion = questions[stepIndex];
   const totalSteps = questions.length;
