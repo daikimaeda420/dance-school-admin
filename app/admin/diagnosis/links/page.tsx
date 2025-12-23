@@ -71,7 +71,9 @@ export default function DiagnosisLinksPage() {
           ),
           fetch(
             `/api/diagnosis/genres?schoolId=${encodeURIComponent(schoolId)}`,
-            { cache: "no-store" }
+            {
+              cache: "no-store",
+            }
           ),
         ]);
 
@@ -84,9 +86,8 @@ export default function DiagnosisLinksPage() {
         setResults(r);
         setGenres(g);
 
-        if (!selectedResultId && r.length > 0) {
-          setSelectedResultId(r[0].id);
-        }
+        // 初回のみ先頭を選択
+        setSelectedResultId((prev) => prev || (r[0]?.id ?? ""));
       } catch (e: any) {
         setError(e?.message ?? "読み込みに失敗しました");
       } finally {
@@ -104,6 +105,7 @@ export default function DiagnosisLinksPage() {
       setLoading(true);
       setError(null);
       try {
+        // NOTE: GET側は既存仕様（resultIdだけで紐づき配列を返す）を想定
         const res = await fetch(
           `/api/diagnosis/links?type=genres&resultId=${encodeURIComponent(
             selectedResultId
@@ -111,8 +113,9 @@ export default function DiagnosisLinksPage() {
           { cache: "no-store" }
         );
         if (!res.ok) throw new Error("紐づき取得に失敗しました");
+
         const ids = (await res.json()) as string[];
-        setLinkedGenreIds(new Set(ids));
+        setLinkedGenreIds(new Set(ids.map((v) => String(v))));
       } catch (e: any) {
         setError(e?.message ?? "紐づき取得に失敗しました");
       } finally {
@@ -126,50 +129,46 @@ export default function DiagnosisLinksPage() {
     [results, selectedResultId]
   );
 
+  // ✅ ここが重要：変更後の set をそのまま server に "set" で反映する
+  const saveAll = async (nextSet: Set<string>) => {
+    const genreIds = Array.from(nextSet);
+
+    const res = await fetch("/api/diagnosis/links", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        schoolId,
+        resultId: selectedResultId,
+        genreIds, // ✅ id配列で送る（slugではない）
+      }),
+    });
+
+    if (!res.ok) {
+      const data = await res.json().catch(() => null);
+      throw new Error(data?.message ?? "保存に失敗しました");
+    }
+  };
+
   const toggleGenre = async (genreId: string) => {
     if (!selectedResultId) return;
 
-    const isLinked = linkedGenreIds.has(genreId);
     setSavingId(genreId);
     setError(null);
 
+    // 変更後の状態を作る
+    const prevSet = linkedGenreIds;
+    const nextSet = new Set(prevSet);
+    if (nextSet.has(genreId)) nextSet.delete(genreId);
+    else nextSet.add(genreId);
+
     // 楽観更新
-    setLinkedGenreIds((prev) => {
-      const next = new Set(prev);
-      if (isLinked) next.delete(genreId);
-      else next.add(genreId);
-      return next;
-    });
+    setLinkedGenreIds(nextSet);
 
     try {
-      if (!isLinked) {
-        const res = await fetch("/api/diagnosis/links", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            type: "genres",
-            resultId: selectedResultId,
-            optionId: genreId,
-          }),
-        });
-        if (!res.ok) throw new Error("追加に失敗しました");
-      } else {
-        const res = await fetch(
-          `/api/diagnosis/links?type=genres&resultId=${encodeURIComponent(
-            selectedResultId
-          )}&optionId=${encodeURIComponent(genreId)}`,
-          { method: "DELETE" }
-        );
-        if (!res.ok) throw new Error("削除に失敗しました");
-      }
+      await saveAll(nextSet); // ✅ まとめて "set" 更新
     } catch (e: any) {
       // 巻き戻し
-      setLinkedGenreIds((prev) => {
-        const next = new Set(prev);
-        if (isLinked) next.add(genreId);
-        else next.delete(genreId);
-        return next;
-      });
+      setLinkedGenreIds(prevSet);
       setError(e?.message ?? "保存に失敗しました");
     } finally {
       setSavingId(null);
@@ -183,8 +182,8 @@ export default function DiagnosisLinksPage() {
           診断編集：結果 × ジャンル紐づけ
         </div>
         <div className="text-xs text-gray-500 dark:text-gray-400">
-          Result を選択 → Genre
-          にチェックで紐づけを更新します（_ResultGenres）。
+          Result を選択 → Genre にチェックで紐づけを更新します（_ResultGenres /
+          set更新）。
         </div>
       </div>
 
@@ -255,8 +254,7 @@ export default function DiagnosisLinksPage() {
 
         {genres.length === 0 && !loading ? (
           <div className={warnBox}>
-            DiagnosisGenre
-            が空です。次は「ジャンル追加（CRUD）」を管理画面に作りましょう。
+            DiagnosisGenre が空です。先にジャンルを作成してください。
           </div>
         ) : (
           <div className="grid gap-2 md:grid-cols-2">
