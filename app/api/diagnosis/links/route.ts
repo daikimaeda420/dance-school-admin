@@ -1,126 +1,87 @@
+// app/api/diagnosis/links/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/authOptions";
 
-export const runtime = "nodejs";
+export async function POST(req: NextRequest) {
+  const body = await req.json().catch(() => null);
 
-async function ensureLoggedIn() {
-  const session = await getServerSession(authOptions);
-  return session?.user?.email ? session : null;
-}
+  const schoolId: string = body?.schoolId ?? "";
+  const resultId: string = body?.resultId ?? "";
 
-function ok(data: any) {
-  return NextResponse.json({ ok: true, ...data });
-}
-function ng(message: string, status = 400, extra?: any) {
-  return NextResponse.json({ ok: false, message, ...extra }, { status });
-}
-
-type Body =
-  | {
-      schoolId: string;
-      resultId: string;
-      genreIds: string[]; // 一括置換
-    }
-  | {
-      schoolId: string;
-      resultId: string;
-      genreId: string; // トグル
-      checked: boolean;
-    };
-
-async function handle(req: NextRequest) {
-  const session = await ensureLoggedIn();
-  if (!session) return ng("Unauthorized", 401);
-
-  const body = (await req.json().catch(() => null)) as Partial<Body> | null;
-  const schoolId = String((body as any)?.schoolId ?? "").trim();
-  const resultId = String((body as any)?.resultId ?? "").trim();
+  // ✅ 互換：genreIds（id配列） or genreSlugs（slug配列）
+  const genreIdsRaw: string[] = Array.isArray(body?.genreIds)
+    ? body.genreIds
+    : [];
+  const genreSlugsRaw: string[] = Array.isArray(body?.genreSlugs)
+    ? body.genreSlugs
+    : [];
 
   if (!schoolId || !resultId) {
-    return ng("schoolId / resultId が必要です", 400);
+    return NextResponse.json(
+      { message: "schoolId / resultId は必須です" },
+      { status: 400 }
+    );
   }
 
-  // ✅ Result がこの schoolId に存在するか
+  // 念のため：Resultがそのschoolのものか確認
   const result = await prisma.diagnosisResult.findFirst({
     where: { id: resultId, schoolId },
     select: { id: true },
   });
-  if (!result) return ng("DiagnosisResult が見つかりません", 404);
-
-  // --- A) 一括置換 { genreIds: [] } ---
-  if (Array.isArray((body as any)?.genreIds)) {
-    const genreIds = (body as any).genreIds
-      .map((x: any) => String(x).trim())
-      .filter(Boolean);
-
-    // ✅ 同一schoolIdのGenreだけ採用
-    const valid = await prisma.diagnosisGenre.findMany({
-      where: { schoolId, id: { in: genreIds } },
-      select: { id: true },
-    });
-    const validIds = valid.map((g) => g.id);
-
-    // ✅ set -> connect で置換
-    await prisma.diagnosisResult.update({
-      where: { id: resultId },
-      data: {
-        genres: {
-          set: [],
-          connect: validIds.map((id) => ({ id })),
-        },
+  if (!result) {
+    return NextResponse.json(
+      {
+        message: "指定された結果が見つかりません（schoolId / resultId を確認）",
       },
-      select: { id: true },
-    });
-
-    return ok({ mode: "replace", resultId, linkedGenreIds: validIds });
+      { status: 404 }
+    );
   }
 
-  // --- B) トグル { genreId, checked } ---
-  const genreId = String((body as any)?.genreId ?? "").trim();
-  const checked = Boolean((body as any)?.checked);
+  // ✅ 送られてきた値を正規化（空や重複を除去）
+  const genreIds = Array.from(
+    new Set(genreIdsRaw.map((v) => String(v).trim()).filter(Boolean))
+  );
+  const genreSlugs = Array.from(
+    new Set(genreSlugsRaw.map((v) => String(v).trim()).filter(Boolean))
+  );
 
-  if (!genreId) return ng("genreId が必要です", 400);
-
-  // ✅ Genre がこの schoolId に存在するか
-  const genre = await prisma.diagnosisGenre.findFirst({
-    where: { id: genreId, schoolId },
-    select: { id: true },
-  });
-  if (!genre) return ng("DiagnosisGenre が見つかりません", 404);
-
-  await prisma.diagnosisResult.update({
-    where: { id: resultId },
-    data: {
-      genres: checked
-        ? { connect: { id: genreId } }
-        : { disconnect: { id: genreId } },
+  // ✅ id優先。idが無ければslugから引く
+  const validGenres = await prisma.diagnosisGenre.findMany({
+    where: {
+      schoolId,
+      isActive: true,
+      ...(genreIds.length > 0
+        ? { id: { in: genreIds } }
+        : genreSlugs.length > 0
+        ? { slug: { in: genreSlugs } }
+        : { id: { in: [] } }),
     },
     select: { id: true },
   });
 
-  return ok({ mode: "toggle", resultId, genreId, checked });
-}
+  const validGenreIds = validGenres.map((g) => g.id);
 
-export async function POST(req: NextRequest) {
   try {
-    return await handle(req);
-  } catch (e: any) {
-    console.error("links POST error:", e);
-    return ng(e?.message ?? "紐づけ更新に失敗しました", 500, {
-      detail: String(e?.meta?.cause ?? ""),
+    const updated = await prisma.diagnosisResult.update({
+      where: { id: resultId },
+      data: {
+        genres: {
+          set: validGenreIds.map((id) => ({ id })),
+        },
+      },
+      include: { genres: { select: { id: true, slug: true, label: true } } },
     });
-  }
-}
 
-export async function PUT(req: NextRequest) {
-  try {
-    return await handle(req);
-  } catch (e: any) {
-    console.error("links PUT error:", e);
-    return ng(e?.message ?? "紐づけ更新に失敗しました", 500, {
-      detail: String(e?.meta?.cause ?? ""),
+    return NextResponse.json({
+      ok: true,
+      input: { genreIds, genreSlugs },
+      updated,
     });
+  } catch (e: any) {
+    console.error(e);
+    return NextResponse.json(
+      { message: e?.message ?? "紐づけの更新に失敗しました" },
+      { status: 500 }
+    );
   }
 }
