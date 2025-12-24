@@ -8,28 +8,87 @@ export async function GET(req: NextRequest) {
     const type = (searchParams.get("type") ?? "") as "genres" | "campuses";
     const schoolId = searchParams.get("schoolId") ?? "";
     const resultId = searchParams.get("resultId") ?? "";
+    const debug = searchParams.get("debug") === "1";
 
-    if (!schoolId || !resultId)
-      return NextResponse.json([] as string[], { status: 200 });
-    if (type !== "genres" && type !== "campuses")
-      return NextResponse.json([] as string[], { status: 200 });
+    if (!schoolId || !resultId) {
+      return NextResponse.json(
+        debug
+          ? {
+              ok: true,
+              reason: "missing schoolId/resultId",
+              type,
+              schoolId,
+              resultId,
+            }
+          : ([] as string[]),
+        { status: 200 }
+      );
+    }
+    if (type !== "genres" && type !== "campuses") {
+      return NextResponse.json(
+        debug
+          ? { ok: true, reason: "bad type", type, schoolId, resultId }
+          : ([] as string[]),
+        { status: 200 }
+      );
+    }
 
+    // ✅ campuses は id/slug 両方取って状況確認できるようにする（最重要）
     const result = await prisma.diagnosisResult.findFirst({
       where: { id: resultId, schoolId },
       select:
         type === "genres"
-          ? { genres: { where: { isActive: true }, select: { id: true } } }
-          : { campuses: { where: { isActive: true }, select: { slug: true } } }, // ✅ slugで取る
+          ? { genres: { select: { id: true, slug: true, isActive: true } } }
+          : { campuses: { select: { id: true, slug: true, isActive: true } } },
     });
 
-    if (!result) return NextResponse.json([] as string[], { status: 200 });
+    if (!result) {
+      return NextResponse.json(
+        debug
+          ? { ok: true, reason: "result not found", type, schoolId, resultId }
+          : ([] as string[]),
+        { status: 200 }
+      );
+    }
 
-    const ids =
-      type === "genres"
-        ? (result as any).genres.map((g: any) => g.id)
-        : (result as any).campuses.map((c: any) => c.slug).filter(Boolean); // ✅ slug配列にする
+    if (type === "genres") {
+      const items = (result as any).genres as Array<{
+        id: string;
+        slug: string | null;
+        isActive: boolean;
+      }>;
+      const ids = items.filter((x) => x.isActive).map((x) => x.id);
+      return NextResponse.json(
+        debug
+          ? { ok: true, type, schoolId, resultId, count: ids.length, items }
+          : ids,
+        { status: 200 }
+      );
+    }
 
-    return NextResponse.json(ids, { status: 200 });
+    // campuses
+    const items = (result as any).campuses as Array<{
+      id: string;
+      slug: string | null;
+      isActive: boolean;
+    }>;
+    // ✅ 本番返却は「slug優先、無ければid」にしてUIとズレないようにする
+    const keys = items.filter((x) => x.isActive).map((x) => x.slug ?? x.id);
+
+    return NextResponse.json(
+      debug
+        ? {
+            ok: true,
+            type,
+            schoolId,
+            resultId,
+            count: keys.length,
+            items,
+            returned: keys,
+          }
+        : keys,
+      { status: 200 }
+    );
   } catch (e: any) {
     console.error("[GET /api/diagnosis/links] error", e);
     return NextResponse.json([] as string[], { status: 200 });
