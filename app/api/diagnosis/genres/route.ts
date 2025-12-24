@@ -25,10 +25,9 @@ export async function GET(req: NextRequest) {
         schoolId: true,
         label: true,
         slug: true,
+        answerTag: true,
         sortOrder: true,
         isActive: true,
-        // answerTag がDBにあるなら返したいが、無くても落ちないように any 経由で拾う
-        ...(undefined as any),
       } as any,
     });
 
