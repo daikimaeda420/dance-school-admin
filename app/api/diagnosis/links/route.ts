@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
       select:
         type === "genres"
           ? { genres: { where: { isActive: true }, select: { id: true } } }
-          : { campuses: { where: { isActive: true }, select: { id: true } } },
+          : { campuses: { where: { isActive: true }, select: { slug: true } } }, // ✅ slugで取る
     });
 
     if (!result) return NextResponse.json([] as string[], { status: 200 });
@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
     const ids =
       type === "genres"
         ? (result as any).genres.map((g: any) => g.id)
-        : (result as any).campuses.map((c: any) => c.id);
+        : (result as any).campuses.map((c: any) => c.slug).filter(Boolean); // ✅ slug配列にする
 
     return NextResponse.json(ids, { status: 200 });
   } catch (e: any) {
