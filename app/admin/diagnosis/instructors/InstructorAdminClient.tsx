@@ -1,7 +1,15 @@
 // app/admin/diagnosis/instructors/InstructorAdminClient.tsx
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import {
+  useEffect,
+  useMemo,
+  useState,
+  type Dispatch,
+  type SetStateAction,
+  type MouseEvent,
+  type ChangeEvent,
+} from "react";
 
 type Props = { initialSchoolId?: string };
 
@@ -96,26 +104,24 @@ function joinLabels(opts?: OptionRow[]) {
  */
 function makeToggleSelectHandlers(
   selected: string[],
-  setSelected: (next: string[]) => void
+  setSelected: Dispatch<SetStateAction<string[]>>
 ) {
-  const onMouseDown = (e: React.MouseEvent<HTMLSelectElement>) => {
-    // option 以外をクリックした場合は通常挙動
+  const onMouseDown = (e: MouseEvent<HTMLSelectElement>) => {
     const target = e.target as HTMLElement;
     if (target?.tagName !== "OPTION") return;
 
-    e.preventDefault(); // ← これがキモ（単一置換を防ぐ）
+    e.preventDefault(); // 単一置換を防ぐ
     const opt = target as HTMLOptionElement;
     const value = opt.value;
 
     setSelected((prev) => {
       const has = prev.includes(value);
-      if (has) return prev.filter((x) => x !== value);
-      return [...prev, value];
+      return has ? prev.filter((x) => x !== value) : [...prev, value];
     });
   };
 
-  const onChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    // キーボード操作や、ブラウザ差分のために残しておく（フォールバック）
+  const onChange = (e: ChangeEvent<HTMLSelectElement>) => {
+    // キーボード操作などのフォールバック
     setSelected(Array.from(e.target.selectedOptions).map((o) => o.value));
   };
 
