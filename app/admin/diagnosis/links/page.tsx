@@ -100,29 +100,31 @@ export default function DiagnosisLinksPage() {
   // Result変更時：紐づき（linkedGenreIds）を読む
   useEffect(() => {
     if (!selectedResultId) return;
+    if (!canLoad) return;
 
     (async () => {
       setLoading(true);
       setError(null);
       try {
-        // NOTE: GET側は既存仕様（resultIdだけで紐づき配列を返す）を想定
+        // ✅ schoolId を必ず付けて取得（遷移後もチェックが復元される）
         const res = await fetch(
-          `/api/diagnosis/links?type=genres&resultId=${encodeURIComponent(
-            selectedResultId
-          )}`,
+          `/api/diagnosis/links?type=genres&schoolId=${encodeURIComponent(
+            schoolId
+          )}&resultId=${encodeURIComponent(selectedResultId)}`,
           { cache: "no-store" }
         );
         if (!res.ok) throw new Error("紐づき取得に失敗しました");
 
-        const ids = (await res.json()) as string[];
-        setLinkedGenreIds(new Set(ids.map((v) => String(v))));
+        const ids = (await res.json()) as unknown;
+        const safeIds = Array.isArray(ids) ? ids.map((v) => String(v)) : [];
+        setLinkedGenreIds(new Set(safeIds));
       } catch (e: any) {
         setError(e?.message ?? "紐づき取得に失敗しました");
       } finally {
         setLoading(false);
       }
     })();
-  }, [selectedResultId]);
+  }, [selectedResultId, schoolId, canLoad]);
 
   const selectedResult = useMemo(
     () => results.find((r) => r.id === selectedResultId) ?? null,
