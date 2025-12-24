@@ -2,6 +2,57 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
+export async function GET(req: NextRequest) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const type = searchParams.get("type") ?? "";
+    const schoolId = searchParams.get("schoolId") ?? "";
+    const resultId = searchParams.get("resultId") ?? "";
+
+    // 今の画面はこれを叩いてる（links?type=genres&resultId=...）
+    if (type === "genres") {
+      if (!schoolId || !resultId) {
+        return NextResponse.json({ linkedGenreIds: [] }, { status: 200 });
+      }
+
+      // Resultがそのschoolのものか確認しつつ、紐づいてるgenresを取得
+      const result = await prisma.diagnosisResult.findFirst({
+        where: { id: resultId, schoolId },
+        select: {
+          id: true,
+          genres: {
+            where: { isActive: true },
+            select: { id: true },
+          },
+        },
+      });
+
+      if (!result) {
+        return NextResponse.json(
+          {
+            message:
+              "指定された結果が見つかりません（schoolId / resultId を確認）",
+          },
+          { status: 404 }
+        );
+      }
+
+      return NextResponse.json(
+        { linkedGenreIds: result.genres.map((g) => g.id) },
+        { status: 200 }
+      );
+    }
+
+    return NextResponse.json({ message: "unknown type" }, { status: 400 });
+  } catch (e: any) {
+    console.error("[GET /api/diagnosis/links] error", e);
+    return NextResponse.json(
+      { message: e?.message ?? "紐づけ取得に失敗しました" },
+      { status: 500 }
+    );
+  }
+}
+
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null);
 
