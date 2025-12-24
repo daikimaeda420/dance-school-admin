@@ -16,6 +16,8 @@ type OptionRow = {
   slug?: string;
 };
 
+type LinkType = "genres" | "campuses";
+
 const card =
   "rounded-2xl border border-gray-200 bg-white p-4 shadow-sm " +
   "dark:border-gray-800 dark:bg-gray-900";
@@ -40,21 +42,46 @@ const warnBox =
   "rounded-xl border border-yellow-200 bg-yellow-50 p-3 text-xs text-yellow-800 " +
   "dark:border-yellow-900/40 dark:bg-yellow-950/30 dark:text-yellow-200";
 
+const tabBtnBase =
+  "rounded-xl px-3 py-2 text-xs font-semibold transition " +
+  "border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 " +
+  "dark:border-gray-800 dark:bg-gray-950 dark:text-gray-200 dark:hover:bg-gray-900";
+
+const tabBtnActive =
+  "border-blue-500 bg-blue-50 text-blue-700 hover:bg-blue-50 " +
+  "dark:bg-blue-950/30 dark:text-blue-200 dark:hover:bg-blue-950/30";
+
 export default function DiagnosisLinksPage() {
   const [schoolId, setSchoolId] = useState("daiki.maeda.web");
 
   const [results, setResults] = useState<ResultRow[]>([]);
   const [genres, setGenres] = useState<OptionRow[]>([]);
+  const [campuses, setCampuses] = useState<OptionRow[]>([]);
   const [selectedResultId, setSelectedResultId] = useState<string>("");
 
-  const [linkedGenreIds, setLinkedGenreIds] = useState<Set<string>>(new Set());
+  const [linkType, setLinkType] = useState<LinkType>("genres");
+
+  // 現在のタブの「紐づきID集合」
+  const [linkedIds, setLinkedIds] = useState<Set<string>>(new Set());
+
   const [loading, setLoading] = useState(false);
   const [savingId, setSavingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const canLoad = schoolId.trim().length > 0;
 
-  // 初期ロード：results + genres
+  const selectedResult = useMemo(
+    () => results.find((r) => r.id === selectedResultId) ?? null,
+    [results, selectedResultId]
+  );
+
+  const optionsForTab = useMemo(() => {
+    return linkType === "genres" ? genres : campuses;
+  }, [linkType, genres, campuses]);
+
+  const tabLabel = linkType === "genres" ? "ジャンル" : "校舎";
+
+  // 初期ロード：results + genres + campuses
   useEffect(() => {
     if (!canLoad) return;
 
@@ -62,7 +89,7 @@ export default function DiagnosisLinksPage() {
       setLoading(true);
       setError(null);
       try {
-        const [rRes, gRes] = await Promise.all([
+        const [rRes, gRes, cRes] = await Promise.all([
           fetch(
             `/api/diagnosis/results?schoolId=${encodeURIComponent(
               schoolId
@@ -71,20 +98,25 @@ export default function DiagnosisLinksPage() {
           ),
           fetch(
             `/api/diagnosis/genres?schoolId=${encodeURIComponent(schoolId)}`,
-            {
-              cache: "no-store",
-            }
+            { cache: "no-store" }
+          ),
+          fetch(
+            `/api/diagnosis/campuses?schoolId=${encodeURIComponent(schoolId)}`,
+            { cache: "no-store" }
           ),
         ]);
 
         if (!rRes.ok) throw new Error("DiagnosisResult の取得に失敗しました");
         if (!gRes.ok) throw new Error("DiagnosisGenre の取得に失敗しました");
+        if (!cRes.ok) throw new Error("DiagnosisCampus の取得に失敗しました");
 
         const r = (await rRes.json()) as ResultRow[];
         const g = (await gRes.json()) as OptionRow[];
+        const c = (await cRes.json()) as OptionRow[];
 
         setResults(r);
         setGenres(g);
+        setCampuses(c);
 
         // 初回のみ先頭を選択
         setSelectedResultId((prev) => prev || (r[0]?.id ?? ""));
@@ -97,7 +129,7 @@ export default function DiagnosisLinksPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [schoolId]);
 
-  // Result変更時：紐づき（linkedGenreIds）を読む
+  // Result または タブ変更時：紐づき（linkedIds）を読む
   useEffect(() => {
     if (!selectedResultId) return;
     if (!canLoad) return;
@@ -106,43 +138,47 @@ export default function DiagnosisLinksPage() {
       setLoading(true);
       setError(null);
       try {
-        // ✅ schoolId を必ず付けて取得（遷移後もチェックが復元される）
         const res = await fetch(
-          `/api/diagnosis/links?type=genres&schoolId=${encodeURIComponent(
+          `/api/diagnosis/links?type=${encodeURIComponent(
+            linkType
+          )}&schoolId=${encodeURIComponent(
             schoolId
           )}&resultId=${encodeURIComponent(selectedResultId)}`,
           { cache: "no-store" }
         );
+
+        // GETは200配列方針だが、念のため
         if (!res.ok) throw new Error("紐づき取得に失敗しました");
 
         const ids = (await res.json()) as unknown;
         const safeIds = Array.isArray(ids) ? ids.map((v) => String(v)) : [];
-        setLinkedGenreIds(new Set(safeIds));
+        setLinkedIds(new Set(safeIds));
       } catch (e: any) {
         setError(e?.message ?? "紐づき取得に失敗しました");
+        setLinkedIds(new Set());
       } finally {
         setLoading(false);
       }
     })();
-  }, [selectedResultId, schoolId, canLoad]);
+  }, [selectedResultId, schoolId, canLoad, linkType]);
 
-  const selectedResult = useMemo(
-    () => results.find((r) => r.id === selectedResultId) ?? null,
-    [results, selectedResultId]
-  );
-
-  // ✅ ここが重要：変更後の set をそのまま server に "set" で反映する
+  // ✅ まとめて "set" で反映（genres/campuses 共通）
   const saveAll = async (nextSet: Set<string>) => {
-    const genreIds = Array.from(nextSet);
+    const ids = Array.from(nextSet);
+
+    const body: any = {
+      type: linkType,
+      schoolId,
+      resultId: selectedResultId,
+    };
+
+    if (linkType === "genres") body.genreIds = ids;
+    if (linkType === "campuses") body.campusIds = ids;
 
     const res = await fetch("/api/diagnosis/links", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        schoolId,
-        resultId: selectedResultId,
-        genreIds, // ✅ id配列で送る（slugではない）
-      }),
+      body: JSON.stringify(body),
     });
 
     if (!res.ok) {
@@ -151,26 +187,24 @@ export default function DiagnosisLinksPage() {
     }
   };
 
-  const toggleGenre = async (genreId: string) => {
+  const toggle = async (id: string) => {
     if (!selectedResultId) return;
 
-    setSavingId(genreId);
+    setSavingId(id);
     setError(null);
 
-    // 変更後の状態を作る
-    const prevSet = linkedGenreIds;
+    const prevSet = linkedIds;
     const nextSet = new Set(prevSet);
-    if (nextSet.has(genreId)) nextSet.delete(genreId);
-    else nextSet.add(genreId);
+    if (nextSet.has(id)) nextSet.delete(id);
+    else nextSet.add(id);
 
     // 楽観更新
-    setLinkedGenreIds(nextSet);
+    setLinkedIds(nextSet);
 
     try {
-      await saveAll(nextSet); // ✅ まとめて "set" 更新
+      await saveAll(nextSet);
     } catch (e: any) {
-      // 巻き戻し
-      setLinkedGenreIds(prevSet);
+      setLinkedIds(prevSet);
       setError(e?.message ?? "保存に失敗しました");
     } finally {
       setSavingId(null);
@@ -180,12 +214,34 @@ export default function DiagnosisLinksPage() {
   return (
     <div className="mx-auto w-full max-w-5xl p-6 text-gray-900 dark:text-gray-100">
       <div className="mb-4">
-        <div className="text-base font-bold">
-          診断編集：結果 × ジャンル紐づけ
-        </div>
+        <div className="text-base font-bold">診断編集：結果 × 紐づけ</div>
         <div className="text-xs text-gray-500 dark:text-gray-400">
-          Result を選択 → Genre にチェックで紐づけを更新します（_ResultGenres /
-          set更新）。
+          Result を選択 → タブ（ジャンル/校舎）を切替 →
+          チェックで紐づけを更新します（set更新）。
+        </div>
+
+        {/* tabs */}
+        <div className="mt-3 flex gap-2">
+          <button
+            type="button"
+            className={[
+              tabBtnBase,
+              linkType === "genres" ? tabBtnActive : "",
+            ].join(" ")}
+            onClick={() => setLinkType("genres")}
+          >
+            ジャンル
+          </button>
+          <button
+            type="button"
+            className={[
+              tabBtnBase,
+              linkType === "campuses" ? tabBtnActive : "",
+            ].join(" ")}
+            onClick={() => setLinkType("campuses")}
+          >
+            校舎
+          </button>
         </div>
       </div>
 
@@ -240,33 +296,36 @@ export default function DiagnosisLinksPage() {
         )}
       </div>
 
-      {/* genres */}
+      {/* options (genres/campuses) */}
       <div className={card}>
         <div className="mb-3 flex items-center justify-between">
           <div className="text-xs font-semibold text-gray-600 dark:text-gray-300">
-            ジャンル（DiagnosisGenre）
+            {tabLabel}（
+            {linkType === "genres" ? "DiagnosisGenre" : "DiagnosisCampus"}）
           </div>
           <div className="text-[11px] text-gray-500 dark:text-gray-400">
-            紐づき：{linkedGenreIds.size} 件
+            紐づき：{linkedIds.size} 件
           </div>
         </div>
 
         {loading && <div className={infoBox}>読み込み中...</div>}
         {error && <div className={errorBox}>{error}</div>}
 
-        {genres.length === 0 && !loading ? (
+        {optionsForTab.length === 0 && !loading ? (
           <div className={warnBox}>
-            DiagnosisGenre が空です。先にジャンルを作成してください。
+            {linkType === "genres"
+              ? "DiagnosisGenre が空です。先にジャンルを作成してください。"
+              : "DiagnosisCampus が空です。先に校舎を作成してください。"}
           </div>
         ) : (
           <div className="grid gap-2 md:grid-cols-2">
-            {genres.map((g) => {
-              const checked = linkedGenreIds.has(g.id);
-              const busy = savingId === g.id;
+            {optionsForTab.map((o) => {
+              const checked = linkedIds.has(o.id);
+              const busy = savingId === o.id;
 
               return (
                 <label
-                  key={g.id}
+                  key={o.id}
                   className={[
                     "flex items-center gap-3 rounded-2xl border px-3 py-3 text-sm transition",
                     "hover:bg-gray-50 dark:hover:bg-gray-800/40",
@@ -280,16 +339,16 @@ export default function DiagnosisLinksPage() {
                     type="checkbox"
                     checked={checked}
                     disabled={!selectedResultId || busy}
-                    onChange={() => toggleGenre(g.id)}
+                    onChange={() => toggle(o.id)}
                     className="h-4 w-4 rounded border-gray-300 dark:border-gray-700"
                   />
                   <div className="flex-1">
                     <div className="font-semibold text-gray-900 dark:text-gray-100">
-                      {g.label}
+                      {o.label}
                     </div>
                     <div className="mt-0.5 font-mono text-[10px] text-gray-500 dark:text-gray-400">
-                      {g.id}
-                      {g.slug ? ` / ${g.slug}` : ""}
+                      {o.id}
+                      {o.slug ? ` / ${o.slug}` : ""}
                     </div>
                   </div>
 
