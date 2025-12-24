@@ -27,13 +27,29 @@ type Props = {
   schoolId: string;
 };
 
-// ✅ Q2 選択肢（タグはここで固定）
-// ※診断側で送る answers["Q2"] の値と一致させてください
+// ✅ Q2 選択肢（answers["Q2"] の値と完全一致させる）
+// ※ここが一致していないと診断で当たりません
 const Q2_OPTIONS = [
-  { tag: "Q2_BEGINNER", label: "未経験〜初心者" },
-  { tag: "Q2_EXPERIENCED", label: "経験者" },
-  { tag: "Q2_NO_EXERCISE", label: "運動に自信がない" },
-  { tag: "Q2_FIT", label: "体力に自信がある" },
+  {
+    tag: "運動自体がニガテ…リズム感にも自信がない",
+    label: "運動自体がニガテ…リズム感にも自信がない",
+  },
+  {
+    tag: "運動は普通にできるけど、ダンスは未経験",
+    label: "運動は普通にできるけど、ダンスは未経験",
+  },
+  {
+    tag: "昔少し習っていた / 学校の体育でやった程度",
+    label: "昔少し習っていた / 学校の体育でやった程度",
+  },
+  {
+    tag: "基本的なステップなら踊れる（初級レベル）",
+    label: "基本的なステップなら踊れる（初級レベル）",
+  },
+  {
+    tag: "本格的に習った経験がある / バリバリ踊りたい",
+    label: "本格的に習った経験がある / バリバリ踊りたい",
+  },
 ] as const;
 
 function uniqStrings(xs: string[]) {
@@ -42,11 +58,13 @@ function uniqStrings(xs: string[]) {
   );
 }
 
+// ✅ setSelected の型を「SetStateAction<string[]> を受ける関数」にする
+// これで setState でも、行ごとのラップ関数でも安全に渡せる
 function makeToggleSelectHandlers(
   selected: string[],
-  setSelected: Dispatch<SetStateAction<string[]>>
+  setSelected: (v: SetStateAction<string[]>) => void
 ) {
-  // mac/win の Cmd/Ctrl 不要でポチポチ選択できる（multiple selectのよくあるUX改善）
+  // mac/win の Cmd/Ctrl 不要でポチポチ選択できる
   const onMouseDown = (e: MouseEvent<HTMLSelectElement>) => {
     const target = e.target as HTMLElement;
     if (target?.tagName !== "OPTION") return;
@@ -151,7 +169,7 @@ export default function CourseAdminClient({ schoolId }: Props) {
           sortOrder: newSortOrder,
           isActive: newIsActive,
 
-          // ✅ 追加：Q2 対応タグ
+          // ✅ 追加：Q2 対応（answers["Q2"] の日本語文言そのもの）
           q2AnswerTags: uniqStrings(newQ2Tags),
         }),
       });
@@ -286,7 +304,9 @@ export default function CourseAdminClient({ schoolId }: Props) {
                        focus:outline-none focus:ring-2 focus:ring-blue-500
                        disabled:opacity-50
                        dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100 dark:[color-scheme:dark]"
-            {...newQ2Handlers}
+            value={newQ2Handlers.value}
+            onMouseDown={newQ2Handlers.onMouseDown}
+            onChange={newQ2Handlers.onChange}
             disabled={disabled || saving}
           >
             {Q2_OPTIONS.map((o) => (
@@ -355,31 +375,34 @@ export default function CourseAdminClient({ schoolId }: Props) {
 
               <tbody>
                 {courses.map((c) => {
+                  // ✅ 行ごとに setSelected をラップ（型エラー出ない形）
+                  const setRowSelected = (v: SetStateAction<string[]>) => {
+                    setCourses((prev) =>
+                      prev.map((p) => {
+                        if (p.id !== c.id) return p;
+                        const nextValue =
+                          typeof v === "function"
+                            ? (v as (prev: string[]) => string[])(
+                                p.q2AnswerTags ?? []
+                              )
+                            : v;
+                        return {
+                          ...p,
+                          q2AnswerTags: uniqStrings(nextValue ?? []),
+                        };
+                      })
+                    );
+                  };
+
                   const handlers = makeToggleSelectHandlers(
                     c.q2AnswerTags ?? [],
-                    (next) => {
-                      // next は関数 or 配列どちらも来るので安全に処理
-                      setCourses((prev) =>
-                        prev.map((p) => {
-                          if (p.id !== c.id) return p;
-                          const value =
-                            typeof next === "function"
-                              ? (next as any)(p.q2AnswerTags ?? [])
-                              : next;
-                          return {
-                            ...p,
-                            q2AnswerTags: uniqStrings(value ?? []),
-                          };
-                        })
-                      );
-                    }
+                    setRowSelected
                   );
 
                   return (
                     <tr
                       key={c.id}
-                      className="border-b border-gray-100 last:border-none
-                              dark:border-gray-800"
+                      className="border-b border-gray-100 last:border-none dark:border-gray-800"
                     >
                       <td className="px-2 py-1">
                         <input
@@ -466,7 +489,7 @@ export default function CourseAdminClient({ schoolId }: Props) {
                                      focus:outline-none focus:ring-2 focus:ring-blue-500
                                      disabled:opacity-50
                                      dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100 dark:[color-scheme:dark]"
-                          value={c.q2AnswerTags ?? []}
+                          value={handlers.value}
                           onMouseDown={handlers.onMouseDown}
                           onChange={handlers.onChange}
                           onBlur={() =>
