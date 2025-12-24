@@ -4,38 +4,38 @@ generator client {
 
 datasource db {
   provider  = "postgresql"
-  url       = env("DATABASE_URL")  // 6543
-  directUrl = env("DIRECT_URL")    // 5432（shadow 用）
+  url       = env("DATABASE_URL") // 6543
+  directUrl = env("DIRECT_URL") // 5432（shadow 用）
 }
 
 model Faq {
-  id           String   @id @default(uuid())
-  schoolId     String   @unique
-  items        Json
+  id       String @id @default(uuid())
+  schoolId String @unique
+  items    Json
 
   // ▲ 追加：チャットボットの見た目・CTA・吹き出し用
-  palette      String   @default("gray") // テーマカラー
-  ctaLabel     String?                   // CTA ボタン文言
-  ctaUrl       String?                   // CTA ボタンURL
+  palette  String  @default("gray") // テーマカラー
+  ctaLabel String? // CTA ボタン文言
+  ctaUrl   String? // CTA ボタンURL
 
-  launcherText String?                   // ★ NEW! ランチャーの吹き出し文言（例: "質問はコチラ"）
+  launcherText String? // ★ NEW! ランチャーの吹き出し文言（例: "質問はコチラ"）
 
-  updatedBy    String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  updatedBy String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([updatedAt])
 }
 
 model FaqLog {
   id        Int      @id @default(autoincrement())
-  school    String   // 例: "daiki.maeda.web"
+  school    String // 例: "daiki.maeda.web"
   sessionId String
   timestamp DateTime // 質問が行われた時刻
 
-  question  String
-  answer    String?
-  url       String?
+  question String
+  answer   String?
+  url      String?
 
   createdAt DateTime @default(now())
 
@@ -59,8 +59,8 @@ model User {
   role         UserRole
   schoolId     String
 
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([schoolId])
   @@index([role])
@@ -81,16 +81,19 @@ model SuperAdmin {
 
 // エリア・校舎情報（診断の選択肢）
 model DiagnosisCampus {
-  id        String   @id @default(cuid())
-  schoolId  String   // どの school の診断か
-  label     String   // 表示名（渋谷校など）
-  slug      String   // "shibuya" など（option.id に使う想定）
-  sortOrder Int      @default(0)
-  isOnline  Boolean  @default(false)
-  isActive  Boolean  @default(true)
+  id        String  @id @default(cuid())
+  schoolId  String // どの school の診断か
+  label     String // 表示名（渋谷校など）
+  slug      String // "shibuya" など（option.id に使う想定）
+  sortOrder Int     @default(0)
+  isOnline  Boolean @default(false)
+  isActive  Boolean @default(true)
 
   // 診断結果に紐づく（多対多）
-  results   DiagnosisResult[] @relation("ResultCampuses")
+  results DiagnosisResult[] @relation("ResultCampuses")
+
+  // ✅ 追加：講師と紐づく（多対多） ← これが無いのでエラー
+  instructors DiagnosisInstructor[] @relation("InstructorCampuses")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -102,15 +105,15 @@ model DiagnosisCampus {
 
 // コース（レベル）選択肢
 model DiagnosisCourse {
-  id        String   @id @default(cuid())
+  id        String  @id @default(cuid())
   schoolId  String
-  label     String   // 例: "超入門", "入門", "初級"
-  slug      String   // 例: "lv0", "lv1"
-  sortOrder Int      @default(0)
-  isActive  Boolean  @default(true)
+  label     String // 例: "超入門", "入門", "初級"
+  slug      String // 例: "lv0", "lv1"
+  sortOrder Int     @default(0)
+  isActive  Boolean @default(true)
 
   // 診断結果に紐づく（多対多）
-  results   DiagnosisResult[] @relation("ResultCourses")
+  results DiagnosisResult[] @relation("ResultCourses")
 
   // ✅ 追加：講師と紐づく（多対多）
   instructors DiagnosisInstructor[] @relation("InstructorCourses")
@@ -125,18 +128,18 @@ model DiagnosisCourse {
 
 // ジャンル選択肢
 model DiagnosisGenre {
-  id        String   @id @default(cuid())
-  schoolId  String
-  label     String   // 例: "K-POP", "HIPHOP"
-  slug      String   // 例: "kpop", "hiphop"
+  id       String @id @default(cuid())
+  schoolId String
+  label    String // 例: "K-POP", "HIPHOP"
+  slug     String // 例: "kpop", "hiphop"
 
-  sortOrder Int      @default(0)
-  isActive  Boolean  @default(true)
+  sortOrder Int     @default(0)
+  isActive  Boolean @default(true)
 
-  answerTag String?  // 例: "Genre_KPOP"
+  answerTag String? // 例: "Genre_KPOP"
 
   // 診断結果に紐づく（多対多）
-  results   DiagnosisResult[] @relation("ResultGenres")
+  results DiagnosisResult[] @relation("ResultGenres")
 
   // ✅ 追加：講師と紐づく（多対多）
   instructors DiagnosisInstructor[] @relation("InstructorGenres")
@@ -153,27 +156,27 @@ model DiagnosisGenre {
 
 // 講師選択肢（診断で選ばせたい講師のみ）
 model DiagnosisInstructor {
-  id        String   @id @default(cuid())
+  id        String  @id @default(cuid())
   schoolId  String
-  label     String   // 例: "田中先生"
-  slug      String   // 例: "tanaka"
-  photoUrl  String?  // 画像URL
-  sortOrder Int      @default(0)
-  isActive  Boolean  @default(true)
+  label     String // 例: "田中先生"
+  slug      String // 例: "tanaka"
+  photoUrl  String? // 画像URL
+  sortOrder Int     @default(0)
+  isActive  Boolean @default(true)
 
   // ★ 画像をDB保存（バイナリ）
-  photoMime String?  // "image/jpeg" など
-  photoData Bytes?   // 画像バイナリ
+  photoMime String? // "image/jpeg" など
+  photoData Bytes? // 画像バイナリ
 
   // 診断結果に紐づく（多対多）
-  results   DiagnosisResult[] @relation("ResultInstructors")
+  results DiagnosisResult[] @relation("ResultInstructors")
 
   // ✅ 追加：コース/ジャンル紐づけ（多対多）
-  courses   DiagnosisCourse[] @relation("InstructorCourses")
-  genres    DiagnosisGenre[]  @relation("InstructorGenres")
+  courses DiagnosisCourse[] @relation("InstructorCourses")
+  genres  DiagnosisGenre[]  @relation("InstructorGenres")
 
   // ✅ 追加：校舎紐づけ
-  campuses  DiagnosisCampus[] @relation("InstructorCampuses")
+  campuses DiagnosisCampus[] @relation("InstructorCampuses")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -185,19 +188,19 @@ model DiagnosisInstructor {
 
 // 診断結果（おすすめ結果カード）
 model DiagnosisResult {
-  id        String   @id @default(cuid())
+  id        String  @id @default(cuid())
   schoolId  String
   title     String
   body      String?
   ctaLabel  String?
   ctaUrl    String?
-  sortOrder Int      @default(0)
-  isActive  Boolean  @default(true)
+  sortOrder Int     @default(0)
+  isActive  Boolean @default(true)
 
-  campuses     DiagnosisCampus[]     @relation("ResultCampuses")
-  courses      DiagnosisCourse[]     @relation("ResultCourses")
-  genres       DiagnosisGenre[]      @relation("ResultGenres")
-  instructors  DiagnosisInstructor[] @relation("ResultInstructors")
+  campuses    DiagnosisCampus[]     @relation("ResultCampuses")
+  courses     DiagnosisCourse[]     @relation("ResultCourses")
+  genres      DiagnosisGenre[]      @relation("ResultGenres")
+  instructors DiagnosisInstructor[] @relation("ResultInstructors")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -210,19 +213,19 @@ model DiagnosisResult {
 model SchoolClass {
   id          String   @id @default(cuid())
   schoolId    String
-  name        String                    // 例: "K-POP 超入門クラス"
+  name        String // 例: "K-POP 超入門クラス"
   description String?
   // マッチング用タグ
-  levels      String[]                  // 例: ["Lv0_超入門", "Lv1_入門"]
-  targets     String[]                  // 例: ["Age_Teen", "Age_Student", "Age_Adult_Work"]
-  genres      String[]                  // 例: ["Genre_KPOP"]
-  schedule    String?                   // 例: "土曜・平日夜"
+  levels      String[] // 例: ["Lv0_超入門", "Lv1_入門"]
+  targets     String[] // 例: ["Age_Teen", "Age_Student", "Age_Adult_Work"]
+  genres      String[] // 例: ["Genre_KPOP"]
+  schedule    String? // 例: "土曜・平日夜"
   isActive    Boolean  @default(true)
 
-  teachers    TeacherClass[]            // 中間テーブル経由で Teacher へ
+  teachers TeacherClass[] // 中間テーブル経由で Teacher へ
 
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([schoolId])
   @@index([isActive])
@@ -230,33 +233,33 @@ model SchoolClass {
 
 // 講師情報（既存：運用データ用の本体モデル）
 model Teacher {
-  id        String   @id @default(cuid())
-  schoolId  String
-  name      String
-  photoUrl  String?
-  styles    String[]                  // 例: ["Style_Healing", "Style_Friendly"]
-  bio       String?
+  id       String   @id @default(cuid())
+  schoolId String
+  name     String
+  photoUrl String?
+  styles   String[] // 例: ["Style_Healing", "Style_Friendly"]
+  bio      String?
 
-  classes   TeacherClass[]            // 担当クラスとの中間
+  classes TeacherClass[] // 担当クラスとの中間
 
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([schoolId])
 }
 
 // クラス×講師の中間テーブル
 model TeacherClass {
-  id         String      @id @default(cuid())
-  classId    String
-  teacherId  String
+  id        String @id @default(cuid())
+  classId   String
+  teacherId String
 
-  clazz      SchoolClass @relation(fields: [classId], references: [id])
-  teacher    Teacher     @relation(fields: [teacherId], references: [id])
+  clazz   SchoolClass @relation(fields: [classId], references: [id])
+  teacher Teacher     @relation(fields: [teacherId], references: [id])
 
-  createdAt  DateTime    @default(now())
+  createdAt DateTime @default(now())
 
+  @@unique([classId, teacherId])
   @@index([classId])
   @@index([teacherId])
-  @@unique([classId, teacherId])
 }
