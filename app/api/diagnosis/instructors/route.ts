@@ -27,6 +27,50 @@ function json(message: string, status = 400) {
   return NextResponse.json({ message }, { status });
 }
 
+/**
+ * courseIds / genreIds / campusIds を柔軟に受け取る
+ * - fd.getAll("courseIds") のように同名キー複数
+ * - fd.get("courseIds") が '["id1","id2"]' のJSON配列
+ * - fd.get("courseIds") が "id1,id2" のCSV
+ */
+function readIdList(fd: FormData, key: string): string[] {
+  const all = fd
+    .getAll(key)
+    .map((v) => String(v ?? "").trim())
+    .filter(Boolean);
+
+  if (all.length >= 2) return Array.from(new Set(all));
+
+  const raw = String(fd.get(key) ?? "").trim();
+  if (!raw) return Array.from(new Set(all));
+
+  if (raw.startsWith("[")) {
+    try {
+      const arr = JSON.parse(raw);
+      if (Array.isArray(arr)) {
+        return Array.from(
+          new Set(arr.map((x) => String(x ?? "").trim()).filter(Boolean))
+        );
+      }
+    } catch {
+      // noop
+    }
+  }
+
+  if (raw.includes(",")) {
+    return Array.from(
+      new Set(
+        raw
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean)
+      )
+    );
+  }
+
+  return Array.from(new Set([...all, raw])).filter(Boolean);
+}
+
 // GET /api/diagnosis/instructors?schoolId=xxx
 export async function GET(req: NextRequest) {
   try {
@@ -48,6 +92,21 @@ export async function GET(req: NextRequest) {
         sortOrder: true,
         isActive: true,
         photoMime: true,
+
+        // ✅ 追加：紐づけ情報
+        courses: { select: { id: true, label: true, slug: true } },
+        genres: {
+          select: { id: true, label: true, slug: true, answerTag: true },
+        },
+        campuses: {
+          select: {
+            id: true,
+            label: true,
+            slug: true,
+            isOnline: true,
+            isActive: true,
+          },
+        },
       },
     });
 
@@ -55,6 +114,9 @@ export async function GET(req: NextRequest) {
       rows.map((r) => ({
         ...r,
         photoMime: r.photoMime ?? null,
+        courseIds: r.courses.map((c) => c.id),
+        genreIds: r.genres.map((g) => g.id),
+        campusIds: r.campuses.map((c) => c.id),
       }))
     );
   } catch (e: any) {
@@ -81,6 +143,11 @@ export async function POST(req: NextRequest) {
     const slug = String(fd.get("slug") ?? "").trim();
     const sortOrder = toNum(fd.get("sortOrder"), 0);
     const isActive = toBool(fd.get("isActive"), true);
+
+    // ✅ 追加：紐づけIDs
+    const courseIds = readIdList(fd, "courseIds");
+    const genreIds = readIdList(fd, "genreIds");
+    const campusIds = readIdList(fd, "campusIds");
 
     if (!id || !schoolId || !label || !slug) {
       return json("id / schoolId / label / slug は必須です", 400);
@@ -111,7 +178,18 @@ export async function POST(req: NextRequest) {
         sortOrder,
         isActive,
         photoMime,
-        photoData: photoData as any, // ✅ ここだけ型落とし（Prisma Bytes用）
+        photoData: photoData as any, // Prisma Bytes
+
+        // ✅ 追加：紐づけ（任意）
+        courses: courseIds.length
+          ? { connect: courseIds.map((cid) => ({ id: cid })) }
+          : undefined,
+        genres: genreIds.length
+          ? { connect: genreIds.map((gid) => ({ id: gid })) }
+          : undefined,
+        campuses: campusIds.length
+          ? { connect: campusIds.map((pid) => ({ id: pid })) }
+          : undefined,
       },
       select: {
         id: true,
@@ -121,11 +199,31 @@ export async function POST(req: NextRequest) {
         sortOrder: true,
         isActive: true,
         photoMime: true,
+
+        courses: { select: { id: true, label: true, slug: true } },
+        genres: {
+          select: { id: true, label: true, slug: true, answerTag: true },
+        },
+        campuses: {
+          select: {
+            id: true,
+            label: true,
+            slug: true,
+            isOnline: true,
+            isActive: true,
+          },
+        },
       },
     });
 
     return NextResponse.json(
-      { ...created, photoMime: created.photoMime ?? null },
+      {
+        ...created,
+        photoMime: created.photoMime ?? null,
+        courseIds: created.courses.map((c) => c.id),
+        genreIds: created.genres.map((g) => g.id),
+        campusIds: created.campuses.map((c) => c.id),
+      },
       { status: 201 }
     );
   } catch (e: any) {
@@ -154,6 +252,11 @@ export async function PUT(req: NextRequest) {
     const isActive = toBool(fd.get("isActive"), true);
     const clearPhoto = toBool(fd.get("clearPhoto"), false);
 
+    // ✅ 追加：紐づけIDs（更新は set で置き換え）
+    const courseIds = readIdList(fd, "courseIds");
+    const genreIds = readIdList(fd, "genreIds");
+    const campusIds = readIdList(fd, "campusIds");
+
     if (!id || !schoolId || !label || !slug) {
       return json("id / schoolId / label / slug は必須です", 400);
     }
@@ -164,7 +267,18 @@ export async function PUT(req: NextRequest) {
     });
     if (!existing) return json("対象が見つかりません", 404);
 
-    const data: any = { label, slug, sortOrder, isActive };
+    const data: any = {
+      label,
+      slug,
+      sortOrder,
+      isActive,
+
+      // ✅ 追加：紐づけを置き換え
+      // 管理画面は毎回 courseIds/genreIds/campusIds を送る実装にするのが安全
+      courses: { set: courseIds.map((cid) => ({ id: cid })) },
+      genres: { set: genreIds.map((gid) => ({ id: gid })) },
+      campuses: { set: campusIds.map((pid) => ({ id: pid })) },
+    };
 
     if (clearPhoto) {
       data.photoMime = null;
@@ -180,7 +294,7 @@ export async function PUT(req: NextRequest) {
         }
         data.photoMime = file.type || "application/octet-stream";
         const ab = await file.arrayBuffer();
-        data.photoData = new Uint8Array(ab) as any; // ✅ ここも型落とし
+        data.photoData = new Uint8Array(ab) as any;
       }
     }
 
@@ -195,12 +309,29 @@ export async function PUT(req: NextRequest) {
         sortOrder: true,
         isActive: true,
         photoMime: true,
+
+        courses: { select: { id: true, label: true, slug: true } },
+        genres: {
+          select: { id: true, label: true, slug: true, answerTag: true },
+        },
+        campuses: {
+          select: {
+            id: true,
+            label: true,
+            slug: true,
+            isOnline: true,
+            isActive: true,
+          },
+        },
       },
     });
 
     return NextResponse.json({
       ...updated,
       photoMime: updated.photoMime ?? null,
+      courseIds: updated.courses.map((c) => c.id),
+      genreIds: updated.genres.map((g) => g.id),
+      campusIds: updated.campuses.map((c) => c.id),
     });
   } catch (e: any) {
     console.error(e);
@@ -236,12 +367,29 @@ export async function DELETE(req: NextRequest) {
         sortOrder: true,
         isActive: true,
         photoMime: true,
+
+        courses: { select: { id: true, label: true, slug: true } },
+        genres: {
+          select: { id: true, label: true, slug: true, answerTag: true },
+        },
+        campuses: {
+          select: {
+            id: true,
+            label: true,
+            slug: true,
+            isOnline: true,
+            isActive: true,
+          },
+        },
       },
     });
 
     return NextResponse.json({
       ...updated,
       photoMime: updated.photoMime ?? null,
+      courseIds: updated.courses.map((c) => c.id),
+      genreIds: updated.genres.map((g) => g.id),
+      campusIds: updated.campuses.map((c) => c.id),
     });
   } catch (e: any) {
     console.error(e);

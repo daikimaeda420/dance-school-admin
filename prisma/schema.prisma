@@ -172,6 +172,9 @@ model DiagnosisInstructor {
   courses   DiagnosisCourse[] @relation("InstructorCourses")
   genres    DiagnosisGenre[]  @relation("InstructorGenres")
 
+  // ✅ 追加：校舎紐づけ
+  campuses  DiagnosisCampus[] @relation("InstructorCampuses")
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

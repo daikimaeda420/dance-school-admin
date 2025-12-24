@@ -1,8 +1,18 @@
+// app/admin/diagnosis/instructors/InstructorAdminClient.tsx
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
 
 type Props = { initialSchoolId?: string };
+
+type OptionRow = {
+  id: string;
+  label: string;
+  slug?: string;
+  answerTag?: string | null;
+  isOnline?: boolean;
+  isActive?: boolean;
+};
 
 type InstructorRow = {
   id: string;
@@ -12,6 +22,15 @@ type InstructorRow = {
   sortOrder: number;
   isActive: boolean;
   photoMime?: string | null; // 画像の有無判定に使う
+
+  // ✅ 追加：対応紐づけ（APIが返す想定）
+  courses?: OptionRow[];
+  genres?: OptionRow[];
+  campuses?: OptionRow[];
+
+  courseIds?: string[];
+  genreIds?: string[];
+  campusIds?: string[];
 };
 
 function slugifyJa(input: string) {
@@ -51,6 +70,19 @@ const btnDanger =
 const thumb =
   "h-12 w-12 rounded-xl border border-gray-200 object-cover dark:border-gray-800";
 
+const selectBox = input + " h-40 leading-tight " + "dark:[color-scheme:dark]"; // multiple selectの見た目改善
+
+function uniqStrings(xs: string[]) {
+  return Array.from(
+    new Set(xs.map((s) => String(s ?? "").trim()).filter(Boolean))
+  );
+}
+
+function safeJsonArray(v: any): string[] {
+  if (Array.isArray(v)) return uniqStrings(v);
+  return [];
+}
+
 export default function InstructorAdminClient({ initialSchoolId }: Props) {
   const [schoolId, setSchoolId] = useState(initialSchoolId ?? "");
 
@@ -59,6 +91,11 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // ✅ 追加：選択肢（コース/ジャンル/校舎）
+  const [courses, setCourses] = useState<OptionRow[]>([]);
+  const [genres, setGenres] = useState<OptionRow[]>([]);
+  const [campuses, setCampuses] = useState<OptionRow[]>([]);
+
   // 新規作成フォーム
   const [newId, setNewId] = useState("");
   const [newLabel, setNewLabel] = useState("");
@@ -66,6 +103,11 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
   const [newSortOrder, setNewSortOrder] = useState<number>(1);
   const [newIsActive, setNewIsActive] = useState(true);
   const [newFile, setNewFile] = useState<File | null>(null);
+
+  // ✅ 追加：新規作成の紐づけ
+  const [newCourseIds, setNewCourseIds] = useState<string[]>([]);
+  const [newGenreIds, setNewGenreIds] = useState<string[]>([]);
+  const [newCampusIds, setNewCampusIds] = useState<string[]>([]);
 
   // 編集用（行ID単位）
   const [editMap, setEditMap] = useState<
@@ -84,6 +126,62 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
     `/api/diagnosis/instructors/photo?id=${encodeURIComponent(
       id
     )}&schoolId=${encodeURIComponent(schoolId)}`;
+
+  // ✅ 追加：選択肢の取得（コース/ジャンル/校舎）
+  const fetchOptions = async () => {
+    if (!canLoad) return;
+    try {
+      const [cRes, gRes, pRes] = await Promise.all([
+        fetch(
+          `/api/diagnosis/courses?schoolId=${encodeURIComponent(schoolId)}`,
+          {
+            cache: "no-store",
+          }
+        ),
+        fetch(
+          `/api/diagnosis/genres?schoolId=${encodeURIComponent(schoolId)}`,
+          {
+            cache: "no-store",
+          }
+        ),
+        fetch(
+          `/api/diagnosis/campuses?schoolId=${encodeURIComponent(schoolId)}`,
+          {
+            cache: "no-store",
+          }
+        ),
+      ]);
+
+      // どれか失敗しても講師一覧は動かしたいので、ここは個別に扱う
+      const cJson = cRes.ok ? await cRes.json().catch(() => []) : [];
+      const gJson = gRes.ok ? await gRes.json().catch(() => []) : [];
+      const pJson = pRes.ok ? await pRes.json().catch(() => []) : [];
+
+      const normalize = (x: any): OptionRow[] => {
+        const arr = Array.isArray(x?.items)
+          ? x.items
+          : Array.isArray(x)
+          ? x
+          : [];
+        return arr
+          .map((d: any) => ({
+            id: String(d.id ?? ""),
+            label: String(d.label ?? ""),
+            slug: d.slug ? String(d.slug) : undefined,
+            answerTag: d.answerTag ? String(d.answerTag) : null,
+            isOnline: typeof d.isOnline === "boolean" ? d.isOnline : undefined,
+            isActive: typeof d.isActive === "boolean" ? d.isActive : undefined,
+          }))
+          .filter((o: OptionRow) => o.id && o.label);
+      };
+
+      setCourses(normalize(cJson));
+      setGenres(normalize(gJson));
+      setCampuses(normalize(pJson));
+    } catch {
+      // options は致命ではないので握る（必要なら error に出してもOK）
+    }
+  };
 
   const fetchList = async () => {
     if (!canLoad) return;
@@ -107,6 +205,14 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
         sortOrder: Number(d.sortOrder ?? 1),
         isActive: Boolean(d.isActive ?? true),
         photoMime: typeof d.photoMime === "string" ? d.photoMime : null,
+
+        // ✅ 追加：紐づけ（APIから返ってくる想定）
+        courses: Array.isArray(d.courses) ? d.courses : [],
+        genres: Array.isArray(d.genres) ? d.genres : [],
+        campuses: Array.isArray(d.campuses) ? d.campuses : [],
+        courseIds: safeJsonArray(d.courseIds),
+        genreIds: safeJsonArray(d.genreIds),
+        campusIds: safeJsonArray(d.campusIds),
       }));
 
       setRows(normalized.sort((a, b) => a.sortOrder - b.sortOrder));
@@ -118,7 +224,9 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
   };
 
   useEffect(() => {
-    if (canLoad) void fetchList();
+    if (!canLoad) return;
+    void fetchOptions();
+    void fetchList();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [schoolId]);
 
@@ -145,6 +253,11 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
       fd.append("isActive", String(newIsActive));
       if (newFile) fd.append("file", newFile);
 
+      // ✅ 追加：紐づけ（JSON配列で渡す）
+      fd.append("courseIds", JSON.stringify(uniqStrings(newCourseIds)));
+      fd.append("genreIds", JSON.stringify(uniqStrings(newGenreIds)));
+      fd.append("campusIds", JSON.stringify(uniqStrings(newCampusIds)));
+
       const res = await fetch("/api/diagnosis/instructors", {
         method: "POST",
         body: fd,
@@ -161,6 +274,11 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
       setNewIsActive(true);
       setNewFile(null);
 
+      // ✅ 追加：紐づけもリセット
+      setNewCourseIds([]);
+      setNewGenreIds([]);
+      setNewCampusIds([]);
+
       await fetchList();
     } catch (e: any) {
       setError(e?.message ?? "作成に失敗しました");
@@ -170,7 +288,15 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
   };
 
   const startEdit = (r: InstructorRow) => {
-    setEditMap((prev) => ({ ...prev, [r.id]: { ...r } }));
+    setEditMap((prev) => ({
+      ...prev,
+      [r.id]: {
+        ...r,
+        courseIds: safeJsonArray(r.courseIds),
+        genreIds: safeJsonArray(r.genreIds),
+        campusIds: safeJsonArray(r.campusIds),
+      },
+    }));
     setEditFileMap((prev) => ({ ...prev, [r.id]: null }));
     setClearPhotoMap((prev) => ({ ...prev, [r.id]: false }));
   };
@@ -224,6 +350,20 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
       const file = editFileMap[id];
       if (file) fd.append("file", file);
 
+      // ✅ 追加：紐づけ（PUTはset置き換えなので必ず送る）
+      fd.append(
+        "courseIds",
+        JSON.stringify(uniqStrings(safeJsonArray(e.courseIds)))
+      );
+      fd.append(
+        "genreIds",
+        JSON.stringify(uniqStrings(safeJsonArray(e.genreIds)))
+      );
+      fd.append(
+        "campusIds",
+        JSON.stringify(uniqStrings(safeJsonArray(e.campusIds)))
+      );
+
       const res = await fetch("/api/diagnosis/instructors", {
         method: "PUT",
         body: fd,
@@ -274,6 +414,13 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
     () => (newFile ? URL.createObjectURL(newFile) : ""),
     [newFile]
   );
+
+  // ✅ 追加：一覧表示用の簡易ラベル化
+  const joinLabels = (opts?: OptionRow[]) =>
+    (opts ?? [])
+      .map((o) => o.label)
+      .filter(Boolean)
+      .join(" / ");
 
   return (
     <div className="mx-auto w-full max-w-5xl p-6 text-gray-900 dark:text-gray-100">
@@ -369,6 +516,89 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
             </div>
           </div>
 
+          {/* ✅ 追加：対応コース/ジャンル/校舎 */}
+          <div className="md:col-span-2">
+            <div className="mb-2 text-xs font-semibold text-gray-600 dark:text-gray-300">
+              対応（複数選択）
+            </div>
+            <div className="grid gap-3 md:grid-cols-3">
+              <div>
+                <div className="mb-1 text-[11px] font-semibold text-gray-600 dark:text-gray-300">
+                  対応コース
+                </div>
+                <select
+                  className={selectBox}
+                  multiple
+                  value={newCourseIds}
+                  onChange={(e) =>
+                    setNewCourseIds(
+                      Array.from(e.target.selectedOptions).map((o) => o.value)
+                    )
+                  }
+                >
+                  {courses.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <div className="mb-1 text-[11px] font-semibold text-gray-600 dark:text-gray-300">
+                  対応ジャンル
+                </div>
+                <select
+                  className={selectBox}
+                  multiple
+                  value={newGenreIds}
+                  onChange={(e) =>
+                    setNewGenreIds(
+                      Array.from(e.target.selectedOptions).map((o) => o.value)
+                    )
+                  }
+                >
+                  {genres.map((g) => (
+                    <option key={g.id} value={g.id}>
+                      {g.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <div className="mb-1 text-[11px] font-semibold text-gray-600 dark:text-gray-300">
+                  対応校舎
+                </div>
+                <select
+                  className={selectBox}
+                  multiple
+                  value={newCampusIds}
+                  onChange={(e) =>
+                    setNewCampusIds(
+                      Array.from(e.target.selectedOptions).map((o) => o.value)
+                    )
+                  }
+                >
+                  {campuses.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.label}
+                      {typeof p.isOnline === "boolean"
+                        ? p.isOnline
+                          ? "（オンライン）"
+                          : ""
+                        : ""}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="mt-2 text-[11px] text-gray-500 dark:text-gray-400">
+              ※ Macは⌘ / WindowsはCtrl を押しながらクリックで複数選択できます
+            </div>
+          </div>
+
           <div className="grid grid-cols-2 gap-3 md:col-span-2">
             <div>
               <div className="mb-1 text-xs font-semibold text-gray-600 dark:text-gray-300">
@@ -406,7 +636,10 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
           </button>
           <button
             type="button"
-            onClick={fetchList}
+            onClick={() => {
+              void fetchOptions();
+              void fetchList();
+            }}
             disabled={loading || !canLoad}
             className={btnOutline}
           >
@@ -444,6 +677,10 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
               const file = editFileMap[r.id] ?? null;
               const localPreview = file ? URL.createObjectURL(file) : "";
               const hasDbPhoto = Boolean(r.photoMime);
+
+              const currentCourseIds = safeJsonArray(current.courseIds);
+              const currentGenreIds = safeJsonArray(current.genreIds);
+              const currentCampusIds = safeJsonArray(current.campusIds);
 
               return (
                 <div
@@ -560,6 +797,111 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
                               </div>
                             )}
                           </div>
+                        </div>
+
+                        {/* ✅ 追加：対応コース/ジャンル/校舎 */}
+                        <div className="md:col-span-3">
+                          <div className="text-[11px] font-semibold text-gray-600 dark:text-gray-300">
+                            対応（コース / ジャンル / 校舎）
+                          </div>
+
+                          {editing ? (
+                            <div className="mt-2 grid gap-2 md:grid-cols-3">
+                              <div>
+                                <div className="mb-1 text-[11px] text-gray-600 dark:text-gray-300">
+                                  コース
+                                </div>
+                                <select
+                                  className={selectBox}
+                                  multiple
+                                  value={currentCourseIds}
+                                  onChange={(ev) =>
+                                    updateEditField(r.id, {
+                                      courseIds: Array.from(
+                                        ev.target.selectedOptions
+                                      ).map((o) => o.value),
+                                    })
+                                  }
+                                >
+                                  {courses.map((c) => (
+                                    <option key={c.id} value={c.id}>
+                                      {c.label}
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+
+                              <div>
+                                <div className="mb-1 text-[11px] text-gray-600 dark:text-gray-300">
+                                  ジャンル
+                                </div>
+                                <select
+                                  className={selectBox}
+                                  multiple
+                                  value={currentGenreIds}
+                                  onChange={(ev) =>
+                                    updateEditField(r.id, {
+                                      genreIds: Array.from(
+                                        ev.target.selectedOptions
+                                      ).map((o) => o.value),
+                                    })
+                                  }
+                                >
+                                  {genres.map((g) => (
+                                    <option key={g.id} value={g.id}>
+                                      {g.label}
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+
+                              <div>
+                                <div className="mb-1 text-[11px] text-gray-600 dark:text-gray-300">
+                                  校舎
+                                </div>
+                                <select
+                                  className={selectBox}
+                                  multiple
+                                  value={currentCampusIds}
+                                  onChange={(ev) =>
+                                    updateEditField(r.id, {
+                                      campusIds: Array.from(
+                                        ev.target.selectedOptions
+                                      ).map((o) => o.value),
+                                    })
+                                  }
+                                >
+                                  {campuses.map((p) => (
+                                    <option key={p.id} value={p.id}>
+                                      {p.label}
+                                      {typeof p.isOnline === "boolean"
+                                        ? p.isOnline
+                                          ? "（オンライン）"
+                                          : ""
+                                        : ""}
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="mt-1 text-[12px] text-gray-700 dark:text-gray-200">
+                              <div className="mb-1">
+                                <span className="font-semibold">コース：</span>
+                                {joinLabels(r.courses) || "—"}
+                              </div>
+                              <div className="mb-1">
+                                <span className="font-semibold">
+                                  ジャンル：
+                                </span>
+                                {joinLabels(r.genres) || "—"}
+                              </div>
+                              <div>
+                                <span className="font-semibold">校舎：</span>
+                                {joinLabels(r.campuses) || "—"}
+                              </div>
+                            </div>
+                          )}
                         </div>
 
                         <div className="grid grid-cols-2 gap-2 md:col-span-3">
