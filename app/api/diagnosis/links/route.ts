@@ -9,13 +9,13 @@ export async function GET(req: NextRequest) {
     const schoolId = searchParams.get("schoolId") ?? "";
     const resultId = searchParams.get("resultId") ?? "";
 
-    // 今の画面はこれを叩いてる（links?type=genres&resultId=...）
+    // 画面は links?type=genres&schoolId=...&resultId=... を叩く想定
     if (type === "genres") {
+      // ✅ フロントが .map() できるように「必ず配列」を返す
       if (!schoolId || !resultId) {
-        return NextResponse.json({ linkedGenreIds: [] }, { status: 200 });
+        return NextResponse.json([] as string[], { status: 200 });
       }
 
-      // Resultがそのschoolのものか確認しつつ、紐づいてるgenresを取得
       const result = await prisma.diagnosisResult.findFirst({
         where: { id: resultId, schoolId },
         select: {
@@ -28,28 +28,23 @@ export async function GET(req: NextRequest) {
       });
 
       if (!result) {
-        return NextResponse.json(
-          {
-            message:
-              "指定された結果が見つかりません（schoolId / resultId を確認）",
-          },
-          { status: 404 }
-        );
+        // ✅ 404でも配列を返す（フロントが落ちない）
+        return NextResponse.json([] as string[], { status: 404 });
       }
 
+      // ✅ ここがポイント：オブジェクトではなく配列だけ返す
       return NextResponse.json(
-        { linkedGenreIds: result.genres.map((g) => g.id) },
+        result.genres.map((g) => g.id),
         { status: 200 }
       );
     }
 
-    return NextResponse.json({ message: "unknown type" }, { status: 400 });
+    // unknown type も配列で返すと安全（必要なら message にしてもOK）
+    return NextResponse.json([] as string[], { status: 400 });
   } catch (e: any) {
     console.error("[GET /api/diagnosis/links] error", e);
-    return NextResponse.json(
-      { message: e?.message ?? "紐づけ取得に失敗しました" },
-      { status: 500 }
-    );
+    // ✅ エラー時も配列で返す（フロントが落ちない）
+    return NextResponse.json([] as string[], { status: 500 });
   }
 }
 
