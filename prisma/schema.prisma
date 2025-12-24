@@ -112,6 +112,9 @@ model DiagnosisCourse {
   // 診断結果に紐づく（多対多）
   results   DiagnosisResult[] @relation("ResultCourses")
 
+  // ✅ 追加：講師と紐づく（多対多）
+  instructors DiagnosisInstructor[] @relation("InstructorCourses")
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -127,8 +130,6 @@ model DiagnosisGenre {
   label     String   // 例: "K-POP", "HIPHOP"
   slug      String   // 例: "kpop", "hiphop"
 
-  // ✅ 追加：固定質問(Q4)の回答タグと紐づける（例: "Genre_KPOP"）
-
   sortOrder Int      @default(0)
   isActive  Boolean  @default(true)
 
@@ -136,6 +137,9 @@ model DiagnosisGenre {
 
   // 診断結果に紐づく（多対多）
   results   DiagnosisResult[] @relation("ResultGenres")
+
+  // ✅ 追加：講師と紐づく（多対多）
+  instructors DiagnosisInstructor[] @relation("InstructorGenres")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -164,6 +168,10 @@ model DiagnosisInstructor {
   // 診断結果に紐づく（多対多）
   results   DiagnosisResult[] @relation("ResultInstructors")
 
+  // ✅ 追加：コース/ジャンル紐づけ（多対多）
+  courses   DiagnosisCourse[] @relation("InstructorCourses")
+  genres    DiagnosisGenre[]  @relation("InstructorGenres")
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -173,7 +181,6 @@ model DiagnosisInstructor {
 }
 
 // 診断結果（おすすめ結果カード）
-// どの校舎/コース/ジャンル/講師に紐づくかを多対多で保持
 model DiagnosisResult {
   id        String   @id @default(cuid())
   schoolId  String
