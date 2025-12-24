@@ -57,7 +57,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 所有確認（これで安全）
+    // ✅ 所有確認（安全）
     const owned = await prisma.diagnosisResult.findFirst({
       where: { id: resultId, schoolId },
       select: { id: true },
@@ -69,18 +69,37 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // -------------------------
+    // ✅ genres：id優先、なければslug
+    // -------------------------
     if (type === "genres") {
       const genreIdsRaw: string[] = Array.isArray(body?.genreIds)
         ? body.genreIds
         : [];
+      const genreSlugsRaw: string[] = Array.isArray(body?.genreSlugs)
+        ? body.genreSlugs
+        : [];
+
       const genreIds = Array.from(
         new Set(genreIdsRaw.map((v) => String(v).trim()).filter(Boolean))
       );
+      const genreSlugs = Array.from(
+        new Set(genreSlugsRaw.map((v) => String(v).trim()).filter(Boolean))
+      );
 
       const validGenres = await prisma.diagnosisGenre.findMany({
-        where: { schoolId, isActive: true, id: { in: genreIds } },
+        where: {
+          schoolId,
+          isActive: true,
+          ...(genreIds.length > 0
+            ? { id: { in: genreIds } }
+            : genreSlugs.length > 0
+            ? { slug: { in: genreSlugs } }
+            : { id: { in: [] } }),
+        },
         select: { id: true },
       });
+
       const validGenreIds = validGenres.map((g) => g.id);
 
       const updated = await prisma.diagnosisResult.update({
@@ -89,21 +108,42 @@ export async function POST(req: NextRequest) {
         include: { genres: { select: { id: true, slug: true, label: true } } },
       });
 
-      return NextResponse.json({ ok: true, type, updated }, { status: 200 });
+      return NextResponse.json(
+        { ok: true, type, input: { genreIds, genreSlugs }, updated },
+        { status: 200 }
+      );
     }
 
-    // type === "campuses"
+    // -------------------------
+    // ✅ campuses：id優先、なければslug
+    // -------------------------
     const campusIdsRaw: string[] = Array.isArray(body?.campusIds)
       ? body.campusIds
       : [];
+    const campusSlugsRaw: string[] = Array.isArray(body?.campusSlugs)
+      ? body.campusSlugs
+      : [];
+
     const campusIds = Array.from(
       new Set(campusIdsRaw.map((v) => String(v).trim()).filter(Boolean))
     );
+    const campusSlugs = Array.from(
+      new Set(campusSlugsRaw.map((v) => String(v).trim()).filter(Boolean))
+    );
 
     const validCampuses = await prisma.diagnosisCampus.findMany({
-      where: { schoolId, isActive: true, id: { in: campusIds } },
+      where: {
+        schoolId,
+        isActive: true,
+        ...(campusIds.length > 0
+          ? { id: { in: campusIds } }
+          : campusSlugs.length > 0
+          ? { slug: { in: campusSlugs } }
+          : { id: { in: [] } }),
+      },
       select: { id: true },
     });
+
     const validCampusIds = validCampuses.map((c) => c.id);
 
     const updated = await prisma.diagnosisResult.update({
@@ -112,7 +152,10 @@ export async function POST(req: NextRequest) {
       include: { campuses: { select: { id: true, slug: true, label: true } } },
     });
 
-    return NextResponse.json({ ok: true, type, updated }, { status: 200 });
+    return NextResponse.json(
+      { ok: true, type, input: { campusIds, campusSlugs }, updated },
+      { status: 200 }
+    );
   } catch (e: any) {
     console.error("[POST /api/diagnosis/links] error", e);
     return NextResponse.json(
