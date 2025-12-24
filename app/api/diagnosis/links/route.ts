@@ -10,12 +10,10 @@ export async function GET(req: NextRequest) {
     const resultId = searchParams.get("resultId") ?? "";
 
     // ✅ GETは「常に200 + 配列」で返す（フロントを絶対落とさない）
-    if (type !== "genres") {
+    if (type !== "genres")
       return NextResponse.json([] as string[], { status: 200 });
-    }
-    if (!schoolId || !resultId) {
+    if (!schoolId || !resultId)
       return NextResponse.json([] as string[], { status: 200 });
-    }
 
     const result = await prisma.diagnosisResult.findFirst({
       where: { id: resultId, schoolId },
@@ -27,9 +25,7 @@ export async function GET(req: NextRequest) {
       },
     });
 
-    if (!result) {
-      return NextResponse.json([] as string[], { status: 200 });
-    }
+    if (!result) return NextResponse.json([] as string[], { status: 200 });
 
     return NextResponse.json(
       result.genres.map((g) => g.id),
@@ -43,11 +39,12 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
+    const body = await req.json().catch(() => null);
 
     const schoolId: string = body?.schoolId ?? "";
     const resultId: string = body?.resultId ?? "";
 
+    // ✅ 互換：genreIds（id配列） or genreSlugs（slug配列）
     const genreIdsRaw: string[] = Array.isArray(body?.genreIds)
       ? body.genreIds
       : [];
@@ -59,6 +56,23 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         { ok: false, message: "schoolId / resultId は必須です" },
         { status: 400 }
+      );
+    }
+
+    // ✅ 念のため：Resultがそのschoolのものか確認（ここで担保）
+    const owned = await prisma.diagnosisResult.findFirst({
+      where: { id: resultId, schoolId },
+      select: { id: true },
+    });
+
+    if (!owned) {
+      return NextResponse.json(
+        {
+          ok: false,
+          message:
+            "指定された結果が見つかりません（schoolId / resultId を確認）",
+        },
+        { status: 404 }
       );
     }
 
@@ -86,30 +100,14 @@ export async function POST(req: NextRequest) {
 
     const validGenreIds = validGenres.map((g) => g.id);
 
-    // ✅ ここが安全：必ず schoolId も条件に含める
-    const updatedCount = await prisma.diagnosisResult.updateMany({
-      where: { id: resultId, schoolId },
+    // ✅ 多対多の set は updateMany では不可 → update を使う
+    const updated = await prisma.diagnosisResult.update({
+      where: { id: resultId }, // ownedチェック済みなので安全
       data: {
         genres: {
           set: validGenreIds.map((id) => ({ id })),
         },
       },
-    });
-
-    if (updatedCount.count === 0) {
-      return NextResponse.json(
-        {
-          ok: false,
-          message:
-            "指定された結果が見つかりません（schoolId / resultId を確認）",
-        },
-        { status: 404 }
-      );
-    }
-
-    // 表示用に返す（任意）
-    const updated = await prisma.diagnosisResult.findFirst({
-      where: { id: resultId, schoolId },
       include: { genres: { select: { id: true, slug: true, label: true } } },
     });
 
