@@ -21,9 +21,8 @@ type InstructorRow = {
   slug: string;
   sortOrder: number;
   isActive: boolean;
-  photoMime?: string | null; // 画像の有無判定に使う
+  photoMime?: string | null;
 
-  // ✅ 追加：対応紐づけ（APIが返す想定）
   courses?: OptionRow[];
   genres?: OptionRow[];
   campuses?: OptionRow[];
@@ -70,7 +69,7 @@ const btnDanger =
 const thumb =
   "h-12 w-12 rounded-xl border border-gray-200 object-cover dark:border-gray-800";
 
-const selectBox = input + " h-40 leading-tight " + "dark:[color-scheme:dark]"; // multiple selectの見た目改善
+const selectBox = input + " h-40 leading-tight " + "dark:[color-scheme:dark]";
 
 function uniqStrings(xs: string[]) {
   return Array.from(
@@ -83,6 +82,46 @@ function safeJsonArray(v: any): string[] {
   return [];
 }
 
+function joinLabels(opts?: OptionRow[]) {
+  return (opts ?? [])
+    .map((o) => o.label)
+    .filter(Boolean)
+    .join(" / ");
+}
+
+/**
+ * ✅ 追加：クリックだけで複数選択できるようにする（toggle）
+ * - Mac/Winの⌘/Ctrl不要で複数選択できる
+ * - Shift範囲選択も自然に残る
+ */
+function makeToggleSelectHandlers(
+  selected: string[],
+  setSelected: (next: string[]) => void
+) {
+  const onMouseDown = (e: React.MouseEvent<HTMLSelectElement>) => {
+    // option 以外をクリックした場合は通常挙動
+    const target = e.target as HTMLElement;
+    if (target?.tagName !== "OPTION") return;
+
+    e.preventDefault(); // ← これがキモ（単一置換を防ぐ）
+    const opt = target as HTMLOptionElement;
+    const value = opt.value;
+
+    setSelected((prev) => {
+      const has = prev.includes(value);
+      if (has) return prev.filter((x) => x !== value);
+      return [...prev, value];
+    });
+  };
+
+  const onChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    // キーボード操作や、ブラウザ差分のために残しておく（フォールバック）
+    setSelected(Array.from(e.target.selectedOptions).map((o) => o.value));
+  };
+
+  return { onMouseDown, onChange, value: selected };
+}
+
 export default function InstructorAdminClient({ initialSchoolId }: Props) {
   const [schoolId, setSchoolId] = useState(initialSchoolId ?? "");
 
@@ -91,12 +130,10 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // ✅ 追加：選択肢（コース/ジャンル/校舎）
   const [courses, setCourses] = useState<OptionRow[]>([]);
   const [genres, setGenres] = useState<OptionRow[]>([]);
   const [campuses, setCampuses] = useState<OptionRow[]>([]);
 
-  // 新規作成フォーム
   const [newId, setNewId] = useState("");
   const [newLabel, setNewLabel] = useState("");
   const [newSlug, setNewSlug] = useState("");
@@ -104,12 +141,10 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
   const [newIsActive, setNewIsActive] = useState(true);
   const [newFile, setNewFile] = useState<File | null>(null);
 
-  // ✅ 追加：新規作成の紐づけ
   const [newCourseIds, setNewCourseIds] = useState<string[]>([]);
   const [newGenreIds, setNewGenreIds] = useState<string[]>([]);
   const [newCampusIds, setNewCampusIds] = useState<string[]>([]);
 
-  // 編集用（行ID単位）
   const [editMap, setEditMap] = useState<
     Record<string, Partial<InstructorRow>>
   >({});
@@ -127,7 +162,6 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
       id
     )}&schoolId=${encodeURIComponent(schoolId)}`;
 
-  // ✅ 追加：選択肢の取得（コース/ジャンル/校舎）
   const fetchOptions = async () => {
     if (!canLoad) return;
     try {
@@ -146,13 +180,10 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
         ),
         fetch(
           `/api/diagnosis/campuses?schoolId=${encodeURIComponent(schoolId)}`,
-          {
-            cache: "no-store",
-          }
+          { cache: "no-store" }
         ),
       ]);
 
-      // どれか失敗しても講師一覧は動かしたいので、ここは個別に扱う
       const cJson = cRes.ok ? await cRes.json().catch(() => []) : [];
       const gJson = gRes.ok ? await gRes.json().catch(() => []) : [];
       const pJson = pRes.ok ? await pRes.json().catch(() => []) : [];
@@ -179,7 +210,7 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
       setGenres(normalize(gJson));
       setCampuses(normalize(pJson));
     } catch {
-      // options は致命ではないので握る（必要なら error に出してもOK）
+      // options は致命ではないので握る
     }
   };
 
@@ -190,9 +221,7 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
     try {
       const res = await fetch(
         `/api/diagnosis/instructors?schoolId=${encodeURIComponent(schoolId)}`,
-        {
-          cache: "no-store",
-        }
+        { cache: "no-store" }
       );
       if (!res.ok) throw new Error("DiagnosisInstructor の取得に失敗しました");
       const data = (await res.json()) as any[];
@@ -206,7 +235,6 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
         isActive: Boolean(d.isActive ?? true),
         photoMime: typeof d.photoMime === "string" ? d.photoMime : null,
 
-        // ✅ 追加：紐づけ（APIから返ってくる想定）
         courses: Array.isArray(d.courses) ? d.courses : [],
         genres: Array.isArray(d.genres) ? d.genres : [],
         campuses: Array.isArray(d.campuses) ? d.campuses : [],
@@ -229,6 +257,17 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
     void fetchList();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [schoolId]);
+
+  // ✅ create preview URL leak対策
+  const previewForNew = useMemo(() => {
+    if (!newFile) return "";
+    return URL.createObjectURL(newFile);
+  }, [newFile]);
+  useEffect(() => {
+    return () => {
+      if (previewForNew) URL.revokeObjectURL(previewForNew);
+    };
+  }, [previewForNew]);
 
   const createInstructor = async () => {
     if (!schoolId.trim()) return;
@@ -253,7 +292,6 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
       fd.append("isActive", String(newIsActive));
       if (newFile) fd.append("file", newFile);
 
-      // ✅ 追加：紐づけ（JSON配列で渡す）
       fd.append("courseIds", JSON.stringify(uniqStrings(newCourseIds)));
       fd.append("genreIds", JSON.stringify(uniqStrings(newGenreIds)));
       fd.append("campusIds", JSON.stringify(uniqStrings(newCampusIds)));
@@ -273,8 +311,6 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
       setNewSortOrder(1);
       setNewIsActive(true);
       setNewFile(null);
-
-      // ✅ 追加：紐づけもリセット
       setNewCourseIds([]);
       setNewGenreIds([]);
       setNewCampusIds([]);
@@ -350,7 +386,6 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
       const file = editFileMap[id];
       if (file) fd.append("file", file);
 
-      // ✅ 追加：紐づけ（PUTはset置き換えなので必ず送る）
       fd.append(
         "courseIds",
         JSON.stringify(uniqStrings(safeJsonArray(e.courseIds)))
@@ -409,18 +444,6 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
     [newLabel]
   );
   const hintSlug = useMemo(() => slugifyJa(newLabel), [newLabel]);
-
-  const previewForNew = useMemo(
-    () => (newFile ? URL.createObjectURL(newFile) : ""),
-    [newFile]
-  );
-
-  // ✅ 追加：一覧表示用の簡易ラベル化
-  const joinLabels = (opts?: OptionRow[]) =>
-    (opts ?? [])
-      .map((o) => o.label)
-      .filter(Boolean)
-      .join(" / ");
 
   return (
     <div className="mx-auto w-full max-w-5xl p-6 text-gray-900 dark:text-gray-100">
@@ -516,11 +539,12 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
             </div>
           </div>
 
-          {/* ✅ 追加：対応コース/ジャンル/校舎 */}
+          {/* 対応コース/ジャンル/校舎 */}
           <div className="md:col-span-2">
             <div className="mb-2 text-xs font-semibold text-gray-600 dark:text-gray-300">
               対応（複数選択）
             </div>
+
             <div className="grid gap-3 md:grid-cols-3">
               <div>
                 <div className="mb-1 text-[11px] font-semibold text-gray-600 dark:text-gray-300">
@@ -529,12 +553,8 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
                 <select
                   className={selectBox}
                   multiple
-                  value={newCourseIds}
-                  onChange={(e) =>
-                    setNewCourseIds(
-                      Array.from(e.target.selectedOptions).map((o) => o.value)
-                    )
-                  }
+                  size={8}
+                  {...makeToggleSelectHandlers(newCourseIds, setNewCourseIds)}
                 >
                   {courses.map((c) => (
                     <option key={c.id} value={c.id}>
@@ -551,12 +571,8 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
                 <select
                   className={selectBox}
                   multiple
-                  value={newGenreIds}
-                  onChange={(e) =>
-                    setNewGenreIds(
-                      Array.from(e.target.selectedOptions).map((o) => o.value)
-                    )
-                  }
+                  size={8}
+                  {...makeToggleSelectHandlers(newGenreIds, setNewGenreIds)}
                 >
                   {genres.map((g) => (
                     <option key={g.id} value={g.id}>
@@ -573,12 +589,8 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
                 <select
                   className={selectBox}
                   multiple
-                  value={newCampusIds}
-                  onChange={(e) =>
-                    setNewCampusIds(
-                      Array.from(e.target.selectedOptions).map((o) => o.value)
-                    )
-                  }
+                  size={8}
+                  {...makeToggleSelectHandlers(newCampusIds, setNewCampusIds)}
                 >
                   {campuses.map((p) => (
                     <option key={p.id} value={p.id}>
@@ -595,7 +607,8 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
             </div>
 
             <div className="mt-2 text-[11px] text-gray-500 dark:text-gray-400">
-              ※ Macは⌘ / WindowsはCtrl を押しながらクリックで複数選択できます
+              ✅
+              クリックで選択/解除できます（⌘/Ctrl不要）。Shiftで範囲選択もOK。
             </div>
           </div>
 
@@ -799,7 +812,7 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
                           </div>
                         </div>
 
-                        {/* ✅ 追加：対応コース/ジャンル/校舎 */}
+                        {/* 対応コース/ジャンル/校舎 */}
                         <div className="md:col-span-3">
                           <div className="text-[11px] font-semibold text-gray-600 dark:text-gray-300">
                             対応（コース / ジャンル / 校舎）
@@ -814,7 +827,22 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
                                 <select
                                   className={selectBox}
                                   multiple
+                                  size={8}
                                   value={currentCourseIds}
+                                  onMouseDown={(ev) => {
+                                    const target = ev.target as HTMLElement;
+                                    if (target?.tagName !== "OPTION") return;
+                                    ev.preventDefault();
+                                    const opt = target as HTMLOptionElement;
+                                    const v = opt.value;
+                                    updateEditField(r.id, {
+                                      courseIds: currentCourseIds.includes(v)
+                                        ? currentCourseIds.filter(
+                                            (x) => x !== v
+                                          )
+                                        : [...currentCourseIds, v],
+                                    });
+                                  }}
                                   onChange={(ev) =>
                                     updateEditField(r.id, {
                                       courseIds: Array.from(
@@ -838,7 +866,20 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
                                 <select
                                   className={selectBox}
                                   multiple
+                                  size={8}
                                   value={currentGenreIds}
+                                  onMouseDown={(ev) => {
+                                    const target = ev.target as HTMLElement;
+                                    if (target?.tagName !== "OPTION") return;
+                                    ev.preventDefault();
+                                    const opt = target as HTMLOptionElement;
+                                    const v = opt.value;
+                                    updateEditField(r.id, {
+                                      genreIds: currentGenreIds.includes(v)
+                                        ? currentGenreIds.filter((x) => x !== v)
+                                        : [...currentGenreIds, v],
+                                    });
+                                  }}
                                   onChange={(ev) =>
                                     updateEditField(r.id, {
                                       genreIds: Array.from(
@@ -862,7 +903,22 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
                                 <select
                                   className={selectBox}
                                   multiple
+                                  size={8}
                                   value={currentCampusIds}
+                                  onMouseDown={(ev) => {
+                                    const target = ev.target as HTMLElement;
+                                    if (target?.tagName !== "OPTION") return;
+                                    ev.preventDefault();
+                                    const opt = target as HTMLOptionElement;
+                                    const v = opt.value;
+                                    updateEditField(r.id, {
+                                      campusIds: currentCampusIds.includes(v)
+                                        ? currentCampusIds.filter(
+                                            (x) => x !== v
+                                          )
+                                        : [...currentCampusIds, v],
+                                    });
+                                  }}
                                   onChange={(ev) =>
                                     updateEditField(r.id, {
                                       campusIds: Array.from(
