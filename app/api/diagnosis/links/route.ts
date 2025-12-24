@@ -33,7 +33,6 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // ✅ campuses は id/slug 両方取って状況確認できるようにする（最重要）
     const result = await prisma.diagnosisResult.findFirst({
       where: { id: resultId, schoolId },
       select:
@@ -66,13 +65,11 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // campuses
     const items = (result as any).campuses as Array<{
       id: string;
       slug: string | null;
       isActive: boolean;
     }>;
-    // ✅ 本番返却は「slug優先、無ければid」にしてUIとズレないようにする
     const keys = items.filter((x) => x.isActive).map((x) => x.slug ?? x.id);
 
     return NextResponse.json(
@@ -116,7 +113,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // ✅ 所有確認（安全）
     const owned = await prisma.diagnosisResult.findFirst({
       where: { id: resultId, schoolId },
       select: { id: true },
@@ -174,7 +170,7 @@ export async function POST(req: NextRequest) {
     }
 
     // -------------------------
-    // ✅ campuses：id優先、なければslug
+    // ✅ campuses：id→ダメならslugで救済 + 0件なら400で止める
     // -------------------------
     const campusIdsRaw: string[] = Array.isArray(body?.campusIds)
       ? body.campusIds
@@ -190,20 +186,47 @@ export async function POST(req: NextRequest) {
       new Set(campusSlugsRaw.map((v) => String(v).trim()).filter(Boolean))
     );
 
-    const validCampuses = await prisma.diagnosisCampus.findMany({
-      where: {
-        schoolId,
-        isActive: true,
-        ...(campusIds.length > 0
-          ? { id: { in: campusIds } }
-          : campusSlugs.length > 0
-          ? { slug: { in: campusSlugs } }
-          : { id: { in: [] } }),
-      },
-      select: { id: true },
-    });
+    let validCampuses: { id: string }[] = [];
+
+    // ① campusIds を「id」として解決
+    if (campusIds.length > 0) {
+      validCampuses = await prisma.diagnosisCampus.findMany({
+        where: { schoolId, isActive: true, id: { in: campusIds } },
+        select: { id: true },
+      });
+
+      // ② idで0件なら「campusIds に slug が入ってる」想定で救済
+      if (validCampuses.length === 0) {
+        validCampuses = await prisma.diagnosisCampus.findMany({
+          where: { schoolId, isActive: true, slug: { in: campusIds } },
+          select: { id: true },
+        });
+      }
+    }
+
+    // ③ campusSlugs が来ていれば slug で解決
+    if (validCampuses.length === 0 && campusSlugs.length > 0) {
+      validCampuses = await prisma.diagnosisCampus.findMany({
+        where: { schoolId, isActive: true, slug: { in: campusSlugs } },
+        select: { id: true },
+      });
+    }
 
     const validCampusIds = validCampuses.map((c) => c.id);
+
+    // ✅ 重要：ユーザーが何か送ってきたのに 0件マッチなら “外さない” でエラー
+    const userSentSomething = campusIds.length > 0 || campusSlugs.length > 0;
+    if (userSentSomething && validCampusIds.length === 0) {
+      return NextResponse.json(
+        {
+          ok: false,
+          message:
+            "校舎が解決できませんでした。campusIds/campusSlugs の値（id/slug）が一致しているか確認してください。",
+          input: { campusIds, campusSlugs },
+        },
+        { status: 400 }
+      );
+    }
 
     const updated = await prisma.diagnosisResult.update({
       where: { id: resultId },
