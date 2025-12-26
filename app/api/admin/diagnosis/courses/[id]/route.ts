@@ -1,3 +1,4 @@
+// app/api/admin/diagnosis/courses/[id]/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
@@ -6,15 +7,10 @@ type PatchBody = {
   slug?: string;
   sortOrder?: number;
   isActive?: boolean;
-  q2AnswerTags?: string[];
-};
 
-function uniqStrings(xs: unknown): string[] {
-  if (!Array.isArray(xs)) return [];
-  return Array.from(
-    new Set(xs.map((v) => String(v ?? "").trim()).filter(Boolean))
-  );
-}
+  // ★ Q2対応（診断用コース管理）
+  q2AnswerTags?: string[]; // <- Prisma が String[] の場合
+};
 
 export async function PATCH(
   req: NextRequest,
@@ -22,43 +18,40 @@ export async function PATCH(
 ) {
   try {
     const id = params.id;
-    const body = (await req.json().catch(() => ({}))) as PatchBody;
-
-    const data: any = {};
-    if (typeof body.label === "string") data.label = body.label;
-    if (typeof body.slug === "string") data.slug = body.slug;
-    if (typeof body.sortOrder === "number") data.sortOrder = body.sortOrder;
-    if (typeof body.isActive === "boolean") data.isActive = body.isActive;
-
-    // ✅ 追加：Q2対応（String[]）
-    if (body.q2AnswerTags !== undefined) {
-      data.q2AnswerTags = uniqStrings(body.q2AnswerTags);
+    if (!id) {
+      return NextResponse.json({ error: "Missing id" }, { status: 400 });
     }
+
+    const body = (await req.json()) as PatchBody;
+
+    // 型の正規化（ここがないと「保存されない/弾かれる」が起きがち）
+    const q2 =
+      body.q2AnswerTags === undefined
+        ? undefined
+        : Array.isArray(body.q2AnswerTags)
+        ? body.q2AnswerTags.filter(
+            (v) => typeof v === "string" && v.trim() !== ""
+          )
+        : [];
 
     const updated = await prisma.diagnosisCourse.update({
       where: { id },
-      data,
+      data: {
+        ...(body.label !== undefined ? { label: body.label } : {}),
+        ...(body.slug !== undefined ? { slug: body.slug } : {}),
+        ...(body.sortOrder !== undefined ? { sortOrder: body.sortOrder } : {}),
+        ...(body.isActive !== undefined ? { isActive: body.isActive } : {}),
+
+        // ★ Q2を必ずupdateに含める
+        ...(q2 !== undefined ? { q2AnswerTags: q2 } : {}),
+      },
     });
 
-    return NextResponse.json(updated);
+    return NextResponse.json({ ok: true, course: updated });
   } catch (e: any) {
+    console.error("[PATCH /admin/diagnosis/courses/:id] error:", e);
     return NextResponse.json(
-      { message: e?.message ?? "更新に失敗しました" },
-      { status: 500 }
-    );
-  }
-}
-
-export async function DELETE(
-  _req: NextRequest,
-  { params }: { params: { id: string } }
-) {
-  try {
-    await prisma.diagnosisCourse.delete({ where: { id: params.id } });
-    return NextResponse.json({ ok: true });
-  } catch (e: any) {
-    return NextResponse.json(
-      { message: e?.message ?? "削除に失敗しました" },
+      { ok: false, error: e?.message ?? "Unknown error" },
       { status: 500 }
     );
   }
