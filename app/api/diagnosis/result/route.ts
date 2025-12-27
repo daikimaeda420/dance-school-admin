@@ -250,10 +250,13 @@ export async function POST(req: NextRequest) {
       campuses: { some: { campusId: campus.id } }, // 校舎は必須
     } as const;
 
+    // ✅ ここに photoMime を含めて「画像があるか」を判別できるようにする（任意）
     const selectInstructor = {
       id: true,
       label: true,
       slug: true,
+      photoMime: true,
+      photoData: true, // length判定のため（重いなら消してOK）
     } as const;
 
     let instructors =
@@ -337,12 +340,25 @@ export async function POST(req: NextRequest) {
         styles: [],
       },
 
-      // ✅ 追加：講師管理で紐づいた講師
-      instructors: instructors.map((t) => ({
-        id: t.id,
-        label: t.label,
-        slug: t.slug,
-      })),
+      // ✅ 追加：講師管理で紐づいた講師（photoUrl を付与）
+      instructors: instructors.map((t) => {
+        const url = `/api/diagnosis/instructors/photo?schoolId=${encodeURIComponent(
+          schoolId
+        )}&id=${encodeURIComponent(t.id)}`;
+
+        // 画像が無い講師は null にしてフロント側で丸アイコンを出す
+        const hasPhoto =
+          Boolean(t.photoMime) &&
+          Boolean(t.photoData) &&
+          (t.photoData as any)?.length > 0;
+
+        return {
+          id: t.id,
+          label: t.label,
+          slug: t.slug,
+          photoUrl: hasPhoto ? url : null,
+        };
+      }),
 
       breakdown: [],
       worstMatch: null,
