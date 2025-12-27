@@ -4,6 +4,15 @@
 import { useEffect, useState } from "react";
 import MatchReason from "./_components/MatchReason";
 
+type SelectedCampus = {
+  label: string;
+  slug: string;
+  isOnline?: boolean;
+  address?: string | null;
+  access?: string | null;
+  googleMapUrl?: string | null;
+};
+
 type VM = {
   headline: string;
   subline: string;
@@ -23,7 +32,63 @@ type VM = {
     ctaLabel?: string | null;
     ctaUrl?: string | null;
   };
+
+  // ✅ 追加：結果の一番下に出す校舎詳細
+  selectedCampus?: SelectedCampus | null;
 };
+
+function CampusDetailBox({ campus }: { campus?: SelectedCampus | null }) {
+  if (!campus) return null;
+
+  const hasAny =
+    !!campus.address ||
+    !!campus.access ||
+    !!campus.googleMapUrl ||
+    !!campus.label;
+
+  if (!hasAny) return null;
+
+  return (
+    <section className="rounded-2xl border p-5 space-y-3">
+      <div className="text-sm font-semibold">選択した校舎情報</div>
+
+      <div className="text-sm">
+        <span className="text-neutral-500">校舎：</span>
+        <span className="font-medium">{campus.label}</span>
+        {campus.isOnline ? (
+          <span className="ml-2 inline-flex rounded-full border px-2 py-0.5 text-[11px] text-neutral-600">
+            オンライン
+          </span>
+        ) : null}
+      </div>
+
+      {campus.address ? (
+        <div className="text-sm">
+          <div className="text-xs text-neutral-500">住所</div>
+          <div>{campus.address}</div>
+        </div>
+      ) : null}
+
+      {campus.access ? (
+        <div className="text-sm">
+          <div className="text-xs text-neutral-500">アクセス</div>
+          <div className="whitespace-pre-wrap">{campus.access}</div>
+        </div>
+      ) : null}
+
+      {campus.googleMapUrl ? (
+        <a
+          className="inline-flex items-center justify-center rounded-xl bg-neutral-900 px-4 py-3 text-center text-sm font-semibold text-white"
+          href={campus.googleMapUrl}
+          target="_blank"
+          rel="noreferrer"
+        >
+          Google Mapで見る
+        </a>
+      ) : null}
+    </section>
+  );
+}
 
 export default function DiagnosisResultPage() {
   const [vm, setVm] = useState<VM | null>(null);
@@ -52,8 +117,17 @@ export default function DiagnosisResultPage() {
         if (!res.ok)
           throw new Error(data?.message ?? "診断結果の取得に失敗しました");
 
-        // ✅ viewModel 優先。無い場合は将来の互換で落ちないように
-        setVm(data.viewModel ?? null);
+        // ✅ viewModel を基本にしつつ、APIが返す selectedCampus もVMに合体
+        const baseVm = (data.viewModel ?? null) as VM | null;
+        if (!baseVm) {
+          setVm(null);
+          return;
+        }
+
+        setVm({
+          ...baseVm,
+          selectedCampus: data.selectedCampus ?? null,
+        });
       } catch (e: any) {
         setErr(e?.message ?? "不明なエラー");
       } finally {
@@ -114,6 +188,9 @@ export default function DiagnosisResultPage() {
           </a>
         </section>
       )}
+
+      {/* ✅ 一番下に表示 */}
+      <CampusDetailBox campus={vm.selectedCampus} />
     </main>
   );
 }

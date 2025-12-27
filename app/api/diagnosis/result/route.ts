@@ -52,17 +52,11 @@ function norm(s: unknown): string {
 
 /**
  * ✅ Q2の回答値を「コース管理で保存している形式」に揃える
- * 多くの実装では answers["Q2"] は optionId なので、
- * QUESTIONS から option を引き、日本語文言（label/value/tag）を使う。
- * （もしanswers["Q2"]が既に日本語文言なら、そのままでも一致します）
  */
 function getQ2ValueForCourse(answers: Record<string, string>): string {
   const raw = answers["Q2"]; // たぶん optionId
   const q2 = QUESTIONS.find((q) => q.id === "Q2");
   const opt: any = q2?.options?.find((o: any) => o.id === raw);
-
-  // コース側の q2AnswerTags は日本語文言を保存している前提なので label 優先
-  // もし構造が違っても、value/tag を拾って最後に raw にフォールバック
   return norm(opt?.label ?? opt?.value ?? opt?.tag ?? raw);
 }
 
@@ -94,7 +88,16 @@ export async function POST(req: NextRequest) {
     const campusSlug = norm(answers["Q1"]);
     const campus = await prisma.diagnosisCampus.findFirst({
       where: { schoolId, slug: campusSlug, isActive: true },
-      select: { id: true, label: true, slug: true },
+      // ✅ 住所/アクセス/GoogleMap を追加で返す
+      select: {
+        id: true,
+        label: true,
+        slug: true,
+        isOnline: true,
+        address: true,
+        access: true,
+        googleMapUrl: true,
+      },
     });
 
     if (!campus) {
@@ -133,8 +136,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // ✅ A案：Q2に紐づく「おすすめコース」を取得（q2AnswerTags: String[] を想定）
-    // ★ rawのoptionIdではなく、日本語文言に変換して一致させる
+    // ✅ A案：Q2に紐づく「おすすめコース」を取得
     const q2ForCourse = getQ2ValueForCourse(answers);
 
     const recommendedCourse = await prisma.diagnosisCourse.findFirst({
@@ -147,7 +149,7 @@ export async function POST(req: NextRequest) {
       select: { id: true, label: true, slug: true },
     });
 
-    // ✅ ここが本丸：relation filter で診断結果を1件取得（JOINテーブル名に依存しない）
+    // ✅ 診断結果を1件取得
     const best = await prisma.diagnosisResult.findFirst({
       where: {
         schoolId,
@@ -175,8 +177,8 @@ export async function POST(req: NextRequest) {
             campusId: campus.id,
             genreId: genre?.id ?? null,
             genreSlug,
-            q2AnswerRaw: answers["Q2"], // 追加：送られてきた値
-            q2ForCourse, // 追加：コース照合に使った値
+            q2AnswerRaw: answers["Q2"],
+            q2ForCourse,
             hasRecommendedCourse: Boolean(recommendedCourse),
           },
         },
@@ -194,7 +196,6 @@ export async function POST(req: NextRequest) {
       headerLabel: "あなたにおすすめの診断結果です",
       bestMatch: {
         classId: best.id, // 互換
-        // ✅ 「あなたにおすすめのクラス」= Q2対応に紐付いたコース名を表示
         className: recommendedCourse?.label ?? best.title,
         genres: genre ? [genre.label] : [],
         levels: [],
@@ -215,6 +216,16 @@ export async function POST(req: NextRequest) {
         body: best.body,
         ctaLabel: best.ctaLabel,
         ctaUrl: best.ctaUrl,
+      },
+
+      // ✅ 追加：結果ページの一番下に表示する用
+      selectedCampus: {
+        label: campus.label,
+        slug: campus.slug,
+        isOnline: campus.isOnline,
+        address: campus.address ?? null,
+        access: campus.access ?? null,
+        googleMapUrl: campus.googleMapUrl ?? null,
       },
     });
   } catch (e: any) {
