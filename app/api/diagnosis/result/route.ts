@@ -50,6 +50,22 @@ function norm(s: unknown): string {
   return String(s ?? "").trim();
 }
 
+/**
+ * ✅ Q2の回答値を「コース管理で保存している形式」に揃える
+ * 多くの実装では answers["Q2"] は optionId なので、
+ * QUESTIONS から option を引き、日本語文言（label/value/tag）を使う。
+ * （もしanswers["Q2"]が既に日本語文言なら、そのままでも一致します）
+ */
+function getQ2ValueForCourse(answers: Record<string, string>): string {
+  const raw = answers["Q2"]; // たぶん optionId
+  const q2 = QUESTIONS.find((q) => q.id === "Q2");
+  const opt: any = q2?.options?.find((o: any) => o.id === raw);
+
+  // コース側の q2AnswerTags は日本語文言を保存している前提なので label 優先
+  // もし構造が違っても、value/tag を拾って最後に raw にフォールバック
+  return norm(opt?.label ?? opt?.value ?? opt?.tag ?? raw);
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body: DiagnosisRequestBody = await req.json().catch(() => ({}));
@@ -118,12 +134,14 @@ export async function POST(req: NextRequest) {
     }
 
     // ✅ A案：Q2に紐づく「おすすめコース」を取得（q2AnswerTags: String[] を想定）
-    const q2 = norm(answers["Q2"]);
+    // ★ rawのoptionIdではなく、日本語文言に変換して一致させる
+    const q2ForCourse = getQ2ValueForCourse(answers);
+
     const recommendedCourse = await prisma.diagnosisCourse.findFirst({
       where: {
         schoolId,
         isActive: true,
-        q2AnswerTags: { has: q2 }, // ★コースのq2AnswerTagsにQ2回答が含まれている
+        q2AnswerTags: { has: q2ForCourse },
       },
       orderBy: { sortOrder: "asc" },
       select: { id: true, label: true, slug: true },
@@ -157,7 +175,8 @@ export async function POST(req: NextRequest) {
             campusId: campus.id,
             genreId: genre?.id ?? null,
             genreSlug,
-            q2,
+            q2AnswerRaw: answers["Q2"], // 追加：送られてきた値
+            q2ForCourse, // 追加：コース照合に使った値
             hasRecommendedCourse: Boolean(recommendedCourse),
           },
         },
@@ -176,7 +195,6 @@ export async function POST(req: NextRequest) {
       bestMatch: {
         classId: best.id, // 互換
         // ✅ 「あなたにおすすめのクラス」= Q2対応に紐付いたコース名を表示
-        // 見つからない場合は従来通り best.title
         className: recommendedCourse?.label ?? best.title,
         genres: genre ? [genre.label] : [],
         levels: [],
