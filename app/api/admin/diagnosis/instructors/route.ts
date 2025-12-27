@@ -57,10 +57,6 @@ export async function POST(req: NextRequest) {
 
   const sortOrder = typeof body.sortOrder === "number" ? body.sortOrder : 0;
   const isActive = body.isActive !== false;
-  const photoUrl =
-    typeof body.photoUrl === "string" && body.photoUrl.trim()
-      ? body.photoUrl.trim()
-      : null;
 
   const created = await prisma.diagnosisInstructor.create({
     data: {
@@ -68,7 +64,6 @@ export async function POST(req: NextRequest) {
       schoolId: body.schoolId.trim(),
       label: body.label.trim(),
       slug: body.slug.trim(),
-      photoUrl,
       sortOrder,
       isActive,
     },
@@ -100,12 +95,12 @@ export async function PUT(req: NextRequest) {
 
   const sortOrder = typeof body.sortOrder === "number" ? body.sortOrder : 0;
   const isActive = body.isActive !== false;
-  const photoUrl =
-    typeof body.photoUrl === "string" ? body.photoUrl.trim() || null : null;
 
-  // idだけで更新できるが、念のため schoolId も一致するか確認
   const existing = await prisma.diagnosisInstructor.findFirst({
-    where: { id: body.id.trim(), schoolId: body.schoolId.trim() },
+    where: {
+      id: body.id.trim(),
+      schoolId: body.schoolId.trim(),
+    },
   });
 
   if (!existing) {
@@ -120,7 +115,6 @@ export async function PUT(req: NextRequest) {
     data: {
       label: body.label.trim(),
       slug: body.slug.trim(),
-      photoUrl,
       sortOrder,
       isActive,
     },
@@ -129,7 +123,7 @@ export async function PUT(req: NextRequest) {
   return NextResponse.json(updated);
 }
 
-// DELETE /api/diagnosis/instructors?id=xxx&schoolId=yyy  （無効化）
+// DELETE /api/diagnosis/instructors?id=xxx&schoolId=yyy（論理削除）
 export async function DELETE(req: NextRequest) {
   const session = await ensureLoggedIn();
   if (!session)
@@ -149,6 +143,7 @@ export async function DELETE(req: NextRequest) {
   const existing = await prisma.diagnosisInstructor.findFirst({
     where: { id, schoolId },
   });
+
   if (!existing) {
     return NextResponse.json(
       { message: "対象が見つかりません" },

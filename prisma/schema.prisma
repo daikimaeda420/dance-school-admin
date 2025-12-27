@@ -167,6 +167,9 @@ model DiagnosisInstructor {
   genres   DiagnosisInstructorGenre[]
   campuses DiagnosisInstructorCampus[]
 
+  // ✅ これを追加（DiagnosisResult.instructors の逆側）
+  results DiagnosisResult[] @relation("ResultInstructors")
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -220,7 +223,7 @@ model DiagnosisInstructorCampus {
 }
 
 model DiagnosisResult {
-  id       String @id @default(cuid())
+  id       String  @id @default(cuid())
   schoolId String
   title    String
   body     String?
