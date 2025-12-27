@@ -164,33 +164,45 @@ async function resolveConnectIds(params: {
     return { ids, missing };
   }
 
-  // kind === "genre"
-  const foundById =
-    byId.length > 0
-      ? await prisma.diagnosisGenre.findMany({
-          where: { schoolId, id: { in: byId }, isActive: true },
-          select: { id: true },
-        })
-      : [];
+// kind === "genre"
+const foundById =
+  byId.length > 0
+    ? await prisma.diagnosisGenre.findMany({
+        where: { schoolId, id: { in: byId }, isActive: true },
+        select: { id: true },
+      })
+    : [];
 
-  const foundBySlug =
-    bySlug.length > 0
-      ? await prisma.diagnosisGenre.findMany({
-          where: { schoolId, slug: { in: bySlug }, isActive: true },
-          select: { id: true, slug: true },
-        })
-      : [];
+const foundBySlugOrTag =
+  bySlug.length > 0
+    ? await prisma.diagnosisGenre.findMany({
+        where: {
+          schoolId,
+          isActive: true,
+          OR: [
+            { slug: { in: bySlug } },       // kpop
+            { answerTag: { in: bySlug } },  // Genre_KPOP
+          ],
+        },
+        select: { id: true, slug: true, answerTag: true },
+      })
+    : [];
 
-  const ids = uniq([
-    ...foundById.map((r) => r.id),
-    ...foundBySlug.map((r) => r.id),
-  ]);
+const ids = uniq([
+  ...foundById.map((r) => r.id),
+  ...foundBySlugOrTag.map((r) => r.id),
+]);
 
-  const foundSlugs = new Set(foundBySlug.map((r) => r.slug));
-  const missing = bySlug.filter((s) => !foundSlugs.has(s));
+const foundKeys = new Set(
+  foundBySlugOrTag.flatMap((r) =>
+    [r.slug, r.answerTag].filter(Boolean)
+  )
+);
 
-  return { ids, missing };
-}
+const missing = bySlug.filter((s) => !foundKeys.has(s));
+
+return { ids, missing };
+
 
 // GET /api/diagnosis/instructors?schoolId=xxx
 export async function GET(req: NextRequest) {
