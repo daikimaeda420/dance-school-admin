@@ -71,6 +71,74 @@ function readIdList(fd: FormData, key: string): string[] {
   return Array.from(new Set([...all, raw])).filter(Boolean);
 }
 
+// =========================
+// ✅ 追加：connect対象IDを解決（id/slug混在OK & 存在検証）
+// =========================
+function uniq(arr: string[]) {
+  return Array.from(new Set(arr));
+}
+
+/**
+ * ざっくり判定
+ * - cuid: "c" で始まり長い
+ * - uuid: 36文字で "-" を含む
+ */
+function looksLikeCuidOrUuid(v: string) {
+  if (!v) return false;
+  if (v.length >= 20 && v.startsWith("c")) return true;
+  if (v.length === 36 && v.includes("-")) return true;
+  return false;
+}
+
+async function resolveConnectIds(params: {
+  schoolId: string;
+  kind: "campus" | "course" | "genre";
+  values: string[]; // id or slug
+}) {
+  const { schoolId, kind } = params;
+  const values = uniq(
+    params.values.map((s) => String(s ?? "").trim()).filter(Boolean)
+  );
+  if (values.length === 0)
+    return { ids: [] as string[], missing: [] as string[] };
+
+  const byId = values.filter(looksLikeCuidOrUuid);
+  const bySlug = values.filter((v) => !looksLikeCuidOrUuid(v));
+
+  const model =
+    kind === "campus"
+      ? prisma.diagnosisCampus
+      : kind === "course"
+      ? prisma.diagnosisCourse
+      : prisma.diagnosisGenre;
+
+  const foundById =
+    byId.length > 0
+      ? await model.findMany({
+          where: { schoolId, id: { in: byId }, isActive: true },
+          select: { id: true },
+        })
+      : [];
+
+  const foundBySlug =
+    bySlug.length > 0
+      ? await model.findMany({
+          where: { schoolId, slug: { in: bySlug }, isActive: true },
+          select: { id: true, slug: true },
+        })
+      : [];
+
+  const ids = uniq([
+    ...foundById.map((r: any) => r.id),
+    ...foundBySlug.map((r: any) => r.id),
+  ]);
+
+  const foundSlugs = new Set(foundBySlug.map((r: any) => r.slug));
+  const missing = bySlug.filter((s) => !foundSlugs.has(s));
+
+  return { ids, missing };
+}
+
 // GET /api/diagnosis/instructors?schoolId=xxx
 export async function GET(req: NextRequest) {
   try {
@@ -144,7 +212,7 @@ export async function POST(req: NextRequest) {
     const sortOrder = toNum(fd.get("sortOrder"), 0);
     const isActive = toBool(fd.get("isActive"), true);
 
-    // ✅ 追加：紐づけIDs
+    // ✅ 追加：紐づけIDs（id/slug混在OK）
     const courseIds = readIdList(fd, "courseIds");
     const genreIds = readIdList(fd, "genreIds");
     const campusIds = readIdList(fd, "campusIds");
@@ -169,6 +237,45 @@ export async function POST(req: NextRequest) {
       photoData = new Uint8Array(ab);
     }
 
+    // ✅ connect対象をDB上の実IDに解決（存在しないものは除外）
+    const [campusR, courseR, genreR] = await Promise.all([
+      resolveConnectIds({ schoolId, kind: "campus", values: campusIds }),
+      resolveConnectIds({ schoolId, kind: "course", values: courseIds }),
+      resolveConnectIds({ schoolId, kind: "genre", values: genreIds }),
+    ]);
+
+    // ✅ 任意：指定があるのに全部無い場合は、分かりやすく400を返す
+    if (campusIds.length > 0 && campusR.ids.length === 0) {
+      return NextResponse.json(
+        {
+          message:
+            "紐づけようとした校舎が見つかりません（id/slugが正しいか、schoolIdが一致しているか、校舎が有効(isActive)か確認してください）",
+          debug: { campusIds, missing: campusR.missing },
+        },
+        { status: 400 }
+      );
+    }
+    if (courseIds.length > 0 && courseR.ids.length === 0) {
+      return NextResponse.json(
+        {
+          message:
+            "紐づけようとしたコースが見つかりません（id/slugが正しいか、schoolIdが一致しているか、コースが有効(isActive)か確認してください）",
+          debug: { courseIds, missing: courseR.missing },
+        },
+        { status: 400 }
+      );
+    }
+    if (genreIds.length > 0 && genreR.ids.length === 0) {
+      return NextResponse.json(
+        {
+          message:
+            "紐づけようとしたジャンルが見つかりません（id/slugが正しいか、schoolIdが一致しているか、ジャンルが有効(isActive)か確認してください）",
+          debug: { genreIds, missing: genreR.missing },
+        },
+        { status: 400 }
+      );
+    }
+
     const created = await prisma.diagnosisInstructor.create({
       data: {
         id,
@@ -180,15 +287,15 @@ export async function POST(req: NextRequest) {
         photoMime,
         photoData: photoData as any, // Prisma Bytes
 
-        // ✅ 追加：紐づけ（任意）
-        courses: courseIds.length
-          ? { connect: courseIds.map((cid) => ({ id: cid })) }
+        // ✅ 修正：解決済みIDだけ connect（存在しないID/slugが混ざっても落ちない）
+        courses: courseR.ids.length
+          ? { connect: courseR.ids.map((cid) => ({ id: cid })) }
           : undefined,
-        genres: genreIds.length
-          ? { connect: genreIds.map((gid) => ({ id: gid })) }
+        genres: genreR.ids.length
+          ? { connect: genreR.ids.map((gid) => ({ id: gid })) }
           : undefined,
-        campuses: campusIds.length
-          ? { connect: campusIds.map((pid) => ({ id: pid })) }
+        campuses: campusR.ids.length
+          ? { connect: campusR.ids.map((pid) => ({ id: pid })) }
           : undefined,
       },
       select: {
@@ -267,17 +374,24 @@ export async function PUT(req: NextRequest) {
     });
     if (!existing) return json("対象が見つかりません", 404);
 
+    // ✅ set対象をDB上の実IDに解決（存在しないものは除外）
+    const [campusR, courseR, genreR] = await Promise.all([
+      resolveConnectIds({ schoolId, kind: "campus", values: campusIds }),
+      resolveConnectIds({ schoolId, kind: "course", values: courseIds }),
+      resolveConnectIds({ schoolId, kind: "genre", values: genreIds }),
+    ]);
+
     const data: any = {
       label,
       slug,
       sortOrder,
       isActive,
 
-      // ✅ 追加：紐づけを置き換え
+      // ✅ 修正：解決済みIDで set（存在しないID/slugが混ざっても落ちない）
       // 管理画面は毎回 courseIds/genreIds/campusIds を送る実装にするのが安全
-      courses: { set: courseIds.map((cid) => ({ id: cid })) },
-      genres: { set: genreIds.map((gid) => ({ id: gid })) },
-      campuses: { set: campusIds.map((pid) => ({ id: pid })) },
+      courses: { set: courseR.ids.map((cid) => ({ id: cid })) },
+      genres: { set: genreR.ids.map((gid) => ({ id: gid })) },
+      campuses: { set: campusR.ids.map((pid) => ({ id: pid })) },
     };
 
     if (clearPhoto) {
