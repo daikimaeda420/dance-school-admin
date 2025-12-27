@@ -11,6 +11,9 @@ type Campus = {
   sortOrder: number;
   isOnline: boolean;
   isActive: boolean;
+  address?: string | null;
+  access?: string | null;
+  googleMapUrl?: string | null;
 };
 
 type Props = {
@@ -19,7 +22,14 @@ type Props = {
 
 type PatchableField = keyof Pick<
   Campus,
-  "label" | "slug" | "sortOrder" | "isOnline" | "isActive"
+  | "label"
+  | "slug"
+  | "sortOrder"
+  | "isOnline"
+  | "isActive"
+  | "address"
+  | "access"
+  | "googleMapUrl"
 >;
 
 const inputBase =
@@ -29,6 +39,11 @@ const inputBase =
   "dark:bg-gray-950 dark:text-gray-100 dark:border-gray-700 dark:placeholder:text-gray-500";
 
 const cellInputBase =
+  "w-full rounded border px-1 py-0.5 text-gray-900 bg-white border-gray-300 " +
+  "focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 " +
+  "dark:bg-gray-950 dark:text-gray-100 dark:border-gray-700";
+
+const cellTextareaBase =
   "w-full rounded border px-1 py-0.5 text-gray-900 bg-white border-gray-300 " +
   "focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 " +
   "dark:bg-gray-950 dark:text-gray-100 dark:border-gray-700";
@@ -44,6 +59,9 @@ export default function CampusAdminClient({ schoolId }: Props) {
   const [newSlug, setNewSlug] = useState("");
   const [newSortOrder, setNewSortOrder] = useState<number>(0);
   const [newIsOnline, setNewIsOnline] = useState(false);
+  const [newAddress, setNewAddress] = useState("");
+  const [newAccess, setNewAccess] = useState("");
+  const [newGoogleMapUrl, setNewGoogleMapUrl] = useState("");
 
   const disabled = !schoolId;
 
@@ -108,6 +126,9 @@ export default function CampusAdminClient({ schoolId }: Props) {
 
     const label = newLabel.trim();
     const slug = newSlug.trim();
+    const address = newAddress.trim();
+    const access = newAccess.trim();
+    const googleMapUrl = newGoogleMapUrl.trim();
 
     if (!label || !slug) {
       setError("校舎名とスラッグは必須です。");
@@ -128,6 +149,10 @@ export default function CampusAdminClient({ schoolId }: Props) {
           slug,
           sortOrder: newSortOrder,
           isOnline: newIsOnline,
+          // ✅ 追加
+          address: address || null,
+          access: access || null,
+          googleMapUrl: googleMapUrl || null,
         }),
       });
 
@@ -141,6 +166,9 @@ export default function CampusAdminClient({ schoolId }: Props) {
       setNewSlug("");
       setNewSortOrder(0);
       setNewIsOnline(false);
+      setNewAddress("");
+      setNewAccess("");
+      setNewGoogleMapUrl("");
 
       await fetchCampuses();
     } catch (e) {
@@ -154,13 +182,14 @@ export default function CampusAdminClient({ schoolId }: Props) {
   const handleUpdateField = async (
     id: string,
     field: PatchableField,
-    value: string | number | boolean
+    value: string | number | boolean | null
   ) => {
     if (saving) return;
 
     const current = campuses.find((c) => c.id === id);
     if (current && (current as any)[field] === value) return;
 
+    // optimistic update
     setCampuses((prev) =>
       prev.map((c) => (c.id === id ? ({ ...c, [field]: value } as Campus) : c))
     );
@@ -232,7 +261,7 @@ export default function CampusAdminClient({ schoolId }: Props) {
           新しい校舎を追加
         </h2>
 
-        <div className="mb-2 grid gap-3 md:grid-cols-4">
+        <div className="mb-3 grid gap-3 md:grid-cols-4">
           <div className="flex flex-col gap-1">
             <label className="text-xs text-gray-500 dark:text-gray-400">
               校舎名（label）
@@ -283,6 +312,48 @@ export default function CampusAdminClient({ schoolId }: Props) {
               />
               オンライン校舎（【オンライン】自宅で受講）
             </label>
+          </div>
+        </div>
+
+        {/* ✅ 追加フィールド */}
+        <div className="mb-3 grid gap-3 md:grid-cols-3">
+          <div className="flex flex-col gap-1">
+            <label className="text-xs text-gray-500 dark:text-gray-400">
+              住所
+            </label>
+            <input
+              className={inputBase}
+              value={newAddress}
+              onChange={(e) => setNewAddress(e.target.value)}
+              disabled={disabled || saving}
+              placeholder="例：東京都渋谷区〇〇1-2-3"
+            />
+          </div>
+
+          <div className="flex flex-col gap-1 md:col-span-2">
+            <label className="text-xs text-gray-500 dark:text-gray-400">
+              アクセス
+            </label>
+            <textarea
+              className={inputBase + " min-h-[38px]"}
+              value={newAccess}
+              onChange={(e) => setNewAccess(e.target.value)}
+              disabled={disabled || saving}
+              placeholder="例：渋谷駅ハチ公口より徒歩5分"
+            />
+          </div>
+
+          <div className="flex flex-col gap-1 md:col-span-3">
+            <label className="text-xs text-gray-500 dark:text-gray-400">
+              Google Map URL
+            </label>
+            <input
+              className={inputBase}
+              value={newGoogleMapUrl}
+              onChange={(e) => setNewGoogleMapUrl(e.target.value)}
+              disabled={disabled || saving}
+              placeholder="共有リンク（maps.app.goo.gl/...）or 埋め込みURL"
+            />
           </div>
         </div>
 
@@ -338,7 +409,8 @@ export default function CampusAdminClient({ schoolId }: Props) {
           </p>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[700px] text-left text-xs">
+            {/* ✅ 列が増えるので幅を広げる */}
+            <table className="w-full min-w-[1100px] text-left text-xs">
               <thead>
                 <tr
                   className="border-b border-gray-200 bg-gray-50 text-[11px] text-gray-600
@@ -347,6 +419,9 @@ export default function CampusAdminClient({ schoolId }: Props) {
                   <th className="px-2 py-1">校舎名</th>
                   <th className="px-2 py-1">slug</th>
                   <th className="px-2 py-1">sort</th>
+                  <th className="px-2 py-1">住所</th>
+                  <th className="px-2 py-1">アクセス</th>
+                  <th className="px-2 py-1">GoogleMap</th>
                   <th className="px-2 py-1">オンライン</th>
                   <th className="px-2 py-1">有効</th>
                   <th className="px-2 py-1"></th>
@@ -365,7 +440,7 @@ export default function CampusAdminClient({ schoolId }: Props) {
                         className={cellInputBase}
                         defaultValue={c.label}
                         onBlur={(e) => {
-                          const v = e.target.value;
+                          const v = e.target.value.trim();
                           if (v !== c.label)
                             handleUpdateField(c.id, "label", v);
                         }}
@@ -378,7 +453,7 @@ export default function CampusAdminClient({ schoolId }: Props) {
                         className={cellInputBase}
                         defaultValue={c.slug}
                         onBlur={(e) => {
-                          const v = e.target.value;
+                          const v = e.target.value.trim();
                           if (v !== c.slug) handleUpdateField(c.id, "slug", v);
                         }}
                         disabled={saving}
@@ -399,6 +474,67 @@ export default function CampusAdminClient({ schoolId }: Props) {
                         }}
                         disabled={saving}
                       />
+                    </td>
+
+                    {/* ✅ 住所 */}
+                    <td className="px-2 py-1">
+                      <input
+                        className={cellInputBase}
+                        defaultValue={c.address ?? ""}
+                        onBlur={(e) => {
+                          const v = e.target.value.trim();
+                          const next = v ? v : null;
+                          if ((c.address ?? null) !== next)
+                            handleUpdateField(c.id, "address", next);
+                        }}
+                        disabled={saving}
+                        placeholder="住所"
+                      />
+                    </td>
+
+                    {/* ✅ アクセス（複数行） */}
+                    <td className="px-2 py-1">
+                      <textarea
+                        className={cellTextareaBase + " min-h-[34px]"}
+                        defaultValue={c.access ?? ""}
+                        onBlur={(e) => {
+                          const v = e.target.value.trim();
+                          const next = v ? v : null;
+                          if ((c.access ?? null) !== next)
+                            handleUpdateField(c.id, "access", next);
+                        }}
+                        disabled={saving}
+                        placeholder="アクセス"
+                      />
+                    </td>
+
+                    {/* ✅ GoogleMap URL */}
+                    <td className="px-2 py-1">
+                      <input
+                        className={cellInputBase}
+                        defaultValue={c.googleMapUrl ?? ""}
+                        onBlur={(e) => {
+                          const v = e.target.value.trim();
+                          const next = v ? v : null;
+                          if ((c.googleMapUrl ?? null) !== next)
+                            handleUpdateField(c.id, "googleMapUrl", next);
+                        }}
+                        disabled={saving}
+                        placeholder="URL"
+                      />
+                      {c.googleMapUrl ? (
+                        <div className="mt-1">
+                          <a
+                            href={c.googleMapUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-[11px] underline text-blue-600 hover:text-blue-700
+                                       dark:text-blue-300 dark:hover:text-blue-200"
+                          >
+                            開く
+                          </a>
+                        </div>
+                      ) : null}
                     </td>
 
                     <td className="px-2 py-1">

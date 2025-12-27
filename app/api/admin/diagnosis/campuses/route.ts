@@ -63,6 +63,12 @@ export async function POST(req: NextRequest) {
 
   const sortOrder = typeof body.sortOrder === "number" ? body.sortOrder : 0;
 
+  // ✅ 追加3項目（空文字は null に寄せる）
+  const address = typeof body.address === "string" ? body.address.trim() : "";
+  const access = typeof body.access === "string" ? body.access.trim() : "";
+  const googleMapUrl =
+    typeof body.googleMapUrl === "string" ? body.googleMapUrl.trim() : "";
+
   const campus = await prisma.diagnosisCampus.create({
     data: {
       schoolId: body.schoolId,
@@ -71,6 +77,11 @@ export async function POST(req: NextRequest) {
       sortOrder,
       isOnline: !!body.isOnline,
       isActive: body.isActive !== false,
+
+      // ✅ 追加
+      address: address || null,
+      access: access || null,
+      googleMapUrl: googleMapUrl || null,
     },
   });
 

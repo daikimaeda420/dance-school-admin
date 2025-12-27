@@ -95,6 +95,10 @@ model DiagnosisCampus {
   // ✅ 追加：講師と紐づく（多対多） ← これが無いのでエラー
   instructors DiagnosisInstructor[] @relation("InstructorCampuses")
 
+  address       String? // 住所
+  access        String? // アクセス（文章）
+  googleMapUrl  String? // Google Map URL（共有リンク or 埋め込みURL）
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
