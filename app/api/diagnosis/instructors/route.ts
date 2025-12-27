@@ -30,6 +30,9 @@ function json(message: string, status = 400) {
 
 /**
  * courseIds / genreIds / campusIds を柔軟に受け取る
+ * - fd.getAll("courseIds") のように同名キー複数
+ * - fd.get("courseIds") が '["id1","id2"]' のJSON配列
+ * - fd.get("courseIds") が "id1,id2" のCSV
  */
 function readIdList(fd: FormData, key: string): string[] {
   const all = fd
@@ -69,134 +72,165 @@ function readIdList(fd: FormData, key: string): string[] {
   return Array.from(new Set([...all, raw])).filter(Boolean);
 }
 
-// =========================
-// ✅ connect対象IDを解決（id/slug/answerTag/label混在OK）
-// =========================
 function uniq(arr: string[]) {
-  return Array.from(new Set(arr));
-}
-
-/**
- * ざっくり判定
- * - cuid: "c" で始まり長い
- * - uuid: 36文字で "-" を含む
- */
-function looksLikeCuidOrUuid(v: string) {
-  if (!v) return false;
-  if (v.length >= 20 && v.startsWith("c")) return true;
-  if (v.length === 36 && v.includes("-")) return true;
-  return false;
+  return Array.from(
+    new Set(arr.map((s) => String(s ?? "").trim()).filter(Boolean))
+  );
 }
 
 type ResolveKind = "campus" | "course" | "genre";
 
+/**
+ * ✅ id/slug/answerTag/label が混在していても「存在する実ID」に解決する
+ * - 例: genreIds に "genre_kpop" / "kpop" / "Genre_KPOP" / "KPOP" が混在してもOK
+ */
 async function resolveConnectIds(params: {
   schoolId: string;
   kind: ResolveKind;
   values: string[];
 }): Promise<{ ids: string[]; missing: string[] }> {
-  const { schoolId, kind } = params;
-
-  const values = uniq(
-    params.values.map((s) => String(s ?? "").trim()).filter(Boolean)
-  );
+  const schoolId = params.schoolId;
+  const values = uniq(params.values);
   if (values.length === 0) return { ids: [], missing: [] };
 
-  const byId = values.filter(looksLikeCuidOrUuid);
-  const byKey = values.filter((v) => !looksLikeCuidOrUuid(v)); // slug / answerTag / label 等
+  if (params.kind === "campus") {
+    const found = await prisma.diagnosisCampus.findMany({
+      where: {
+        schoolId,
+        isActive: true,
+        OR: [
+          { id: { in: values } },
+          { slug: { in: values } },
+          { label: { in: values } },
+        ],
+      },
+      select: { id: true, slug: true, label: true },
+    });
 
-  if (kind === "campus") {
-    const foundById =
-      byId.length > 0
-        ? await prisma.diagnosisCampus.findMany({
-            where: { schoolId, id: { in: byId }, isActive: true },
-            select: { id: true },
-          })
-        : [];
-
-    const foundBySlug =
-      byKey.length > 0
-        ? await prisma.diagnosisCampus.findMany({
-            where: { schoolId, slug: { in: byKey }, isActive: true },
-            select: { id: true, slug: true },
-          })
-        : [];
-
-    const ids = uniq([
-      ...foundById.map((r) => r.id),
-      ...foundBySlug.map((r) => r.id),
-    ]);
-
-    const foundSlugs = new Set(foundBySlug.map((r) => r.slug));
-    const missing = byKey.filter((s) => !foundSlugs.has(s));
+    const ids = uniq(found.map((r) => r.id));
+    const foundKeys = new Set(
+      found.flatMap((r) => [r.id, r.slug, r.label].filter(Boolean) as string[])
+    );
+    const missing = values.filter((v) => !foundKeys.has(v));
     return { ids, missing };
   }
 
-  if (kind === "course") {
-    const foundById =
-      byId.length > 0
-        ? await prisma.diagnosisCourse.findMany({
-            where: { schoolId, id: { in: byId }, isActive: true },
-            select: { id: true },
-          })
-        : [];
+  if (params.kind === "course") {
+    const found = await prisma.diagnosisCourse.findMany({
+      where: {
+        schoolId,
+        isActive: true,
+        OR: [
+          { id: { in: values } },
+          { slug: { in: values } },
+          { label: { in: values } },
+        ],
+      },
+      select: { id: true, slug: true, label: true },
+    });
 
-    const foundBySlug =
-      byKey.length > 0
-        ? await prisma.diagnosisCourse.findMany({
-            where: { schoolId, slug: { in: byKey }, isActive: true },
-            select: { id: true, slug: true },
-          })
-        : [];
-
-    const ids = uniq([
-      ...foundById.map((r) => r.id),
-      ...foundBySlug.map((r) => r.id),
-    ]);
-
-    const foundSlugs = new Set(foundBySlug.map((r) => r.slug));
-    const missing = byKey.filter((s) => !foundSlugs.has(s));
+    const ids = uniq(found.map((r) => r.id));
+    const foundKeys = new Set(
+      found.flatMap((r) => [r.id, r.slug, r.label].filter(Boolean) as string[])
+    );
+    const missing = values.filter((v) => !foundKeys.has(v));
     return { ids, missing };
   }
 
-  // kind === "genre"
-  const foundById =
-    byId.length > 0
-      ? await prisma.diagnosisGenre.findMany({
-          where: { schoolId, id: { in: byId }, isActive: true },
-          select: { id: true },
-        })
-      : [];
+  // genre
+  const found = await prisma.diagnosisGenre.findMany({
+    where: {
+      schoolId,
+      isActive: true,
+      OR: [
+        { id: { in: values } },
+        { slug: { in: values } },
+        { answerTag: { in: values } },
+        { label: { in: values } },
+      ],
+    },
+    select: { id: true, slug: true, answerTag: true, label: true },
+  });
 
-  const foundByKey =
-    byKey.length > 0
-      ? await prisma.diagnosisGenre.findMany({
-          where: {
-            schoolId,
-            isActive: true,
-            OR: [
-              { slug: { in: byKey } },
-              { answerTag: { in: byKey } },
-              { label: { in: byKey } },
-            ],
-          },
-          select: { id: true, slug: true, answerTag: true, label: true },
-        })
-      : [];
-
-  const ids = uniq([
-    ...foundById.map((r) => r.id),
-    ...foundByKey.map((r) => r.id),
-  ]);
-
+  const ids = uniq(found.map((r) => r.id));
   const foundKeys = new Set(
-    foundByKey.flatMap(
-      (r) => [r.slug, r.answerTag, r.label].filter(Boolean) as string[]
+    found.flatMap(
+      (r) => [r.id, r.slug, r.answerTag, r.label].filter(Boolean) as string[]
     )
   );
-  const missing = byKey.filter((s) => !foundKeys.has(s));
-
+  const missing = values.filter((v) => !foundKeys.has(v));
   return { ids, missing };
+}
+
+/**
+ * ✅ 明示中間（DiagnosisInstructorCourse/Genre/Campus）からまとめて返す
+ * ※ Prismaの relation フィールド名に依存しない（= buildが安定）
+ */
+async function fetchLinks(schoolId: string, instructorIds: string[]) {
+  if (instructorIds.length === 0) {
+    return {
+      coursesByInstructor: new Map<string, any[]>(),
+      genresByInstructor: new Map<string, any[]>(),
+      campusesByInstructor: new Map<string, any[]>(),
+    };
+  }
+
+  const [courseLinks, genreLinks, campusLinks] = await Promise.all([
+    prisma.diagnosisInstructorCourse.findMany({
+      where: { schoolId, instructorId: { in: instructorIds } },
+      select: {
+        instructorId: true,
+        course: { select: { id: true, label: true, slug: true } },
+      },
+    }),
+    prisma.diagnosisInstructorGenre.findMany({
+      where: { schoolId, instructorId: { in: instructorIds } },
+      select: {
+        instructorId: true,
+        genre: {
+          select: { id: true, label: true, slug: true, answerTag: true },
+        },
+      },
+    }),
+    prisma.diagnosisInstructorCampus.findMany({
+      where: { schoolId, instructorId: { in: instructorIds } },
+      select: {
+        instructorId: true,
+        campus: {
+          select: {
+            id: true,
+            label: true,
+            slug: true,
+            isOnline: true,
+            isActive: true,
+          },
+        },
+      },
+    }),
+  ]);
+
+  const coursesByInstructor = new Map<string, any[]>();
+  for (const row of courseLinks) {
+    const cur = coursesByInstructor.get(row.instructorId) ?? [];
+    cur.push(row.course);
+    coursesByInstructor.set(row.instructorId, cur);
+  }
+
+  const genresByInstructor = new Map<string, any[]>();
+  for (const row of genreLinks) {
+    const cur = genresByInstructor.get(row.instructorId) ?? [];
+    cur.push(row.genre);
+    genresByInstructor.set(row.instructorId, cur);
+  }
+
+  const campusesByInstructor = new Map<string, any[]>();
+  for (const row of campusLinks) {
+    const cur = campusesByInstructor.get(row.instructorId) ?? [];
+    cur.push(row.campus);
+    campusesByInstructor.set(row.instructorId, cur);
+  }
+
+  return { coursesByInstructor, genresByInstructor, campusesByInstructor };
 }
 
 // =========================
@@ -222,58 +256,27 @@ export async function GET(req: NextRequest) {
         sortOrder: true,
         isActive: true,
         photoMime: true,
-
-        // ✅ 明示中間から拾う
-        courseLinks: {
-          select: {
-            course: { select: { id: true, label: true, slug: true } },
-          },
-        },
-        genreLinks: {
-          select: {
-            genre: {
-              select: { id: true, label: true, slug: true, answerTag: true },
-            },
-          },
-        },
-        campusLinks: {
-          select: {
-            campus: {
-              select: {
-                id: true,
-                label: true,
-                slug: true,
-                isOnline: true,
-                isActive: true,
-              },
-            },
-          },
-        },
       },
     });
 
+    const instructorIds = rows.map((r) => r.id);
+    const { coursesByInstructor, genresByInstructor, campusesByInstructor } =
+      await fetchLinks(schoolId, instructorIds);
+
     return NextResponse.json(
       rows.map((r) => {
-        const courses = r.courseLinks.map((x) => x.course);
-        const genres = r.genreLinks.map((x) => x.genre);
-        const campuses = r.campusLinks.map((x) => x.campus);
-
+        const courses = coursesByInstructor.get(r.id) ?? [];
+        const genres = genresByInstructor.get(r.id) ?? [];
+        const campuses = campusesByInstructor.get(r.id) ?? [];
         return {
-          id: r.id,
-          schoolId: r.schoolId,
-          label: r.label,
-          slug: r.slug,
-          sortOrder: r.sortOrder,
-          isActive: r.isActive,
+          ...r,
           photoMime: r.photoMime ?? null,
-
           courses,
           genres,
           campuses,
-
-          courseIds: courses.map((c) => c.id),
-          genreIds: genres.map((g) => g.id),
-          campusIds: campuses.map((c) => c.id),
+          courseIds: courses.map((c: any) => c.id),
+          genreIds: genres.map((g: any) => g.id),
+          campusIds: campuses.map((c: any) => c.id),
         };
       })
     );
@@ -334,12 +337,12 @@ export async function POST(req: NextRequest) {
       resolveConnectIds({ schoolId, kind: "genre", values: genreVals }),
     ]);
 
-    // 校舎/コースは指定があるのに0件なら止める（運用的に必須になりがち）
+    // 指定があるのに0件は原因が分かるように 400
     if (campusVals.length > 0 && campusR.ids.length === 0) {
       return NextResponse.json(
         {
           message:
-            "紐づけようとした校舎が見つかりません（id/slug・schoolId・isActive を確認）",
+            "紐づけようとした校舎が見つかりません（id/slug/label・schoolId・isActive を確認）",
           debug: { campusVals, missing: campusR.missing },
         },
         { status: 400 }
@@ -349,24 +352,25 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         {
           message:
-            "紐づけようとしたコースが見つかりません（id/slug・schoolId・isActive を確認）",
+            "紐づけようとしたコースが見つかりません（id/slug/label・schoolId・isActive を確認）",
           debug: { courseVals, missing: courseR.missing },
         },
         { status: 400 }
       );
     }
-
-    // genre は運用上「後で直す」こともあるので、指定があるのに0件でも止めない（必要ならここも400にしてOK）
     if (genreVals.length > 0 && genreR.ids.length === 0) {
-      console.warn("[DiagnosisInstructor.create] genre not found", {
-        schoolId,
-        genreVals,
-        missing: genreR.missing,
-      });
+      return NextResponse.json(
+        {
+          message:
+            "紐づけようとしたジャンルが見つかりません（id/slug/answerTag/label・schoolId・isActive を確認）",
+          debug: { genreVals, missing: genreR.missing },
+        },
+        { status: 400 }
+      );
     }
 
-    const created = await prisma.$transaction(async (tx) => {
-      const instructor = await tx.diagnosisInstructor.create({
+    const instructor = await prisma.$transaction(async (tx) => {
+      const created = await tx.diagnosisInstructor.create({
         data: {
           id,
           schoolId,
@@ -388,11 +392,10 @@ export async function POST(req: NextRequest) {
         },
       });
 
-      // ✅ 明示中間に createMany
       if (courseR.ids.length > 0) {
         await tx.diagnosisInstructorCourse.createMany({
           data: courseR.ids.map((courseId) => ({
-            instructorId: instructor.id,
+            instructorId: created.id,
             courseId,
             schoolId,
           })),
@@ -403,7 +406,7 @@ export async function POST(req: NextRequest) {
       if (genreR.ids.length > 0) {
         await tx.diagnosisInstructorGenre.createMany({
           data: genreR.ids.map((genreId) => ({
-            instructorId: instructor.id,
+            instructorId: created.id,
             genreId,
             schoolId,
           })),
@@ -414,7 +417,7 @@ export async function POST(req: NextRequest) {
       if (campusR.ids.length > 0) {
         await tx.diagnosisInstructorCampus.createMany({
           data: campusR.ids.map((campusId) => ({
-            instructorId: instructor.id,
+            instructorId: created.id,
             campusId,
             schoolId,
           })),
@@ -422,67 +425,26 @@ export async function POST(req: NextRequest) {
         });
       }
 
-      // 返却用に再取得（リンク込み）
-      const full = await tx.diagnosisInstructor.findUnique({
-        where: { id: instructor.id },
-        select: {
-          id: true,
-          schoolId: true,
-          label: true,
-          slug: true,
-          sortOrder: true,
-          isActive: true,
-          photoMime: true,
-          courseLinks: {
-            select: {
-              course: { select: { id: true, label: true, slug: true } },
-            },
-          },
-          genreLinks: {
-            select: {
-              genre: {
-                select: { id: true, label: true, slug: true, answerTag: true },
-              },
-            },
-          },
-          campusLinks: {
-            select: {
-              campus: {
-                select: {
-                  id: true,
-                  label: true,
-                  slug: true,
-                  isOnline: true,
-                  isActive: true,
-                },
-              },
-            },
-          },
-        },
-      });
-
-      return full!;
+      return created;
     });
 
-    const courses = created.courseLinks.map((x) => x.course);
-    const genres = created.genreLinks.map((x) => x.genre);
-    const campuses = created.campusLinks.map((x) => x.campus);
+    const { coursesByInstructor, genresByInstructor, campusesByInstructor } =
+      await fetchLinks(schoolId, [instructor.id]);
+
+    const courses = coursesByInstructor.get(instructor.id) ?? [];
+    const genres = genresByInstructor.get(instructor.id) ?? [];
+    const campuses = campusesByInstructor.get(instructor.id) ?? [];
 
     return NextResponse.json(
       {
-        id: created.id,
-        schoolId: created.schoolId,
-        label: created.label,
-        slug: created.slug,
-        sortOrder: created.sortOrder,
-        isActive: created.isActive,
-        photoMime: created.photoMime ?? null,
+        ...instructor,
+        photoMime: instructor.photoMime ?? null,
         courses,
         genres,
         campuses,
-        courseIds: courses.map((c) => c.id),
-        genreIds: genres.map((g) => g.id),
-        campusIds: campuses.map((c) => c.id),
+        courseIds: courses.map((c: any) => c.id),
+        genreIds: genres.map((g: any) => g.id),
+        campusIds: campuses.map((c: any) => c.id),
       },
       { status: 201 }
     );
@@ -534,7 +496,39 @@ export async function PUT(req: NextRequest) {
       resolveConnectIds({ schoolId, kind: "genre", values: genreVals }),
     ]);
 
-    const updated = await prisma.$transaction(async (tx) => {
+    // 指定があるのに0件は原因が分かるように 400
+    if (campusVals.length > 0 && campusR.ids.length === 0) {
+      return NextResponse.json(
+        {
+          message:
+            "紐づけようとした校舎が見つかりません（id/slug/label・schoolId・isActive を確認）",
+          debug: { campusVals, missing: campusR.missing },
+        },
+        { status: 400 }
+      );
+    }
+    if (courseVals.length > 0 && courseR.ids.length === 0) {
+      return NextResponse.json(
+        {
+          message:
+            "紐づけようとしたコースが見つかりません（id/slug/label・schoolId・isActive を確認）",
+          debug: { courseVals, missing: courseR.missing },
+        },
+        { status: 400 }
+      );
+    }
+    if (genreVals.length > 0 && genreR.ids.length === 0) {
+      return NextResponse.json(
+        {
+          message:
+            "紐づけようとしたジャンルが見つかりません（id/slug/answerTag/label・schoolId・isActive を確認）",
+          debug: { genreVals, missing: genreR.missing },
+        },
+        { status: 400 }
+      );
+    }
+
+    await prisma.$transaction(async (tx) => {
       const data: any = { label, slug, sortOrder, isActive };
 
       if (clearPhoto) {
@@ -559,15 +553,15 @@ export async function PUT(req: NextRequest) {
         data,
       });
 
-      // ✅ 既存リンクを一旦全削除 → createMany で置き換え
+      // 既存リンクを全置換
       await tx.diagnosisInstructorCourse.deleteMany({
-        where: { instructorId: existing.id },
+        where: { instructorId: existing.id, schoolId },
       });
       await tx.diagnosisInstructorGenre.deleteMany({
-        where: { instructorId: existing.id },
+        where: { instructorId: existing.id, schoolId },
       });
       await tx.diagnosisInstructorCampus.deleteMany({
-        where: { instructorId: existing.id },
+        where: { instructorId: existing.id, schoolId },
       });
 
       if (courseR.ids.length > 0) {
@@ -580,6 +574,7 @@ export async function PUT(req: NextRequest) {
           skipDuplicates: true,
         });
       }
+
       if (genreR.ids.length > 0) {
         await tx.diagnosisInstructorGenre.createMany({
           data: genreR.ids.map((genreId) => ({
@@ -590,6 +585,7 @@ export async function PUT(req: NextRequest) {
           skipDuplicates: true,
         });
       }
+
       if (campusR.ids.length > 0) {
         await tx.diagnosisInstructorCampus.createMany({
           data: campusR.ids.map((campusId) => ({
@@ -600,66 +596,37 @@ export async function PUT(req: NextRequest) {
           skipDuplicates: true,
         });
       }
-
-      const full = await tx.diagnosisInstructor.findUnique({
-        where: { id: existing.id },
-        select: {
-          id: true,
-          schoolId: true,
-          label: true,
-          slug: true,
-          sortOrder: true,
-          isActive: true,
-          photoMime: true,
-          courseLinks: {
-            select: {
-              course: { select: { id: true, label: true, slug: true } },
-            },
-          },
-          genreLinks: {
-            select: {
-              genre: {
-                select: { id: true, label: true, slug: true, answerTag: true },
-              },
-            },
-          },
-          campusLinks: {
-            select: {
-              campus: {
-                select: {
-                  id: true,
-                  label: true,
-                  slug: true,
-                  isOnline: true,
-                  isActive: true,
-                },
-              },
-            },
-          },
-        },
-      });
-
-      return full!;
     });
 
-    const courses = updated.courseLinks.map((x) => x.course);
-    const genres = updated.genreLinks.map((x) => x.genre);
-    const campuses = updated.campusLinks.map((x) => x.campus);
+    const updated = await prisma.diagnosisInstructor.findUnique({
+      where: { id: existing.id },
+      select: {
+        id: true,
+        schoolId: true,
+        label: true,
+        slug: true,
+        sortOrder: true,
+        isActive: true,
+        photoMime: true,
+      },
+    });
+
+    const { coursesByInstructor, genresByInstructor, campusesByInstructor } =
+      await fetchLinks(schoolId, [existing.id]);
+
+    const courses = coursesByInstructor.get(existing.id) ?? [];
+    const genres = genresByInstructor.get(existing.id) ?? [];
+    const campuses = campusesByInstructor.get(existing.id) ?? [];
 
     return NextResponse.json({
-      id: updated.id,
-      schoolId: updated.schoolId,
-      label: updated.label,
-      slug: updated.slug,
-      sortOrder: updated.sortOrder,
-      isActive: updated.isActive,
-      photoMime: updated.photoMime ?? null,
+      ...updated,
+      photoMime: updated?.photoMime ?? null,
       courses,
       genres,
       campuses,
-      courseIds: courses.map((c) => c.id),
-      genreIds: genres.map((g) => g.id),
-      campusIds: campuses.map((c) => c.id),
+      courseIds: courses.map((c: any) => c.id),
+      genreIds: genres.map((g: any) => g.id),
+      campusIds: campuses.map((c: any) => c.id),
     });
   } catch (e: any) {
     console.error(e);

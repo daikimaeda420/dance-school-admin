@@ -157,26 +157,20 @@ model DiagnosisInstructor {
   schoolId  String
   label     String
   slug      String
-  photoUrl  String?
   sortOrder Int     @default(0)
   isActive  Boolean @default(true)
 
   photoMime String?
   photoData Bytes?
 
-  // 診断結果に紐づく（多対多：暗黙OK）
-  results DiagnosisResult[] @relation("ResultInstructors")
-
-  // ✅ コース/ジャンル/校舎 紐づけは中間テーブルに集約
-  courseLinks  DiagnosisInstructorCourse[]
-  genreLinks   DiagnosisInstructorGenre[]
-  campusLinks  DiagnosisInstructorCampus[]
+  courses  DiagnosisInstructorCourse[]
+  genres   DiagnosisInstructorGenre[]
+  campuses DiagnosisInstructorCampus[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@unique([schoolId, slug])
-  @@index([schoolId, sortOrder])
   @@index([schoolId, isActive])
 }
 
@@ -186,15 +180,13 @@ model DiagnosisInstructorCourse {
   courseId     String
   schoolId     String
 
-  instructor DiagnosisInstructor @relation(fields: [instructorId], references: [id], onDelete: Cascade)
-  course      DiagnosisCourse     @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  instructor DiagnosisInstructor @relation(fields: [instructorId], references: [id])
+  course     DiagnosisCourse     @relation(fields: [courseId], references: [id])
 
   createdAt DateTime @default(now())
 
   @@id([instructorId, courseId])
   @@index([schoolId])
-  @@index([courseId])
-  @@index([instructorId])
 }
 
 // ✅ 講師×ジャンル（明示中間テーブル）
@@ -203,15 +195,13 @@ model DiagnosisInstructorGenre {
   genreId      String
   schoolId     String
 
-  instructor DiagnosisInstructor @relation(fields: [instructorId], references: [id], onDelete: Cascade)
-  genre      DiagnosisGenre      @relation(fields: [genreId], references: [id], onDelete: Cascade)
+  instructor DiagnosisInstructor @relation(fields: [instructorId], references: [id])
+  genre      DiagnosisGenre      @relation(fields: [genreId], references: [id])
 
   createdAt DateTime @default(now())
 
   @@id([instructorId, genreId])
   @@index([schoolId])
-  @@index([genreId])
-  @@index([instructorId])
 }
 
 // ✅ 講師×校舎（明示中間テーブル）
@@ -220,15 +210,13 @@ model DiagnosisInstructorCampus {
   campusId     String
   schoolId     String
 
-  instructor DiagnosisInstructor @relation(fields: [instructorId], references: [id], onDelete: Cascade)
-  campus     DiagnosisCampus     @relation(fields: [campusId], references: [id], onDelete: Cascade)
+  instructor DiagnosisInstructor @relation(fields: [instructorId], references: [id])
+  campus     DiagnosisCampus     @relation(fields: [campusId], references: [id])
 
   createdAt DateTime @default(now())
 
   @@id([instructorId, campusId])
   @@index([schoolId])
-  @@index([campusId])
-  @@index([instructorId])
 }
 
 model DiagnosisResult {
