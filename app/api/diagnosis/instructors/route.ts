@@ -90,31 +90,84 @@ function looksLikeCuidOrUuid(v: string) {
   return false;
 }
 
+type ResolveKind = "campus" | "course" | "genre";
+
 async function resolveConnectIds(params: {
   schoolId: string;
-  kind: "campus" | "course" | "genre";
+  kind: ResolveKind;
   values: string[]; // id or slug
-}) {
+}): Promise<{ ids: string[]; missing: string[] }> {
   const { schoolId, kind } = params;
+
   const values = uniq(
     params.values.map((s) => String(s ?? "").trim()).filter(Boolean)
   );
-  if (values.length === 0)
-    return { ids: [] as string[], missing: [] as string[] };
+  if (values.length === 0) return { ids: [], missing: [] };
 
   const byId = values.filter(looksLikeCuidOrUuid);
   const bySlug = values.filter((v) => !looksLikeCuidOrUuid(v));
 
-  const model =
-    kind === "campus"
-      ? prisma.diagnosisCampus
-      : kind === "course"
-      ? prisma.diagnosisCourse
-      : prisma.diagnosisGenre;
+  // ★ ここを switch で分岐して型を確定させる（union解消）
+  if (kind === "campus") {
+    const foundById =
+      byId.length > 0
+        ? await prisma.diagnosisCampus.findMany({
+            where: { schoolId, id: { in: byId }, isActive: true },
+            select: { id: true },
+          })
+        : [];
 
+    const foundBySlug =
+      bySlug.length > 0
+        ? await prisma.diagnosisCampus.findMany({
+            where: { schoolId, slug: { in: bySlug }, isActive: true },
+            select: { id: true, slug: true },
+          })
+        : [];
+
+    const ids = uniq([
+      ...foundById.map((r) => r.id),
+      ...foundBySlug.map((r) => r.id),
+    ]);
+
+    const foundSlugs = new Set(foundBySlug.map((r) => r.slug));
+    const missing = bySlug.filter((s) => !foundSlugs.has(s));
+
+    return { ids, missing };
+  }
+
+  if (kind === "course") {
+    const foundById =
+      byId.length > 0
+        ? await prisma.diagnosisCourse.findMany({
+            where: { schoolId, id: { in: byId }, isActive: true },
+            select: { id: true },
+          })
+        : [];
+
+    const foundBySlug =
+      bySlug.length > 0
+        ? await prisma.diagnosisCourse.findMany({
+            where: { schoolId, slug: { in: bySlug }, isActive: true },
+            select: { id: true, slug: true },
+          })
+        : [];
+
+    const ids = uniq([
+      ...foundById.map((r) => r.id),
+      ...foundBySlug.map((r) => r.id),
+    ]);
+
+    const foundSlugs = new Set(foundBySlug.map((r) => r.slug));
+    const missing = bySlug.filter((s) => !foundSlugs.has(s));
+
+    return { ids, missing };
+  }
+
+  // kind === "genre"
   const foundById =
     byId.length > 0
-      ? await model.findMany({
+      ? await prisma.diagnosisGenre.findMany({
           where: { schoolId, id: { in: byId }, isActive: true },
           select: { id: true },
         })
@@ -122,18 +175,18 @@ async function resolveConnectIds(params: {
 
   const foundBySlug =
     bySlug.length > 0
-      ? await model.findMany({
+      ? await prisma.diagnosisGenre.findMany({
           where: { schoolId, slug: { in: bySlug }, isActive: true },
           select: { id: true, slug: true },
         })
       : [];
 
   const ids = uniq([
-    ...foundById.map((r: any) => r.id),
-    ...foundBySlug.map((r: any) => r.id),
+    ...foundById.map((r) => r.id),
+    ...foundBySlug.map((r) => r.id),
   ]);
 
-  const foundSlugs = new Set(foundBySlug.map((r: any) => r.slug));
+  const foundSlugs = new Set(foundBySlug.map((r) => r.slug));
   const missing = bySlug.filter((s) => !foundSlugs.has(s));
 
   return { ids, missing };
@@ -161,7 +214,6 @@ export async function GET(req: NextRequest) {
         isActive: true,
         photoMime: true,
 
-        // ✅ 追加：紐づけ情報
         courses: { select: { id: true, label: true, slug: true } },
         genres: {
           select: { id: true, label: true, slug: true, answerTag: true },
@@ -212,7 +264,6 @@ export async function POST(req: NextRequest) {
     const sortOrder = toNum(fd.get("sortOrder"), 0);
     const isActive = toBool(fd.get("isActive"), true);
 
-    // ✅ 追加：紐づけIDs（id/slug混在OK）
     const courseIds = readIdList(fd, "courseIds");
     const genreIds = readIdList(fd, "genreIds");
     const campusIds = readIdList(fd, "campusIds");
@@ -237,19 +288,18 @@ export async function POST(req: NextRequest) {
       photoData = new Uint8Array(ab);
     }
 
-    // ✅ connect対象をDB上の実IDに解決（存在しないものは除外）
     const [campusR, courseR, genreR] = await Promise.all([
       resolveConnectIds({ schoolId, kind: "campus", values: campusIds }),
       resolveConnectIds({ schoolId, kind: "course", values: courseIds }),
       resolveConnectIds({ schoolId, kind: "genre", values: genreIds }),
     ]);
 
-    // ✅ 任意：指定があるのに全部無い場合は、分かりやすく400を返す
+    // 任意：指定があるのに全部無い場合は400で返す（デバッグしやすい）
     if (campusIds.length > 0 && campusR.ids.length === 0) {
       return NextResponse.json(
         {
           message:
-            "紐づけようとした校舎が見つかりません（id/slugが正しいか、schoolIdが一致しているか、校舎が有効(isActive)か確認してください）",
+            "紐づけようとした校舎が見つかりません（id/slug・schoolId・isActive を確認）",
           debug: { campusIds, missing: campusR.missing },
         },
         { status: 400 }
@@ -259,7 +309,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         {
           message:
-            "紐づけようとしたコースが見つかりません（id/slugが正しいか、schoolIdが一致しているか、コースが有効(isActive)か確認してください）",
+            "紐づけようとしたコースが見つかりません（id/slug・schoolId・isActive を確認）",
           debug: { courseIds, missing: courseR.missing },
         },
         { status: 400 }
@@ -269,7 +319,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         {
           message:
-            "紐づけようとしたジャンルが見つかりません（id/slugが正しいか、schoolIdが一致しているか、ジャンルが有効(isActive)か確認してください）",
+            "紐づけようとしたジャンルが見つかりません（id/slug・schoolId・isActive を確認）",
           debug: { genreIds, missing: genreR.missing },
         },
         { status: 400 }
@@ -285,9 +335,8 @@ export async function POST(req: NextRequest) {
         sortOrder,
         isActive,
         photoMime,
-        photoData: photoData as any, // Prisma Bytes
+        photoData: photoData as any,
 
-        // ✅ 修正：解決済みIDだけ connect（存在しないID/slugが混ざっても落ちない）
         courses: courseR.ids.length
           ? { connect: courseR.ids.map((cid) => ({ id: cid })) }
           : undefined,
@@ -359,7 +408,6 @@ export async function PUT(req: NextRequest) {
     const isActive = toBool(fd.get("isActive"), true);
     const clearPhoto = toBool(fd.get("clearPhoto"), false);
 
-    // ✅ 追加：紐づけIDs（更新は set で置き換え）
     const courseIds = readIdList(fd, "courseIds");
     const genreIds = readIdList(fd, "genreIds");
     const campusIds = readIdList(fd, "campusIds");
@@ -374,7 +422,6 @@ export async function PUT(req: NextRequest) {
     });
     if (!existing) return json("対象が見つかりません", 404);
 
-    // ✅ set対象をDB上の実IDに解決（存在しないものは除外）
     const [campusR, courseR, genreR] = await Promise.all([
       resolveConnectIds({ schoolId, kind: "campus", values: campusIds }),
       resolveConnectIds({ schoolId, kind: "course", values: courseIds }),
@@ -387,8 +434,6 @@ export async function PUT(req: NextRequest) {
       sortOrder,
       isActive,
 
-      // ✅ 修正：解決済みIDで set（存在しないID/slugが混ざっても落ちない）
-      // 管理画面は毎回 courseIds/genreIds/campusIds を送る実装にするのが安全
       courses: { set: courseR.ids.map((cid) => ({ id: cid })) },
       genres: { set: genreR.ids.map((gid) => ({ id: gid })) },
       campuses: { set: campusR.ids.map((pid) => ({ id: pid })) },
