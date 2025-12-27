@@ -1,3 +1,4 @@
+// app/api/diagnosis/result/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import {
