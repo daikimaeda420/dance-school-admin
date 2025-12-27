@@ -11,11 +11,8 @@ function json(message: string, status = 400) {
 }
 
 // GET /api/diagnosis/instructors/photo?id=xxx&schoolId=yyy
+// ✅ Embed から表示できるように「公開」にする（認証なし）
 export async function GET(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.email)
-    return new Response("Unauthorized", { status: 401 });
-
   const { searchParams } = new URL(req.url);
   const id = searchParams.get("id")?.trim();
   const schoolId = searchParams.get("schoolId")?.trim();
@@ -23,25 +20,30 @@ export async function GET(req: NextRequest) {
     return new Response("id / schoolId required", { status: 400 });
 
   const row = await prisma.diagnosisInstructor.findFirst({
-    where: { id, schoolId },
+    where: { id, schoolId, isActive: true },
     select: { photoData: true, photoMime: true },
   });
 
-  if (!row?.photoData || !row.photoMime)
+  if (!row?.photoData || row.photoData.length === 0) {
     return new Response("Not Found", { status: 404 });
+  }
 
+  const mime = row.photoMime || "image/jpeg";
   const bytes = row.photoData as unknown as Uint8Array;
 
   return new Response(bytes, {
     status: 200,
     headers: {
-      "Content-Type": row.photoMime,
-      "Cache-Control": "no-store",
+      "Content-Type": mime,
+      // ✅ 画像はキャッシュしてOK（同じidなら内容は基本変わらない想定）
+      // 画像を差し替えたらURLに ?v=timestamp を付ける運用にするとより確実
+      "Cache-Control": "public, max-age=86400, immutable",
     },
   });
 }
 
 // POST /api/diagnosis/instructors/photo  (multipart/form-data: id, schoolId, file)
+// ✅ アップロードは管理画面だけにしたいので、認証必須のまま
 export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
