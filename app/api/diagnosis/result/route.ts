@@ -45,6 +45,11 @@ function mapGenreTagToGenreSlug(tag: string): string | null {
   }
 }
 
+// 文字列のズレ対策（前後空白だけは除去）
+function norm(s: unknown): string {
+  return String(s ?? "").trim();
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body: DiagnosisRequestBody = await req.json().catch(() => ({}));
@@ -70,7 +75,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Q1: campus slug
-    const campusSlug = answers["Q1"];
+    const campusSlug = norm(answers["Q1"]);
     const campus = await prisma.diagnosisCampus.findFirst({
       where: { schoolId, slug: campusSlug, isActive: true },
       select: { id: true, label: true, slug: true },
@@ -112,6 +117,18 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // ✅ A案：Q2に紐づく「おすすめコース」を取得（q2AnswerTags: String[] を想定）
+    const q2 = norm(answers["Q2"]);
+    const recommendedCourse = await prisma.diagnosisCourse.findFirst({
+      where: {
+        schoolId,
+        isActive: true,
+        q2AnswerTags: { has: q2 }, // ★コースのq2AnswerTagsにQ2回答が含まれている
+      },
+      orderBy: { sortOrder: "asc" },
+      select: { id: true, label: true, slug: true },
+    });
+
     // ✅ ここが本丸：relation filter で診断結果を1件取得（JOINテーブル名に依存しない）
     const best = await prisma.diagnosisResult.findFirst({
       where: {
@@ -140,6 +157,8 @@ export async function POST(req: NextRequest) {
             campusId: campus.id,
             genreId: genre?.id ?? null,
             genreSlug,
+            q2,
+            hasRecommendedCourse: Boolean(recommendedCourse),
           },
         },
         { status: 400 }
@@ -156,7 +175,9 @@ export async function POST(req: NextRequest) {
       headerLabel: "あなたにおすすめの診断結果です",
       bestMatch: {
         classId: best.id, // 互換
-        className: best.title,
+        // ✅ 「あなたにおすすめのクラス」= Q2対応に紐付いたコース名を表示
+        // 見つからない場合は従来通り best.title
+        className: recommendedCourse?.label ?? best.title,
         genres: genre ? [genre.label] : [],
         levels: [],
         targets: [],
