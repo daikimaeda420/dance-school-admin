@@ -11,7 +11,6 @@ const TABS: Tab[] = [
   { href: "/admin/diagnosis/courses", label: "コース" },
   { href: "/admin/diagnosis/genres", label: "ジャンル" },
   { href: "/admin/diagnosis/instructors", label: "講師" },
-  { href: "/admin/diagnosis/links", label: "紐づけ" },
 ];
 
 export default function DiagnosisAdminNav() {
