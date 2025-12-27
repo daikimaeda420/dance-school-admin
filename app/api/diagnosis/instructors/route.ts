@@ -168,7 +168,6 @@ async function resolveConnectIds(params: {
         })
       : [];
 
-  // ✅ genre は slug / answerTag / label のどれで来ても拾う
   const foundByKey =
     byKey.length > 0
       ? await prisma.diagnosisGenre.findMany({
@@ -176,9 +175,9 @@ async function resolveConnectIds(params: {
             schoolId,
             isActive: true,
             OR: [
-              { slug: { in: byKey } }, // "kpop"
-              { answerTag: { in: byKey } }, // "Genre_KPOP"
-              { label: { in: byKey } }, // "KPOP"
+              { slug: { in: byKey } },
+              { answerTag: { in: byKey } },
+              { label: { in: byKey } },
             ],
           },
           select: { id: true, slug: true, answerTag: true, label: true },
@@ -198,9 +197,11 @@ async function resolveConnectIds(params: {
   const missing = byKey.filter((s) => !foundKeys.has(s));
 
   return { ids, missing };
-} // ✅ ←★★ これが無いのが原因でした（resolveConnectIds を閉じる）
+}
 
+// =========================
 // GET /api/diagnosis/instructors?schoolId=xxx
+// =========================
 export async function GET(req: NextRequest) {
   try {
     const session = await ensureLoggedIn();
@@ -221,30 +222,60 @@ export async function GET(req: NextRequest) {
         sortOrder: true,
         isActive: true,
         photoMime: true,
-        courses: { select: { id: true, label: true, slug: true } },
-        genres: {
-          select: { id: true, label: true, slug: true, answerTag: true },
-        },
-        campuses: {
+
+        // ✅ 明示中間から拾う
+        courseLinks: {
           select: {
-            id: true,
-            label: true,
-            slug: true,
-            isOnline: true,
-            isActive: true,
+            course: { select: { id: true, label: true, slug: true } },
+          },
+        },
+        genreLinks: {
+          select: {
+            genre: {
+              select: { id: true, label: true, slug: true, answerTag: true },
+            },
+          },
+        },
+        campusLinks: {
+          select: {
+            campus: {
+              select: {
+                id: true,
+                label: true,
+                slug: true,
+                isOnline: true,
+                isActive: true,
+              },
+            },
           },
         },
       },
     });
 
     return NextResponse.json(
-      rows.map((r) => ({
-        ...r,
-        photoMime: r.photoMime ?? null,
-        courseIds: r.courses.map((c) => c.id),
-        genreIds: r.genres.map((g) => g.id),
-        campusIds: r.campuses.map((c) => c.id),
-      }))
+      rows.map((r) => {
+        const courses = r.courseLinks.map((x) => x.course);
+        const genres = r.genreLinks.map((x) => x.genre);
+        const campuses = r.campusLinks.map((x) => x.campus);
+
+        return {
+          id: r.id,
+          schoolId: r.schoolId,
+          label: r.label,
+          slug: r.slug,
+          sortOrder: r.sortOrder,
+          isActive: r.isActive,
+          photoMime: r.photoMime ?? null,
+
+          courses,
+          genres,
+          campuses,
+
+          courseIds: courses.map((c) => c.id),
+          genreIds: genres.map((g) => g.id),
+          campusIds: campuses.map((c) => c.id),
+        };
+      })
     );
   } catch (e: any) {
     console.error(e);
@@ -252,7 +283,9 @@ export async function GET(req: NextRequest) {
   }
 }
 
+// =========================
 // POST /api/diagnosis/instructors
+// =========================
 export async function POST(req: NextRequest) {
   try {
     const session = await ensureLoggedIn();
@@ -271,9 +304,9 @@ export async function POST(req: NextRequest) {
     const sortOrder = toNum(fd.get("sortOrder"), 0);
     const isActive = toBool(fd.get("isActive"), true);
 
-    const courseIds = readIdList(fd, "courseIds");
-    const genreIds = readIdList(fd, "genreIds");
-    const campusIds = readIdList(fd, "campusIds");
+    const courseVals = readIdList(fd, "courseIds");
+    const genreVals = readIdList(fd, "genreIds");
+    const campusVals = readIdList(fd, "campusIds");
 
     if (!id || !schoolId || !label || !slug) {
       return json("id / schoolId / label / slug は必須です", 400);
@@ -296,94 +329,160 @@ export async function POST(req: NextRequest) {
     }
 
     const [campusR, courseR, genreR] = await Promise.all([
-      resolveConnectIds({ schoolId, kind: "campus", values: campusIds }),
-      resolveConnectIds({ schoolId, kind: "course", values: courseIds }),
-      resolveConnectIds({ schoolId, kind: "genre", values: genreIds }),
+      resolveConnectIds({ schoolId, kind: "campus", values: campusVals }),
+      resolveConnectIds({ schoolId, kind: "course", values: courseVals }),
+      resolveConnectIds({ schoolId, kind: "genre", values: genreVals }),
     ]);
 
-    // 校舎/コースはミスなら止める（必須運用なら）
-    if (campusIds.length > 0 && campusR.ids.length === 0) {
+    // 校舎/コースは指定があるのに0件なら止める（運用的に必須になりがち）
+    if (campusVals.length > 0 && campusR.ids.length === 0) {
       return NextResponse.json(
         {
           message:
             "紐づけようとした校舎が見つかりません（id/slug・schoolId・isActive を確認）",
-          debug: { campusIds, missing: campusR.missing },
+          debug: { campusVals, missing: campusR.missing },
         },
         { status: 400 }
       );
     }
-    if (courseIds.length > 0 && courseR.ids.length === 0) {
+    if (courseVals.length > 0 && courseR.ids.length === 0) {
       return NextResponse.json(
         {
           message:
             "紐づけようとしたコースが見つかりません（id/slug・schoolId・isActive を確認）",
-          debug: { courseIds, missing: courseR.missing },
+          debug: { courseVals, missing: courseR.missing },
         },
         { status: 400 }
       );
     }
 
-    // ✅ genre は見つからなくても止めない（後で管理画面で直せる）
-    if (genreIds.length > 0 && genreR.ids.length === 0) {
+    // genre は運用上「後で直す」こともあるので、指定があるのに0件でも止めない（必要ならここも400にしてOK）
+    if (genreVals.length > 0 && genreR.ids.length === 0) {
       console.warn("[DiagnosisInstructor.create] genre not found", {
         schoolId,
-        genreIds,
+        genreVals,
         missing: genreR.missing,
       });
     }
 
-    const created = await prisma.diagnosisInstructor.create({
-      data: {
-        id,
-        schoolId,
-        label,
-        slug,
-        sortOrder,
-        isActive,
-        photoMime,
-        photoData: photoData as any,
-
-        courses: courseR.ids.length
-          ? { connect: courseR.ids.map((cid) => ({ id: cid })) }
-          : undefined,
-        genres: genreR.ids.length
-          ? { connect: genreR.ids.map((gid) => ({ id: gid })) }
-          : undefined,
-        campuses: campusR.ids.length
-          ? { connect: campusR.ids.map((pid) => ({ id: pid })) }
-          : undefined,
-      },
-      select: {
-        id: true,
-        schoolId: true,
-        label: true,
-        slug: true,
-        sortOrder: true,
-        isActive: true,
-        photoMime: true,
-        courses: { select: { id: true, label: true, slug: true } },
-        genres: {
-          select: { id: true, label: true, slug: true, answerTag: true },
+    const created = await prisma.$transaction(async (tx) => {
+      const instructor = await tx.diagnosisInstructor.create({
+        data: {
+          id,
+          schoolId,
+          label,
+          slug,
+          sortOrder,
+          isActive,
+          photoMime,
+          photoData: photoData as any,
         },
-        campuses: {
-          select: {
-            id: true,
-            label: true,
-            slug: true,
-            isOnline: true,
-            isActive: true,
+        select: {
+          id: true,
+          schoolId: true,
+          label: true,
+          slug: true,
+          sortOrder: true,
+          isActive: true,
+          photoMime: true,
+        },
+      });
+
+      // ✅ 明示中間に createMany
+      if (courseR.ids.length > 0) {
+        await tx.diagnosisInstructorCourse.createMany({
+          data: courseR.ids.map((courseId) => ({
+            instructorId: instructor.id,
+            courseId,
+            schoolId,
+          })),
+          skipDuplicates: true,
+        });
+      }
+
+      if (genreR.ids.length > 0) {
+        await tx.diagnosisInstructorGenre.createMany({
+          data: genreR.ids.map((genreId) => ({
+            instructorId: instructor.id,
+            genreId,
+            schoolId,
+          })),
+          skipDuplicates: true,
+        });
+      }
+
+      if (campusR.ids.length > 0) {
+        await tx.diagnosisInstructorCampus.createMany({
+          data: campusR.ids.map((campusId) => ({
+            instructorId: instructor.id,
+            campusId,
+            schoolId,
+          })),
+          skipDuplicates: true,
+        });
+      }
+
+      // 返却用に再取得（リンク込み）
+      const full = await tx.diagnosisInstructor.findUnique({
+        where: { id: instructor.id },
+        select: {
+          id: true,
+          schoolId: true,
+          label: true,
+          slug: true,
+          sortOrder: true,
+          isActive: true,
+          photoMime: true,
+          courseLinks: {
+            select: {
+              course: { select: { id: true, label: true, slug: true } },
+            },
+          },
+          genreLinks: {
+            select: {
+              genre: {
+                select: { id: true, label: true, slug: true, answerTag: true },
+              },
+            },
+          },
+          campusLinks: {
+            select: {
+              campus: {
+                select: {
+                  id: true,
+                  label: true,
+                  slug: true,
+                  isOnline: true,
+                  isActive: true,
+                },
+              },
+            },
           },
         },
-      },
+      });
+
+      return full!;
     });
+
+    const courses = created.courseLinks.map((x) => x.course);
+    const genres = created.genreLinks.map((x) => x.genre);
+    const campuses = created.campusLinks.map((x) => x.campus);
 
     return NextResponse.json(
       {
-        ...created,
+        id: created.id,
+        schoolId: created.schoolId,
+        label: created.label,
+        slug: created.slug,
+        sortOrder: created.sortOrder,
+        isActive: created.isActive,
         photoMime: created.photoMime ?? null,
-        courseIds: created.courses.map((c) => c.id),
-        genreIds: created.genres.map((g) => g.id),
-        campusIds: created.campuses.map((c) => c.id),
+        courses,
+        genres,
+        campuses,
+        courseIds: courses.map((c) => c.id),
+        genreIds: genres.map((g) => g.id),
+        campusIds: campuses.map((c) => c.id),
       },
       { status: 201 }
     );
@@ -393,7 +492,9 @@ export async function POST(req: NextRequest) {
   }
 }
 
+// =========================
 // PUT /api/diagnosis/instructors
+// =========================
 export async function PUT(req: NextRequest) {
   try {
     const session = await ensureLoggedIn();
@@ -413,9 +514,9 @@ export async function PUT(req: NextRequest) {
     const isActive = toBool(fd.get("isActive"), true);
     const clearPhoto = toBool(fd.get("clearPhoto"), false);
 
-    const courseIds = readIdList(fd, "courseIds");
-    const genreIds = readIdList(fd, "genreIds");
-    const campusIds = readIdList(fd, "campusIds");
+    const courseVals = readIdList(fd, "courseIds");
+    const genreVals = readIdList(fd, "genreIds");
+    const campusVals = readIdList(fd, "campusIds");
 
     if (!id || !schoolId || !label || !slug) {
       return json("id / schoolId / label / slug は必須です", 400);
@@ -428,72 +529,137 @@ export async function PUT(req: NextRequest) {
     if (!existing) return json("対象が見つかりません", 404);
 
     const [campusR, courseR, genreR] = await Promise.all([
-      resolveConnectIds({ schoolId, kind: "campus", values: campusIds }),
-      resolveConnectIds({ schoolId, kind: "course", values: courseIds }),
-      resolveConnectIds({ schoolId, kind: "genre", values: genreIds }),
+      resolveConnectIds({ schoolId, kind: "campus", values: campusVals }),
+      resolveConnectIds({ schoolId, kind: "course", values: courseVals }),
+      resolveConnectIds({ schoolId, kind: "genre", values: genreVals }),
     ]);
 
-    const data: any = {
-      label,
-      slug,
-      sortOrder,
-      isActive,
-      courses: { set: courseR.ids.map((cid) => ({ id: cid })) },
-      genres: { set: genreR.ids.map((gid) => ({ id: gid })) },
-      campuses: { set: campusR.ids.map((pid) => ({ id: pid })) },
-    };
+    const updated = await prisma.$transaction(async (tx) => {
+      const data: any = { label, slug, sortOrder, isActive };
 
-    if (clearPhoto) {
-      data.photoMime = null;
-      data.photoData = null;
-    } else {
-      const file = fd.get("file");
-      if (file && file instanceof File && file.size > 0) {
-        if (file.size > MAX_IMAGE_BYTES) {
-          return json(
-            `画像サイズが大きすぎます（上限 ${MAX_IMAGE_BYTES} bytes）`,
-            400
-          );
+      if (clearPhoto) {
+        data.photoMime = null;
+        data.photoData = null;
+      } else {
+        const file = fd.get("file");
+        if (file && file instanceof File && file.size > 0) {
+          if (file.size > MAX_IMAGE_BYTES) {
+            throw new Error(
+              `画像サイズが大きすぎます（上限 ${MAX_IMAGE_BYTES} bytes）`
+            );
+          }
+          data.photoMime = file.type || "application/octet-stream";
+          const ab = await file.arrayBuffer();
+          data.photoData = new Uint8Array(ab) as any;
         }
-        data.photoMime = file.type || "application/octet-stream";
-        const ab = await file.arrayBuffer();
-        data.photoData = new Uint8Array(ab) as any;
       }
-    }
 
-    const updated = await prisma.diagnosisInstructor.update({
-      where: { id: existing.id },
-      data,
-      select: {
-        id: true,
-        schoolId: true,
-        label: true,
-        slug: true,
-        sortOrder: true,
-        isActive: true,
-        photoMime: true,
-        courses: { select: { id: true, label: true, slug: true } },
-        genres: {
-          select: { id: true, label: true, slug: true, answerTag: true },
-        },
-        campuses: {
-          select: {
-            id: true,
-            label: true,
-            slug: true,
-            isOnline: true,
-            isActive: true,
+      await tx.diagnosisInstructor.update({
+        where: { id: existing.id },
+        data,
+      });
+
+      // ✅ 既存リンクを一旦全削除 → createMany で置き換え
+      await tx.diagnosisInstructorCourse.deleteMany({
+        where: { instructorId: existing.id },
+      });
+      await tx.diagnosisInstructorGenre.deleteMany({
+        where: { instructorId: existing.id },
+      });
+      await tx.diagnosisInstructorCampus.deleteMany({
+        where: { instructorId: existing.id },
+      });
+
+      if (courseR.ids.length > 0) {
+        await tx.diagnosisInstructorCourse.createMany({
+          data: courseR.ids.map((courseId) => ({
+            instructorId: existing.id,
+            courseId,
+            schoolId,
+          })),
+          skipDuplicates: true,
+        });
+      }
+      if (genreR.ids.length > 0) {
+        await tx.diagnosisInstructorGenre.createMany({
+          data: genreR.ids.map((genreId) => ({
+            instructorId: existing.id,
+            genreId,
+            schoolId,
+          })),
+          skipDuplicates: true,
+        });
+      }
+      if (campusR.ids.length > 0) {
+        await tx.diagnosisInstructorCampus.createMany({
+          data: campusR.ids.map((campusId) => ({
+            instructorId: existing.id,
+            campusId,
+            schoolId,
+          })),
+          skipDuplicates: true,
+        });
+      }
+
+      const full = await tx.diagnosisInstructor.findUnique({
+        where: { id: existing.id },
+        select: {
+          id: true,
+          schoolId: true,
+          label: true,
+          slug: true,
+          sortOrder: true,
+          isActive: true,
+          photoMime: true,
+          courseLinks: {
+            select: {
+              course: { select: { id: true, label: true, slug: true } },
+            },
+          },
+          genreLinks: {
+            select: {
+              genre: {
+                select: { id: true, label: true, slug: true, answerTag: true },
+              },
+            },
+          },
+          campusLinks: {
+            select: {
+              campus: {
+                select: {
+                  id: true,
+                  label: true,
+                  slug: true,
+                  isOnline: true,
+                  isActive: true,
+                },
+              },
+            },
           },
         },
-      },
+      });
+
+      return full!;
     });
 
+    const courses = updated.courseLinks.map((x) => x.course);
+    const genres = updated.genreLinks.map((x) => x.genre);
+    const campuses = updated.campusLinks.map((x) => x.campus);
+
     return NextResponse.json({
-      ...updated,
+      id: updated.id,
+      schoolId: updated.schoolId,
+      label: updated.label,
+      slug: updated.slug,
+      sortOrder: updated.sortOrder,
+      isActive: updated.isActive,
       photoMime: updated.photoMime ?? null,
-      courseIds: updated.courses.map((c) => c.id),
-      genreIds: updated.genres.map((g) => g.id),
-      campusIds: updated.campuses.map((c) => c.id),
+      courses,
+      genres,
+      campuses,
+      courseIds: courses.map((c) => c.id),
+      genreIds: genres.map((g) => g.id),
+      campusIds: campuses.map((c) => c.id),
     });
   } catch (e: any) {
     console.error(e);
@@ -501,7 +667,9 @@ export async function PUT(req: NextRequest) {
   }
 }
 
+// =========================
 // DELETE /api/diagnosis/instructors?id=xxx&schoolId=yyy（無効化）
+// =========================
 export async function DELETE(req: NextRequest) {
   try {
     const session = await ensureLoggedIn();
@@ -521,37 +689,10 @@ export async function DELETE(req: NextRequest) {
     const updated = await prisma.diagnosisInstructor.update({
       where: { id: existing.id },
       data: { isActive: false },
-      select: {
-        id: true,
-        schoolId: true,
-        label: true,
-        slug: true,
-        sortOrder: true,
-        isActive: true,
-        photoMime: true,
-        courses: { select: { id: true, label: true, slug: true } },
-        genres: {
-          select: { id: true, label: true, slug: true, answerTag: true },
-        },
-        campuses: {
-          select: {
-            id: true,
-            label: true,
-            slug: true,
-            isOnline: true,
-            isActive: true,
-          },
-        },
-      },
+      select: { id: true },
     });
 
-    return NextResponse.json({
-      ...updated,
-      photoMime: updated.photoMime ?? null,
-      courseIds: updated.courses.map((c) => c.id),
-      genreIds: updated.genres.map((g) => g.id),
-      campusIds: updated.campuses.map((c) => c.id),
-    });
+    return NextResponse.json({ ok: true, id: updated.id });
   } catch (e: any) {
     console.error(e);
     return json(e?.message ?? "無効化に失敗しました", 500);
