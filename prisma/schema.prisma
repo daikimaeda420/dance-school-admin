@@ -204,6 +204,13 @@ model DiagnosisResult {
   body      String?
   ctaLabel  String?
   ctaUrl    String?
+
+  // ✅ NEW: 条件ベース表示用
+  priority   Int   @default(0) // 同条件ヒット時の優先度
+  conditions Json? // 例: {"campus":["shibuya"],"genre":["kpop"],"q2Tags":["Q2_BEGINNER"]}
+  isFallback Boolean @default(false) // マッチしない場合の保険（schoolごとに1つ推奨）
+
+  // 既存（残してOK：管理画面で紐づけも使いたいなら併用可能）
   sortOrder Int     @default(0)
   isActive  Boolean @default(true)
 
@@ -215,9 +222,12 @@ model DiagnosisResult {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@index([schoolId, priority])
+  @@index([schoolId, isFallback])
   @@index([schoolId, sortOrder])
   @@index([schoolId, isActive])
 }
+
 
 // クラス（コース）情報（既存：運用データ用の本体モデル）
 model SchoolClass {
