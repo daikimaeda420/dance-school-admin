@@ -1,4 +1,3 @@
-// app/api/diagnosis/result/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import {
@@ -7,9 +6,6 @@ import {
   ConcernMessageKey,
 } from "@/lib/diagnosis/config";
 
-/* =====================
-   型定義
-===================== */
 type DiagnosisRequestBody = {
   schoolId?: string;
   answers?: Record<string, string>;
@@ -17,9 +13,6 @@ type DiagnosisRequestBody = {
 
 const REQUIRED_QUESTION_IDS = ["Q1", "Q2", "Q3", "Q4", "Q5", "Q6"] as const;
 
-/* =====================
-   ユーティリティ
-===================== */
 function getConcernKey(answers: Record<string, string>): ConcernMessageKey {
   const q6 = QUESTIONS.find((q) => q.id === "Q6");
   const optionId = answers["Q6"];
@@ -45,18 +38,16 @@ function mapGenreTagToGenreSlug(tag: string): string | null {
       return "jazz";
     case "Genre_ThemePark":
       return "themepark";
+    case "Genre_All":
     default:
       return null;
   }
 }
 
-function norm(v: unknown): string {
-  return String(v ?? "").trim();
+function norm(s: unknown): string {
+  return String(s ?? "").trim();
 }
 
-/**
- * Q2の回答をコース管理用の値に正規化
- */
 function getQ2ValueForCourse(answers: Record<string, string>): string {
   const raw = answers["Q2"];
   const q2 = QUESTIONS.find((q) => q.id === "Q2");
@@ -64,9 +55,6 @@ function getQ2ValueForCourse(answers: Record<string, string>): string {
   return norm(opt?.label ?? opt?.value ?? opt?.tag ?? raw);
 }
 
-/* =====================
-   DiagnosisResult.conditions パース
-===================== */
 type ResultConditions = {
   campus?: string[];
   genre?: string[];
@@ -120,9 +108,6 @@ function matchesConditions(
   return true;
 }
 
-/* =====================
-   POST /api/diagnosis/result
-===================== */
 export async function POST(req: NextRequest) {
   try {
     const body: DiagnosisRequestBody = await req.json().catch(() => ({}));
@@ -131,7 +116,7 @@ export async function POST(req: NextRequest) {
 
     if (!schoolId) {
       return NextResponse.json(
-        { message: "schoolId が指定されていません。" },
+        { error: "NO_SCHOOL_ID", message: "schoolId が指定されていません。" },
         { status: 400 }
       );
     }
@@ -139,14 +124,15 @@ export async function POST(req: NextRequest) {
     const missing = REQUIRED_QUESTION_IDS.filter((id) => !answers[id]);
     if (missing.length > 0) {
       return NextResponse.json(
-        { message: `未回答の質問があります: ${missing.join(", ")}` },
+        {
+          error: "MISSING_ANSWERS",
+          message: `未回答の質問があります: ${missing.join(", ")}`,
+        },
         { status: 400 }
       );
     }
 
-    /* =====================
-       校舎（Q1）
-    ===================== */
+    // Q1: campus slug
     const campusSlug = norm(answers["Q1"]);
     const campus = await prisma.diagnosisCampus.findFirst({
       where: { schoolId, slug: campusSlug, isActive: true },
@@ -163,14 +149,17 @@ export async function POST(req: NextRequest) {
 
     if (!campus) {
       return NextResponse.json(
-        { message: "選択した校舎が見つかりません。" },
+        {
+          error: "NO_CAMPUS",
+          message:
+            "選択した校舎が見つかりません（管理画面の登録/有効化を確認してください）。",
+          debug: { campusSlug },
+        },
         { status: 400 }
       );
     }
 
-    /* =====================
-       ジャンル（Q4）
-    ===================== */
+    // Q4: genre (optional)
     const genreTag = getGenreTagFromAnswers(answers);
     const genreSlug = mapGenreTagToGenreSlug(genreTag);
 
@@ -182,9 +171,19 @@ export async function POST(req: NextRequest) {
             select: { id: true, label: true, slug: true },
           });
 
-    /* =====================
-       おすすめコース（Q2）
-    ===================== */
+    if (genreSlug !== null && !genre) {
+      return NextResponse.json(
+        {
+          error: "NO_GENRE",
+          message:
+            "選択したジャンルが見つかりません（管理画面の登録/有効化を確認してください）。",
+          debug: { genreTag, genreSlug },
+        },
+        { status: 400 }
+      );
+    }
+
+    // Q2に紐づく「おすすめコース」
     const q2ForCourse = getQ2ValueForCourse(answers);
 
     const recommendedCourse = await prisma.diagnosisCourse.findFirst({
@@ -197,12 +196,20 @@ export async function POST(req: NextRequest) {
       select: { id: true, label: true, slug: true },
     });
 
-    /* =====================
-       診断結果決定
-    ===================== */
+    // 診断結果決定
     const candidates = await prisma.diagnosisResult.findMany({
       where: { schoolId, isActive: true },
       orderBy: [{ priority: "desc" }, { sortOrder: "asc" }],
+      select: {
+        id: true,
+        title: true,
+        body: true,
+        ctaLabel: true,
+        ctaUrl: true,
+        priority: true,
+        isFallback: true,
+        conditions: true,
+      },
     });
 
     const ctx = {
@@ -212,48 +219,103 @@ export async function POST(req: NextRequest) {
       recommendedCourseSlug: recommendedCourse?.slug ?? null,
     };
 
-    let best =
-      candidates.find((r) =>
-        matchesConditions(parseConditions(r.conditions), ctx)
-      ) ??
-      candidates.find((r) => r.isFallback) ??
-      candidates[0];
+    // 1) 条件マッチ
+    let best = candidates.find((r) =>
+      matchesConditions(parseConditions(r.conditions), ctx)
+    );
+
+    // 2) fallback
+    if (!best) best = candidates.find((r) => r.isFallback) ?? null;
+
+    // 3) 保険
+    if (!best) best = candidates[0] ?? null;
 
     if (!best) {
       return NextResponse.json(
-        { message: "診断結果が登録されていません。" },
+        {
+          error: "NO_MATCHED_RESULT",
+          message:
+            "診断結果が1件も登録されていません（管理画面で診断結果を作成してください）。",
+        },
         { status: 400 }
       );
     }
 
-    /* =====================
-       ✅ 講師取得（今回の追加）
-       校舎 × ジャンル × コース（存在する条件のみ）
-    ===================== */
-    const instructors = await prisma.diagnosisInstructor.findMany({
-      where: {
-        schoolId,
-        isActive: true,
-        campuses: { some: { campusId: campus.id } },
-        ...(genre?.id ? { genres: { some: { genreId: genre.id } } } : {}),
-        ...(recommendedCourse?.id
-          ? { courses: { some: { courseId: recommendedCourse.id } } }
-          : {}),
-      },
-      orderBy: { sortOrder: "asc" },
-      select: {
-        id: true,
-        label: true,
-        slug: true,
-      },
-    });
+    // ==========================
+    // ✅ 講師取得（段階的に緩める）
+    // ==========================
+    const baseWhere = {
+      schoolId,
+      isActive: true,
+      campuses: { some: { campusId: campus.id } }, // 校舎は必須
+    } as const;
+
+    const selectInstructor = {
+      id: true,
+      label: true,
+      slug: true,
+    } as const;
+
+    let instructors =
+      (genre?.id && recommendedCourse?.id
+        ? await prisma.diagnosisInstructor.findMany({
+            where: {
+              ...baseWhere,
+              genres: { some: { genreId: genre.id } },
+              courses: { some: { courseId: recommendedCourse.id } },
+            },
+            orderBy: { sortOrder: "asc" },
+            select: selectInstructor,
+          })
+        : []) ?? [];
+
+    let instructorMatchedBy:
+      | "campus+genre+course"
+      | "campus+genre"
+      | "campus+course"
+      | "campus"
+      | "none" = "none";
+
+    if (instructors.length > 0) {
+      instructorMatchedBy = "campus+genre+course";
+    } else if (genre?.id) {
+      instructors = await prisma.diagnosisInstructor.findMany({
+        where: {
+          ...baseWhere,
+          genres: { some: { genreId: genre.id } },
+        },
+        orderBy: { sortOrder: "asc" },
+        select: selectInstructor,
+      });
+      if (instructors.length > 0) instructorMatchedBy = "campus+genre";
+    }
+
+    if (instructors.length === 0 && recommendedCourse?.id) {
+      instructors = await prisma.diagnosisInstructor.findMany({
+        where: {
+          ...baseWhere,
+          courses: { some: { courseId: recommendedCourse.id } },
+        },
+        orderBy: { sortOrder: "asc" },
+        select: selectInstructor,
+      });
+      if (instructors.length > 0) instructorMatchedBy = "campus+course";
+    }
+
+    if (instructors.length === 0) {
+      instructors = await prisma.diagnosisInstructor.findMany({
+        where: baseWhere,
+        orderBy: { sortOrder: "asc" },
+        select: selectInstructor,
+      });
+      if (instructors.length > 0) instructorMatchedBy = "campus";
+    }
+
+    if (instructors.length === 0) instructorMatchedBy = "none";
 
     const concernKey = getConcernKey(answers);
     const concernMessage = concernMessages[concernKey];
 
-    /* =====================
-       レスポンス
-    ===================== */
     return NextResponse.json({
       pattern: "A",
       patternMessage: null,
@@ -261,14 +323,13 @@ export async function POST(req: NextRequest) {
       headerLabel: "あなたにおすすめの診断結果です",
 
       bestMatch: {
-        classId: best.id,
+        classId: best.id, // 互換
         className: recommendedCourse?.label ?? best.title,
         genres: genre ? [genre.label] : [],
         levels: [],
         targets: [],
       },
 
-      // 旧teacherは互換のため残す
       teacher: {
         id: undefined,
         name: undefined,
@@ -276,7 +337,7 @@ export async function POST(req: NextRequest) {
         styles: [],
       },
 
-      // ✅ 講師管理で紐づいた講師
+      // ✅ 追加：講師管理で紐づいた講師
       instructors: instructors.map((t) => ({
         id: t.id,
         label: t.label,
@@ -287,6 +348,14 @@ export async function POST(req: NextRequest) {
       worstMatch: null,
       concernMessage,
 
+      result: {
+        id: best.id,
+        title: best.title,
+        body: best.body,
+        ctaLabel: best.ctaLabel,
+        ctaUrl: best.ctaUrl,
+      },
+
       selectedCampus: {
         label: campus.label,
         slug: campus.slug,
@@ -295,11 +364,21 @@ export async function POST(req: NextRequest) {
         access: campus.access ?? null,
         googleMapUrl: campus.googleMapUrl ?? null,
       },
+
+      // ✅ デバッグ（必要な間だけ）
+      debug: {
+        ctx,
+        campusId: campus.id,
+        genreId: genre?.id ?? null,
+        recommendedCourseId: recommendedCourse?.id ?? null,
+        instructorMatchedBy,
+        instructorsCount: instructors.length,
+      },
     });
   } catch (e: any) {
-    console.error("[POST /api/diagnosis/result]", e);
+    console.error("[POST /api/diagnosis/result] error", e);
     return NextResponse.json(
-      { message: "サーバーエラーが発生しました。" },
+      { error: "INTERNAL_ERROR", message: e?.message ?? "サーバーエラー" },
       { status: 500 }
     );
   }
