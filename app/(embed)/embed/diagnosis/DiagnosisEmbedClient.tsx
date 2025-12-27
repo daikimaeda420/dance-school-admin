@@ -11,6 +11,15 @@ import {
 
 type AnswersState = Partial<Record<DiagnosisQuestionId, string>>;
 
+// ✅ 追加：講師（診断機能の DiagnosisInstructor を表示する用）
+type DiagnosisInstructorVM = {
+  id: string;
+  label: string;
+  slug: string;
+  // API 側で URL を返す設計にするなら使える（現状は未使用でもOK）
+  photoUrl?: string | null;
+};
+
 type DiagnosisResult = {
   pattern: "A" | "B";
   patternMessage: string | null;
@@ -23,12 +32,19 @@ type DiagnosisResult = {
     levels: string[];
     targets: string[];
   };
+
+  // 既存（運用モデル側のteacher）：残しつつ fallback に使う
   teacher: {
     id?: string;
     name?: string;
     photoUrl?: string | null;
     styles: string[];
   };
+
+  // ✅ 追加：講師管理（DiagnosisInstructor）で紐づけた講師一覧
+  // /api/diagnosis/result のレスポンスに instructors を載せれば、ここで表示される
+  instructors?: DiagnosisInstructorVM[];
+
   breakdown: {
     key: "level" | "genre" | "age" | "teacher";
     scoreDiff: number;
@@ -144,7 +160,6 @@ export default function DiagnosisEmbedClient({
     );
 
     if (missing.length > 0) {
-      // どれが未回答か分かるように（デバッグにも役立つ）
       setError(`未回答の質問があります: ${missing.join(", ")}`);
       return;
     }
@@ -191,7 +206,6 @@ export default function DiagnosisEmbedClient({
 
       if (qId === currentQuestion.id) {
         if (isLastStep) {
-          // ✅ state反映待ち問題を回避：確定値(next)で送信する
           setTimeout(() => {
             void handleSubmit(next);
           }, 0);
@@ -225,6 +239,10 @@ export default function DiagnosisEmbedClient({
   // 診断結果画面
   // ==========================
   if (result) {
+    // ✅ 表示する講師（instructors があればそれ優先）
+    const instructors = result.instructors ?? [];
+    const hasInstructors = instructors.length > 0;
+
     return (
       <div className="w-full max-w-4xl rounded-3xl border bg-white p-8 shadow-xl text-gray-900">
         {/* ヘッダー */}
@@ -263,28 +281,57 @@ export default function DiagnosisEmbedClient({
           <div className="mt-1 text-lg font-bold">
             {result.bestMatch.className ?? "おすすめクラス"}
           </div>
-          <div className="mt-2 flex items-center gap-3">
-            {result.teacher.photoUrl && (
-              <div className="h-12 w-12 overflow-hidden rounded-full bg-gray-200">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={result.teacher.photoUrl}
-                  alt={result.teacher.name ?? "講師"}
-                  className="h-full w-full object-cover"
-                />
+
+          {/* ✅ 担当講師：instructors があれば一覧、無ければ従来 teacher を表示 */}
+          <div className="mt-3">
+            <div className="text-xs font-semibold text-gray-500">担当講師</div>
+
+            {hasInstructors ? (
+              <div className="mt-2 space-y-2">
+                {instructors.map((t) => (
+                  <div key={t.id} className="flex items-center gap-3">
+                    {t.photoUrl ? (
+                      <div className="h-10 w-10 overflow-hidden rounded-full bg-gray-200">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={t.photoUrl}
+                          alt={t.label}
+                          className="h-full w-full object-cover"
+                        />
+                      </div>
+                    ) : (
+                      <div className="h-10 w-10 rounded-full bg-gray-200" />
+                    )}
+
+                    <div className="text-sm font-semibold">{t.label}</div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="mt-2 flex items-center gap-3">
+                {result.teacher.photoUrl && (
+                  <div className="h-12 w-12 overflow-hidden rounded-full bg-gray-200">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={result.teacher.photoUrl}
+                      alt={result.teacher.name ?? "講師"}
+                      className="h-full w-full object-cover"
+                    />
+                  </div>
+                )}
+                <div>
+                  <div className="text-sm font-semibold">
+                    {result.teacher.name ?? "担当講師"}
+                  </div>
+                  {result.teacher.styles?.length > 0 && (
+                    <div className="mt-1 text-xs text-gray-500">
+                      スタイル：
+                      {result.teacher.styles.join(" / ")}
+                    </div>
+                  )}
+                </div>
               </div>
             )}
-            <div>
-              <div className="text-sm font-semibold">
-                {result.teacher.name ?? "担当講師"}
-              </div>
-              {result.teacher.styles?.length > 0 && (
-                <div className="mt-1 text-xs text-gray-500">
-                  スタイル：
-                  {result.teacher.styles.join(" / ")}
-                </div>
-              )}
-            </div>
           </div>
         </div>
 
@@ -470,7 +517,6 @@ export default function DiagnosisEmbedClient({
                   : "border-gray-200 bg-white text-gray-800 hover:border-blue-300 hover:bg-blue-50/40",
               ].join(" ")}
             >
-              {/* ✅ IMGを消してテキストだけ表示 */}
               <div className="flex-1 leading-snug">{opt.label}</div>
             </button>
           );
