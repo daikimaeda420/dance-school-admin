@@ -5,10 +5,9 @@ import {
   useEffect,
   useMemo,
   useState,
-  type Dispatch,
-  type SetStateAction,
   type MouseEvent,
   type ChangeEvent,
+  type SetStateAction,
 } from "react";
 
 type Course = {
@@ -19,7 +18,7 @@ type Course = {
   sortOrder: number;
   isActive: boolean;
 
-  // ✅ 追加：Q2（経験・運動レベル）対応（複数）
+  // ✅ Q2（複数）
   q2AnswerTags: string[];
 };
 
@@ -27,8 +26,6 @@ type Props = {
   schoolId: string;
 };
 
-// ✅ Q2 選択肢（answers["Q2"] の値と完全一致させる）
-// ※ここが一致していないと診断で当たりません
 const Q2_OPTIONS = [
   {
     tag: "運動自体がニガテ…リズム感にも自信がない",
@@ -58,13 +55,11 @@ function uniqStrings(xs: string[]) {
   );
 }
 
-// ✅ setSelected の型を「SetStateAction<string[]> を受ける関数」にする
-// これで setState でも、行ごとのラップ関数でも安全に渡せる
+// Cmd/Ctrl不要でポチポチ選択できる
 function makeToggleSelectHandlers(
   selected: string[],
   setSelected: (v: SetStateAction<string[]>) => void
 ) {
-  // mac/win の Cmd/Ctrl 不要でポチポチ選択できる
   const onMouseDown = (e: MouseEvent<HTMLSelectElement>) => {
     const target = e.target as HTMLElement;
     if (target?.tagName !== "OPTION") return;
@@ -79,7 +74,6 @@ function makeToggleSelectHandlers(
     });
   };
 
-  // キーボード操作などのフォールバック
   const onChange = (e: ChangeEvent<HTMLSelectElement>) => {
     setSelected(Array.from(e.target.selectedOptions).map((o) => o.value));
   };
@@ -91,6 +85,7 @@ export default function CourseAdminClient({ schoolId }: Props) {
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [savingRowId, setSavingRowId] = useState<string | null>(null); // ✅ 行単位
   const [error, setError] = useState<string | null>(null);
 
   // 新規追加
@@ -99,7 +94,6 @@ export default function CourseAdminClient({ schoolId }: Props) {
   const [newSortOrder, setNewSortOrder] = useState<number>(0);
   const [newIsActive, setNewIsActive] = useState(true);
 
-  // ✅ 追加：新規追加の Q2 対応
   const [newQ2Tags, setNewQ2Tags] = useState<string[]>([]);
   const newQ2Handlers = useMemo(
     () => makeToggleSelectHandlers(newQ2Tags, setNewQ2Tags),
@@ -168,8 +162,6 @@ export default function CourseAdminClient({ schoolId }: Props) {
           slug: newSlug,
           sortOrder: newSortOrder,
           isActive: newIsActive,
-
-          // ✅ 追加：Q2 対応（answers["Q2"] の日本語文言そのもの）
           q2AnswerTags: uniqStrings(newQ2Tags),
         }),
       });
@@ -182,8 +174,6 @@ export default function CourseAdminClient({ schoolId }: Props) {
       setNewSlug("");
       setNewSortOrder(0);
       setNewIsActive(true);
-
-      // ✅ 追加：リセット
       setNewQ2Tags([]);
 
       await fetchCourses();
@@ -203,6 +193,7 @@ export default function CourseAdminClient({ schoolId }: Props) {
     value: string | number | boolean | string[]
   ) => {
     setSaving(true);
+    setSavingRowId(id);
     setError(null);
     try {
       const res = await fetch(`/api/admin/diagnosis/courses/${id}`, {
@@ -219,12 +210,14 @@ export default function CourseAdminClient({ schoolId }: Props) {
       setError(e?.message ?? "通信エラーが発生しました。");
     } finally {
       setSaving(false);
+      setSavingRowId(null);
     }
   };
 
   const handleDelete = async (id: string) => {
     if (!window.confirm("このコースを削除しますか？")) return;
     setSaving(true);
+    setSavingRowId(id);
     setError(null);
     try {
       const res = await fetch(`/api/admin/diagnosis/courses/${id}`, {
@@ -239,6 +232,7 @@ export default function CourseAdminClient({ schoolId }: Props) {
       setError(e?.message ?? "通信エラーが発生しました。");
     } finally {
       setSaving(false);
+      setSavingRowId(null);
     }
   };
 
@@ -293,7 +287,7 @@ export default function CourseAdminClient({ schoolId }: Props) {
           </label>
         </div>
 
-        {/* ✅ 追加：Q2 対応（複数選択） */}
+        {/* Q2 */}
         <div className="mb-3">
           <div className="mb-1 text-[11px] font-semibold text-gray-600 dark:text-gray-300">
             Q2 対応（経験・運動レベル）※複数OK
@@ -358,7 +352,7 @@ export default function CourseAdminClient({ schoolId }: Props) {
           </p>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[900px] text-left text-xs">
+            <table className="w-full min-w-[980px] text-left text-xs">
               <thead>
                 <tr
                   className="border-b border-gray-200 bg-gray-50 text-[11px] text-gray-600
@@ -369,13 +363,12 @@ export default function CourseAdminClient({ schoolId }: Props) {
                   <th className="px-2 py-1">sort</th>
                   <th className="px-2 py-1">Q2対応（複数）</th>
                   <th className="px-2 py-1">有効</th>
-                  <th className="px-2 py-1"></th>
+                  <th className="px-2 py-1 text-right">操作</th>
                 </tr>
               </thead>
 
               <tbody>
                 {courses.map((c) => {
-                  // ✅ 行ごとに setSelected をラップ（型エラー出ない形）
                   const setRowSelected = (v: SetStateAction<string[]>) => {
                     setCourses((prev) =>
                       prev.map((p) => {
@@ -398,6 +391,8 @@ export default function CourseAdminClient({ schoolId }: Props) {
                     c.q2AnswerTags ?? [],
                     setRowSelected
                   );
+
+                  const rowSaving = savingRowId === c.id;
 
                   return (
                     <tr
@@ -481,7 +476,7 @@ export default function CourseAdminClient({ schoolId }: Props) {
                         />
                       </td>
 
-                      {/* ✅ Q2対応 */}
+                      {/* ✅ Q2（保存ボタンで確実にPATCH） */}
                       <td className="px-2 py-1">
                         <select
                           multiple
@@ -492,13 +487,6 @@ export default function CourseAdminClient({ schoolId }: Props) {
                           value={handlers.value}
                           onMouseDown={handlers.onMouseDown}
                           onChange={handlers.onChange}
-                          onBlur={() =>
-                            handleUpdateField(
-                              c.id,
-                              "q2AnswerTags",
-                              uniqStrings(c.q2AnswerTags ?? [])
-                            )
-                          }
                           disabled={saving}
                         >
                           {Q2_OPTIONS.map((o) => (
@@ -524,13 +512,29 @@ export default function CourseAdminClient({ schoolId }: Props) {
                         />
                       </td>
 
-                      <td className="px-2 py-1 text-right">
+                      <td className="px-2 py-1 text-right whitespace-nowrap">
+                        <button
+                          onClick={() =>
+                            handleUpdateField(
+                              c.id,
+                              "q2AnswerTags",
+                              uniqStrings(c.q2AnswerTags ?? [])
+                            )
+                          }
+                          disabled={saving || rowSaving}
+                          className="mr-3 rounded-full border border-gray-300 bg-white px-3 py-1 text-[11px] font-semibold text-gray-800
+                                     hover:bg-gray-50 disabled:opacity-40
+                                     dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100 dark:hover:bg-gray-900"
+                        >
+                          {rowSaving ? "Q2保存中..." : "Q2保存"}
+                        </button>
+
                         <button
                           onClick={() => handleDelete(c.id)}
                           className="text-[11px] text-red-600 underline hover:text-red-700
                                   disabled:opacity-40
                                   dark:text-red-300 dark:hover:text-red-200"
-                          disabled={saving}
+                          disabled={saving || rowSaving}
                         >
                           削除
                         </button>
@@ -542,8 +546,8 @@ export default function CourseAdminClient({ schoolId }: Props) {
             </table>
 
             <div className="mt-2 text-[11px] text-gray-500 dark:text-gray-400">
-              ※
-              Q2対応は「クリックでON/OFF」できます（Cmd/Ctrl不要）。選択後にフォーカスが外れると保存されます。
+              ※ Q2は「クリックでON/OFF」→
+              右の「Q2保存」で保存されます（Cmd/Ctrl不要）
             </div>
           </div>
         )}
