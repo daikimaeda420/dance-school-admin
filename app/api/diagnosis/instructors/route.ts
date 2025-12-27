@@ -30,9 +30,6 @@ function json(message: string, status = 400) {
 
 /**
  * courseIds / genreIds / campusIds を柔軟に受け取る
- * - fd.getAll("courseIds") のように同名キー複数
- * - fd.get("courseIds") が '["id1","id2"]' のJSON配列
- * - fd.get("courseIds") が "id1,id2" のCSV
  */
 function readIdList(fd: FormData, key: string): string[] {
   const all = fd
@@ -73,7 +70,7 @@ function readIdList(fd: FormData, key: string): string[] {
 }
 
 // =========================
-// ✅ connect対象IDを解決（id/slug/answerTag混在OK & 存在検証）
+// ✅ connect対象IDを解決（id/slug/answerTag/label混在OK）
 // =========================
 function uniq(arr: string[]) {
   return Array.from(new Set(arr));
@@ -96,7 +93,7 @@ type ResolveKind = "campus" | "course" | "genre";
 async function resolveConnectIds(params: {
   schoolId: string;
   kind: ResolveKind;
-  values: string[]; // id or slug (genreは answerTag も来る可能性あり)
+  values: string[];
 }): Promise<{ ids: string[]; missing: string[] }> {
   const { schoolId, kind } = params;
 
@@ -106,7 +103,7 @@ async function resolveConnectIds(params: {
   if (values.length === 0) return { ids: [], missing: [] };
 
   const byId = values.filter(looksLikeCuidOrUuid);
-  const byKey = values.filter((v) => !looksLikeCuidOrUuid(v)); // slug または answerTag 等
+  const byKey = values.filter((v) => !looksLikeCuidOrUuid(v)); // slug / answerTag / label 等
 
   if (kind === "campus") {
     const foundById =
@@ -179,9 +176,9 @@ async function resolveConnectIds(params: {
             schoolId,
             isActive: true,
             OR: [
-              { slug: { in: byKey } },       // "kpop"
-              { answerTag: { in: byKey } },  // "Genre_KPOP"
-              { label: { in: byKey } },      // "K-POP"
+              { slug: { in: byKey } }, // "kpop"
+              { answerTag: { in: byKey } }, // "Genre_KPOP"
+              { label: { in: byKey } }, // "KPOP"
             ],
           },
           select: { id: true, slug: true, answerTag: true, label: true },
@@ -194,14 +191,14 @@ async function resolveConnectIds(params: {
   ]);
 
   const foundKeys = new Set(
-    foundByKey.flatMap((r) =>
-      [r.slug, r.answerTag, r.label].filter(Boolean) as string[]
+    foundByKey.flatMap(
+      (r) => [r.slug, r.answerTag, r.label].filter(Boolean) as string[]
     )
   );
   const missing = byKey.filter((s) => !foundKeys.has(s));
 
   return { ids, missing };
-
+} // ✅ ←★★ これが無いのが原因でした（resolveConnectIds を閉じる）
 
 // GET /api/diagnosis/instructors?schoolId=xxx
 export async function GET(req: NextRequest) {
@@ -304,7 +301,7 @@ export async function POST(req: NextRequest) {
       resolveConnectIds({ schoolId, kind: "genre", values: genreIds }),
     ]);
 
-    // 指定があるのに0件なら 400 で原因が見えるように
+    // 校舎/コースはミスなら止める（必須運用なら）
     if (campusIds.length > 0 && campusR.ids.length === 0) {
       return NextResponse.json(
         {
@@ -324,6 +321,15 @@ export async function POST(req: NextRequest) {
         },
         { status: 400 }
       );
+    }
+
+    // ✅ genre は見つからなくても止めない（後で管理画面で直せる）
+    if (genreIds.length > 0 && genreR.ids.length === 0) {
+      console.warn("[DiagnosisInstructor.create] genre not found", {
+        schoolId,
+        genreIds,
+        missing: genreR.missing,
+      });
     }
 
     const created = await prisma.diagnosisInstructor.create({
