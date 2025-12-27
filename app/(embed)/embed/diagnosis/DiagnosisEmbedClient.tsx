@@ -45,6 +45,23 @@ type DiagnosisResult = {
     teacherName?: string;
     score: number;
   }[];
+  campus?: {
+    id?: string;
+    label: string;
+    slug: string;
+    isOnline?: boolean;
+    address?: string | null;
+    access?: string | null;
+    googleMapUrl?: string | null;
+  };
+  selectedCampus?: {
+    label: string;
+    slug: string;
+    isOnline?: boolean;
+    address?: string | null;
+    access?: string | null;
+    googleMapUrl?: string | null;
+  };
 };
 
 type Props = {
@@ -270,6 +287,52 @@ export default function DiagnosisEmbedClient({
             </div>
           </div>
         </div>
+
+        {/* ✅ 校舎情報（campus / selectedCampus どちらでも表示） */}
+        {(() => {
+          const c = result.campus ?? result.selectedCampus;
+          if (!c) return null;
+
+          return (
+            <div className="mb-4 rounded-2xl bg-gray-50 p-4">
+              <div className="text-xs font-semibold text-gray-500">
+                選択した校舎
+              </div>
+              <div className="mt-1 text-lg font-bold">{c.label}</div>
+
+              {(c.address || c.access || c.googleMapUrl) && (
+                <div className="mt-3 space-y-2 text-xs text-gray-700">
+                  {c.address ? (
+                    <div>
+                      <div className="font-semibold text-gray-500">住所</div>
+                      <div className="whitespace-pre-wrap">{c.address}</div>
+                    </div>
+                  ) : null}
+
+                  {c.access ? (
+                    <div>
+                      <div className="font-semibold text-gray-500">
+                        アクセス
+                      </div>
+                      <div className="whitespace-pre-wrap">{c.access}</div>
+                    </div>
+                  ) : null}
+
+                  {c.googleMapUrl ? (
+                    <a
+                      href={c.googleMapUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-2 text-blue-600 hover:underline"
+                    >
+                      Googleマップで見る
+                    </a>
+                  ) : null}
+                </div>
+              )}
+            </div>
+          );
+        })()}
 
         {/* マッチング分析エリア */}
         <div className="mb-4">
