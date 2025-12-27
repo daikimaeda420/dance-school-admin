@@ -4,8 +4,8 @@ generator client {
 
 datasource db {
   provider  = "postgresql"
-  url       = env("DATABASE_URL") // 6543
-  directUrl = env("DIRECT_URL") // 5432（shadow 用）
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model Faq {
@@ -13,12 +13,10 @@ model Faq {
   schoolId String @unique
   items    Json
 
-  // ▲ 追加：チャットボットの見た目・CTA・吹き出し用
-  palette  String  @default("gray") // テーマカラー
-  ctaLabel String? // CTA ボタン文言
-  ctaUrl   String? // CTA ボタンURL
-
-  launcherText String? // ★ NEW! ランチャーの吹き出し文言（例: "質問はコチラ"）
+  palette      String  @default("gray")
+  ctaLabel     String?
+  ctaUrl       String?
+  launcherText String?
 
   updatedBy String?
   createdAt DateTime @default(now())
@@ -29,9 +27,9 @@ model Faq {
 
 model FaqLog {
   id        Int      @id @default(autoincrement())
-  school    String // 例: "daiki.maeda.web"
+  school    String
   sessionId String
-  timestamp DateTime // 質問が行われた時刻
+  timestamp DateTime
 
   question String
   answer   String?
@@ -44,13 +42,11 @@ model FaqLog {
   @@index([timestamp])
 }
 
-// ユーザーの権限ロール
 enum UserRole {
   SUPERADMIN
   SCHOOL_ADMIN
 }
 
-// JSON の users を移行する先のテーブル
 model User {
   id           String   @id @default(cuid())
   email        String   @unique
@@ -66,7 +62,6 @@ model User {
   @@index([role])
 }
 
-// SuperAdmin 一覧（メール＋schoolId）
 model SuperAdmin {
   id        String   @id @default(cuid())
   email     String   @unique
@@ -79,25 +74,24 @@ model SuperAdmin {
 // ここから診断機能用のモデル
 /////////////////////////////////////////
 
-// エリア・校舎情報（診断の選択肢）
 model DiagnosisCampus {
   id        String  @id @default(cuid())
-  schoolId  String // どの school の診断か
-  label     String // 表示名（渋谷校など）
-  slug      String // "shibuya" など（option.id に使う想定）
+  schoolId  String
+  label     String
+  slug      String
   sortOrder Int     @default(0)
   isOnline  Boolean @default(false)
   isActive  Boolean @default(true)
 
-  // 診断結果に紐づく（多対多）
+  // 診断結果に紐づく（多対多：暗黙OK）
   results DiagnosisResult[] @relation("ResultCampuses")
 
-  // ✅ 追加：講師と紐づく（多対多） ← これが無いのでエラー
-  instructors DiagnosisInstructor[] @relation("InstructorCampuses")
+  // ✅ 講師紐づけ：暗黙M2Mをやめて中間へ
+  instructorLinks DiagnosisInstructorCampus[]
 
-  address       String? // 住所
-  access        String? // アクセス（文章）
-  googleMapUrl  String? // Google Map URL（共有リンク or 埋め込みURL）
+  address      String?
+  access       String?
+  googleMapUrl String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -107,25 +101,21 @@ model DiagnosisCampus {
   @@index([schoolId, isActive])
 }
 
-// コース（レベル）選択肢
-// コース（レベル）選択肢
 model DiagnosisCourse {
   id        String  @id @default(cuid())
   schoolId  String
-  label     String // 例: "超入門", "入門", "初級"
-  slug      String // 例: "lv0", "lv1"
+  label     String
+  slug      String
   sortOrder Int     @default(0)
   isActive  Boolean @default(true)
 
-  // ✅ 追加：Q2（経験・運動レベル）の回答タグに対応（複数）
-  // 例: ["Q2_BEGINNER", "Q2_NO_EXERCISE"]
   q2AnswerTags String[] @default([])
 
-  // 診断結果に紐づく（多対多）
+  // 診断結果に紐づく（多対多：暗黙OK）
   results DiagnosisResult[] @relation("ResultCourses")
 
-  // ✅ 追加：講師と紐づく（多対多）
-  instructors DiagnosisInstructor[] @relation("InstructorCourses")
+  // ✅ 講師紐づけ：中間へ（今回のエラー原因）
+  instructorLinks DiagnosisInstructorCourse[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -135,58 +125,52 @@ model DiagnosisCourse {
   @@index([schoolId, isActive])
 }
 
-
-// ジャンル選択肢
 model DiagnosisGenre {
   id       String @id @default(cuid())
   schoolId String
-  label    String // 例: "K-POP", "HIPHOP"
-  slug     String // 例: "kpop", "hiphop"
+  label    String
+  slug     String
 
   sortOrder Int     @default(0)
   isActive  Boolean @default(true)
 
-  answerTag String? // 例: "Genre_KPOP"
+  answerTag String?
 
-  // 診断結果に紐づく（多対多）
+  // 診断結果に紐づく（多対多：暗黙OK）
   results DiagnosisResult[] @relation("ResultGenres")
 
-  // ✅ 追加：講師と紐づく（多対多）
-  instructors DiagnosisInstructor[] @relation("InstructorGenres")
+  // ✅ 講師紐づけ：暗黙M2Mをやめて中間へ
+  instructorLinks DiagnosisInstructorGenre[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@unique([schoolId, slug])
-  @@unique([schoolId, answerTag]) // ✅ 同一school内で同じtagの二重紐づけ防止
+  @@unique([schoolId, answerTag])
   @@index([schoolId, sortOrder])
   @@index([schoolId, isActive])
   @@index([schoolId, answerTag])
 }
 
-// 講師選択肢（診断で選ばせたい講師のみ）
 model DiagnosisInstructor {
   id        String  @id @default(cuid())
   schoolId  String
-  label     String // 例: "田中先生"
-  slug      String // 例: "tanaka"
-  photoUrl  String? // 画像URL
+  label     String
+  slug      String
+  photoUrl  String?
   sortOrder Int     @default(0)
   isActive  Boolean @default(true)
 
-  // ★ 画像をDB保存（バイナリ）
-  photoMime String? // "image/jpeg" など
-  photoData Bytes? // 画像バイナリ
+  photoMime String?
+  photoData Bytes?
 
-  // 診断結果に紐づく（多対多）
+  // 診断結果に紐づく（多対多：暗黙OK）
   results DiagnosisResult[] @relation("ResultInstructors")
 
-  // ✅ 追加：コース/ジャンル紐づけ（多対多）
-  courses DiagnosisCourse[] @relation("InstructorCourses")
-  genres  DiagnosisGenre[]  @relation("InstructorGenres")
-
-  // ✅ 追加：校舎紐づけ
-  campuses DiagnosisCampus[] @relation("InstructorCampuses")
+  // ✅ コース/ジャンル/校舎 紐づけは中間テーブルに集約
+  courseLinks  DiagnosisInstructorCourse[]
+  genreLinks   DiagnosisInstructorGenre[]
+  campusLinks  DiagnosisInstructorCampus[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -196,21 +180,69 @@ model DiagnosisInstructor {
   @@index([schoolId, isActive])
 }
 
-// 診断結果（おすすめ結果カード）
+// ✅ 講師×コース（明示中間テーブル）
+model DiagnosisInstructorCourse {
+  instructorId String
+  courseId     String
+  schoolId     String
+
+  instructor DiagnosisInstructor @relation(fields: [instructorId], references: [id], onDelete: Cascade)
+  course      DiagnosisCourse     @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@id([instructorId, courseId])
+  @@index([schoolId])
+  @@index([courseId])
+  @@index([instructorId])
+}
+
+// ✅ 講師×ジャンル（明示中間テーブル）
+model DiagnosisInstructorGenre {
+  instructorId String
+  genreId      String
+  schoolId     String
+
+  instructor DiagnosisInstructor @relation(fields: [instructorId], references: [id], onDelete: Cascade)
+  genre      DiagnosisGenre      @relation(fields: [genreId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@id([instructorId, genreId])
+  @@index([schoolId])
+  @@index([genreId])
+  @@index([instructorId])
+}
+
+// ✅ 講師×校舎（明示中間テーブル）
+model DiagnosisInstructorCampus {
+  instructorId String
+  campusId     String
+  schoolId     String
+
+  instructor DiagnosisInstructor @relation(fields: [instructorId], references: [id], onDelete: Cascade)
+  campus     DiagnosisCampus     @relation(fields: [campusId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@id([instructorId, campusId])
+  @@index([schoolId])
+  @@index([campusId])
+  @@index([instructorId])
+}
+
 model DiagnosisResult {
-  id        String  @id @default(cuid())
-  schoolId  String
-  title     String
-  body      String?
-  ctaLabel  String?
-  ctaUrl    String?
+  id       String @id @default(cuid())
+  schoolId String
+  title    String
+  body     String?
+  ctaLabel String?
+  ctaUrl   String?
 
-  // ✅ NEW: 条件ベース表示用
-  priority   Int   @default(0) // 同条件ヒット時の優先度
-  conditions Json? // 例: {"campus":["shibuya"],"genre":["kpop"],"q2Tags":["Q2_BEGINNER"]}
-  isFallback Boolean @default(false) // マッチしない場合の保険（schoolごとに1つ推奨）
+  priority   Int     @default(0)
+  conditions Json?
+  isFallback Boolean @default(false)
 
-  // 既存（残してOK：管理画面で紐づけも使いたいなら併用可能）
   sortOrder Int     @default(0)
   isActive  Boolean @default(true)
 
@@ -228,21 +260,20 @@ model DiagnosisResult {
   @@index([schoolId, isActive])
 }
 
+// --- 既存運用モデル（そのまま） ---
 
-// クラス（コース）情報（既存：運用データ用の本体モデル）
 model SchoolClass {
   id          String   @id @default(cuid())
   schoolId    String
-  name        String // 例: "K-POP 超入門クラス"
+  name        String
   description String?
-  // マッチング用タグ
-  levels      String[] // 例: ["Lv0_超入門", "Lv1_入門"]
-  targets     String[] // 例: ["Age_Teen", "Age_Student", "Age_Adult_Work"]
-  genres      String[] // 例: ["Genre_KPOP"]
-  schedule    String? // 例: "土曜・平日夜"
+  levels      String[]
+  targets     String[]
+  genres      String[]
+  schedule    String?
   isActive    Boolean  @default(true)
 
-  teachers TeacherClass[] // 中間テーブル経由で Teacher へ
+  teachers TeacherClass[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -251,16 +282,15 @@ model SchoolClass {
   @@index([isActive])
 }
 
-// 講師情報（既存：運用データ用の本体モデル）
 model Teacher {
   id       String   @id @default(cuid())
   schoolId String
   name     String
   photoUrl String?
-  styles   String[] // 例: ["Style_Healing", "Style_Friendly"]
+  styles   String[]
   bio      String?
 
-  classes TeacherClass[] // 担当クラスとの中間
+  classes TeacherClass[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -268,7 +298,6 @@ model Teacher {
   @@index([schoolId])
 }
 
-// クラス×講師の中間テーブル
 model TeacherClass {
   id        String @id @default(cuid())
   classId   String
