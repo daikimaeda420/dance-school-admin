@@ -171,33 +171,37 @@ async function resolveConnectIds(params: {
         })
       : [];
 
-  // ✅ genre は slug だけでなく answerTag も許可
-  const foundBySlugOrTag =
+  // ✅ genre は slug / answerTag / label のどれで来ても拾う
+  const foundByKey =
     byKey.length > 0
       ? await prisma.diagnosisGenre.findMany({
           where: {
             schoolId,
             isActive: true,
-            OR: [{ slug: { in: byKey } }, { answerTag: { in: byKey } }],
+            OR: [
+              { slug: { in: byKey } },       // "kpop"
+              { answerTag: { in: byKey } },  // "Genre_KPOP"
+              { label: { in: byKey } },      // "K-POP"
+            ],
           },
-          select: { id: true, slug: true, answerTag: true },
+          select: { id: true, slug: true, answerTag: true, label: true },
         })
       : [];
 
   const ids = uniq([
     ...foundById.map((r) => r.id),
-    ...foundBySlugOrTag.map((r) => r.id),
+    ...foundByKey.map((r) => r.id),
   ]);
 
   const foundKeys = new Set(
-    foundBySlugOrTag.flatMap(
-      (r) => [r.slug, r.answerTag].filter(Boolean) as string[]
+    foundByKey.flatMap((r) =>
+      [r.slug, r.answerTag, r.label].filter(Boolean) as string[]
     )
   );
   const missing = byKey.filter((s) => !foundKeys.has(s));
 
   return { ids, missing };
-}
+
 
 // GET /api/diagnosis/instructors?schoolId=xxx
 export async function GET(req: NextRequest) {
@@ -317,16 +321,6 @@ export async function POST(req: NextRequest) {
           message:
             "紐づけようとしたコースが見つかりません（id/slug・schoolId・isActive を確認）",
           debug: { courseIds, missing: courseR.missing },
-        },
-        { status: 400 }
-      );
-    }
-    if (genreIds.length > 0 && genreR.ids.length === 0) {
-      return NextResponse.json(
-        {
-          message:
-            "紐づけようとしたジャンルが見つかりません（id/slug/answerTag・schoolId・isActive を確認）",
-          debug: { genreIds, missing: genreR.missing },
         },
         { status: 400 }
       );
