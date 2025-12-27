@@ -163,6 +163,11 @@ model DiagnosisInstructor {
   photoMime String?
   photoData Bytes?
 
+  // ✅ 追加: チャームポイントタグ（改行区切り）
+  charmTags    String?
+  // ✅ 追加: 自己紹介文
+  introduction String?
+
   courses  DiagnosisInstructorCourse[]
   genres   DiagnosisInstructorGenre[]
   campuses DiagnosisInstructorCampus[]
@@ -176,6 +181,7 @@ model DiagnosisInstructor {
   @@unique([schoolId, slug])
   @@index([schoolId, isActive])
 }
+
 
 // ✅ 講師×コース（明示中間テーブル）
 model DiagnosisInstructorCourse {
