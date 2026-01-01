@@ -9,18 +9,16 @@ datasource db {
 }
 
 model Faq {
-  id       String @id @default(uuid())
-  schoolId String @unique
-  items    Json
-
-  palette      String  @default("gray")
+  id           String   @id @default(uuid())
+  schoolId     String   @unique
+  items        Json
+  updatedBy    String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
   ctaLabel     String?
   ctaUrl       String?
+  palette      String   @default("gray")
   launcherText String?
-
-  updatedBy String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
 
   @@index([updatedAt])
 }
@@ -30,21 +28,14 @@ model FaqLog {
   school    String
   sessionId String
   timestamp DateTime
-
-  question String
-  answer   String?
-  url      String?
-
+  question  String
+  answer    String?
+  url       String?
   createdAt DateTime @default(now())
 
   @@index([school])
   @@index([sessionId])
   @@index([timestamp])
-}
-
-enum UserRole {
-  SUPERADMIN
-  SCHOOL_ADMIN
 }
 
 model User {
@@ -54,9 +45,8 @@ model User {
   passwordHash String
   role         UserRole
   schoolId     String
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   @@index([schoolId])
   @@index([role])
@@ -70,31 +60,20 @@ model SuperAdmin {
   updatedAt DateTime @updatedAt
 }
 
-/////////////////////////////////////////
-// ここから診断機能用のモデル
-/////////////////////////////////////////
-
 model DiagnosisCampus {
-  id        String  @id @default(cuid())
-  schoolId  String
-  label     String
-  slug      String
-  sortOrder Int     @default(0)
-  isOnline  Boolean @default(false)
-  isActive  Boolean @default(true)
-
-  // 診断結果に紐づく（多対多：暗黙OK）
-  results DiagnosisResult[] @relation("ResultCampuses")
-
-  // ✅ 講師紐づけ：暗黙M2Mをやめて中間へ
-  instructorLinks DiagnosisInstructorCampus[]
-
+  id           String            @id @default(cuid())
+  schoolId     String
+  label        String
+  slug         String
+  sortOrder    Int               @default(0)
+  isOnline     Boolean           @default(false)
+  isActive     Boolean           @default(true)
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
   address      String?
   access       String?
   googleMapUrl String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  results      DiagnosisResult[] @relation("ResultCampuses")
 
   @@unique([schoolId, slug])
   @@index([schoolId, sortOrder])
@@ -102,23 +81,16 @@ model DiagnosisCampus {
 }
 
 model DiagnosisCourse {
-  id        String  @id @default(cuid())
-  schoolId  String
-  label     String
-  slug      String
-  sortOrder Int     @default(0)
-  isActive  Boolean @default(true)
-
-  q2AnswerTags String[] @default([])
-
-  // 診断結果に紐づく（多対多：暗黙OK）
-  results DiagnosisResult[] @relation("ResultCourses")
-
-  // ✅ 講師紐づけ：中間へ（今回のエラー原因）
-  instructorLinks DiagnosisInstructorCourse[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id           String            @id @default(cuid())
+  schoolId     String
+  label        String
+  slug         String
+  sortOrder    Int               @default(0)
+  isActive     Boolean           @default(true)
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+  q2AnswerTags String[]          @default([])
+  results      DiagnosisResult[] @relation("ResultCourses")
 
   @@unique([schoolId, slug])
   @@index([schoolId, sortOrder])
@@ -126,141 +98,101 @@ model DiagnosisCourse {
 }
 
 model DiagnosisGenre {
-  id       String @id @default(cuid())
-  schoolId String
-  label    String
-  slug     String
-
-  sortOrder Int     @default(0)
-  isActive  Boolean @default(true)
-
-  answerTag String?
-
-  // 診断結果に紐づく（多対多：暗黙OK）
-  results DiagnosisResult[] @relation("ResultGenres")
-
-  // ✅ 講師紐づけ：暗黙M2Mをやめて中間へ
-  instructorLinks DiagnosisInstructorGenre[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@unique([schoolId, slug])
-  @@unique([schoolId, answerTag])
-  @@index([schoolId, sortOrder])
-  @@index([schoolId, isActive])
-  @@index([schoolId, answerTag])
-}
-
-model DiagnosisInstructor {
-  id        String  @id @default(cuid())
+  id        String            @id @default(cuid())
   schoolId  String
   label     String
   slug      String
-  sortOrder Int     @default(0)
-  isActive  Boolean @default(true)
-
-  photoMime String?
-  photoData Bytes?
-
-  // ✅ 追加: チャームポイントタグ（改行区切り）
-  charmTags    String?
-  // ✅ 追加: 自己紹介文
-  introduction String?
-
-  courses  DiagnosisInstructorCourse[]
-  genres   DiagnosisInstructorGenre[]
-  campuses DiagnosisInstructorCampus[]
-
-  // ✅ これを追加（DiagnosisResult.instructors の逆側）
-  results DiagnosisResult[] @relation("ResultInstructors")
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  sortOrder Int               @default(0)
+  isActive  Boolean           @default(true)
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+  answerTag String?
+  results   DiagnosisResult[] @relation("ResultGenres")
 
   @@unique([schoolId, slug])
+  @@index([schoolId, sortOrder])
   @@index([schoolId, isActive])
 }
 
+model DiagnosisInstructor {
+  id           String            @id @default(cuid())
+  schoolId     String
+  label        String
+  slug         String
+  sortOrder    Int               @default(0)
+  isActive     Boolean           @default(true)
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+  photoData    Bytes?
+  photoMime    String?
+  photoUrl     String?
+  charmTags    String?
+  introduction String?
+  results      DiagnosisResult[] @relation("ResultInstructors")
 
-// ✅ 講師×コース（明示中間テーブル）
+  @@unique([schoolId, slug])
+  @@index([schoolId, isActive])
+  @@index([schoolId, sortOrder])
+}
+
 model DiagnosisInstructorCourse {
   instructorId String
   courseId     String
   schoolId     String
-
-  instructor DiagnosisInstructor @relation(fields: [instructorId], references: [id])
-  course     DiagnosisCourse     @relation(fields: [courseId], references: [id])
-
-  createdAt DateTime @default(now())
+  createdAt    DateTime @default(now()) @db.Timestamp(6)
 
   @@id([instructorId, courseId])
   @@index([schoolId])
+  @@index([courseId])
 }
 
-// ✅ 講師×ジャンル（明示中間テーブル）
 model DiagnosisInstructorGenre {
   instructorId String
   genreId      String
   schoolId     String
-
-  instructor DiagnosisInstructor @relation(fields: [instructorId], references: [id])
-  genre      DiagnosisGenre      @relation(fields: [genreId], references: [id])
-
-  createdAt DateTime @default(now())
+  createdAt    DateTime @default(now()) @db.Timestamp(6)
 
   @@id([instructorId, genreId])
   @@index([schoolId])
+  @@index([genreId])
 }
 
-// ✅ 講師×校舎（明示中間テーブル）
 model DiagnosisInstructorCampus {
   instructorId String
   campusId     String
   schoolId     String
-
-  instructor DiagnosisInstructor @relation(fields: [instructorId], references: [id])
-  campus     DiagnosisCampus     @relation(fields: [campusId], references: [id])
-
-  createdAt DateTime @default(now())
+  createdAt    DateTime @default(now()) @db.Timestamp(6)
 
   @@id([instructorId, campusId])
   @@index([schoolId])
+  @@index([campusId])
 }
 
 model DiagnosisResult {
-  id       String  @id @default(cuid())
-  schoolId String
-  title    String
-  body     String?
-  ctaLabel String?
-  ctaUrl   String?
-
-  priority   Int     @default(0)
-  conditions Json?
-  isFallback Boolean @default(false)
-
-  sortOrder Int     @default(0)
-  isActive  Boolean @default(true)
-
+  id          String                @id @default(cuid())
+  schoolId    String
+  title       String
+  body        String?
+  ctaLabel    String?
+  ctaUrl      String?
+  sortOrder   Int                   @default(0)
+  isActive    Boolean               @default(true)
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @updatedAt
+  priority    Int                   @default(0)
+  conditions  Json?
+  isFallback  Boolean               @default(false)
   campuses    DiagnosisCampus[]     @relation("ResultCampuses")
   courses     DiagnosisCourse[]     @relation("ResultCourses")
   genres      DiagnosisGenre[]      @relation("ResultGenres")
   instructors DiagnosisInstructor[] @relation("ResultInstructors")
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([schoolId, priority])
-  @@index([schoolId, isFallback])
   @@index([schoolId, sortOrder])
   @@index([schoolId, isActive])
 }
 
-// --- 既存運用モデル（そのまま） ---
-
 model SchoolClass {
-  id          String   @id @default(cuid())
+  id          String         @id @default(cuid())
   schoolId    String
   name        String
   description String?
@@ -268,44 +200,43 @@ model SchoolClass {
   targets     String[]
   genres      String[]
   schedule    String?
-  isActive    Boolean  @default(true)
-
-  teachers TeacherClass[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  isActive    Boolean        @default(true)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  teachers    TeacherClass[]
 
   @@index([schoolId])
   @@index([isActive])
 }
 
 model Teacher {
-  id       String   @id @default(cuid())
-  schoolId String
-  name     String
-  photoUrl String?
-  styles   String[]
-  bio      String?
-
-  classes TeacherClass[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id        String         @id @default(cuid())
+  schoolId  String
+  name      String
+  photoUrl  String?
+  styles    String[]
+  bio       String?
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  classes   TeacherClass[]
 
   @@index([schoolId])
 }
 
 model TeacherClass {
-  id        String @id @default(cuid())
+  id        String      @id @default(cuid())
   classId   String
   teacherId String
-
-  clazz   SchoolClass @relation(fields: [classId], references: [id])
-  teacher Teacher     @relation(fields: [teacherId], references: [id])
-
-  createdAt DateTime @default(now())
+  createdAt DateTime    @default(now())
+  clazz     SchoolClass @relation(fields: [classId], references: [id])
+  teacher   Teacher     @relation(fields: [teacherId], references: [id])
 
   @@unique([classId, teacherId])
   @@index([classId])
   @@index([teacherId])
+}
+
+enum UserRole {
+  SUPERADMIN
+  SCHOOL_ADMIN
 }
