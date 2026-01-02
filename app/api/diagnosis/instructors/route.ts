@@ -175,7 +175,6 @@ async function fetchLinks(schoolId: string, instructorIds: string[]) {
     };
   }
 
-  // 1) 中間テーブルは "IDだけ" 取る（relation select しない）
   const [courseLinks, genreLinks, campusLinks] = await Promise.all([
     prisma.diagnosisInstructorCourse.findMany({
       where: { schoolId, instructorId: { in: instructorIds } },
@@ -191,7 +190,6 @@ async function fetchLinks(schoolId: string, instructorIds: string[]) {
     }),
   ]);
 
-  // 2) 参照先をまとめて引く
   const courseIds = Array.from(new Set(courseLinks.map((x) => x.courseId)));
   const genreIds = Array.from(new Set(genreLinks.map((x) => x.genreId)));
   const campusIds = Array.from(new Set(campusLinks.map((x) => x.campusId)));
@@ -227,7 +225,6 @@ async function fetchLinks(schoolId: string, instructorIds: string[]) {
   const genreMap = new Map(genres.map((g) => [g.id, g]));
   const campusMap = new Map(campuses.map((c) => [c.id, c]));
 
-  // 3) instructorId => objects[] に整形
   const coursesByInstructor = new Map<string, any[]>();
   for (const row of courseLinks) {
     const c = courseMap.get(row.courseId);
@@ -258,6 +255,11 @@ async function fetchLinks(schoolId: string, instructorIds: string[]) {
   return { coursesByInstructor, genresByInstructor, campusesByInstructor };
 }
 
+function readOptionalText(fd: FormData, key: string): string | null {
+  const v = String(fd.get(key) ?? "").trim();
+  return v ? v : null;
+}
+
 // =========================
 // GET /api/diagnosis/instructors?schoolId=xxx
 // =========================
@@ -281,6 +283,8 @@ export async function GET(req: NextRequest) {
         sortOrder: true,
         isActive: true,
         photoMime: true,
+        charmTags: true,
+        introduction: true,
       },
     });
 
@@ -296,6 +300,8 @@ export async function GET(req: NextRequest) {
         return {
           ...r,
           photoMime: r.photoMime ?? null,
+          charmTags: r.charmTags ?? null,
+          introduction: r.introduction ?? null,
           courses,
           genres,
           campuses,
@@ -332,6 +338,9 @@ export async function POST(req: NextRequest) {
     const sortOrder = toNum(fd.get("sortOrder"), 0);
     const isActive = toBool(fd.get("isActive"), true);
 
+    const charmTags = readOptionalText(fd, "charmTags");
+    const introduction = readOptionalText(fd, "introduction");
+
     const courseVals = readIdList(fd, "courseIds");
     const genreVals = readIdList(fd, "genreIds");
     const campusVals = readIdList(fd, "campusIds");
@@ -362,7 +371,6 @@ export async function POST(req: NextRequest) {
       resolveConnectIds({ schoolId, kind: "genre", values: genreVals }),
     ]);
 
-    // 指定があるのに0件は原因が分かるように 400
     if (campusVals.length > 0 && campusR.ids.length === 0) {
       return NextResponse.json(
         {
@@ -405,6 +413,8 @@ export async function POST(req: NextRequest) {
           isActive,
           photoMime,
           photoData: photoData as any,
+          charmTags,
+          introduction,
         },
         select: {
           id: true,
@@ -414,6 +424,8 @@ export async function POST(req: NextRequest) {
           sortOrder: true,
           isActive: true,
           photoMime: true,
+          charmTags: true,
+          introduction: true,
         },
       });
 
@@ -464,6 +476,8 @@ export async function POST(req: NextRequest) {
       {
         ...instructor,
         photoMime: instructor.photoMime ?? null,
+        charmTags: instructor.charmTags ?? null,
+        introduction: instructor.introduction ?? null,
         courses,
         genres,
         campuses,
@@ -501,6 +515,9 @@ export async function PUT(req: NextRequest) {
     const isActive = toBool(fd.get("isActive"), true);
     const clearPhoto = toBool(fd.get("clearPhoto"), false);
 
+    const charmTags = readOptionalText(fd, "charmTags");
+    const introduction = readOptionalText(fd, "introduction");
+
     const courseVals = readIdList(fd, "courseIds");
     const genreVals = readIdList(fd, "genreIds");
     const campusVals = readIdList(fd, "campusIds");
@@ -521,7 +538,6 @@ export async function PUT(req: NextRequest) {
       resolveConnectIds({ schoolId, kind: "genre", values: genreVals }),
     ]);
 
-    // 指定があるのに0件は原因が分かるように 400
     if (campusVals.length > 0 && campusR.ids.length === 0) {
       return NextResponse.json(
         {
@@ -554,8 +570,17 @@ export async function PUT(req: NextRequest) {
     }
 
     await prisma.$transaction(async (tx) => {
-      const data: any = { label, slug, sortOrder, isActive };
+      // 基本情報
+      const data: any = {
+        label,
+        slug,
+        sortOrder,
+        isActive,
+        charmTags,
+        introduction,
+      };
 
+      // 画像
       if (clearPhoto) {
         data.photoMime = null;
         data.photoData = null;
@@ -633,6 +658,8 @@ export async function PUT(req: NextRequest) {
         sortOrder: true,
         isActive: true,
         photoMime: true,
+        charmTags: true,
+        introduction: true,
       },
     });
 
@@ -646,6 +673,8 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json({
       ...updated,
       photoMime: updated?.photoMime ?? null,
+      charmTags: updated?.charmTags ?? null,
+      introduction: updated?.introduction ?? null,
       courses,
       genres,
       campuses,

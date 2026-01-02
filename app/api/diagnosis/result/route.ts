@@ -1,3 +1,4 @@
+// app/api/diagnosis/result/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import {
@@ -108,6 +109,50 @@ function matchesConditions(
   return true;
 }
 
+// =========================
+// ✅ ここから「中間テーブルで instructorIds を絞る」ヘルパー
+// =========================
+function intersectIds(a: string[], b: string[]): string[] {
+  const bSet = new Set(b);
+  return a.filter((x) => bSet.has(x));
+}
+
+async function instructorIdsByCampus(params: {
+  schoolId: string;
+  campusId: string;
+}): Promise<string[]> {
+  const rows = await prisma.diagnosisInstructorCampus.findMany({
+    where: { schoolId: params.schoolId, campusId: params.campusId },
+    select: { instructorId: true },
+  });
+  return rows.map((r) => r.instructorId);
+}
+
+async function instructorIdsByGenre(params: {
+  schoolId: string;
+  genreId: string;
+}): Promise<string[]> {
+  const rows = await prisma.diagnosisInstructorGenre.findMany({
+    where: { schoolId: params.schoolId, genreId: params.genreId },
+    select: { instructorId: true },
+  });
+  return rows.map((r) => r.instructorId);
+}
+
+async function instructorIdsByCourse(params: {
+  schoolId: string;
+  courseId: string;
+}): Promise<string[]> {
+  const rows = await prisma.diagnosisInstructorCourse.findMany({
+    where: { schoolId: params.schoolId, courseId: params.courseId },
+    select: { instructorId: true },
+  });
+  return rows.map((r) => r.instructorId);
+}
+
+// =========================
+// POST /api/diagnosis/result
+// =========================
 export async function POST(req: NextRequest) {
   try {
     const body: DiagnosisRequestBody = await req.json().catch(() => ({}));
@@ -242,36 +287,27 @@ export async function POST(req: NextRequest) {
     }
 
     // ==========================
-    // ✅ 講師取得（段階的に緩める）
+    // ✅ 講師取得（段階的に緩める）※中間テーブルで絞り込む
     // ==========================
-    const baseWhere = {
-      schoolId,
-      isActive: true,
-      campuses: { some: { campusId: campus.id } }, // 校舎は必須
-    } as const;
 
-    // ✅ ここに photoMime を含めて「画像があるか」を判別できるようにする（任意）
+    // campusは必須：まずcampusに紐づく instructorIds を取得
+    const campusInstructorIds = await instructorIdsByCampus({
+      schoolId,
+      campusId: campus.id,
+    });
+
+    // select（重いなら photoData を外してOK）
     const selectInstructor = {
       id: true,
       label: true,
       slug: true,
       photoMime: true,
       photoData: true, // length判定のため（重いなら消してOK）
+      charmTags: true,
+      introduction: true,
     } as const;
 
-    let instructors =
-      (genre?.id && recommendedCourse?.id
-        ? await prisma.diagnosisInstructor.findMany({
-            where: {
-              ...baseWhere,
-              genres: { some: { genreId: genre.id } },
-              courses: { some: { courseId: recommendedCourse.id } },
-            },
-            orderBy: { sortOrder: "asc" },
-            select: selectInstructor,
-          })
-        : []) ?? [];
-
+    let instructors: any[] = [];
     let instructorMatchedBy:
       | "campus+genre+course"
       | "campus+genre"
@@ -279,39 +315,74 @@ export async function POST(req: NextRequest) {
       | "campus"
       | "none" = "none";
 
-    if (instructors.length > 0) {
-      instructorMatchedBy = "campus+genre+course";
-    } else if (genre?.id) {
-      instructors = await prisma.diagnosisInstructor.findMany({
-        where: {
-          ...baseWhere,
-          genres: { some: { genreId: genre.id } },
-        },
-        orderBy: { sortOrder: "asc" },
-        select: selectInstructor,
-      });
-      if (instructors.length > 0) instructorMatchedBy = "campus+genre";
+    // ① campus + genre + course
+    if (genre?.id && recommendedCourse?.id) {
+      const [genreIds, courseIds] = await Promise.all([
+        instructorIdsByGenre({ schoolId, genreId: genre.id }),
+        instructorIdsByCourse({ schoolId, courseId: recommendedCourse.id }),
+      ]);
+
+      const ids = intersectIds(
+        intersectIds(campusInstructorIds, genreIds),
+        courseIds
+      );
+
+      if (ids.length > 0) {
+        instructors = await prisma.diagnosisInstructor.findMany({
+          where: { schoolId, isActive: true, id: { in: ids } },
+          orderBy: { sortOrder: "asc" },
+          select: selectInstructor,
+        });
+        if (instructors.length > 0) instructorMatchedBy = "campus+genre+course";
+      }
     }
 
+    // ② campus + genre
+    if (instructors.length === 0 && genre?.id) {
+      const genreIds = await instructorIdsByGenre({
+        schoolId,
+        genreId: genre.id,
+      });
+      const ids = intersectIds(campusInstructorIds, genreIds);
+
+      if (ids.length > 0) {
+        instructors = await prisma.diagnosisInstructor.findMany({
+          where: { schoolId, isActive: true, id: { in: ids } },
+          orderBy: { sortOrder: "asc" },
+          select: selectInstructor,
+        });
+        if (instructors.length > 0) instructorMatchedBy = "campus+genre";
+      }
+    }
+
+    // ③ campus + course
     if (instructors.length === 0 && recommendedCourse?.id) {
-      instructors = await prisma.diagnosisInstructor.findMany({
-        where: {
-          ...baseWhere,
-          courses: { some: { courseId: recommendedCourse.id } },
-        },
-        orderBy: { sortOrder: "asc" },
-        select: selectInstructor,
+      const courseIds = await instructorIdsByCourse({
+        schoolId,
+        courseId: recommendedCourse.id,
       });
-      if (instructors.length > 0) instructorMatchedBy = "campus+course";
+      const ids = intersectIds(campusInstructorIds, courseIds);
+
+      if (ids.length > 0) {
+        instructors = await prisma.diagnosisInstructor.findMany({
+          where: { schoolId, isActive: true, id: { in: ids } },
+          orderBy: { sortOrder: "asc" },
+          select: selectInstructor,
+        });
+        if (instructors.length > 0) instructorMatchedBy = "campus+course";
+      }
     }
 
+    // ④ campus only
     if (instructors.length === 0) {
-      instructors = await prisma.diagnosisInstructor.findMany({
-        where: baseWhere,
-        orderBy: { sortOrder: "asc" },
-        select: selectInstructor,
-      });
-      if (instructors.length > 0) instructorMatchedBy = "campus";
+      if (campusInstructorIds.length > 0) {
+        instructors = await prisma.diagnosisInstructor.findMany({
+          where: { schoolId, isActive: true, id: { in: campusInstructorIds } },
+          orderBy: { sortOrder: "asc" },
+          select: selectInstructor,
+        });
+        if (instructors.length > 0) instructorMatchedBy = "campus";
+      }
     }
 
     if (instructors.length === 0) instructorMatchedBy = "none";
@@ -340,13 +411,12 @@ export async function POST(req: NextRequest) {
         styles: [],
       },
 
-      // ✅ 追加：講師管理で紐づいた講師（photoUrl を付与）
+      // ✅ 講師管理で紐づいた講師（photoUrl を付与）
       instructors: instructors.map((t) => {
         const url = `/api/diagnosis/instructors/photo?schoolId=${encodeURIComponent(
           schoolId
         )}&id=${encodeURIComponent(t.id)}`;
 
-        // 画像が無い講師は null にしてフロント側で丸アイコンを出す
         const hasPhoto =
           Boolean(t.photoMime) &&
           Boolean(t.photoData) &&
@@ -357,6 +427,8 @@ export async function POST(req: NextRequest) {
           label: t.label,
           slug: t.slug,
           photoUrl: hasPhoto ? url : null,
+          charmTags: t.charmTags ?? null,
+          introduction: t.introduction ?? null,
         };
       }),
 
@@ -381,7 +453,6 @@ export async function POST(req: NextRequest) {
         googleMapUrl: campus.googleMapUrl ?? null,
       },
 
-      // ✅ デバッグ（必要な間だけ）
       debug: {
         ctx,
         campusId: campus.id,
