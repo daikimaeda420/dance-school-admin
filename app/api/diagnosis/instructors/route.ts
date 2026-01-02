@@ -175,28 +175,43 @@ async function fetchLinks(schoolId: string, instructorIds: string[]) {
     };
   }
 
+  // 1) 中間テーブルは "IDだけ" 取る（relation select しない）
   const [courseLinks, genreLinks, campusLinks] = await Promise.all([
     prisma.diagnosisInstructorCourse.findMany({
       where: { schoolId, instructorId: { in: instructorIds } },
-      select: {
-        instructorId: true,
-        course: { select: { id: true, label: true, slug: true } },
-      },
+      select: { instructorId: true, courseId: true },
     }),
     prisma.diagnosisInstructorGenre.findMany({
       where: { schoolId, instructorId: { in: instructorIds } },
-      select: {
-        instructorId: true,
-        genre: {
-          select: { id: true, label: true, slug: true, answerTag: true },
-        },
-      },
+      select: { instructorId: true, genreId: true },
     }),
     prisma.diagnosisInstructorCampus.findMany({
       where: { schoolId, instructorId: { in: instructorIds } },
-      select: {
-        instructorId: true,
-        campus: {
+      select: { instructorId: true, campusId: true },
+    }),
+  ]);
+
+  // 2) 参照先をまとめて引く
+  const courseIds = Array.from(new Set(courseLinks.map((x) => x.courseId)));
+  const genreIds = Array.from(new Set(genreLinks.map((x) => x.genreId)));
+  const campusIds = Array.from(new Set(campusLinks.map((x) => x.campusId)));
+
+  const [courses, genres, campuses] = await Promise.all([
+    courseIds.length
+      ? prisma.diagnosisCourse.findMany({
+          where: { id: { in: courseIds } },
+          select: { id: true, label: true, slug: true },
+        })
+      : Promise.resolve([]),
+    genreIds.length
+      ? prisma.diagnosisGenre.findMany({
+          where: { id: { in: genreIds } },
+          select: { id: true, label: true, slug: true, answerTag: true },
+        })
+      : Promise.resolve([]),
+    campusIds.length
+      ? prisma.diagnosisCampus.findMany({
+          where: { id: { in: campusIds } },
           select: {
             id: true,
             label: true,
@@ -204,29 +219,39 @@ async function fetchLinks(schoolId: string, instructorIds: string[]) {
             isOnline: true,
             isActive: true,
           },
-        },
-      },
-    }),
+        })
+      : Promise.resolve([]),
   ]);
 
+  const courseMap = new Map(courses.map((c) => [c.id, c]));
+  const genreMap = new Map(genres.map((g) => [g.id, g]));
+  const campusMap = new Map(campuses.map((c) => [c.id, c]));
+
+  // 3) instructorId => objects[] に整形
   const coursesByInstructor = new Map<string, any[]>();
   for (const row of courseLinks) {
+    const c = courseMap.get(row.courseId);
+    if (!c) continue;
     const cur = coursesByInstructor.get(row.instructorId) ?? [];
-    cur.push(row.course);
+    cur.push(c);
     coursesByInstructor.set(row.instructorId, cur);
   }
 
   const genresByInstructor = new Map<string, any[]>();
   for (const row of genreLinks) {
+    const g = genreMap.get(row.genreId);
+    if (!g) continue;
     const cur = genresByInstructor.get(row.instructorId) ?? [];
-    cur.push(row.genre);
+    cur.push(g);
     genresByInstructor.set(row.instructorId, cur);
   }
 
   const campusesByInstructor = new Map<string, any[]>();
   for (const row of campusLinks) {
+    const c = campusMap.get(row.campusId);
+    if (!c) continue;
     const cur = campusesByInstructor.get(row.instructorId) ?? [];
-    cur.push(row.campus);
+    cur.push(c);
     campusesByInstructor.set(row.instructorId, cur);
   }
 
