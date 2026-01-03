@@ -31,6 +31,10 @@ type InstructorRow = {
   isActive: boolean;
   photoMime?: string | null;
 
+  // ✅ 追加：プロフィール
+  charmTags?: string | null; // 改行区切り
+  introduction?: string | null;
+
   courses?: OptionRow[];
   genres?: OptionRow[];
   campuses?: OptionRow[];
@@ -78,6 +82,9 @@ const thumb =
   "h-12 w-12 rounded-xl border border-gray-200 object-cover dark:border-gray-800";
 
 const selectBox = input + " h-40 leading-tight " + "dark:[color-scheme:dark]";
+
+const EMPTY_IMG =
+  "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==";
 
 function uniqStrings(xs: string[]) {
   return Array.from(
@@ -151,6 +158,10 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
   const [newGenreIds, setNewGenreIds] = useState<string[]>([]);
   const [newCampusIds, setNewCampusIds] = useState<string[]>([]);
 
+  // ✅ 追加：新規プロフィール
+  const [newCharmTags, setNewCharmTags] = useState("");
+  const [newIntroduction, setNewIntroduction] = useState("");
+
   const [editMap, setEditMap] = useState<
     Record<string, Partial<InstructorRow>>
   >({});
@@ -158,6 +169,11 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
     {}
   );
   const [clearPhotoMap, setClearPhotoMap] = useState<Record<string, boolean>>(
+    {}
+  );
+
+  // ✅ 追加：編集画像プレビュー（URL leak対策）
+  const [editPreviewMap, setEditPreviewMap] = useState<Record<string, string>>(
     {}
   );
 
@@ -174,9 +190,7 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
       const [cRes, gRes, pRes] = await Promise.all([
         fetch(
           `/api/diagnosis/courses?schoolId=${encodeURIComponent(schoolId)}`,
-          {
-            cache: "no-store",
-          }
+          { cache: "no-store" }
         ),
         fetch(
           `/api/diagnosis/genres?schoolId=${encodeURIComponent(schoolId)}`,
@@ -241,6 +255,11 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
         isActive: Boolean(d.isActive ?? true),
         photoMime: typeof d.photoMime === "string" ? d.photoMime : null,
 
+        // ✅ 追加
+        charmTags: typeof d.charmTags === "string" ? d.charmTags : null,
+        introduction:
+          typeof d.introduction === "string" ? d.introduction : null,
+
         courses: Array.isArray(d.courses) ? d.courses : [],
         genres: Array.isArray(d.genres) ? d.genres : [],
         campuses: Array.isArray(d.campuses) ? d.campuses : [],
@@ -275,6 +294,18 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
     };
   }, [previewForNew]);
 
+  // ✅ edit preview URL leak対策（アンマウント時に全revoke）
+  useEffect(() => {
+    return () => {
+      Object.values(editPreviewMap).forEach((u) => {
+        try {
+          if (u) URL.revokeObjectURL(u);
+        } catch {}
+      });
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const createInstructor = async () => {
     if (!schoolId.trim()) return;
 
@@ -302,6 +333,10 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
       fd.append("genreIds", JSON.stringify(uniqStrings(newGenreIds)));
       fd.append("campusIds", JSON.stringify(uniqStrings(newCampusIds)));
 
+      // ✅ 追加：プロフィール
+      fd.append("charmTags", newCharmTags);
+      fd.append("introduction", newIntroduction);
+
       const res = await fetch("/api/diagnosis/instructors", {
         method: "POST",
         body: fd,
@@ -321,6 +356,10 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
       setNewGenreIds([]);
       setNewCampusIds([]);
 
+      // ✅ 追加
+      setNewCharmTags("");
+      setNewIntroduction("");
+
       await fetchList();
     } catch (e: any) {
       setError(e?.message ?? "作成に失敗しました");
@@ -337,13 +376,29 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
         courseIds: safeJsonArray(r.courseIds),
         genreIds: safeJsonArray(r.genreIds),
         campusIds: safeJsonArray(r.campusIds),
+        charmTags: r.charmTags ?? "",
+        introduction: r.introduction ?? "",
       },
     }));
     setEditFileMap((prev) => ({ ...prev, [r.id]: null }));
     setClearPhotoMap((prev) => ({ ...prev, [r.id]: false }));
+    setEditPreviewMap((prev) => ({ ...prev, [r.id]: "" }));
   };
 
   const cancelEdit = (id: string) => {
+    // ✅ revoke preview
+    setEditPreviewMap((prev) => {
+      const u = prev[id];
+      if (u) {
+        try {
+          URL.revokeObjectURL(u);
+        } catch {}
+      }
+      const next = { ...prev };
+      delete next[id];
+      return next;
+    });
+
     setEditMap((prev) => {
       const next = { ...prev };
       delete next[id];
@@ -404,6 +459,10 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
         "campusIds",
         JSON.stringify(uniqStrings(safeJsonArray(e.campusIds)))
       );
+
+      // ✅ 追加：プロフィール
+      fd.append("charmTags", String((e as any).charmTags ?? ""));
+      fd.append("introduction", String((e as any).introduction ?? ""));
 
       const res = await fetch("/api/diagnosis/instructors", {
         method: "PUT",
@@ -528,20 +587,49 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
               画像（DB保存）
             </div>
             <div className="flex items-center gap-3">
-              <img
-                src={
-                  previewForNew ||
-                  "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw=="
-                }
-                className={thumb}
-                alt=""
-              />
+              <img src={previewForNew || EMPTY_IMG} className={thumb} alt="" />
               <input
                 type="file"
                 accept="image/*"
                 onChange={(e) => setNewFile(e.target.files?.[0] ?? null)}
                 className={input}
               />
+            </div>
+          </div>
+
+          {/* ✅ 追加：プロフィール */}
+          <div className="md:col-span-2">
+            <div className="mb-2 text-xs font-semibold text-gray-600 dark:text-gray-300">
+              プロフィール
+            </div>
+            <div className="grid gap-3 md:grid-cols-2">
+              <div>
+                <div className="mb-1 text-[11px] text-gray-600 dark:text-gray-300">
+                  チャームポイントタグ（改行で追加）
+                </div>
+                <textarea
+                  value={newCharmTags}
+                  onChange={(e) => setNewCharmTags(e.target.value)}
+                  rows={4}
+                  className={input}
+                  placeholder={
+                    "例：笑顔が明るい\n例：初心者に丁寧\n例：K-POP振付が得意"
+                  }
+                />
+              </div>
+
+              <div>
+                <div className="mb-1 text-[11px] text-gray-600 dark:text-gray-300">
+                  自己紹介文
+                </div>
+                <textarea
+                  value={newIntroduction}
+                  onChange={(e) => setNewIntroduction(e.target.value)}
+                  rows={4}
+                  className={input}
+                  placeholder="例：はじめまして。初心者の方でも楽しく踊れるように…"
+                />
+              </div>
             </div>
           </div>
 
@@ -694,7 +782,7 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
               const current = editing ? (e as InstructorRow) : r;
 
               const file = editFileMap[r.id] ?? null;
-              const localPreview = file ? URL.createObjectURL(file) : "";
+              const localPreview = editPreviewMap[r.id] || "";
               const hasDbPhoto = Boolean(r.photoMime);
 
               const currentCourseIds = safeJsonArray(current.courseIds);
@@ -760,9 +848,7 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
                             <img
                               src={
                                 localPreview ||
-                                (hasDbPhoto
-                                  ? photoUrl(r.id)
-                                  : "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==")
+                                (hasDbPhoto ? photoUrl(r.id) : EMPTY_IMG)
                               }
                               className={thumb}
                               alt=""
@@ -775,6 +861,22 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
                                   accept="image/*"
                                   onChange={(ev) => {
                                     const f = ev.target.files?.[0] ?? null;
+
+                                    // preview URLを作る（古いのはrevoke）
+                                    setEditPreviewMap((p) => {
+                                      const prevUrl = p[r.id];
+                                      if (prevUrl) {
+                                        try {
+                                          URL.revokeObjectURL(prevUrl);
+                                        } catch {}
+                                      }
+                                      const next = { ...p };
+                                      next[r.id] = f
+                                        ? URL.createObjectURL(f)
+                                        : "";
+                                      return next;
+                                    });
+
                                     setEditFileMap((p) => ({
                                       ...p,
                                       [r.id]: f,
@@ -800,11 +902,22 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
                                         ...p,
                                         [r.id]: checked,
                                       }));
-                                      if (checked)
+
+                                      if (checked) {
                                         setEditFileMap((p) => ({
                                           ...p,
                                           [r.id]: null,
                                         }));
+                                        setEditPreviewMap((p) => {
+                                          const prevUrl = p[r.id];
+                                          if (prevUrl) {
+                                            try {
+                                              URL.revokeObjectURL(prevUrl);
+                                            } catch {}
+                                          }
+                                          return { ...p, [r.id]: "" };
+                                        });
+                                      }
                                     }}
                                   />
                                   画像を削除（DBからnullにする）
@@ -961,6 +1074,86 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
                               <div>
                                 <span className="font-semibold">校舎：</span>
                                 {joinLabels(r.campuses) || "—"}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* ✅ 追加：プロフィール */}
+                        <div className="md:col-span-3">
+                          <div className="text-[11px] font-semibold text-gray-600 dark:text-gray-300">
+                            プロフィール（チャームポイント / 自己紹介）
+                          </div>
+
+                          {editing ? (
+                            <div className="mt-2 grid gap-2 md:grid-cols-2">
+                              <div>
+                                <div className="mb-1 text-[11px] text-gray-600 dark:text-gray-300">
+                                  チャームポイントタグ（改行で追加）
+                                </div>
+                                <textarea
+                                  value={(current as any).charmTags ?? ""}
+                                  onChange={(ev) =>
+                                    updateEditField(r.id, {
+                                      charmTags: ev.target.value,
+                                    })
+                                  }
+                                  rows={4}
+                                  className={input}
+                                />
+                              </div>
+
+                              <div>
+                                <div className="mb-1 text-[11px] text-gray-600 dark:text-gray-300">
+                                  自己紹介文
+                                </div>
+                                <textarea
+                                  value={(current as any).introduction ?? ""}
+                                  onChange={(ev) =>
+                                    updateEditField(r.id, {
+                                      introduction: ev.target.value,
+                                    })
+                                  }
+                                  rows={4}
+                                  className={input}
+                                />
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="mt-2 text-[12px] text-gray-700 dark:text-gray-200">
+                              <div className="mb-2">
+                                <div className="font-semibold">
+                                  チャームポイント
+                                </div>
+                                <div className="mt-1 flex flex-wrap gap-1">
+                                  {String(r.charmTags ?? "")
+                                    .split("\n")
+                                    .map((s) => s.trim())
+                                    .filter(Boolean)
+                                    .map((tag) => (
+                                      <span
+                                        key={tag}
+                                        className="rounded-full border border-gray-200 px-2 py-0.5 text-[11px] dark:border-gray-700"
+                                      >
+                                        {tag}
+                                      </span>
+                                    ))}
+                                  {(!r.charmTags ||
+                                    r.charmTags.trim() === "") && (
+                                    <span className="text-gray-500 dark:text-gray-400">
+                                      —
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+
+                              <div>
+                                <div className="font-semibold">自己紹介</div>
+                                <div className="whitespace-pre-wrap leading-relaxed">
+                                  {r.introduction?.trim()
+                                    ? r.introduction
+                                    : "—"}
+                                </div>
                               </div>
                             </div>
                           )}

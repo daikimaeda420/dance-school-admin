@@ -82,7 +82,6 @@ type ResolveKind = "campus" | "course" | "genre";
 
 /**
  * ✅ id/slug/answerTag/label が混在していても「存在する実ID」に解決する
- * - 例: genreIds に "genre_kpop" / "kpop" / "Genre_KPOP" / "KPOP" が混在してもOK
  */
 async function resolveConnectIds(params: {
   schoolId: string;
@@ -258,6 +257,11 @@ async function fetchLinks(schoolId: string, instructorIds: string[]) {
 function readOptionalText(fd: FormData, key: string): string | null {
   const v = String(fd.get(key) ?? "").trim();
   return v ? v : null;
+}
+
+/** ✅ “送られてきたかどうか” を判定して PUT で null 上書きを防ぐ */
+function hasField(fd: FormData, key: string): boolean {
+  return fd.has(key);
 }
 
 // =========================
@@ -515,8 +519,13 @@ export async function PUT(req: NextRequest) {
     const isActive = toBool(fd.get("isActive"), true);
     const clearPhoto = toBool(fd.get("clearPhoto"), false);
 
-    const charmTags = readOptionalText(fd, "charmTags");
-    const introduction = readOptionalText(fd, "introduction");
+    // ✅ PUTでは「送られてきたら更新」。送られてこないなら維持。
+    const charmTags = hasField(fd, "charmTags")
+      ? readOptionalText(fd, "charmTags")
+      : undefined;
+    const introduction = hasField(fd, "introduction")
+      ? readOptionalText(fd, "introduction")
+      : undefined;
 
     const courseVals = readIdList(fd, "courseIds");
     const genreVals = readIdList(fd, "genreIds");
@@ -576,9 +585,11 @@ export async function PUT(req: NextRequest) {
         slug,
         sortOrder,
         isActive,
-        charmTags,
-        introduction,
       };
+
+      // ✅ 送られてきた場合のみ反映（null許容）
+      if (charmTags !== undefined) data.charmTags = charmTags;
+      if (introduction !== undefined) data.introduction = introduction;
 
       // 画像
       if (clearPhoto) {
