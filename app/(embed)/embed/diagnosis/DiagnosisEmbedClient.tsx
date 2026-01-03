@@ -294,7 +294,7 @@ export default function DiagnosisEmbedClient({
             <div className="text-xs font-semibold text-gray-500">担当講師</div>
 
             {hasInstructors ? (
-              <div className="mt-3 space-y-4">
+              <div className="mt-2 space-y-3">
                 {instructors.map((t) => {
                   const tags = splitCharmTags(t.charmTags);
                   const intro = String(t.introduction ?? "").trim();
@@ -302,12 +302,12 @@ export default function DiagnosisEmbedClient({
                   return (
                     <div
                       key={t.id}
-                      className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm"
+                      className="rounded-3xl border border-gray-200 bg-white p-4 shadow-sm"
                     >
-                      {/* 横並び：左 画像 / 右 テキスト */}
-                      <div className="flex gap-5">
-                        {/* 左：画像 */}
-                        <div className="h-28 w-28 shrink-0 overflow-hidden rounded-2xl bg-gray-200">
+                      {/* 上段：写真 + 名前/タグ */}
+                      <div className="flex items-start gap-4">
+                        {/* 写真 */}
+                        <div className="h-24 w-24 overflow-hidden rounded-2xl bg-gray-200">
                           {t.photoUrl ? (
                             // eslint-disable-next-line @next/next/no-img-element
                             <img
@@ -320,49 +320,43 @@ export default function DiagnosisEmbedClient({
                           )}
                         </div>
 
-                        {/* 右：名前・タグ・紹介文 */}
-                        <div className="flex min-w-0 flex-1 flex-col">
-                          {/* 名前 */}
+                        {/* 右側：名前 + タグ */}
+                        <div className="min-w-0 flex-1">
                           <div className="text-xl font-extrabold tracking-tight">
-                            {t.label} 先生
+                            {t.label}
                           </div>
 
-                          {/* チャームポイントタグ */}
                           {tags.length > 0 && (
                             <div className="mt-2 flex flex-wrap gap-2">
                               {tags.map((tag, idx) => (
                                 <span
                                   key={`${t.id}_tag_${idx}`}
-                                  className="inline-flex items-center rounded-full border border-purple-200 bg-purple-50 px-3 py-1 text-xs font-semibold text-purple-700"
+                                  className="inline-flex items-center rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700"
                                 >
                                   {tag}
                                 </span>
                               ))}
                             </div>
                           )}
-
-                          {/* 吹き出し：自己紹介 */}
-                          {intro && (
-                            <div className="relative mt-4 rounded-2xl bg-gray-100 px-4 py-3 text-sm leading-relaxed text-gray-700">
-                              {/* 吹き出しのしっぽ（左寄り） */}
-                              <div className="absolute -left-2 top-4 h-4 w-4 rotate-45 bg-gray-100" />
-
-                              <span className="mr-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-white text-[11px] text-gray-500">
-                                …
-                              </span>
-                              <span className="whitespace-pre-wrap">
-                                {intro}
-                              </span>
-                            </div>
-                          )}
                         </div>
                       </div>
+
+                      {/* 下段：吹き出し（紹介文） */}
+                      {intro && (
+                        <div className="mt-4">
+                          <div className="relative rounded-2xl bg-gray-100 px-4 py-3 text-sm leading-relaxed text-gray-700">
+                            {/* しっぽ */}
+                            <div className="absolute -top-2 left-10 h-4 w-4 rotate-45 bg-gray-100" />
+                            <span className="whitespace-pre-wrap">{intro}</span>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   );
                 })}
               </div>
             ) : (
-              /* fallback はそのままでOK */
+              // 既存 teacher fallback のままでOK
               <div className="mt-2 flex items-center gap-3">
                 {result.teacher.photoUrl && (
                   <div className="h-12 w-12 overflow-hidden rounded-full bg-gray-200">
@@ -378,6 +372,11 @@ export default function DiagnosisEmbedClient({
                   <div className="text-sm font-semibold">
                     {result.teacher.name ?? "担当講師"}
                   </div>
+                  {result.teacher.styles?.length > 0 && (
+                    <div className="mt-1 text-xs text-gray-500">
+                      スタイル：{result.teacher.styles.join(" / ")}
+                    </div>
+                  )}
                 </div>
               </div>
             )}
