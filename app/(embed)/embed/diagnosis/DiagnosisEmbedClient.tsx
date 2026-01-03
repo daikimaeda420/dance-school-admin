@@ -302,32 +302,36 @@ export default function DiagnosisEmbedClient({
                   return (
                     <div
                       key={t.id}
-                      className="rounded-xl border border-gray-200 bg-white p-3"
+                      className="rounded-3xl border border-gray-200 bg-white p-4 shadow-sm"
                     >
-                      <div className="flex items-center gap-3">
-                        {t.photoUrl ? (
-                          <div className="h-10 w-10 overflow-hidden rounded-full bg-gray-200">
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                      {/* 上段：写真 + 名前/タグ */}
+                      <div className="flex items-start gap-4">
+                        {/* 写真 */}
+                        <div className="h-24 w-24 overflow-hidden rounded-2xl bg-gray-200">
+                          {t.photoUrl ? (
+                            // eslint-disable-next-line @next/next/no-img-element
                             <img
                               src={t.photoUrl}
                               alt={t.label}
                               className="h-full w-full object-cover"
                             />
-                          </div>
-                        ) : (
-                          <div className="h-10 w-10 rounded-full bg-gray-200" />
-                        )}
+                          ) : (
+                            <div className="h-full w-full" />
+                          )}
+                        </div>
 
+                        {/* 右側：名前 + タグ */}
                         <div className="min-w-0 flex-1">
-                          <div className="text-sm font-semibold">{t.label}</div>
+                          <div className="text-xl font-extrabold tracking-tight">
+                            {t.label}
+                          </div>
 
-                          {/* ✅ charmTags */}
                           {tags.length > 0 && (
-                            <div className="mt-1 flex flex-wrap gap-1">
+                            <div className="mt-2 flex flex-wrap gap-2">
                               {tags.map((tag, idx) => (
                                 <span
                                   key={`${t.id}_tag_${idx}`}
-                                  className="inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 text-[11px] font-semibold text-blue-700"
+                                  className="inline-flex items-center rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700"
                                 >
                                   {tag}
                                 </span>
@@ -337,10 +341,18 @@ export default function DiagnosisEmbedClient({
                         </div>
                       </div>
 
-                      {/* ✅ introduction */}
+                      {/* 下段：吹き出し（紹介文） */}
                       {intro && (
-                        <div className="mt-2 whitespace-pre-wrap text-xs leading-relaxed text-gray-700">
-                          {intro}
+                        <div className="mt-4">
+                          <div className="relative rounded-2xl bg-gray-100 px-4 py-3 text-sm leading-relaxed text-gray-700">
+                            {/* しっぽ */}
+                            <div className="absolute -top-2 left-10 h-4 w-4 rotate-45 bg-gray-100" />
+                            {/* アイコンっぽい点（任意） */}
+                            <span className="mr-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-white text-[11px] text-gray-500">
+                              …
+                            </span>
+                            <span className="whitespace-pre-wrap">{intro}</span>
+                          </div>
                         </div>
                       )}
                     </div>
@@ -348,6 +360,7 @@ export default function DiagnosisEmbedClient({
                 })}
               </div>
             ) : (
+              // 既存 teacher fallback のままでOK
               <div className="mt-2 flex items-center gap-3">
                 {result.teacher.photoUrl && (
                   <div className="h-12 w-12 overflow-hidden rounded-full bg-gray-200">
