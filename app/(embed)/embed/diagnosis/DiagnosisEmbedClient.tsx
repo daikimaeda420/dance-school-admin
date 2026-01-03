@@ -11,13 +11,16 @@ import {
 
 type AnswersState = Partial<Record<DiagnosisQuestionId, string>>;
 
-// ✅ 追加：講師（診断機能の DiagnosisInstructor を表示する用）
+// ✅ 講師（DiagnosisInstructor を表示する用）
 type DiagnosisInstructorVM = {
   id: string;
   label: string;
   slug: string;
-  // API 側で URL を返す設計にするなら使える（現状は未使用でもOK）
   photoUrl?: string | null;
+
+  // ✅ 追加：講師の魅力タグ/紹介文
+  charmTags?: string | null;
+  introduction?: string | null;
 };
 
 type DiagnosisResult = {
@@ -33,7 +36,6 @@ type DiagnosisResult = {
     targets: string[];
   };
 
-  // 既存（運用モデル側のteacher）：残しつつ fallback に使う
   teacher: {
     id?: string;
     name?: string;
@@ -41,8 +43,6 @@ type DiagnosisResult = {
     styles: string[];
   };
 
-  // ✅ 追加：講師管理（DiagnosisInstructor）で紐づけた講師一覧
-  // /api/diagnosis/result のレスポンスに instructors を載せれば、ここで表示される
   instructors?: DiagnosisInstructorVM[];
 
   breakdown: {
@@ -84,12 +84,24 @@ type Props = {
   schoolIdProp?: string;
   onClose?: () => void;
 
-  // 管理画面/APIから渡される「選択肢一覧」
   campusOptions?: DiagnosisQuestionOption[];
   courseOptions?: DiagnosisQuestionOption[];
   genreOptions?: DiagnosisQuestionOption[];
   instructorOptions?: DiagnosisQuestionOption[];
 };
+
+// ✅ charmTags を柔軟に分割（"K-POP, HIPHOP" / "K-POP / HIPHOP" / 改行 などOK）
+function splitCharmTags(input?: string | null): string[] {
+  const s = String(input ?? "").trim();
+  if (!s) return [];
+
+  // よくある区切り: カンマ、読点、スラッシュ、縦棒、改行
+  return s
+    .split(/[,、\/|]\s*|\n+/g)
+    .map((x) => x.trim())
+    .filter(Boolean)
+    .slice(0, 12); // 出しすぎ防止
+}
 
 export default function DiagnosisEmbedClient({
   schoolIdProp,
@@ -107,16 +119,13 @@ export default function DiagnosisEmbedClient({
   const [result, setResult] = useState<DiagnosisResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // ✅ schoolId / school どっちでも受ける（ここ重要）
+  // ✅ schoolId / school どっちでも受ける
   const schoolId = useMemo(() => {
     if (schoolIdProp) return schoolIdProp;
     return searchParams.get("schoolId") ?? searchParams.get("school") ?? "";
   }, [schoolIdProp, searchParams]);
 
-  // ✅ 仕様書通りの差し替え方針
-  // - Q1 校舎：管理画面連動（campusOptions）
-  // - Q2〜Q6：固定（config.ts）
-  //   ※ courseOptions / genreOptions / instructorOptions は使わない
+  // ✅ Q1のみ管理画面連動、Q2〜Q6は固定
   const questions = useMemo(() => {
     const hasCampus = (campusOptions?.length ?? 0) > 0;
     if (!hasCampus) return QUESTIONS;
@@ -125,7 +134,7 @@ export default function DiagnosisEmbedClient({
       if (q.id === "Q1" && campusOptions && campusOptions.length > 0) {
         return { ...q, options: campusOptions };
       }
-      return q; // ✅ Q2〜Q6 は固定のまま
+      return q;
     });
   }, [campusOptions]);
 
@@ -139,7 +148,7 @@ export default function DiagnosisEmbedClient({
   const canGoNext = !!currentAnswer || !!result;
 
   // -----------------------
-  // 診断実行（answersを引数で受け取れるように）
+  // 診断実行
   // -----------------------
   const handleSubmit = async (answersOverride?: AnswersState) => {
     const finalAnswers = answersOverride ?? answers;
@@ -151,7 +160,6 @@ export default function DiagnosisEmbedClient({
       return;
     }
 
-    // Q1〜Q6 が埋まっているかチェック
     const missing: string[] = [];
     (["Q1", "Q2", "Q3", "Q4", "Q5", "Q6"] as DiagnosisQuestionId[]).forEach(
       (id) => {
@@ -193,7 +201,7 @@ export default function DiagnosisEmbedClient({
   };
 
   // -----------------------
-  // 質問を選択したとき（自動で次へ / 最後なら自動診断）
+  // 選択 → 自動で次へ / 最後なら自動診断
   // -----------------------
   const handleSelectOption = (qId: DiagnosisQuestionId, optionId: string) => {
     if (!currentQuestion) return;
@@ -239,7 +247,6 @@ export default function DiagnosisEmbedClient({
   // 診断結果画面
   // ==========================
   if (result) {
-    // ✅ 表示する講師（instructors があればそれ優先）
     const instructors = result.instructors ?? [];
     const hasInstructors = instructors.length > 0;
 
@@ -282,30 +289,63 @@ export default function DiagnosisEmbedClient({
             {result.bestMatch.className ?? "おすすめクラス"}
           </div>
 
-          {/* ✅ 担当講師：instructors があれば一覧、無ければ従来 teacher を表示 */}
+          {/* ✅ 担当講師 */}
           <div className="mt-3">
             <div className="text-xs font-semibold text-gray-500">担当講師</div>
 
             {hasInstructors ? (
-              <div className="mt-2 space-y-2">
-                {instructors.map((t) => (
-                  <div key={t.id} className="flex items-center gap-3">
-                    {t.photoUrl ? (
-                      <div className="h-10 w-10 overflow-hidden rounded-full bg-gray-200">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src={t.photoUrl}
-                          alt={t.label}
-                          className="h-full w-full object-cover"
-                        />
-                      </div>
-                    ) : (
-                      <div className="h-10 w-10 rounded-full bg-gray-200" />
-                    )}
+              <div className="mt-2 space-y-3">
+                {instructors.map((t) => {
+                  const tags = splitCharmTags(t.charmTags);
+                  const intro = String(t.introduction ?? "").trim();
 
-                    <div className="text-sm font-semibold">{t.label}</div>
-                  </div>
-                ))}
+                  return (
+                    <div
+                      key={t.id}
+                      className="rounded-xl border border-gray-200 bg-white p-3"
+                    >
+                      <div className="flex items-center gap-3">
+                        {t.photoUrl ? (
+                          <div className="h-10 w-10 overflow-hidden rounded-full bg-gray-200">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={t.photoUrl}
+                              alt={t.label}
+                              className="h-full w-full object-cover"
+                            />
+                          </div>
+                        ) : (
+                          <div className="h-10 w-10 rounded-full bg-gray-200" />
+                        )}
+
+                        <div className="min-w-0 flex-1">
+                          <div className="text-sm font-semibold">{t.label}</div>
+
+                          {/* ✅ charmTags */}
+                          {tags.length > 0 && (
+                            <div className="mt-1 flex flex-wrap gap-1">
+                              {tags.map((tag, idx) => (
+                                <span
+                                  key={`${t.id}_tag_${idx}`}
+                                  className="inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 text-[11px] font-semibold text-blue-700"
+                                >
+                                  {tag}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* ✅ introduction */}
+                      {intro && (
+                        <div className="mt-2 whitespace-pre-wrap text-xs leading-relaxed text-gray-700">
+                          {intro}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             ) : (
               <div className="mt-2 flex items-center gap-3">
@@ -325,8 +365,7 @@ export default function DiagnosisEmbedClient({
                   </div>
                   {result.teacher.styles?.length > 0 && (
                     <div className="mt-1 text-xs text-gray-500">
-                      スタイル：
-                      {result.teacher.styles.join(" / ")}
+                      スタイル：{result.teacher.styles.join(" / ")}
                     </div>
                   )}
                 </div>
@@ -335,7 +374,7 @@ export default function DiagnosisEmbedClient({
           </div>
         </div>
 
-        {/* ✅ 校舎情報（campus / selectedCampus どちらでも表示） */}
+        {/* ✅ 校舎情報 */}
         {(() => {
           const c = result.campus ?? result.selectedCampus;
           if (!c) return null;
@@ -381,7 +420,7 @@ export default function DiagnosisEmbedClient({
           );
         })()}
 
-        {/* マッチング分析エリア */}
+        {/* マッチング分析 */}
         <div className="mb-4">
           <div className="mb-2 text-xs font-semibold text-gray-500">
             マッチング分析
@@ -417,7 +456,7 @@ export default function DiagnosisEmbedClient({
           <div>{result.concernMessage}</div>
         </div>
 
-        {/* CTAエリア */}
+        {/* CTA */}
         <div className="mt-2 flex flex-col gap-2">
           <a
             href={
