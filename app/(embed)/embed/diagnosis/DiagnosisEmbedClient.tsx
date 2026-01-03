@@ -78,6 +78,14 @@ type DiagnosisResult = {
     access?: string | null;
     googleMapUrl?: string | null;
   };
+
+  // ✅ 追加：Q4（answerTag）から引いたジャンル（管理画面の紐づけ結果）
+  selectedGenre?: {
+    id: string;
+    label: string;
+    slug: string;
+    answerTag?: string;
+  } | null;
 };
 
 type Props = {
@@ -288,6 +296,38 @@ export default function DiagnosisEmbedClient({
           <div className="mt-1 text-lg font-bold">
             {result.bestMatch.className ?? "おすすめクラス"}
           </div>
+
+          {/* ✅ ジャンル表示（ジャンル管理で紐づけた回答を表示） */}
+          {(() => {
+            const labelFromSelected = result.selectedGenre?.label?.trim();
+            const labelsFromBestMatch = (result.bestMatch.genres ?? []).filter(
+              Boolean
+            );
+
+            const labels = labelFromSelected
+              ? [labelFromSelected]
+              : labelsFromBestMatch;
+
+            if (labels.length === 0) return null;
+
+            return (
+              <div className="mt-2">
+                <div className="text-[11px] font-semibold text-gray-500">
+                  あなたの好みに近いジャンル
+                </div>
+                <div className="mt-1 flex flex-wrap gap-2">
+                  {labels.map((g, idx) => (
+                    <span
+                      key={`genre_${idx}_${g}`}
+                      className="inline-flex items-center rounded-full border border-gray-200 bg-white px-3 py-1 text-xs font-semibold text-gray-700 shadow-sm"
+                    >
+                      {g}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
 
           {/* ✅ 担当講師 */}
           <div className="mt-3">

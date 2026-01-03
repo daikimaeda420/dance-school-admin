@@ -22,27 +22,15 @@ function getConcernKey(answers: Record<string, string>): ConcernMessageKey {
   return key as ConcernMessageKey;
 }
 
+/**
+ * Q4 の選択肢から Genre の answerTag を取り出す
+ * 例: Genre_KPOP / Genre_HIPHOP ...
+ */
 function getGenreTagFromAnswers(answers: Record<string, string>): string {
   const q4 = QUESTIONS.find((q) => q.id === "Q4");
   const optionId = answers["Q4"];
   const opt = q4?.options.find((o) => o.id === optionId);
-  return opt?.tag ?? "Genre_All";
-}
-
-function mapGenreTagToGenreSlug(tag: string): string | null {
-  switch (tag) {
-    case "Genre_KPOP":
-      return "kpop";
-    case "Genre_HIPHOP":
-      return "hiphop";
-    case "Genre_JAZZ":
-      return "jazz";
-    case "Genre_ThemePark":
-      return "themepark";
-    case "Genre_All":
-    default:
-      return null;
-  }
+  return (opt as any)?.tag ?? "Genre_All";
 }
 
 function norm(s: unknown): string {
@@ -204,25 +192,32 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Q4: genre (optional)
+    // =========================================================
+    // ✅ 修正ポイント：Q4は「answerTag で DiagnosisGenre を引く」
+    // =========================================================
     const genreTag = getGenreTagFromAnswers(answers);
-    const genreSlug = mapGenreTagToGenreSlug(genreTag);
 
+    // Genre_All（未指定/迷っている）は紐づけなし扱い
     const genre =
-      genreSlug === null
+      !genreTag || genreTag === "Genre_All"
         ? null
         : await prisma.diagnosisGenre.findFirst({
-            where: { schoolId, slug: genreSlug, isActive: true },
-            select: { id: true, label: true, slug: true },
+            where: {
+              schoolId,
+              isActive: true,
+              answerTag: genreTag, // ← 管理画面の「answerTag」と一致させる
+            },
+            select: { id: true, label: true, slug: true, answerTag: true },
           });
 
-    if (genreSlug !== null && !genre) {
+    // tag が Genre_All 以外なのに見つからない場合は登録漏れ
+    if (genreTag !== "Genre_All" && !genre) {
       return NextResponse.json(
         {
           error: "NO_GENRE",
           message:
-            "選択したジャンルが見つかりません（管理画面の登録/有効化を確認してください）。",
-          debug: { genreTag, genreSlug },
+            "選択したジャンルが見つかりません（ジャンル管理の answerTag 紐づけ / 有効化を確認してください）。",
+          debug: { genreTag },
         },
         { status: 400 }
       );
@@ -259,7 +254,7 @@ export async function POST(req: NextRequest) {
 
     const ctx = {
       campusSlug: campus.slug,
-      genreSlug: genre?.slug ?? null,
+      genreSlug: genre?.slug ?? null, // ← 条件判定は slug を使う前提のまま
       q2ForCourse,
       recommendedCourseSlug: recommendedCourse?.slug ?? null,
     };
@@ -399,7 +394,7 @@ export async function POST(req: NextRequest) {
       bestMatch: {
         classId: best.id, // 互換
         className: recommendedCourse?.label ?? best.title,
-        genres: genre ? [genre.label] : [],
+        genres: genre ? [genre.label] : [], // ← ここで表示してもOK
         levels: [],
         targets: [],
       },
@@ -453,9 +448,20 @@ export async function POST(req: NextRequest) {
         googleMapUrl: campus.googleMapUrl ?? null,
       },
 
+      // ✅ 追加：結果ページで「おすすめのクラス」下に表示する用
+      selectedGenre: genre
+        ? {
+            id: genre.id,
+            label: genre.label,
+            slug: genre.slug,
+            answerTag: genre.answerTag,
+          }
+        : null,
+
       debug: {
         ctx,
         campusId: campus.id,
+        genreTag,
         genreId: genre?.id ?? null,
         recommendedCourseId: recommendedCourse?.id ?? null,
         instructorMatchedBy,
