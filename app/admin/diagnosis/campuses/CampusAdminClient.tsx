@@ -59,6 +59,7 @@ export default function CampusAdminClient({ schoolId }: Props) {
   const [newSlug, setNewSlug] = useState("");
   const [newSortOrder, setNewSortOrder] = useState<number>(0);
   const [newIsOnline, setNewIsOnline] = useState(false);
+  const [newIsActive, setNewIsActive] = useState(true); // ✅ 追加：有効/無効
   const [newAddress, setNewAddress] = useState("");
   const [newAccess, setNewAccess] = useState("");
   const [newGoogleMapUrl, setNewGoogleMapUrl] = useState("");
@@ -68,11 +69,12 @@ export default function CampusAdminClient({ schoolId }: Props) {
   // schoolId切替時に古い fetch が勝って上書きするのを防ぐ
   const abortRef = useRef<AbortController | null>(null);
 
-  const apiBase = useMemo(
-    () =>
-      `/api/admin/diagnosis/campuses?schoolId=${encodeURIComponent(schoolId)}`,
-    [schoolId]
-  );
+  const apiBase = useMemo(() => {
+    // ✅ full=1 を付ける（無効も含めた管理画面表示。未対応でも無視されるので安全）
+    return `/api/admin/diagnosis/campuses?schoolId=${encodeURIComponent(
+      schoolId
+    )}&full=1`;
+  }, [schoolId]);
 
   const fetchCampuses = async () => {
     if (!schoolId) return;
@@ -149,7 +151,7 @@ export default function CampusAdminClient({ schoolId }: Props) {
           slug,
           sortOrder: newSortOrder,
           isOnline: newIsOnline,
-          // ✅ 追加
+          isActive: newIsActive, // ✅ 追加：作成時に有効/無効を指定
           address: address || null,
           access: access || null,
           googleMapUrl: googleMapUrl || null,
@@ -166,6 +168,7 @@ export default function CampusAdminClient({ schoolId }: Props) {
       setNewSlug("");
       setNewSortOrder(0);
       setNewIsOnline(false);
+      setNewIsActive(true); // ✅
       setNewAddress("");
       setNewAccess("");
       setNewGoogleMapUrl("");
@@ -202,7 +205,8 @@ export default function CampusAdminClient({ schoolId }: Props) {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         cache: "no-store",
-        body: JSON.stringify({ [field]: value }),
+        // ✅ backend側で schoolId を必須にしている場合に備えて必ず送る
+        body: JSON.stringify({ schoolId, [field]: value }),
       });
 
       if (!res.ok) {
@@ -233,10 +237,16 @@ export default function CampusAdminClient({ schoolId }: Props) {
     setCampuses((prev) => prev.filter((c) => c.id !== id));
 
     try {
-      const res = await fetch(`/api/admin/diagnosis/campuses/${id}`, {
-        method: "DELETE",
-        cache: "no-store",
-      });
+      // ✅ schoolId を query に付与（誤削除防止 / backend必須のケースに対応）
+      const res = await fetch(
+        `/api/admin/diagnosis/campuses/${id}?schoolId=${encodeURIComponent(
+          schoolId
+        )}`,
+        {
+          method: "DELETE",
+          cache: "no-store",
+        }
+      );
 
       if (!res.ok) {
         const data = await res.json().catch(() => null);
@@ -301,7 +311,7 @@ export default function CampusAdminClient({ schoolId }: Props) {
             />
           </div>
 
-          <div className="flex flex-col justify-center gap-1">
+          <div className="flex flex-col justify-center gap-2">
             <label className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-200">
               <input
                 type="checkbox"
@@ -311,6 +321,18 @@ export default function CampusAdminClient({ schoolId }: Props) {
                 className="rounded border-gray-300 dark:border-gray-700"
               />
               オンライン校舎（【オンライン】自宅で受講）
+            </label>
+
+            {/* ✅ 追加：有効/無効 */}
+            <label className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-200">
+              <input
+                type="checkbox"
+                checked={newIsActive}
+                onChange={(e) => setNewIsActive(e.target.checked)}
+                disabled={disabled || saving}
+                className="rounded border-gray-300 dark:border-gray-700"
+              />
+              有効にする
             </label>
           </div>
         </div>
