@@ -305,7 +305,7 @@ export default function DiagnosisEmbedClient({
             return (
               <div className="mt-2 flex flex-wrap items-center gap-2">
                 <div className="text-lg font-bold">
-                  {genreLabel}
+                  {genreLabel}&nbsp;
                   {className}
                 </div>
               </div>
