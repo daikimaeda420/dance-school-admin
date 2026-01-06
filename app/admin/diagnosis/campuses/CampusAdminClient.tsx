@@ -481,7 +481,7 @@ export default function CampusAdminClient({ schoolId }: Props) {
             登録されている校舎はありません。
           </p>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="overflow-x-scroll scrollbar-gutter-stable">
             <table className="w-full min-w-[1400px] text-left text-xs">
               <thead>
                 <tr
