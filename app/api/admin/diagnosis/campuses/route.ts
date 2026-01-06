@@ -4,13 +4,28 @@ import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
 
+export const runtime = "nodejs";
+
 async function ensureLoggedIn() {
   const session = await getServerSession(authOptions);
   if (!session?.user?.email) return null;
   return session;
 }
 
-// GET /api/admin/diagnosis/campuses?schoolId=xxx
+function norm(v: unknown): string {
+  return String(v ?? "").trim();
+}
+function toNum(v: any, fallback = 0) {
+  const n = typeof v === "number" ? v : Number(v);
+  return Number.isFinite(n) ? n : fallback;
+}
+function toBool(v: any, fallback = false) {
+  if (typeof v === "boolean") return v;
+  if (typeof v === "string") return v === "true";
+  return fallback;
+}
+
+// GET /api/admin/diagnosis/campuses?schoolId=xxx&full=1
 export async function GET(req: NextRequest) {
   const session = await ensureLoggedIn();
   if (!session) {
@@ -19,7 +34,12 @@ export async function GET(req: NextRequest) {
 
   try {
     const { searchParams } = new URL(req.url);
-    const schoolId = searchParams.get("schoolId");
+
+    // ✅ 後方互換：school / schoolId
+    const schoolId = norm(
+      searchParams.get("schoolId") ?? searchParams.get("school")
+    );
+    const full = searchParams.get("full") === "1";
 
     if (!schoolId) {
       return NextResponse.json(
@@ -29,8 +49,21 @@ export async function GET(req: NextRequest) {
     }
 
     const campuses = await prisma.diagnosisCampus.findMany({
-      where: { schoolId },
-      orderBy: { sortOrder: "asc" },
+      // ✅ full=1 のときは無効も含む / それ以外は有効のみ
+      where: full ? { schoolId } : { schoolId, isActive: true },
+      orderBy: [{ sortOrder: "asc" }, { label: "asc" }],
+      select: {
+        id: true,
+        schoolId: true,
+        label: true,
+        slug: true,
+        sortOrder: true,
+        isOnline: true,
+        isActive: true,
+        address: true,
+        access: true,
+        googleMapUrl: true,
+      },
     });
 
     return NextResponse.json(campuses);
@@ -53,24 +86,9 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json().catch(() => null);
 
-    if (
-      !body ||
-      !body.schoolId ||
-      !body.label ||
-      !body.slug ||
-      typeof body.schoolId !== "string" ||
-      typeof body.label !== "string" ||
-      typeof body.slug !== "string"
-    ) {
-      return NextResponse.json(
-        { message: "schoolId / label / slug は必須です" },
-        { status: 400 }
-      );
-    }
-
-    const schoolId = body.schoolId.trim();
-    const label = body.label.trim();
-    const slug = body.slug.trim();
+    const schoolId = norm(body?.schoolId ?? body?.school);
+    const label = norm(body?.label);
+    const slug = norm(body?.slug);
 
     if (!schoolId || !label || !slug) {
       return NextResponse.json(
@@ -79,13 +97,30 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const sortOrder = typeof body.sortOrder === "number" ? body.sortOrder : 0;
+    const sortOrder = toNum(body?.sortOrder, 0);
+    const isOnline = toBool(body?.isOnline, false);
+    const isActive =
+      body?.isActive === undefined ? true : toBool(body?.isActive, true);
 
     // ✅ 追加3項目（空文字は null に寄せる）
-    const address = typeof body.address === "string" ? body.address.trim() : "";
-    const access = typeof body.access === "string" ? body.access.trim() : "";
+    const address =
+      body?.address !== undefined ? norm(body.address) || null : null;
+    const access =
+      body?.access !== undefined ? norm(body.access) || null : null;
     const googleMapUrl =
-      typeof body.googleMapUrl === "string" ? body.googleMapUrl.trim() : "";
+      body?.googleMapUrl !== undefined ? norm(body.googleMapUrl) || null : null;
+
+    // ✅ slug 重複（schoolId内でユニーク運用）
+    const dup = await prisma.diagnosisCampus.findFirst({
+      where: { schoolId, slug },
+      select: { id: true },
+    });
+    if (dup) {
+      return NextResponse.json(
+        { message: "このslugは既に使われています（重複）。" },
+        { status: 409 }
+      );
+    }
 
     const campus = await prisma.diagnosisCampus.create({
       data: {
@@ -93,13 +128,23 @@ export async function POST(req: NextRequest) {
         label,
         slug,
         sortOrder,
-        isOnline: !!body.isOnline,
-        isActive: body.isActive !== false,
-
-        // ✅ 追加
-        address: address || null,
-        access: access || null,
-        googleMapUrl: googleMapUrl || null,
+        isOnline,
+        isActive,
+        address,
+        access,
+        googleMapUrl,
+      },
+      select: {
+        id: true,
+        schoolId: true,
+        label: true,
+        slug: true,
+        sortOrder: true,
+        isOnline: true,
+        isActive: true,
+        address: true,
+        access: true,
+        googleMapUrl: true,
       },
     });
 
@@ -107,11 +152,9 @@ export async function POST(req: NextRequest) {
   } catch (e: any) {
     console.error("Campus POST failed:", e);
 
-    // Prismaの代表的なエラーを分かりやすく
     const code = e?.code;
 
     if (code === "P2002") {
-      // Unique constraint failed
       return NextResponse.json(
         { message: "このslugは既に使われています（重複）。" },
         { status: 409 }
@@ -119,7 +162,6 @@ export async function POST(req: NextRequest) {
     }
 
     if (code === "P2022") {
-      // Column does not exist
       return NextResponse.json(
         {
           message:
