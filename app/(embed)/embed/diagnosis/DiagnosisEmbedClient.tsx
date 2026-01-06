@@ -304,13 +304,10 @@ export default function DiagnosisEmbedClient({
 
             return (
               <div className="mt-2 flex flex-wrap items-center gap-2">
-                {genreLabel ? (
-                  <span className="inline-flex items-center rounded-full border border-gray-200 bg-white px-3 py-1 text-xs font-semibold text-gray-700 shadow-sm">
-                    {genreLabel}
-                  </span>
-                ) : null}
-
-                <div className="text-lg font-bold">{className}</div>
+                <div className="text-lg font-bold">
+                  {genreLabel}
+                  {className}
+                </div>
               </div>
             );
           })()}
