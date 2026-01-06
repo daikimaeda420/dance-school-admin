@@ -16,21 +16,18 @@ type Campus = {
   googleMapUrl?: string | null;
 };
 
-type Props = {
-  schoolId: string;
-};
+type Props = { schoolId: string };
 
-type PatchableField = keyof Pick<
-  Campus,
-  | "label"
-  | "slug"
-  | "sortOrder"
-  | "isOnline"
-  | "isActive"
-  | "address"
-  | "access"
-  | "googleMapUrl"
->;
+type Draft = {
+  label: string;
+  slug: string;
+  sortOrder: number;
+  isOnline: boolean;
+  isActive: boolean;
+  address: string; // null -> ""
+  access: string; // null -> ""
+  googleMapUrl: string; // null -> ""
+};
 
 const inputBase =
   "rounded border px-2 py-1 text-sm text-gray-900 bg-white border-gray-300 " +
@@ -39,19 +36,48 @@ const inputBase =
   "dark:bg-gray-950 dark:text-gray-100 dark:border-gray-700 dark:placeholder:text-gray-500";
 
 const cellInputBase =
-  "w-full rounded border px-1 py-0.5 text-gray-900 bg-white border-gray-300 " +
+  "w-full rounded border px-2 py-1 text-gray-900 bg-white border-gray-300 " +
   "focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 " +
   "dark:bg-gray-950 dark:text-gray-100 dark:border-gray-700";
 
 const cellTextareaBase =
-  "w-full rounded border px-1 py-0.5 text-gray-900 bg-white border-gray-300 " +
+  "w-full rounded border px-2 py-1 text-gray-900 bg-white border-gray-300 " +
   "focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 " +
   "dark:bg-gray-950 dark:text-gray-100 dark:border-gray-700";
 
+function toDraft(c: Campus): Draft {
+  return {
+    label: c.label ?? "",
+    slug: c.slug ?? "",
+    sortOrder: Number.isFinite(c.sortOrder) ? c.sortOrder : 0,
+    isOnline: !!c.isOnline,
+    isActive: !!c.isActive,
+    address: c.address ?? "",
+    access: c.access ?? "",
+    googleMapUrl: c.googleMapUrl ?? "",
+  };
+}
+
+function isSameDraft(d: Draft, c: Campus): boolean {
+  const b = toDraft(c);
+  return (
+    d.label === b.label &&
+    d.slug === b.slug &&
+    d.sortOrder === b.sortOrder &&
+    d.isOnline === b.isOnline &&
+    d.isActive === b.isActive &&
+    d.address === b.address &&
+    d.access === b.access &&
+    d.googleMapUrl === b.googleMapUrl
+  );
+}
+
 export default function CampusAdminClient({ schoolId }: Props) {
   const [campuses, setCampuses] = useState<Campus[]>([]);
+  const [drafts, setDrafts] = useState<Record<string, Draft>>({});
   const [loading, setLoading] = useState(false);
-  const [saving, setSaving] = useState(false);
+  const [savingId, setSavingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   // 新規追加用フォーム
@@ -59,18 +85,16 @@ export default function CampusAdminClient({ schoolId }: Props) {
   const [newSlug, setNewSlug] = useState("");
   const [newSortOrder, setNewSortOrder] = useState<number>(0);
   const [newIsOnline, setNewIsOnline] = useState(false);
-  const [newIsActive, setNewIsActive] = useState(true); // ✅ 追加：有効/無効
+  const [newIsActive, setNewIsActive] = useState(true);
   const [newAddress, setNewAddress] = useState("");
   const [newAccess, setNewAccess] = useState("");
   const [newGoogleMapUrl, setNewGoogleMapUrl] = useState("");
 
   const disabled = !schoolId;
 
-  // schoolId切替時に古い fetch が勝って上書きするのを防ぐ
   const abortRef = useRef<AbortController | null>(null);
 
   const apiBase = useMemo(() => {
-    // ✅ full=1 を付ける（無効も含めた管理画面表示。未対応でも無視されるので安全）
     return `/api/admin/diagnosis/campuses?schoolId=${encodeURIComponent(
       schoolId
     )}&full=1`;
@@ -100,6 +124,16 @@ export default function CampusAdminClient({ schoolId }: Props) {
 
       const data = (await res.json()) as Campus[];
       setCampuses(data);
+
+      // drafts 同期（未作成のものだけ補完、削除されたものは消す）
+      setDrafts((prev) => {
+        const next: Record<string, Draft> = { ...prev };
+        for (const c of data) if (!next[c.id]) next[c.id] = toDraft(c);
+        for (const id of Object.keys(next)) {
+          if (!data.find((x) => x.id === id)) delete next[id];
+        }
+        return next;
+      });
     } catch (e: any) {
       if (e?.name === "AbortError") return;
       console.error(e);
@@ -112,14 +146,14 @@ export default function CampusAdminClient({ schoolId }: Props) {
   useEffect(() => {
     if (!schoolId) {
       setCampuses([]);
+      setDrafts({});
       setError(null);
       return;
     }
-    fetchCampuses();
 
-    return () => {
-      abortRef.current?.abort();
-    };
+    void fetchCampuses();
+
+    return () => abortRef.current?.abort();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [schoolId]);
 
@@ -137,7 +171,7 @@ export default function CampusAdminClient({ schoolId }: Props) {
       return;
     }
 
-    setSaving(true);
+    setSavingId("__create__");
     setError(null);
 
     try {
@@ -151,7 +185,7 @@ export default function CampusAdminClient({ schoolId }: Props) {
           slug,
           sortOrder: newSortOrder,
           isOnline: newIsOnline,
-          isActive: newIsActive, // ✅ 追加：作成時に有効/無効を指定
+          isActive: newIsActive,
           address: address || null,
           access: access || null,
           googleMapUrl: googleMapUrl || null,
@@ -168,7 +202,7 @@ export default function CampusAdminClient({ schoolId }: Props) {
       setNewSlug("");
       setNewSortOrder(0);
       setNewIsOnline(false);
-      setNewIsActive(true); // ✅
+      setNewIsActive(true);
       setNewAddress("");
       setNewAccess("");
       setNewGoogleMapUrl("");
@@ -178,26 +212,45 @@ export default function CampusAdminClient({ schoolId }: Props) {
       console.error(e);
       setError("通信エラーが発生しました。");
     } finally {
-      setSaving(false);
+      setSavingId(null);
     }
   };
 
-  const handleUpdateField = async (
-    id: string,
-    field: PatchableField,
-    value: string | number | boolean | null
-  ) => {
-    if (saving) return;
+  const setDraft = (id: string, patch: Partial<Draft>) => {
+    setDrafts((prev) => ({
+      ...prev,
+      [id]: {
+        ...(prev[id] ?? toDraft(campuses.find((c) => c.id === id) as any)),
+        ...patch,
+      },
+    }));
+  };
 
-    const current = campuses.find((c) => c.id === id);
-    if (current && (current as any)[field] === value) return;
+  const handleCancel = (id: string) => {
+    const c = campuses.find((x) => x.id === id);
+    if (!c) return;
+    setDrafts((prev) => ({ ...prev, [id]: toDraft(c) }));
+    setError(null);
+  };
 
-    // optimistic update
-    setCampuses((prev) =>
-      prev.map((c) => (c.id === id ? ({ ...c, [field]: value } as Campus) : c))
-    );
+  const handleSave = async (id: string) => {
+    if (savingId || deletingId) return;
 
-    setSaving(true);
+    const c = campuses.find((x) => x.id === id);
+    const d = drafts[id];
+    if (!c || !d) return;
+
+    if (isSameDraft(d, c)) return;
+
+    // バリデーション（最低限）
+    const nextLabel = d.label.trim();
+    const nextSlug = d.slug.trim();
+    if (!nextLabel || !nextSlug) {
+      setError("校舎名（label）とslugは空にできません。");
+      return;
+    }
+
+    setSavingId(id);
     setError(null);
 
     try {
@@ -205,14 +258,22 @@ export default function CampusAdminClient({ schoolId }: Props) {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         cache: "no-store",
-        // ✅ backend側で schoolId を必須にしている場合に備えて必ず送る
-        body: JSON.stringify({ schoolId, [field]: value }),
+        body: JSON.stringify({
+          schoolId,
+          label: nextLabel,
+          slug: nextSlug,
+          sortOrder: d.sortOrder,
+          isOnline: d.isOnline,
+          isActive: d.isActive,
+          address: d.address.trim() ? d.address.trim() : null,
+          access: d.access.trim() ? d.access.trim() : null,
+          googleMapUrl: d.googleMapUrl.trim() ? d.googleMapUrl.trim() : null,
+        }),
       });
 
       if (!res.ok) {
         const data = await res.json().catch(() => null);
         setError(data?.message ?? "更新に失敗しました。");
-        await fetchCampuses();
         return;
       }
 
@@ -220,46 +281,38 @@ export default function CampusAdminClient({ schoolId }: Props) {
     } catch (e) {
       console.error(e);
       setError("通信エラーが発生しました。");
-      await fetchCampuses();
     } finally {
-      setSaving(false);
+      setSavingId(null);
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (saving) return;
+    if (savingId || deletingId) return;
     if (!window.confirm("この校舎を削除しますか？")) return;
 
-    setSaving(true);
+    setDeletingId(id);
     setError(null);
 
-    const snapshot = campuses;
-    setCampuses((prev) => prev.filter((c) => c.id !== id));
-
     try {
-      // ✅ schoolId を query に付与（誤削除防止 / backend必須のケースに対応）
       const res = await fetch(
         `/api/admin/diagnosis/campuses/${id}?schoolId=${encodeURIComponent(
           schoolId
         )}`,
-        {
-          method: "DELETE",
-          cache: "no-store",
-        }
+        { method: "DELETE", cache: "no-store" }
       );
 
       if (!res.ok) {
         const data = await res.json().catch(() => null);
         setError(data?.message ?? "削除に失敗しました。");
-        setCampuses(snapshot);
         return;
       }
+
+      await fetchCampuses();
     } catch (e) {
       console.error(e);
       setError("通信エラーが発生しました。");
-      setCampuses(snapshot);
     } finally {
-      setSaving(false);
+      setDeletingId(null);
     }
   };
 
@@ -280,7 +333,7 @@ export default function CampusAdminClient({ schoolId }: Props) {
               className={inputBase}
               value={newLabel}
               onChange={(e) => setNewLabel(e.target.value)}
-              disabled={disabled || saving}
+              disabled={disabled || savingId === "__create__"}
               placeholder="例：渋谷校"
             />
           </div>
@@ -294,7 +347,7 @@ export default function CampusAdminClient({ schoolId }: Props) {
               value={newSlug}
               onChange={(e) => setNewSlug(e.target.value)}
               placeholder="shibuya など"
-              disabled={disabled || saving}
+              disabled={disabled || savingId === "__create__"}
             />
           </div>
 
@@ -307,7 +360,7 @@ export default function CampusAdminClient({ schoolId }: Props) {
               className={inputBase}
               value={newSortOrder}
               onChange={(e) => setNewSortOrder(Number(e.target.value) || 0)}
-              disabled={disabled || saving}
+              disabled={disabled || savingId === "__create__"}
             />
           </div>
 
@@ -317,19 +370,18 @@ export default function CampusAdminClient({ schoolId }: Props) {
                 type="checkbox"
                 checked={newIsOnline}
                 onChange={(e) => setNewIsOnline(e.target.checked)}
-                disabled={disabled || saving}
+                disabled={disabled || savingId === "__create__"}
                 className="rounded border-gray-300 dark:border-gray-700"
               />
-              オンライン校舎（【オンライン】自宅で受講）
+              オンライン校舎
             </label>
 
-            {/* ✅ 追加：有効/無効 */}
             <label className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-200">
               <input
                 type="checkbox"
                 checked={newIsActive}
                 onChange={(e) => setNewIsActive(e.target.checked)}
-                disabled={disabled || saving}
+                disabled={disabled || savingId === "__create__"}
                 className="rounded border-gray-300 dark:border-gray-700"
               />
               有効にする
@@ -337,7 +389,6 @@ export default function CampusAdminClient({ schoolId }: Props) {
           </div>
         </div>
 
-        {/* ✅ 追加フィールド */}
         <div className="mb-3 grid gap-3 md:grid-cols-3">
           <div className="flex flex-col gap-1">
             <label className="text-xs text-gray-500 dark:text-gray-400">
@@ -347,7 +398,7 @@ export default function CampusAdminClient({ schoolId }: Props) {
               className={inputBase}
               value={newAddress}
               onChange={(e) => setNewAddress(e.target.value)}
-              disabled={disabled || saving}
+              disabled={disabled || savingId === "__create__"}
               placeholder="例：東京都渋谷区〇〇1-2-3"
             />
           </div>
@@ -360,7 +411,7 @@ export default function CampusAdminClient({ schoolId }: Props) {
               className={inputBase + " min-h-[38px]"}
               value={newAccess}
               onChange={(e) => setNewAccess(e.target.value)}
-              disabled={disabled || saving}
+              disabled={disabled || savingId === "__create__"}
               placeholder="例：渋谷駅ハチ公口より徒歩5分"
             />
           </div>
@@ -373,7 +424,7 @@ export default function CampusAdminClient({ schoolId }: Props) {
               className={inputBase}
               value={newGoogleMapUrl}
               onChange={(e) => setNewGoogleMapUrl(e.target.value)}
-              disabled={disabled || saving}
+              disabled={disabled || savingId === "__create__"}
               placeholder="共有リンク（maps.app.goo.gl/...）or 埋め込みURL"
             />
           </div>
@@ -382,12 +433,12 @@ export default function CampusAdminClient({ schoolId }: Props) {
         <button
           type="button"
           onClick={handleCreate}
-          disabled={disabled || saving}
+          disabled={disabled || savingId === "__create__"}
           className="rounded-full bg-blue-600 px-4 py-1.5 text-xs font-semibold text-white
                      hover:bg-blue-700 disabled:opacity-40
                      dark:bg-blue-500 dark:hover:bg-blue-400"
         >
-          {saving ? "保存中..." : "校舎を追加"}
+          {savingId === "__create__" ? "保存中..." : "校舎を追加"}
         </button>
       </div>
 
@@ -407,7 +458,7 @@ export default function CampusAdminClient({ schoolId }: Props) {
             <button
               type="button"
               onClick={fetchCampuses}
-              disabled={disabled || loading || saving}
+              disabled={disabled || loading || !!savingId || !!deletingId}
               className="text-[11px] underline text-gray-600 hover:text-gray-800 disabled:opacity-40
                          dark:text-gray-300 dark:hover:text-gray-100"
             >
@@ -431,177 +482,200 @@ export default function CampusAdminClient({ schoolId }: Props) {
           </p>
         ) : (
           <div className="overflow-x-auto">
-            {/* ✅ 列が増えるので幅を広げる */}
-            <table className="w-full min-w-[1100px] text-left text-xs">
+            <table className="w-full min-w-[1250px] text-left text-xs">
               <thead>
                 <tr
                   className="border-b border-gray-200 bg-gray-50 text-[11px] text-gray-600
-                               dark:border-gray-800 dark:bg-gray-950 dark:text-gray-300"
+                             dark:border-gray-800 dark:bg-gray-950 dark:text-gray-300"
                 >
-                  <th className="px-2 py-1">校舎名</th>
-                  <th className="px-2 py-1">slug</th>
-                  <th className="px-2 py-1">sort</th>
-                  <th className="px-2 py-1">住所</th>
-                  <th className="px-2 py-1">アクセス</th>
-                  <th className="px-2 py-1">GoogleMap</th>
-                  <th className="px-2 py-1">オンライン</th>
-                  <th className="px-2 py-1">有効</th>
-                  <th className="px-2 py-1"></th>
+                  <th className="px-2 py-2">校舎名</th>
+                  <th className="px-2 py-2">slug</th>
+                  <th className="px-2 py-2">sort</th>
+                  <th className="px-2 py-2">住所</th>
+                  <th className="px-2 py-2">アクセス</th>
+                  <th className="px-2 py-2">GoogleMap</th>
+                  <th className="px-2 py-2">オンライン</th>
+                  <th className="px-2 py-2">有効</th>
+                  <th className="px-2 py-2 text-right">操作</th>
                 </tr>
               </thead>
 
               <tbody>
-                {campuses.map((c) => (
-                  <tr
-                    key={c.id}
-                    className="border-b border-gray-100 last:border-none hover:bg-gray-50
-                               dark:border-gray-800 dark:hover:bg-gray-800/40"
-                  >
-                    <td className="px-2 py-1">
-                      <input
-                        className={cellInputBase}
-                        defaultValue={c.label}
-                        onBlur={(e) => {
-                          const v = e.target.value.trim();
-                          if (v !== c.label)
-                            handleUpdateField(c.id, "label", v);
-                        }}
-                        disabled={saving}
-                      />
-                    </td>
+                {campuses.map((c) => {
+                  const d = drafts[c.id] ?? toDraft(c);
+                  const dirty = !isSameDraft(d, c);
+                  const rowSaving = savingId === c.id;
+                  const rowDeleting = deletingId === c.id;
+                  const busy = !!savingId || !!deletingId;
 
-                    <td className="px-2 py-1">
-                      <input
-                        className={cellInputBase}
-                        defaultValue={c.slug}
-                        onBlur={(e) => {
-                          const v = e.target.value.trim();
-                          if (v !== c.slug) handleUpdateField(c.id, "slug", v);
-                        }}
-                        disabled={saving}
-                      />
-                    </td>
+                  return (
+                    <tr
+                      key={c.id}
+                      className="border-b border-gray-100 last:border-none hover:bg-gray-50
+                                 dark:border-gray-800 dark:hover:bg-gray-800/40"
+                    >
+                      <td className="px-2 py-2">
+                        <input
+                          className={cellInputBase}
+                          value={d.label}
+                          onChange={(e) =>
+                            setDraft(c.id, { label: e.target.value })
+                          }
+                          disabled={busy}
+                        />
+                      </td>
 
-                    <td className="px-2 py-1">
-                      <input
-                        type="number"
-                        className={
-                          "w-20 " + cellInputBase.replace("w-full ", "").trim()
-                        }
-                        defaultValue={c.sortOrder}
-                        onBlur={(e) => {
-                          const v = Number(e.target.value) || 0;
-                          if (v !== c.sortOrder)
-                            handleUpdateField(c.id, "sortOrder", v);
-                        }}
-                        disabled={saving}
-                      />
-                    </td>
+                      <td className="px-2 py-2">
+                        <input
+                          className={cellInputBase}
+                          value={d.slug}
+                          onChange={(e) =>
+                            setDraft(c.id, { slug: e.target.value })
+                          }
+                          disabled={busy}
+                        />
+                      </td>
 
-                    {/* ✅ 住所 */}
-                    <td className="px-2 py-1">
-                      <input
-                        className={cellInputBase}
-                        defaultValue={c.address ?? ""}
-                        onBlur={(e) => {
-                          const v = e.target.value.trim();
-                          const next = v ? v : null;
-                          if ((c.address ?? null) !== next)
-                            handleUpdateField(c.id, "address", next);
-                        }}
-                        disabled={saving}
-                        placeholder="住所"
-                      />
-                    </td>
+                      <td className="px-2 py-2">
+                        <input
+                          type="number"
+                          className="w-24 rounded border px-2 py-1 text-gray-900 bg-white border-gray-300
+                                     focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50
+                                     dark:bg-gray-950 dark:text-gray-100 dark:border-gray-700"
+                          value={d.sortOrder}
+                          onChange={(e) =>
+                            setDraft(c.id, {
+                              sortOrder: Number(e.target.value) || 0,
+                            })
+                          }
+                          disabled={busy}
+                        />
+                      </td>
 
-                    {/* ✅ アクセス（複数行） */}
-                    <td className="px-2 py-1">
-                      <textarea
-                        className={cellTextareaBase + " min-h-[34px]"}
-                        defaultValue={c.access ?? ""}
-                        onBlur={(e) => {
-                          const v = e.target.value.trim();
-                          const next = v ? v : null;
-                          if ((c.access ?? null) !== next)
-                            handleUpdateField(c.id, "access", next);
-                        }}
-                        disabled={saving}
-                        placeholder="アクセス"
-                      />
-                    </td>
+                      <td className="px-2 py-2">
+                        <input
+                          className={cellInputBase}
+                          value={d.address}
+                          onChange={(e) =>
+                            setDraft(c.id, { address: e.target.value })
+                          }
+                          disabled={busy}
+                          placeholder="住所"
+                        />
+                      </td>
 
-                    {/* ✅ GoogleMap URL */}
-                    <td className="px-2 py-1">
-                      <input
-                        className={cellInputBase}
-                        defaultValue={c.googleMapUrl ?? ""}
-                        onBlur={(e) => {
-                          const v = e.target.value.trim();
-                          const next = v ? v : null;
-                          if ((c.googleMapUrl ?? null) !== next)
-                            handleUpdateField(c.id, "googleMapUrl", next);
-                        }}
-                        disabled={saving}
-                        placeholder="URL"
-                      />
-                      {c.googleMapUrl ? (
-                        <div className="mt-1">
-                          <a
-                            href={c.googleMapUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="text-[11px] underline text-blue-600 hover:text-blue-700
-                                       dark:text-blue-300 dark:hover:text-blue-200"
+                      <td className="px-2 py-2">
+                        <textarea
+                          className={cellTextareaBase + " min-h-[42px]"}
+                          value={d.access}
+                          onChange={(e) =>
+                            setDraft(c.id, { access: e.target.value })
+                          }
+                          disabled={busy}
+                          placeholder="アクセス"
+                        />
+                      </td>
+
+                      <td className="px-2 py-2">
+                        <input
+                          className={cellInputBase}
+                          value={d.googleMapUrl}
+                          onChange={(e) =>
+                            setDraft(c.id, { googleMapUrl: e.target.value })
+                          }
+                          disabled={busy}
+                          placeholder="URL"
+                        />
+                        {d.googleMapUrl ? (
+                          <div className="mt-1">
+                            <a
+                              href={d.googleMapUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-[11px] underline text-blue-600 hover:text-blue-700
+                                         dark:text-blue-300 dark:hover:text-blue-200"
+                            >
+                              開く
+                            </a>
+                          </div>
+                        ) : null}
+                      </td>
+
+                      <td className="px-2 py-2">
+                        <input
+                          type="checkbox"
+                          checked={d.isOnline}
+                          onChange={(e) =>
+                            setDraft(c.id, { isOnline: e.target.checked })
+                          }
+                          disabled={busy}
+                          className="rounded border-gray-300 dark:border-gray-700"
+                        />
+                      </td>
+
+                      <td className="px-2 py-2">
+                        <input
+                          type="checkbox"
+                          checked={d.isActive}
+                          onChange={(e) =>
+                            setDraft(c.id, { isActive: e.target.checked })
+                          }
+                          disabled={busy}
+                          className="rounded border-gray-300 dark:border-gray-700"
+                        />
+                      </td>
+
+                      <td className="px-2 py-2 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            type="button"
+                            onClick={() => handleSave(c.id)}
+                            disabled={!dirty || busy}
+                            className="rounded-full bg-blue-600 px-3 py-1 text-[11px] font-semibold text-white
+                                       hover:bg-blue-700 disabled:opacity-40
+                                       dark:bg-blue-500 dark:hover:bg-blue-400"
                           >
-                            開く
-                          </a>
+                            {rowSaving ? "保存中..." : "保存"}
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => handleCancel(c.id)}
+                            disabled={!dirty || busy}
+                            className="rounded-full border border-gray-300 px-3 py-1 text-[11px] font-semibold text-gray-700
+                                       hover:bg-gray-100 disabled:opacity-40
+                                       dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
+                          >
+                            戻す
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => handleDelete(c.id)}
+                            disabled={busy}
+                            className="rounded-full border border-red-300 px-3 py-1 text-[11px] font-semibold text-red-600
+                                       hover:bg-red-50 disabled:opacity-40
+                                       dark:border-red-800 dark:text-red-200 dark:hover:bg-red-950/30"
+                          >
+                            {rowDeleting ? "削除中..." : "削除"}
+                          </button>
+
+                          {dirty && (
+                            <span className="ml-1 text-[10px] text-amber-500">
+                              未保存
+                            </span>
+                          )}
                         </div>
-                      ) : null}
-                    </td>
-
-                    <td className="px-2 py-1">
-                      <input
-                        type="checkbox"
-                        checked={c.isOnline}
-                        onChange={(e) =>
-                          handleUpdateField(c.id, "isOnline", e.target.checked)
-                        }
-                        disabled={saving}
-                        className="rounded border-gray-300 dark:border-gray-700"
-                      />
-                    </td>
-
-                    <td className="px-2 py-1">
-                      <input
-                        type="checkbox"
-                        checked={c.isActive}
-                        onChange={(e) =>
-                          handleUpdateField(c.id, "isActive", e.target.checked)
-                        }
-                        disabled={saving}
-                        className="rounded border-gray-300 dark:border-gray-700"
-                      />
-                    </td>
-
-                    <td className="px-2 py-1 text-right">
-                      <button
-                        type="button"
-                        onClick={() => handleDelete(c.id)}
-                        className="text-[11px] text-red-600 underline hover:text-red-700 disabled:opacity-40
-                                   dark:text-red-300 dark:hover:text-red-200"
-                        disabled={saving}
-                      >
-                        削除
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
 
-            {saving && (
+            {(savingId || deletingId) && (
               <div className="mt-2 text-[11px] text-gray-400 dark:text-gray-500">
-                保存中...
+                処理中...
               </div>
             )}
           </div>
