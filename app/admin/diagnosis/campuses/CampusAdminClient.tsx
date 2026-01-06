@@ -482,21 +482,23 @@ export default function CampusAdminClient({ schoolId }: Props) {
           </p>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[1250px] text-left text-xs">
+            <table className="w-full min-w-[1400px] text-left text-xs">
               <thead>
                 <tr
                   className="border-b border-gray-200 bg-gray-50 text-[11px] text-gray-600
                              dark:border-gray-800 dark:bg-gray-950 dark:text-gray-300"
                 >
-                  <th className="px-2 py-2">校舎名</th>
-                  <th className="px-2 py-2">slug</th>
-                  <th className="px-2 py-2">sort</th>
-                  <th className="px-2 py-2">住所</th>
-                  <th className="px-2 py-2">アクセス</th>
-                  <th className="px-2 py-2">GoogleMap</th>
-                  <th className="px-2 py-2">オンライン</th>
-                  <th className="px-2 py-2">有効</th>
-                  <th className="px-2 py-2 text-right">操作</th>
+                  <th className="px-2 py-2 whitespace-nowrap">校舎名</th>
+                  <th className="px-2 py-2 whitespace-nowrap">slug</th>
+                  <th className="px-2 py-2 whitespace-nowrap">sort</th>
+                  <th className="px-2 py-2 whitespace-nowrap">住所</th>
+                  <th className="px-2 py-2 whitespace-nowrap">アクセス</th>
+                  <th className="px-2 py-2 whitespace-nowrap">GoogleMap</th>
+                  <th className="px-2 py-2 whitespace-nowrap">オンライン</th>
+                  <th className="px-2 py-2 whitespace-nowrap">有効</th>
+                  <th className="px-2 py-2 whitespace-nowrap text-right">
+                    操作
+                  </th>
                 </tr>
               </thead>
 
