@@ -28,20 +28,15 @@ type Draft = {
 };
 
 const inputBase =
-  "rounded border px-2 py-1 text-sm text-gray-900 bg-white border-gray-300 " +
+  "w-full rounded-md border px-2 py-1 text-xs text-gray-900 bg-white border-gray-300 " +
   "placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 " +
   "disabled:opacity-50 " +
   "dark:bg-gray-950 dark:text-gray-100 dark:border-gray-700 dark:placeholder:text-gray-500";
 
-const cellInputBase =
-  "w-full rounded border px-2 py-1 text-gray-900 bg-white border-gray-300 " +
+const textareaBase =
+  "w-full rounded-md border px-2 py-1 text-xs text-gray-900 bg-white border-gray-300 " +
   "focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 " +
-  "dark:bg-gray-950 dark:text-gray-100 dark:border-gray-700";
-
-const cellTextareaBase =
-  "w-full rounded border px-2 py-1 text-gray-900 bg-white border-gray-300 " +
-  "focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 " +
-  "dark:bg-gray-950 dark:text-gray-100 dark:border-gray-700";
+  "dark:bg-gray-950 dark:text-gray-100 dark:border-gray-700 dark:[color-scheme:dark]";
 
 function toDraft(c: Campus): Draft {
   return {
@@ -118,14 +113,19 @@ export default function CampusAdminClient({ schoolId }: Props) {
       }
 
       const data = (await res.json()) as Campus[];
-      setCampuses(data);
 
-      // drafts 同期（未作成のものだけ補完、削除されたものは消す）
+      // sortOrder順に並べる（表示安定）
+      const sorted = [...(Array.isArray(data) ? data : [])].sort(
+        (a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0)
+      );
+
+      setCampuses(sorted);
+
       setDrafts((prev) => {
         const next: Record<string, Draft> = { ...prev };
-        for (const c of data) if (!next[c.id]) next[c.id] = toDraft(c);
+        for (const c of sorted) if (!next[c.id]) next[c.id] = toDraft(c);
         for (const id of Object.keys(next)) {
-          if (!data.find((x) => x.id === id)) delete next[id];
+          if (!sorted.find((x) => x.id === id)) delete next[id];
         }
         return next;
       });
@@ -235,7 +235,6 @@ export default function CampusAdminClient({ schoolId }: Props) {
 
     if (isSameDraft(d, c)) return;
 
-    // バリデーション（最低限）
     const nextLabel = d.label.trim();
     const nextSlug = d.slug.trim();
     if (!nextLabel || !nextSlug) {
@@ -309,16 +308,16 @@ export default function CampusAdminClient({ schoolId }: Props) {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* 新規追加フォーム */}
-      <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-        <h2 className="mb-3 text-sm font-semibold text-gray-900 dark:text-gray-100">
+      <div className="rounded-xl border border-gray-200 bg-white p-3 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+        <h2 className="mb-2 text-sm font-semibold text-gray-900 dark:text-gray-100">
           新しい校舎を追加
         </h2>
 
-        <div className="mb-3 grid gap-3 md:grid-cols-4">
-          <div className="flex flex-col gap-1">
-            <label className="text-xs text-gray-500 dark:text-gray-400">
+        <div className="grid gap-2 md:grid-cols-12">
+          <div className="md:col-span-4">
+            <label className="mb-1 block text-xs text-gray-500 dark:text-gray-400">
               校舎名（label）
             </label>
             <input
@@ -330,8 +329,8 @@ export default function CampusAdminClient({ schoolId }: Props) {
             />
           </div>
 
-          <div className="flex flex-col gap-1">
-            <label className="text-xs text-gray-500 dark:text-gray-400">
+          <div className="md:col-span-3">
+            <label className="mb-1 block text-xs text-gray-500 dark:text-gray-400">
               スラッグ（slug）※Q1のID
             </label>
             <input
@@ -343,8 +342,8 @@ export default function CampusAdminClient({ schoolId }: Props) {
             />
           </div>
 
-          <div className="flex flex-col gap-1">
-            <label className="text-xs text-gray-500 dark:text-gray-400">
+          <div className="md:col-span-2">
+            <label className="mb-1 block text-xs text-gray-500 dark:text-gray-400">
               表示順（sortOrder）
             </label>
             <input
@@ -356,7 +355,7 @@ export default function CampusAdminClient({ schoolId }: Props) {
             />
           </div>
 
-          <div className="flex flex-col justify-center gap-2">
+          <div className="md:col-span-3 flex items-end gap-2">
             <label className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-200">
               <input
                 type="checkbox"
@@ -367,12 +366,21 @@ export default function CampusAdminClient({ schoolId }: Props) {
               />
               有効にする
             </label>
-          </div>
-        </div>
 
-        <div className="mb-3 grid gap-3 md:grid-cols-3">
-          <div className="flex flex-col gap-1">
-            <label className="text-xs text-gray-500 dark:text-gray-400">
+            <button
+              type="button"
+              onClick={handleCreate}
+              disabled={disabled || savingId === "__create__"}
+              className="ml-auto rounded-full bg-blue-600 px-4 py-1.5 text-xs font-semibold text-white
+                         hover:bg-blue-700 disabled:opacity-40
+                         dark:bg-blue-500 dark:hover:bg-blue-400"
+            >
+              {savingId === "__create__" ? "保存中..." : "追加"}
+            </button>
+          </div>
+
+          <div className="md:col-span-4">
+            <label className="mb-1 block text-xs text-gray-500 dark:text-gray-400">
               住所
             </label>
             <input
@@ -384,12 +392,12 @@ export default function CampusAdminClient({ schoolId }: Props) {
             />
           </div>
 
-          <div className="flex flex-col gap-1 md:col-span-2">
-            <label className="text-xs text-gray-500 dark:text-gray-400">
+          <div className="md:col-span-5">
+            <label className="mb-1 block text-xs text-gray-500 dark:text-gray-400">
               アクセス
             </label>
             <textarea
-              className={inputBase + " min-h-[38px]"}
+              className={textareaBase + " min-h-[40px]"}
               value={newAccess}
               onChange={(e) => setNewAccess(e.target.value)}
               disabled={disabled || savingId === "__create__"}
@@ -397,8 +405,8 @@ export default function CampusAdminClient({ schoolId }: Props) {
             />
           </div>
 
-          <div className="flex flex-col gap-1 md:col-span-3">
-            <label className="text-xs text-gray-500 dark:text-gray-400">
+          <div className="md:col-span-3">
+            <label className="mb-1 block text-xs text-gray-500 dark:text-gray-400">
               Google Map URL
             </label>
             <input
@@ -406,26 +414,15 @@ export default function CampusAdminClient({ schoolId }: Props) {
               value={newGoogleMapUrl}
               onChange={(e) => setNewGoogleMapUrl(e.target.value)}
               disabled={disabled || savingId === "__create__"}
-              placeholder="共有リンク（maps.app.goo.gl/...）or 埋め込みURL"
+              placeholder="maps.app.goo.gl/..."
             />
           </div>
         </div>
-
-        <button
-          type="button"
-          onClick={handleCreate}
-          disabled={disabled || savingId === "__create__"}
-          className="rounded-full bg-blue-600 px-4 py-1.5 text-xs font-semibold text-white
-                     hover:bg-blue-700 disabled:opacity-40
-                     dark:bg-blue-500 dark:hover:bg-blue-400"
-        >
-          {savingId === "__create__" ? "保存中..." : "校舎を追加"}
-        </button>
       </div>
 
       {/* 一覧 */}
-      <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-        <div className="mb-3 flex items-center justify-between">
+      <div className="rounded-xl border border-gray-200 bg-white p-3 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+        <div className="mb-2 flex items-center justify-between">
           <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
             校舎一覧
           </h2>
@@ -449,10 +446,7 @@ export default function CampusAdminClient({ schoolId }: Props) {
         </div>
 
         {error && (
-          <div
-            className="mb-3 rounded-md border border-red-200 bg-red-50 px-2 py-1 text-xs text-red-700
-                          dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-200"
-          >
+          <div className="mb-2 rounded-md border border-red-200 bg-red-50 px-2 py-1 text-xs text-red-700 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-200">
             {error}
           </div>
         )}
@@ -462,128 +456,81 @@ export default function CampusAdminClient({ schoolId }: Props) {
             登録されている校舎はありません。
           </p>
         ) : (
-          <div className="overflow-x-scroll scrollbar-gutter-stable">
-            <table className="w-full min-w-[1400px] text-left text-xs">
-              <thead>
-                <tr
-                  className="border-b border-gray-200 bg-gray-50 text-[11px] text-gray-600
-                             dark:border-gray-800 dark:bg-gray-950 dark:text-gray-300"
+          <div className="space-y-2">
+            {campuses.map((c) => {
+              const d = drafts[c.id] ?? toDraft(c);
+              const dirty = !isSameDraft(d, c);
+              const rowSaving = savingId === c.id;
+              const rowDeleting = deletingId === c.id;
+              const busy = !!savingId || !!deletingId;
+
+              return (
+                <div
+                  key={c.id}
+                  className="rounded-lg border border-gray-200 bg-white p-2 shadow-sm dark:border-gray-800 dark:bg-gray-950"
                 >
-                  <th className="px-2 py-2 whitespace-nowrap">校舎名</th>
-                  <th className="px-2 py-2 whitespace-nowrap">slug</th>
-                  <th className="px-2 py-2 whitespace-nowrap">sort</th>
-                  <th className="px-2 py-2 whitespace-nowrap">住所</th>
-                  <th className="px-2 py-2 whitespace-nowrap">アクセス</th>
-                  <th className="px-2 py-2 whitespace-nowrap">GoogleMap</th>
-                  <th className="px-2 py-2 whitespace-nowrap">有効</th>
-                  <th className="px-2 py-2 whitespace-nowrap text-right">
-                    操作
-                  </th>
-                </tr>
-              </thead>
+                  <div className="grid gap-2 md:grid-cols-12">
+                    <div className="md:col-span-3">
+                      <div className="mb-1 text-[11px] font-semibold text-gray-600 dark:text-gray-300">
+                        校舎名
+                      </div>
+                      <input
+                        className={inputBase}
+                        value={d.label}
+                        onChange={(e) =>
+                          setDraft(c.id, { label: e.target.value })
+                        }
+                        disabled={busy}
+                      />
+                    </div>
 
-              <tbody>
-                {campuses.map((c) => {
-                  const d = drafts[c.id] ?? toDraft(c);
-                  const dirty = !isSameDraft(d, c);
-                  const rowSaving = savingId === c.id;
-                  const rowDeleting = deletingId === c.id;
-                  const busy = !!savingId || !!deletingId;
+                    <div className="md:col-span-2">
+                      <div className="mb-1 text-[11px] font-semibold text-gray-600 dark:text-gray-300">
+                        slug
+                      </div>
+                      <input
+                        className={inputBase}
+                        value={d.slug}
+                        onChange={(e) =>
+                          setDraft(c.id, { slug: e.target.value })
+                        }
+                        disabled={busy}
+                      />
+                    </div>
 
-                  return (
-                    <tr
-                      key={c.id}
-                      className="border-b border-gray-100 last:border-none hover:bg-gray-50
-                                 dark:border-gray-800 dark:hover:bg-gray-800/40"
-                    >
-                      <td className="px-2 py-2">
-                        <input
-                          className={cellInputBase}
-                          value={d.label}
-                          onChange={(e) =>
-                            setDraft(c.id, { label: e.target.value })
-                          }
-                          disabled={busy}
-                        />
-                      </td>
+                    <div className="md:col-span-2">
+                      <div className="mb-1 text-[11px] font-semibold text-gray-600 dark:text-gray-300">
+                        sortOrder
+                      </div>
+                      <input
+                        type="number"
+                        className={inputBase}
+                        value={d.sortOrder}
+                        onChange={(e) =>
+                          setDraft(c.id, {
+                            sortOrder: Number(e.target.value) || 0,
+                          })
+                        }
+                        disabled={busy}
+                      />
+                    </div>
 
-                      <td className="px-2 py-2">
-                        <input
-                          className={cellInputBase}
-                          value={d.slug}
-                          onChange={(e) =>
-                            setDraft(c.id, { slug: e.target.value })
-                          }
-                          disabled={busy}
-                        />
-                      </td>
+                    <div className="md:col-span-3">
+                      <div className="mb-1 text-[11px] font-semibold text-gray-600 dark:text-gray-300">
+                        住所
+                      </div>
+                      <input
+                        className={inputBase}
+                        value={d.address}
+                        onChange={(e) =>
+                          setDraft(c.id, { address: e.target.value })
+                        }
+                        disabled={busy}
+                      />
+                    </div>
 
-                      <td className="px-2 py-2">
-                        <input
-                          type="number"
-                          className="w-24 rounded border px-2 py-1 text-gray-900 bg-white border-gray-300
-                                     focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50
-                                     dark:bg-gray-950 dark:text-gray-100 dark:border-gray-700"
-                          value={d.sortOrder}
-                          onChange={(e) =>
-                            setDraft(c.id, {
-                              sortOrder: Number(e.target.value) || 0,
-                            })
-                          }
-                          disabled={busy}
-                        />
-                      </td>
-
-                      <td className="px-2 py-2">
-                        <input
-                          className={cellInputBase}
-                          value={d.address}
-                          onChange={(e) =>
-                            setDraft(c.id, { address: e.target.value })
-                          }
-                          disabled={busy}
-                          placeholder="住所"
-                        />
-                      </td>
-
-                      <td className="px-2 py-2">
-                        <textarea
-                          className={cellTextareaBase + " min-h-[42px]"}
-                          value={d.access}
-                          onChange={(e) =>
-                            setDraft(c.id, { access: e.target.value })
-                          }
-                          disabled={busy}
-                          placeholder="アクセス"
-                        />
-                      </td>
-
-                      <td className="px-2 py-2">
-                        <input
-                          className={cellInputBase}
-                          value={d.googleMapUrl}
-                          onChange={(e) =>
-                            setDraft(c.id, { googleMapUrl: e.target.value })
-                          }
-                          disabled={busy}
-                          placeholder="URL"
-                        />
-                        {d.googleMapUrl ? (
-                          <div className="mt-1">
-                            <a
-                              href={d.googleMapUrl}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="text-[11px] underline text-blue-600 hover:text-blue-700
-                                         dark:text-blue-300 dark:hover:text-blue-200"
-                            >
-                              開く
-                            </a>
-                          </div>
-                        ) : null}
-                      </td>
-
-                      <td className="px-2 py-2">
+                    <div className="md:col-span-2 flex items-end justify-between gap-2">
+                      <label className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-200">
                         <input
                           type="checkbox"
                           checked={d.isActive}
@@ -593,61 +540,101 @@ export default function CampusAdminClient({ schoolId }: Props) {
                           disabled={busy}
                           className="rounded border-gray-300 dark:border-gray-700"
                         />
-                      </td>
+                        有効
+                      </label>
 
-                      <td className="px-2 py-2 text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <button
-                            type="button"
-                            onClick={() => handleSave(c.id)}
-                            disabled={!dirty || busy}
-                            className="rounded-full bg-blue-600 px-3 py-1 text-[11px] font-semibold text-white
-                                       hover:bg-blue-700 disabled:opacity-40
-                                       dark:bg-blue-500 dark:hover:bg-blue-400"
+                      {dirty && (
+                        <span className="text-[10px] text-amber-500">
+                          未保存
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="md:col-span-7">
+                      <div className="mb-1 text-[11px] font-semibold text-gray-600 dark:text-gray-300">
+                        アクセス
+                      </div>
+                      <textarea
+                        className={textareaBase + " min-h-[56px]"}
+                        value={d.access}
+                        onChange={(e) =>
+                          setDraft(c.id, { access: e.target.value })
+                        }
+                        disabled={busy}
+                      />
+                    </div>
+
+                    <div className="md:col-span-5">
+                      <div className="mb-1 flex items-center justify-between">
+                        <span className="text-[11px] font-semibold text-gray-600 dark:text-gray-300">
+                          Google Map URL
+                        </span>
+                        {d.googleMapUrl ? (
+                          <a
+                            href={d.googleMapUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-[11px] underline text-blue-600 hover:text-blue-700 dark:text-blue-300 dark:hover:text-blue-200"
                           >
-                            {rowSaving ? "保存中..." : "保存"}
-                          </button>
+                            開く
+                          </a>
+                        ) : null}
+                      </div>
+                      <input
+                        className={inputBase}
+                        value={d.googleMapUrl}
+                        onChange={(e) =>
+                          setDraft(c.id, { googleMapUrl: e.target.value })
+                        }
+                        disabled={busy}
+                        placeholder="URL"
+                      />
+                    </div>
 
-                          <button
-                            type="button"
-                            onClick={() => handleCancel(c.id)}
-                            disabled={!dirty || busy}
-                            className="rounded-full border border-gray-300 px-3 py-1 text-[11px] font-semibold text-gray-700
-                                       hover:bg-gray-100 disabled:opacity-40
-                                       dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
-                          >
-                            戻す
-                          </button>
+                    <div className="md:col-span-12 flex items-center justify-end gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleSave(c.id)}
+                        disabled={!dirty || busy}
+                        className="rounded-full bg-blue-600 px-3 py-1 text-[11px] font-semibold text-white
+                                   hover:bg-blue-700 disabled:opacity-40
+                                   dark:bg-blue-500 dark:hover:bg-blue-400"
+                      >
+                        {rowSaving ? "保存中..." : "保存"}
+                      </button>
 
-                          <button
-                            type="button"
-                            onClick={() => handleDelete(c.id)}
-                            disabled={busy}
-                            className="rounded-full border border-red-300 px-3 py-1 text-[11px] font-semibold text-red-600
-                                       hover:bg-red-50 disabled:opacity-40
-                                       dark:border-red-800 dark:text-red-200 dark:hover:bg-red-950/30"
-                          >
-                            {rowDeleting ? "削除中..." : "削除"}
-                          </button>
+                      <button
+                        type="button"
+                        onClick={() => handleCancel(c.id)}
+                        disabled={!dirty || busy}
+                        className="rounded-full border border-gray-300 px-3 py-1 text-[11px] font-semibold text-gray-700
+                                   hover:bg-gray-100 disabled:opacity-40
+                                   dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
+                      >
+                        戻す
+                      </button>
 
-                          {dirty && (
-                            <span className="ml-1 text-[10px] text-amber-500">
-                              未保存
-                            </span>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(c.id)}
+                        disabled={busy}
+                        className="rounded-full border border-red-300 px-3 py-1 text-[11px] font-semibold text-red-600
+                                   hover:bg-red-50 disabled:opacity-40
+                                   dark:border-red-800 dark:text-red-200 dark:hover:bg-red-950/30"
+                      >
+                        {rowDeleting ? "削除中..." : "削除"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
 
-            {(savingId || deletingId) && (
-              <div className="mt-2 text-[11px] text-gray-400 dark:text-gray-500">
-                処理中...
-              </div>
-            )}
+        {(savingId || deletingId) && (
+          <div className="mt-2 text-[11px] text-gray-400 dark:text-gray-500">
+            処理中...
           </div>
         )}
       </div>
