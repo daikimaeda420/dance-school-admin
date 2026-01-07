@@ -632,7 +632,7 @@ export default function CourseAdminClient({ schoolId }: Props) {
                                 disabled={saving || savingSort || rowSaving}
                                 className="rounded-full border border-gray-300 bg-white px-3 py-1 text-[11px] font-semibold text-gray-800 hover:bg-gray-50 disabled:opacity-40 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100 dark:hover:bg-gray-900"
                               >
-                                {rowSaving ? "Q2保存中..." : "Q2保存"}
+                                {rowSaving ? "保存中..." : "保存"}
                               </button>
 
                               <button
