@@ -9,7 +9,6 @@ type Campus = {
   label: string;
   slug: string;
   sortOrder: number;
-  isOnline: boolean;
   isActive: boolean;
   address?: string | null;
   access?: string | null;
@@ -22,7 +21,6 @@ type Draft = {
   label: string;
   slug: string;
   sortOrder: number;
-  isOnline: boolean;
   isActive: boolean;
   address: string; // null -> ""
   access: string; // null -> ""
@@ -50,7 +48,6 @@ function toDraft(c: Campus): Draft {
     label: c.label ?? "",
     slug: c.slug ?? "",
     sortOrder: Number.isFinite(c.sortOrder) ? c.sortOrder : 0,
-    isOnline: !!c.isOnline,
     isActive: !!c.isActive,
     address: c.address ?? "",
     access: c.access ?? "",
@@ -64,7 +61,6 @@ function isSameDraft(d: Draft, c: Campus): boolean {
     d.label === b.label &&
     d.slug === b.slug &&
     d.sortOrder === b.sortOrder &&
-    d.isOnline === b.isOnline &&
     d.isActive === b.isActive &&
     d.address === b.address &&
     d.access === b.access &&
@@ -84,7 +80,6 @@ export default function CampusAdminClient({ schoolId }: Props) {
   const [newLabel, setNewLabel] = useState("");
   const [newSlug, setNewSlug] = useState("");
   const [newSortOrder, setNewSortOrder] = useState<number>(0);
-  const [newIsOnline, setNewIsOnline] = useState(false);
   const [newIsActive, setNewIsActive] = useState(true);
   const [newAddress, setNewAddress] = useState("");
   const [newAccess, setNewAccess] = useState("");
@@ -184,7 +179,6 @@ export default function CampusAdminClient({ schoolId }: Props) {
           label,
           slug,
           sortOrder: newSortOrder,
-          isOnline: newIsOnline,
           isActive: newIsActive,
           address: address || null,
           access: access || null,
@@ -201,7 +195,6 @@ export default function CampusAdminClient({ schoolId }: Props) {
       setNewLabel("");
       setNewSlug("");
       setNewSortOrder(0);
-      setNewIsOnline(false);
       setNewIsActive(true);
       setNewAddress("");
       setNewAccess("");
@@ -263,7 +256,6 @@ export default function CampusAdminClient({ schoolId }: Props) {
           label: nextLabel,
           slug: nextSlug,
           sortOrder: d.sortOrder,
-          isOnline: d.isOnline,
           isActive: d.isActive,
           address: d.address.trim() ? d.address.trim() : null,
           access: d.access.trim() ? d.access.trim() : null,
@@ -365,17 +357,6 @@ export default function CampusAdminClient({ schoolId }: Props) {
           </div>
 
           <div className="flex flex-col justify-center gap-2">
-            <label className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-200">
-              <input
-                type="checkbox"
-                checked={newIsOnline}
-                onChange={(e) => setNewIsOnline(e.target.checked)}
-                disabled={disabled || savingId === "__create__"}
-                className="rounded border-gray-300 dark:border-gray-700"
-              />
-              オンライン校舎
-            </label>
-
             <label className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-200">
               <input
                 type="checkbox"
@@ -494,7 +475,6 @@ export default function CampusAdminClient({ schoolId }: Props) {
                   <th className="px-2 py-2 whitespace-nowrap">住所</th>
                   <th className="px-2 py-2 whitespace-nowrap">アクセス</th>
                   <th className="px-2 py-2 whitespace-nowrap">GoogleMap</th>
-                  <th className="px-2 py-2 whitespace-nowrap">オンライン</th>
                   <th className="px-2 py-2 whitespace-nowrap">有効</th>
                   <th className="px-2 py-2 whitespace-nowrap text-right">
                     操作
@@ -601,18 +581,6 @@ export default function CampusAdminClient({ schoolId }: Props) {
                             </a>
                           </div>
                         ) : null}
-                      </td>
-
-                      <td className="px-2 py-2">
-                        <input
-                          type="checkbox"
-                          checked={d.isOnline}
-                          onChange={(e) =>
-                            setDraft(c.id, { isOnline: e.target.checked })
-                          }
-                          disabled={busy}
-                          className="rounded border-gray-300 dark:border-gray-700"
-                        />
                       </td>
 
                       <td className="px-2 py-2">

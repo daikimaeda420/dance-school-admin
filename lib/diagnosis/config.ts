@@ -14,7 +14,6 @@ export type DiagnosisQuestionOption = {
   label: string; // 表示テキスト
   tag?: string; // 判定用タグ（エリア以外のQで使用）
   messageKey?: ConcernMessageKey; // 不安質問専用（Q6）
-  isOnline?: boolean; // オンライン校舎かどうか（Q1向け）
 };
 
 // 質問定義
@@ -52,11 +51,6 @@ export const QUESTIONS: DiagnosisQuestion[] = [
       { id: "shibuya", label: "渋谷校" },
       { id: "shinjuku", label: "新宿校" },
       { id: "ikebukuro", label: "池袋校" },
-      {
-        id: "online",
-        label: "【オンライン】自宅で受講",
-        isOnline: true,
-      },
     ],
   },
 

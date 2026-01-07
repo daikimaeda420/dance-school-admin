@@ -18,7 +18,6 @@ type OptionRow = {
   label: string;
   slug?: string;
   answerTag?: string | null;
-  isOnline?: boolean;
   isActive?: boolean;
 };
 
@@ -220,7 +219,6 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
             label: String(d.label ?? ""),
             slug: d.slug ? String(d.slug) : undefined,
             answerTag: d.answerTag ? String(d.answerTag) : null,
-            isOnline: typeof d.isOnline === "boolean" ? d.isOnline : undefined,
             isActive: typeof d.isActive === "boolean" ? d.isActive : undefined,
           }))
           .filter((o: OptionRow) => o.id && o.label);
@@ -689,11 +687,6 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
                   {campuses.map((p) => (
                     <option key={p.id} value={p.id}>
                       {p.label}
-                      {typeof p.isOnline === "boolean"
-                        ? p.isOnline
-                          ? "（オンライン）"
-                          : ""
-                        : ""}
                     </option>
                   ))}
                 </select>
@@ -1049,11 +1042,6 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
                                   {campuses.map((p) => (
                                     <option key={p.id} value={p.id}>
                                       {p.label}
-                                      {typeof p.isOnline === "boolean"
-                                        ? p.isOnline
-                                          ? "（オンライン）"
-                                          : ""
-                                        : ""}
                                     </option>
                                   ))}
                                 </select>

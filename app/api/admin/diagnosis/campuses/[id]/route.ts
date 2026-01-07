@@ -98,7 +98,6 @@ export async function PATCH(
   }
 
   if (body.sortOrder !== undefined) data.sortOrder = toNum(body.sortOrder, 0);
-  if (body.isOnline !== undefined) data.isOnline = toBool(body.isOnline, false);
   if (body.isActive !== undefined) data.isActive = toBool(body.isActive, true);
 
   // ✅ 追加：null も許可（空にしたいケース）
@@ -135,7 +134,6 @@ export async function PATCH(
         label: true,
         slug: true,
         sortOrder: true,
-        isOnline: true,
         isActive: true,
         address: true,
         access: true,

@@ -49,7 +49,6 @@ export async function GET(req: NextRequest) {
           label: true,
           slug: true,
           sortOrder: true,
-          isOnline: true,
           isActive: true,
           address: true,
           access: true,
@@ -58,7 +57,6 @@ export async function GET(req: NextRequest) {
       : {
           label: true,
           slug: true,
-          isOnline: true,
         },
   });
 
@@ -66,7 +64,6 @@ export async function GET(req: NextRequest) {
     const options: DiagnosisQuestionOption[] = campuses.map((c) => ({
       id: c.slug,
       label: c.label,
-      isOnline: (c as any).isOnline,
     }));
     return NextResponse.json(options);
   }
@@ -78,7 +75,7 @@ export async function GET(req: NextRequest) {
 /**
  * ✅ 追加：POSTで校舎を新規作成できるようにする
  * POST /api/diagnosis/campuses
- * body: { schoolId, label, slug, sortOrder?, isOnline?, isActive?, address?, access?, googleMapUrl? }
+ * body: { schoolId, label, slug, sortOrder?, isActive?, address?, access?, googleMapUrl? }
  */
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({} as any));
@@ -88,7 +85,6 @@ export async function POST(req: NextRequest) {
   const slug = norm(body.slug);
 
   const sortOrder = toNum(body.sortOrder, 0);
-  const isOnline = toBool(body.isOnline, false);
   const isActive = toBool(body.isActive, true);
 
   const address =
@@ -128,7 +124,6 @@ export async function POST(req: NextRequest) {
       label,
       slug,
       sortOrder,
-      isOnline,
       isActive,
       address,
       access,
@@ -140,7 +135,6 @@ export async function POST(req: NextRequest) {
       label: true,
       slug: true,
       sortOrder: true,
-      isOnline: true,
       isActive: true,
       address: true,
       access: true,

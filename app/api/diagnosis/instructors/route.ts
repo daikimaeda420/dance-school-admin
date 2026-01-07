@@ -213,7 +213,6 @@ async function fetchLinks(schoolId: string, instructorIds: string[]) {
             id: true,
             label: true,
             slug: true,
-            isOnline: true,
             isActive: true,
           },
         })

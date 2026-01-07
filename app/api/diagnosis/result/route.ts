@@ -173,7 +173,6 @@ export async function POST(req: NextRequest) {
         id: true,
         label: true,
         slug: true,
-        isOnline: true,
         address: true,
         access: true,
         googleMapUrl: true,
@@ -442,7 +441,6 @@ export async function POST(req: NextRequest) {
       selectedCampus: {
         label: campus.label,
         slug: campus.slug,
-        isOnline: campus.isOnline,
         address: campus.address ?? null,
         access: campus.access ?? null,
         googleMapUrl: campus.googleMapUrl ?? null,

@@ -7,7 +7,6 @@ import MatchReason from "./_components/MatchReason";
 type SelectedCampus = {
   label: string;
   slug: string;
-  isOnline?: boolean;
   address?: string | null;
   access?: string | null;
   googleMapUrl?: string | null;
@@ -55,11 +54,6 @@ function CampusDetailBox({ campus }: { campus?: SelectedCampus | null }) {
       <div className="text-sm">
         <span className="text-neutral-500">校舎：</span>
         <span className="font-medium">{campus.label}</span>
-        {campus.isOnline ? (
-          <span className="ml-2 inline-flex rounded-full border px-2 py-0.5 text-[11px] text-neutral-600">
-            オンライン
-          </span>
-        ) : null}
       </div>
 
       {campus.address ? (

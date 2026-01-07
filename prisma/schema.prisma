@@ -66,7 +66,6 @@ model DiagnosisCampus {
   label        String
   slug         String
   sortOrder    Int               @default(0)
-  isOnline     Boolean           @default(false)
   isActive     Boolean           @default(true)
   createdAt    DateTime          @default(now())
   updatedAt    DateTime          @updatedAt

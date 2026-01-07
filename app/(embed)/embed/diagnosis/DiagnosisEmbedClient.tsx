@@ -65,7 +65,6 @@ type DiagnosisResult = {
     id?: string;
     label: string;
     slug: string;
-    isOnline?: boolean;
     address?: string | null;
     access?: string | null;
     googleMapUrl?: string | null;
@@ -73,7 +72,6 @@ type DiagnosisResult = {
   selectedCampus?: {
     label: string;
     slug: string;
-    isOnline?: boolean;
     address?: string | null;
     access?: string | null;
     googleMapUrl?: string | null;

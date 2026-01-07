@@ -58,7 +58,6 @@ export async function GET(req: NextRequest) {
         label: true,
         slug: true,
         sortOrder: true,
-        isOnline: true,
         isActive: true,
         address: true,
         access: true,
@@ -98,7 +97,6 @@ export async function POST(req: NextRequest) {
     }
 
     const sortOrder = toNum(body?.sortOrder, 0);
-    const isOnline = toBool(body?.isOnline, false);
     const isActive =
       body?.isActive === undefined ? true : toBool(body?.isActive, true);
 
@@ -128,7 +126,6 @@ export async function POST(req: NextRequest) {
         label,
         slug,
         sortOrder,
-        isOnline,
         isActive,
         address,
         access,
@@ -140,7 +137,6 @@ export async function POST(req: NextRequest) {
         label: true,
         slug: true,
         sortOrder: true,
-        isOnline: true,
         isActive: true,
         address: true,
         access: true,

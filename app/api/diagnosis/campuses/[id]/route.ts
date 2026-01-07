@@ -28,7 +28,6 @@ function toBool(v: any, fallback = false) {
  *   label?: string,
  *   slug?: string,
  *   sortOrder?: number,
- *   isOnline?: boolean,
  *   isActive?: boolean,
  *   address?: string | null,
  *   access?: string | null,
@@ -74,9 +73,6 @@ export async function PATCH(
   const sortOrder =
     body.sortOrder !== undefined ? toNum(body.sortOrder, 0) : undefined;
 
-  const isOnline =
-    body.isOnline !== undefined ? toBool(body.isOnline, false) : undefined;
-
   const isActive =
     body.isActive !== undefined ? toBool(body.isActive, true) : undefined;
 
@@ -111,7 +107,6 @@ export async function PATCH(
       ...(label !== undefined ? { label } : {}),
       ...(slug !== undefined ? { slug } : {}),
       ...(sortOrder !== undefined ? { sortOrder } : {}),
-      ...(isOnline !== undefined ? { isOnline } : {}),
       ...(isActive !== undefined ? { isActive } : {}),
       ...(address !== undefined ? { address } : {}),
       ...(access !== undefined ? { access } : {}),
@@ -123,7 +118,6 @@ export async function PATCH(
       label: true,
       slug: true,
       sortOrder: true,
-      isOnline: true,
       isActive: true,
       address: true,
       access: true,
