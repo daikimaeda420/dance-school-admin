@@ -160,6 +160,7 @@ export default function CourseAdminClient({ schoolId }: Props) {
   // 新規追加
   const [newLabel, setNewLabel] = useState("");
   const [newSlug, setNewSlug] = useState("");
+  // ✅ sortOrderはUIから消すが、POST payloadのために値は保持（常に0でOK）
   const [newSortOrder, setNewSortOrder] = useState<number>(0);
   const [newIsActive, setNewIsActive] = useState(true);
 
@@ -210,7 +211,7 @@ export default function CourseAdminClient({ schoolId }: Props) {
         })
       );
 
-      // ✅ 表示は sortOrder 順に揃える
+      // ✅ 表示は sortOrder 順に揃える（内部用）
       normalized.sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
 
       setCourses(normalized);
@@ -244,6 +245,7 @@ export default function CourseAdminClient({ schoolId }: Props) {
           schoolId,
           label: newLabel,
           slug: newSlug,
+          // ✅ UIでは編集しない（必要ならAPI側で末尾に自動採番にするのが理想）
           sortOrder: newSortOrder,
           isActive: newIsActive,
           q2AnswerTags: uniqStrings(newQ2Tags),
@@ -320,25 +322,6 @@ export default function CourseAdminClient({ schoolId }: Props) {
     }
   };
 
-  /**
-   * ✅ 並び替え保存（既存PATCHを複数回呼ぶ）
-   * - nextの配列順に sortOrder = 1..n を振り直す
-   * - 変更がある行だけPATCH
-   */
-  const persistSortOrder = async (next: Course[]) => {
-    if (!schoolId) return;
-
-    // 次の配列順から sortOrder を振り直し
-    const withOrder = next.map((c, idx) => ({ ...c, sortOrder: idx + 1 }));
-
-    // 変更があるものだけ
-    const changed = withOrder.filter(
-      (c, idx) => c.sortOrder !== next[idx]?.sortOrder
-    );
-
-    // ↑ ここだと next はまだ旧sortOrderを持っているので正確に比較するため prevMap を使う
-  };
-
   const saveSortOrderForList = async (nextList: Course[]) => {
     if (!schoolId) return;
     setSavingSort(true);
@@ -368,8 +351,7 @@ export default function CourseAdminClient({ schoolId }: Props) {
     );
 
     try {
-      // 変更分だけPATCH（並列）
-      const results = await Promise.all(
+      await Promise.all(
         changed.map((p) =>
           fetch(`/api/admin/diagnosis/courses/${p.id}`, {
             method: "PATCH",
@@ -384,11 +366,9 @@ export default function CourseAdminClient({ schoolId }: Props) {
         )
       );
 
-      void results;
-      // 可能なら再取得して確定（整合性を担保）
+      // 整合性担保
       await fetchCourses();
     } catch (e: any) {
-      // 失敗したら再取得して戻す
       await fetchCourses();
       setError(e?.message ?? "通信エラーが発生しました。");
     } finally {
@@ -401,7 +381,6 @@ export default function CourseAdminClient({ schoolId }: Props) {
     if (!over) return;
     if (active.id === over.id) return;
 
-    // 保存中は触らせない（事故防止）
     if (saving || savingSort) return;
 
     setCourses((prev) => {
@@ -410,10 +389,7 @@ export default function CourseAdminClient({ schoolId }: Props) {
       if (oldIndex < 0 || newIndex < 0) return prev;
 
       const next = arrayMove(prev, oldIndex, newIndex);
-
-      // ✅ ドロップしたら即保存（運用が一番ラク）
       void saveSortOrderForList(next);
-
       return next;
     });
   };
@@ -426,7 +402,8 @@ export default function CourseAdminClient({ schoolId }: Props) {
           新しいコースを追加
         </h2>
 
-        <div className="mb-2 grid gap-3 md:grid-cols-4">
+        {/* ✅ sort入力を消したので3列に */}
+        <div className="mb-2 grid gap-3 md:grid-cols-3">
           <input
             className="rounded border border-gray-300 bg-white px-2 py-1 text-sm text-gray-900 placeholder:text-gray-400
                       focus:outline-none focus:ring-2 focus:ring-blue-500
@@ -445,17 +422,6 @@ export default function CourseAdminClient({ schoolId }: Props) {
             placeholder="slug（例：beginner）"
             value={newSlug}
             onChange={(e) => setNewSlug(e.target.value)}
-            disabled={disabled || saving || savingSort}
-          />
-          <input
-            type="number"
-            className="rounded border border-gray-300 bg-white px-2 py-1 text-sm text-gray-900 placeholder:text-gray-400
-                      focus:outline-none focus:ring-2 focus:ring-blue-500
-                      disabled:opacity-50
-                      dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100 dark:placeholder:text-gray-500"
-            placeholder="sortOrder"
-            value={newSortOrder}
-            onChange={(e) => setNewSortOrder(Number(e.target.value) || 0)}
             disabled={disabled || saving || savingSort}
           />
           <label className="flex items-center gap-2 text-xs text-gray-700 dark:text-gray-200">
@@ -548,7 +514,7 @@ export default function CourseAdminClient({ schoolId }: Props) {
                 items={courseIds}
                 strategy={verticalListSortingStrategy}
               >
-                <table className="w-full min-w-[1040px] text-left text-xs">
+                <table className="w-full min-w-[980px] text-left text-xs">
                   <thead>
                     <tr
                       className="border-b border-gray-200 bg-gray-50 text-[11px] text-gray-600
@@ -557,7 +523,7 @@ export default function CourseAdminClient({ schoolId }: Props) {
                       <th className="px-2 py-1 w-[44px]"> </th>
                       <th className="px-2 py-1">コース名</th>
                       <th className="px-2 py-1">slug</th>
-                      <th className="px-2 py-1">sort</th>
+                      {/* ✅ sort列を削除 */}
                       <th className="px-2 py-1">Q2対応（複数）</th>
                       <th className="px-2 py-1">有効</th>
                       <th className="px-2 py-1 text-right">操作</th>
@@ -658,18 +624,8 @@ export default function CourseAdminClient({ schoolId }: Props) {
                             />
                           </td>
 
-                          {/* ✅ sort は入力をやめて表示だけ（D&Dで変わる） */}
-                          <td className="px-2 py-1">
-                            <div
-                              className="w-20 rounded border border-gray-200 bg-gray-50 px-2 py-1 text-[11px] text-gray-700
-                                         dark:border-gray-800 dark:bg-gray-950 dark:text-gray-200"
-                              title="ドラッグで並び替えてください"
-                            >
-                              {c.sortOrder}
-                            </div>
-                          </td>
+                          {/* ✅ sort表示セルを削除 */}
 
-                          {/* ✅ Q2（保存ボタンで確実にPATCH） */}
                           <td className="px-2 py-1">
                             <select
                               multiple
