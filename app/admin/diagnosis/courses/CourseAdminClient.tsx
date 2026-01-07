@@ -35,14 +35,10 @@ type Course = {
   slug: string;
   sortOrder: number;
   isActive: boolean;
-
-  // ✅ Q2（複数）
   q2AnswerTags: string[];
 };
 
-type Props = {
-  schoolId: string;
-};
+type Props = { schoolId: string };
 
 const Q2_OPTIONS = [
   {
@@ -73,7 +69,6 @@ function uniqStrings(xs: string[]) {
   );
 }
 
-// Cmd/Ctrl不要でポチポチ選択できる
 function makeToggleSelectHandlers(
   selected: string[],
   setSelected: (v: SetStateAction<string[]>) => void
@@ -81,7 +76,6 @@ function makeToggleSelectHandlers(
   const onMouseDown = (e: MouseEvent<HTMLSelectElement>) => {
     const target = e.target as HTMLElement;
     if (target?.tagName !== "OPTION") return;
-
     e.preventDefault();
     const opt = target as HTMLOptionElement;
     const value = opt.value;
@@ -100,20 +94,18 @@ function makeToggleSelectHandlers(
 }
 
 /**
- * ✅ DnD用：<tr> を sortable にする
- * - ドラッグは左の「☰ハンドル」だけ
- * - select 等の操作と干渉しにくい
+ * ✅ DnD：div行をsortableに（tableをやめて横スクロール撲滅）
  */
-function SortableTr({
+function SortableRow({
   id,
-  children,
   disabled,
-  handleProps,
+  handle,
+  children,
 }: {
   id: string;
-  children: React.ReactNode;
   disabled?: boolean;
-  handleProps: (p: { attributes: any; listeners: any }) => React.ReactNode;
+  handle: (p: { attributes: any; listeners: any }) => React.ReactNode;
+  children: React.ReactNode;
 }) {
   const {
     attributes,
@@ -127,41 +119,50 @@ function SortableTr({
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition,
-    opacity: isDragging ? 0.7 : 1,
+    opacity: isDragging ? 0.75 : 1,
   };
 
   return (
-    <tr
+    <div
       ref={setNodeRef}
       style={style}
       className={
-        "border-b border-gray-100 last:border-none dark:border-gray-800 " +
-        (isDragging ? "bg-blue-50/40 dark:bg-blue-950/20" : "")
+        "rounded-lg border border-gray-200 bg-white p-2 shadow-sm dark:border-gray-800 dark:bg-gray-900 " +
+        (isDragging ? "ring-2 ring-blue-400/40" : "")
       }
     >
-      {/* ハンドル列 */}
-      <td className="px-2 py-1 align-top">
-        {handleProps({ attributes, listeners })}
-      </td>
+      {/* 1行目：ハンドル + 基本情報 */}
+      <div className="flex items-start gap-2">
+        <div className="pt-0.5">{handle({ attributes, listeners })}</div>
 
-      {children}
-    </tr>
+        <div className="min-w-0 flex-1">{children}</div>
+      </div>
+    </div>
   );
 }
+
+const inputCls =
+  "w-full rounded-md border border-gray-300 bg-white px-2 py-1 text-xs text-gray-900 " +
+  "placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 " +
+  "disabled:opacity-50 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100 dark:placeholder:text-gray-500";
+
+const selectCls =
+  "w-full rounded-md border border-gray-300 bg-white px-2 py-1 text-xs text-gray-900 " +
+  "focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 " +
+  "dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100 dark:[color-scheme:dark]";
 
 export default function CourseAdminClient({ schoolId }: Props) {
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [savingRowId, setSavingRowId] = useState<string | null>(null); // ✅ 行単位
-  const [savingSort, setSavingSort] = useState(false); // ✅ 並び替え保存中
+  const [savingRowId, setSavingRowId] = useState<string | null>(null);
+  const [savingSort, setSavingSort] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // 新規追加
   const [newLabel, setNewLabel] = useState("");
   const [newSlug, setNewSlug] = useState("");
-  // ✅ sortOrderはUIから消すが、POST payloadのために値は保持（常に0でOK）
-  const [newSortOrder, setNewSortOrder] = useState<number>(0);
+  const [newSortOrder, setNewSortOrder] = useState<number>(0); // UIは出さない
   const [newIsActive, setNewIsActive] = useState(true);
 
   const [newQ2Tags, setNewQ2Tags] = useState<string[]>([]);
@@ -172,14 +173,9 @@ export default function CourseAdminClient({ schoolId }: Props) {
 
   const disabled = !schoolId;
 
-  // ✅ dnd-kit sensors（誤爆防止に少し距離を持たせる）
   const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: { distance: 6 },
-    }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
   const courseIds = useMemo(() => courses.map((c) => c.id), [courses]);
@@ -196,7 +192,6 @@ export default function CourseAdminClient({ schoolId }: Props) {
       if (!res.ok) throw new Error("コース一覧の取得に失敗しました。");
 
       const data = (await res.json()) as any[];
-
       const normalized: Course[] = (Array.isArray(data) ? data : []).map(
         (d) => ({
           id: String(d.id),
@@ -211,9 +206,7 @@ export default function CourseAdminClient({ schoolId }: Props) {
         })
       );
 
-      // ✅ 表示は sortOrder 順に揃える（内部用）
       normalized.sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
-
       setCourses(normalized);
     } catch (e) {
       console.error(e);
@@ -245,7 +238,6 @@ export default function CourseAdminClient({ schoolId }: Props) {
           schoolId,
           label: newLabel,
           slug: newSlug,
-          // ✅ UIでは編集しない（必要ならAPI側で末尾に自動採番にするのが理想）
           sortOrder: newSortOrder,
           isActive: newIsActive,
           q2AnswerTags: uniqStrings(newQ2Tags),
@@ -327,9 +319,7 @@ export default function CourseAdminClient({ schoolId }: Props) {
     setSavingSort(true);
     setError(null);
 
-    // 旧 sortOrder を保持して比較
     const prevMap = new Map(courses.map((c) => [c.id, c.sortOrder]));
-
     const payload = nextList.map((c, idx) => ({
       id: c.id,
       sortOrder: idx + 1,
@@ -342,13 +332,8 @@ export default function CourseAdminClient({ schoolId }: Props) {
       return;
     }
 
-    // UIは先に確定（optimistic）
-    setCourses(
-      nextList.map((c, idx) => ({
-        ...c,
-        sortOrder: idx + 1,
-      }))
-    );
+    // optimistic
+    setCourses(nextList.map((c, idx) => ({ ...c, sortOrder: idx + 1 })));
 
     try {
       await Promise.all(
@@ -365,8 +350,6 @@ export default function CourseAdminClient({ schoolId }: Props) {
           })
         )
       );
-
-      // 整合性担保
       await fetchCourses();
     } catch (e: any) {
       await fetchCourses();
@@ -380,7 +363,6 @@ export default function CourseAdminClient({ schoolId }: Props) {
     const { active, over } = event;
     if (!over) return;
     if (active.id === over.id) return;
-
     if (saving || savingSort) return;
 
     setCourses((prev) => {
@@ -395,36 +377,32 @@ export default function CourseAdminClient({ schoolId }: Props) {
   };
 
   return (
-    <div className="space-y-6">
+    // ✅ 余白を詰める
+    <div className="space-y-3">
       {/* 新規追加 */}
-      <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-        <h2 className="mb-3 text-sm font-semibold text-gray-900 dark:text-gray-100">
-          新しいコースを追加
-        </h2>
+      <div className="rounded-lg border border-gray-200 bg-white p-2 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+        <div className="mb-2 flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+            新しいコースを追加
+          </h2>
+        </div>
 
-        {/* ✅ sort入力を消したので3列に */}
-        <div className="mb-2 grid gap-3 md:grid-cols-3">
+        <div className="grid gap-2 md:grid-cols-3">
           <input
-            className="rounded border border-gray-300 bg-white px-2 py-1 text-sm text-gray-900 placeholder:text-gray-400
-                      focus:outline-none focus:ring-2 focus:ring-blue-500
-                      disabled:opacity-50
-                      dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100 dark:placeholder:text-gray-500"
+            className={inputCls}
             placeholder="コース名（例：初心者）"
             value={newLabel}
             onChange={(e) => setNewLabel(e.target.value)}
             disabled={disabled || saving || savingSort}
           />
           <input
-            className="rounded border border-gray-300 bg-white px-2 py-1 text-sm text-gray-900 placeholder:text-gray-400
-                      focus:outline-none focus:ring-2 focus:ring-blue-500
-                      disabled:opacity-50
-                      dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100 dark:placeholder:text-gray-500"
+            className={inputCls}
             placeholder="slug（例：beginner）"
             value={newSlug}
             onChange={(e) => setNewSlug(e.target.value)}
             disabled={disabled || saving || savingSort}
           />
-          <label className="flex items-center gap-2 text-xs text-gray-700 dark:text-gray-200">
+          <label className="flex items-center gap-2 rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-xs text-gray-700 dark:border-gray-800 dark:bg-gray-950 dark:text-gray-200">
             <input
               type="checkbox"
               checked={newIsActive}
@@ -435,17 +413,13 @@ export default function CourseAdminClient({ schoolId }: Props) {
           </label>
         </div>
 
-        {/* Q2 */}
-        <div className="mb-3">
+        <div className="mt-2">
           <div className="mb-1 text-[11px] font-semibold text-gray-600 dark:text-gray-300">
             Q2 対応（経験・運動レベル）※複数OK
           </div>
           <select
             multiple
-            className="h-28 w-full rounded border border-gray-300 bg-white px-2 py-1 text-xs text-gray-900
-                       focus:outline-none focus:ring-2 focus:ring-blue-500
-                       disabled:opacity-50
-                       dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100 dark:[color-scheme:dark]"
+            className={`${selectCls} h-28`}
             value={newQ2Handlers.value}
             onMouseDown={newQ2Handlers.onMouseDown}
             onChange={newQ2Handlers.onChange}
@@ -465,20 +439,19 @@ export default function CourseAdminClient({ schoolId }: Props) {
         <button
           onClick={handleCreate}
           disabled={disabled || saving || savingSort}
-          className="rounded-full bg-blue-600 px-4 py-1.5 text-xs font-semibold text-white
-                    hover:bg-blue-700 disabled:opacity-40"
+          className="mt-2 rounded-full bg-blue-600 px-4 py-1.5 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-40"
         >
           {saving ? "保存中..." : "コースを追加"}
         </button>
       </div>
 
       {/* 一覧 */}
-      <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-        <div className="mb-3 flex items-center justify-between">
+      <div className="rounded-lg border border-gray-200 bg-white p-2 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+        <div className="mb-2 flex items-center justify-between">
           <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
             コース一覧
           </h2>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             {(loading || savingSort) && (
               <span className="text-xs text-gray-400 dark:text-gray-500">
                 {loading ? "読み込み中..." : "並び替え保存中..."}
@@ -491,10 +464,7 @@ export default function CourseAdminClient({ schoolId }: Props) {
         </div>
 
         {error && (
-          <div
-            className="mb-3 rounded-md border border-red-200 bg-red-50 px-2 py-1 text-xs text-red-700
-                          dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-200"
-          >
+          <div className="mb-2 rounded-md border border-red-200 bg-red-50 px-2 py-1 text-xs text-red-700 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-200">
             {error}
           </div>
         )}
@@ -504,7 +474,8 @@ export default function CourseAdminClient({ schoolId }: Props) {
             登録されているコースはありません。
           </p>
         ) : (
-          <div className="overflow-x-auto">
+          <>
+            {/* ✅ 横スクロールを無くす：tableではなく縦のカードリスト */}
             <DndContext
               sensors={sensors}
               collisionDetection={closestCenter}
@@ -514,76 +485,60 @@ export default function CourseAdminClient({ schoolId }: Props) {
                 items={courseIds}
                 strategy={verticalListSortingStrategy}
               >
-                <table className="w-full min-w-[980px] text-left text-xs">
-                  <thead>
-                    <tr
-                      className="border-b border-gray-200 bg-gray-50 text-[11px] text-gray-600
-                              dark:border-gray-800 dark:bg-gray-950 dark:text-gray-300"
-                    >
-                      <th className="px-2 py-1 w-[44px]"> </th>
-                      <th className="px-2 py-1">コース名</th>
-                      <th className="px-2 py-1">slug</th>
-                      {/* ✅ sort列を削除 */}
-                      <th className="px-2 py-1">Q2対応（複数）</th>
-                      <th className="px-2 py-1">有効</th>
-                      <th className="px-2 py-1 text-right">操作</th>
-                    </tr>
-                  </thead>
-
-                  <tbody>
-                    {courses.map((c) => {
-                      const setRowSelected = (v: SetStateAction<string[]>) => {
-                        setCourses((prev) =>
-                          prev.map((p) => {
-                            if (p.id !== c.id) return p;
-                            const nextValue =
-                              typeof v === "function"
-                                ? (v as (prev: string[]) => string[])(
-                                    p.q2AnswerTags ?? []
-                                  )
-                                : v;
-                            return {
-                              ...p,
-                              q2AnswerTags: uniqStrings(nextValue ?? []),
-                            };
-                          })
-                        );
-                      };
-
-                      const handlers = makeToggleSelectHandlers(
-                        c.q2AnswerTags ?? [],
-                        setRowSelected
+                <div className="space-y-2">
+                  {courses.map((c) => {
+                    const setRowSelected = (v: SetStateAction<string[]>) => {
+                      setCourses((prev) =>
+                        prev.map((p) => {
+                          if (p.id !== c.id) return p;
+                          const nextValue =
+                            typeof v === "function"
+                              ? (v as (prev: string[]) => string[])(
+                                  p.q2AnswerTags ?? []
+                                )
+                              : v;
+                          return {
+                            ...p,
+                            q2AnswerTags: uniqStrings(nextValue ?? []),
+                          };
+                        })
                       );
+                    };
 
-                      const rowSaving = savingRowId === c.id;
-                      const dndDisabled = saving || savingSort || rowSaving;
+                    const handlers = makeToggleSelectHandlers(
+                      c.q2AnswerTags ?? [],
+                      setRowSelected
+                    );
 
-                      return (
-                        <SortableTr
-                          key={c.id}
-                          id={c.id}
-                          disabled={dndDisabled}
-                          handleProps={({ attributes, listeners }) => (
-                            <button
-                              type="button"
-                              className="cursor-grab select-none rounded-lg border border-gray-300 bg-white px-2 py-1 text-[11px] text-gray-700
-                                         hover:bg-gray-50 active:cursor-grabbing disabled:opacity-40
-                                         dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200 dark:hover:bg-gray-900"
-                              aria-label="ドラッグして並び替え"
-                              disabled={dndDisabled}
-                              {...attributes}
-                              {...listeners}
-                            >
-                              ☰
-                            </button>
-                          )}
-                        >
-                          <td className="px-2 py-1">
+                    const rowSaving = savingRowId === c.id;
+                    const dndDisabled = saving || savingSort || rowSaving;
+
+                    return (
+                      <SortableRow
+                        key={c.id}
+                        id={c.id}
+                        disabled={dndDisabled}
+                        handle={({ attributes, listeners }) => (
+                          <button
+                            type="button"
+                            className="cursor-grab select-none rounded-md border border-gray-300 bg-white px-2 py-1 text-[11px] text-gray-700 hover:bg-gray-50 active:cursor-grabbing disabled:opacity-40 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200 dark:hover:bg-gray-900"
+                            aria-label="ドラッグして並び替え"
+                            disabled={dndDisabled}
+                            {...attributes}
+                            {...listeners}
+                          >
+                            ☰
+                          </button>
+                        )}
+                      >
+                        {/* ✅ グリッド：狭い画面では縦積みで横スク不要 */}
+                        <div className="grid gap-2 md:grid-cols-12">
+                          <div className="md:col-span-4">
+                            <div className="mb-1 text-[11px] font-semibold text-gray-600 dark:text-gray-300">
+                              コース名
+                            </div>
                             <input
-                              className="w-full rounded border border-gray-300 bg-white px-1 py-0.5 text-gray-900
-                                  focus:outline-none focus:ring-2 focus:ring-blue-500
-                                  disabled:opacity-50
-                                  dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
+                              className={inputCls}
                               value={c.label}
                               onChange={(e) =>
                                 setCourses((prev) =>
@@ -599,14 +554,14 @@ export default function CourseAdminClient({ schoolId }: Props) {
                               }
                               disabled={saving || savingSort}
                             />
-                          </td>
+                          </div>
 
-                          <td className="px-2 py-1">
+                          <div className="md:col-span-3">
+                            <div className="mb-1 text-[11px] font-semibold text-gray-600 dark:text-gray-300">
+                              slug
+                            </div>
                             <input
-                              className="w-full rounded border border-gray-300 bg-white px-1 py-0.5 text-gray-900
-                                   focus:outline-none focus:ring-2 focus:ring-blue-500
-                                   disabled:opacity-50
-                                   dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
+                              className={inputCls}
                               value={c.slug}
                               onChange={(e) =>
                                 setCourses((prev) =>
@@ -622,17 +577,15 @@ export default function CourseAdminClient({ schoolId }: Props) {
                               }
                               disabled={saving || savingSort}
                             />
-                          </td>
+                          </div>
 
-                          {/* ✅ sort表示セルを削除 */}
-
-                          <td className="px-2 py-1">
+                          <div className="md:col-span-3">
+                            <div className="mb-1 text-[11px] font-semibold text-gray-600 dark:text-gray-300">
+                              Q2対応（複数）
+                            </div>
                             <select
                               multiple
-                              className="h-24 w-full rounded border border-gray-300 bg-white px-2 py-1 text-xs text-gray-900
-                                     focus:outline-none focus:ring-2 focus:ring-blue-500
-                                     disabled:opacity-50
-                                     dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100 dark:[color-scheme:dark]"
+                              className={`${selectCls} h-24`}
                               value={handlers.value}
                               onMouseDown={handlers.onMouseDown}
                               onChange={handlers.onChange}
@@ -644,64 +597,66 @@ export default function CourseAdminClient({ schoolId }: Props) {
                                 </option>
                               ))}
                             </select>
-                          </td>
+                          </div>
 
-                          <td className="px-2 py-1">
-                            <input
-                              type="checkbox"
-                              checked={c.isActive}
-                              onChange={(e) =>
-                                handleUpdateField(
-                                  c.id,
-                                  "isActive",
-                                  e.target.checked
-                                )
-                              }
-                              disabled={saving || savingSort}
-                            />
-                          </td>
+                          <div className="md:col-span-2">
+                            <div className="mb-1 text-[11px] font-semibold text-gray-600 dark:text-gray-300">
+                              操作
+                            </div>
 
-                          <td className="px-2 py-1 text-right whitespace-nowrap">
-                            <button
-                              onClick={() =>
-                                handleUpdateField(
-                                  c.id,
-                                  "q2AnswerTags",
-                                  uniqStrings(c.q2AnswerTags ?? [])
-                                )
-                              }
-                              disabled={saving || savingSort || rowSaving}
-                              className="mr-3 rounded-full border border-gray-300 bg-white px-3 py-1 text-[11px] font-semibold text-gray-800
-                                     hover:bg-gray-50 disabled:opacity-40
-                                     dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100 dark:hover:bg-gray-900"
-                            >
-                              {rowSaving ? "Q2保存中..." : "Q2保存"}
-                            </button>
+                            <label className="mb-2 flex items-center gap-2 rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-xs text-gray-700 dark:border-gray-800 dark:bg-gray-950 dark:text-gray-200">
+                              <input
+                                type="checkbox"
+                                checked={c.isActive}
+                                onChange={(e) =>
+                                  handleUpdateField(
+                                    c.id,
+                                    "isActive",
+                                    e.target.checked
+                                  )
+                                }
+                                disabled={saving || savingSort}
+                              />
+                              有効
+                            </label>
 
-                            <button
-                              onClick={() => handleDelete(c.id)}
-                              className="text-[11px] text-red-600 underline hover:text-red-700
-                                  disabled:opacity-40
-                                  dark:text-red-300 dark:hover:text-red-200"
-                              disabled={saving || savingSort || rowSaving}
-                            >
-                              削除
-                            </button>
-                          </td>
-                        </SortableTr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() =>
+                                  handleUpdateField(
+                                    c.id,
+                                    "q2AnswerTags",
+                                    uniqStrings(c.q2AnswerTags ?? [])
+                                  )
+                                }
+                                disabled={saving || savingSort || rowSaving}
+                                className="rounded-full border border-gray-300 bg-white px-3 py-1 text-[11px] font-semibold text-gray-800 hover:bg-gray-50 disabled:opacity-40 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100 dark:hover:bg-gray-900"
+                              >
+                                {rowSaving ? "Q2保存中..." : "Q2保存"}
+                              </button>
+
+                              <button
+                                onClick={() => handleDelete(c.id)}
+                                className="text-[11px] text-red-600 underline hover:text-red-700 disabled:opacity-40 dark:text-red-300 dark:hover:text-red-200"
+                                disabled={saving || savingSort || rowSaving}
+                              >
+                                削除
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </SortableRow>
+                    );
+                  })}
+                </div>
               </SortableContext>
             </DndContext>
 
             <div className="mt-2 text-[11px] text-gray-500 dark:text-gray-400">
-              ※ 並び替えは「☰」をドラッグ → ドロップで自動保存されます /
-              Q2は「クリックでON/OFF」→
-              右の「Q2保存」で保存されます（Cmd/Ctrl不要）
+              ※ 並び替えは「☰」をドラッグ → ドロップで自動保存 /
+              Q2は「クリックでON/OFF」→「Q2保存」
             </div>
-          </div>
+          </>
         )}
       </div>
     </div>
