@@ -12,7 +12,7 @@ export default function DiagnosisCoursesPage({ searchParams }: Props) {
   const schoolId = searchParams.schoolId ?? "";
 
   return (
-    <div className="mx-auto max-w-5xl p-6 text-gray-900 dark:text-gray-100">
+    <div className="mx-auto p-6 text-gray-900 dark:text-gray-100">
       <h1 className="mb-4 text-xl font-bold">診断用 コース管理</h1>
 
       {!schoolId && (

@@ -9,7 +9,7 @@ export default function DiagnosisAdminLayout({
   children: ReactNode;
 }) {
   return (
-    <div className="mx-auto w-full max-w-6xl p-6 text-gray-900">
+    <div className="mx-auto w-full p-6 text-gray-900">
       <Suspense fallback={null}>
         <DiagnosisAdminNav />
         {children}
