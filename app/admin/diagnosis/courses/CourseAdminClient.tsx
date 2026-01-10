@@ -1,14 +1,7 @@
 // app/admin/diagnosis/courses/CourseAdminClient.tsx
 "use client";
 
-import {
-  useEffect,
-  useMemo,
-  useState,
-  type MouseEvent,
-  type ChangeEvent,
-  type SetStateAction,
-} from "react";
+import { useEffect, useMemo, useState, type SetStateAction } from "react";
 
 import {
   DndContext,
@@ -69,28 +62,76 @@ function uniqStrings(xs: string[]) {
   );
 }
 
-function makeToggleSelectHandlers(
-  selected: string[],
-  setSelected: (v: SetStateAction<string[]>) => void
-) {
-  const onMouseDown = (e: MouseEvent<HTMLSelectElement>) => {
-    const target = e.target as HTMLElement;
-    if (target?.tagName !== "OPTION") return;
-    e.preventDefault();
-    const opt = target as HTMLOptionElement;
-    const value = opt.value;
+function toggleInArray(arr: string[], value: string) {
+  const has = arr.includes(value);
+  return has ? arr.filter((x) => x !== value) : [...arr, value];
+}
 
-    setSelected((prev) => {
-      const has = prev.includes(value);
-      return has ? prev.filter((x) => x !== value) : [...prev, value];
-    });
-  };
+/** ✅ チップ型 ON/OFF（チェックボックスのように分かりやすいUI） */
+function Q2ToggleChips({
+  selected,
+  setSelected,
+  disabled,
+  dense,
+}: {
+  selected: string[];
+  setSelected: (v: SetStateAction<string[]>) => void;
+  disabled?: boolean;
+  dense?: boolean;
+}) {
+  return (
+    <div
+      className={[
+        "flex flex-wrap gap-2 rounded-md border border-gray-200 bg-gray-50 p-2",
+        "dark:border-gray-800 dark:bg-gray-950",
+        dense ? "text-[11px]" : "text-xs",
+        disabled ? "opacity-60" : "",
+      ].join(" ")}
+    >
+      {Q2_OPTIONS.map((o) => {
+        const on = selected.includes(o.tag);
+        return (
+          <button
+            key={o.tag}
+            type="button"
+            disabled={disabled}
+            onClick={() =>
+              setSelected((prev) => uniqStrings(toggleInArray(prev, o.tag)))
+            }
+            aria-pressed={on}
+            className={[
+              "group inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-left",
+              "transition select-none",
+              on
+                ? "border-blue-500 bg-blue-600 text-white dark:border-blue-400 dark:bg-blue-500"
+                : "border-gray-300 bg-white text-gray-800 hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 dark:hover:bg-gray-800",
+              disabled ? "cursor-not-allowed" : "cursor-pointer",
+            ].join(" ")}
+            title={o.label}
+          >
+            <span
+              className={[
+                "inline-flex h-4 w-4 items-center justify-center rounded-sm border",
+                on
+                  ? "border-white/70 bg-white/20"
+                  : "border-gray-300 bg-transparent dark:border-gray-600",
+              ].join(" ")}
+            >
+              {on ? (
+                <span className="text-[12px] leading-none">✓</span>
+              ) : (
+                <span className="text-[12px] leading-none opacity-0 group-hover:opacity-30">
+                  ✓
+                </span>
+              )}
+            </span>
 
-  const onChange = (e: ChangeEvent<HTMLSelectElement>) => {
-    setSelected(Array.from(e.target.selectedOptions).map((o) => o.value));
-  };
-
-  return { onMouseDown, onChange, value: selected };
+            <span className="min-w-0">{o.label}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
 }
 
 /**
@@ -134,7 +175,6 @@ function SortableRow({
       {/* 1行目：ハンドル + 基本情報 */}
       <div className="flex items-start gap-2">
         <div className="pt-0.5">{handle({ attributes, listeners })}</div>
-
         <div className="min-w-0 flex-1">{children}</div>
       </div>
     </div>
@@ -145,11 +185,6 @@ const inputCls =
   "w-full rounded-md border border-gray-300 bg-white px-2 py-1 text-xs text-gray-900 " +
   "placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 " +
   "disabled:opacity-50 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100 dark:placeholder:text-gray-500";
-
-const selectCls =
-  "w-full rounded-md border border-gray-300 bg-white px-2 py-1 text-xs text-gray-900 " +
-  "focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 " +
-  "dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100 dark:[color-scheme:dark]";
 
 export default function CourseAdminClient({ schoolId }: Props) {
   const [courses, setCourses] = useState<Course[]>([]);
@@ -166,10 +201,6 @@ export default function CourseAdminClient({ schoolId }: Props) {
   const [newIsActive, setNewIsActive] = useState(true);
 
   const [newQ2Tags, setNewQ2Tags] = useState<string[]>([]);
-  const newQ2Handlers = useMemo(
-    () => makeToggleSelectHandlers(newQ2Tags, setNewQ2Tags),
-    [newQ2Tags]
-  );
 
   const disabled = !schoolId;
 
@@ -377,7 +408,6 @@ export default function CourseAdminClient({ schoolId }: Props) {
   };
 
   return (
-    // ✅ 余白を詰める
     <div className="space-y-3">
       {/* 新規追加 */}
       <div className="rounded-lg border border-gray-200 bg-white p-2 shadow-sm dark:border-gray-800 dark:bg-gray-900">
@@ -417,22 +447,16 @@ export default function CourseAdminClient({ schoolId }: Props) {
           <div className="mb-1 text-[11px] font-semibold text-gray-600 dark:text-gray-300">
             Q2 対応（経験・運動レベル）※複数OK
           </div>
-          <select
-            multiple
-            className={`${selectCls} h-28`}
-            value={newQ2Handlers.value}
-            onMouseDown={newQ2Handlers.onMouseDown}
-            onChange={newQ2Handlers.onChange}
+
+          {/* ✅ ここがチェックボックスのように分かりやすいUI */}
+          <Q2ToggleChips
+            selected={newQ2Tags}
+            setSelected={setNewQ2Tags}
             disabled={disabled || saving || savingSort}
-          >
-            {Q2_OPTIONS.map((o) => (
-              <option key={o.tag} value={o.tag}>
-                {o.label}
-              </option>
-            ))}
-          </select>
+          />
+
           <div className="mt-1 text-[11px] text-gray-500 dark:text-gray-400">
-            ※Cmd/Ctrl不要でクリックでON/OFFできます
+            ※ クリックでON/OFF（青＝ON）
           </div>
         </div>
 
@@ -475,7 +499,6 @@ export default function CourseAdminClient({ schoolId }: Props) {
           </p>
         ) : (
           <>
-            {/* ✅ 横スクロールを無くす：tableではなく縦のカードリスト */}
             <DndContext
               sensors={sensors}
               collisionDetection={closestCenter}
@@ -505,11 +528,6 @@ export default function CourseAdminClient({ schoolId }: Props) {
                       );
                     };
 
-                    const handlers = makeToggleSelectHandlers(
-                      c.q2AnswerTags ?? [],
-                      setRowSelected
-                    );
-
                     const rowSaving = savingRowId === c.id;
                     const dndDisabled = saving || savingSort || rowSaving;
 
@@ -531,7 +549,6 @@ export default function CourseAdminClient({ schoolId }: Props) {
                           </button>
                         )}
                       >
-                        {/* ✅ グリッド：狭い画面では縦積みで横スク不要 */}
                         <div className="grid gap-2 md:grid-cols-12">
                           <div className="md:col-span-4">
                             <div className="mb-1 text-[11px] font-semibold text-gray-600 dark:text-gray-300">
@@ -583,20 +600,14 @@ export default function CourseAdminClient({ schoolId }: Props) {
                             <div className="mb-1 text-[11px] font-semibold text-gray-600 dark:text-gray-300">
                               Q2対応（複数）
                             </div>
-                            <select
-                              multiple
-                              className={`${selectCls} h-24`}
-                              value={handlers.value}
-                              onMouseDown={handlers.onMouseDown}
-                              onChange={handlers.onChange}
+
+                            {/* ✅ ここをチップ型ON/OFFに */}
+                            <Q2ToggleChips
+                              selected={c.q2AnswerTags ?? []}
+                              setSelected={setRowSelected}
                               disabled={saving || savingSort}
-                            >
-                              {Q2_OPTIONS.map((o) => (
-                                <option key={o.tag} value={o.tag}>
-                                  {o.label}
-                                </option>
-                              ))}
-                            </select>
+                              dense
+                            />
                           </div>
 
                           <div className="md:col-span-2">
@@ -654,7 +665,7 @@ export default function CourseAdminClient({ schoolId }: Props) {
 
             <div className="mt-2 text-[11px] text-gray-500 dark:text-gray-400">
               ※ 並び替えは「☰」をドラッグ → ドロップで自動保存 /
-              Q2は「クリックでON/OFF」→「Q2保存」
+              Q2はチップでON/OFF → 「保存」
             </div>
           </>
         )}
