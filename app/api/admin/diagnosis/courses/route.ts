@@ -10,6 +10,18 @@ async function ensureLoggedIn() {
   return session;
 }
 
+function normalizeStringArray(v: any): string[] {
+  if (!Array.isArray(v)) return [];
+  return Array.from(
+    new Set(
+      v
+        .filter((x) => typeof x === "string")
+        .map((s) => s.trim())
+        .filter(Boolean)
+    )
+  );
+}
+
 // GET /api/admin/diagnosis/courses?schoolId=xxx
 export async function GET(req: NextRequest) {
   const session = await ensureLoggedIn();
@@ -61,13 +73,17 @@ export async function POST(req: NextRequest) {
 
   const sortOrder = typeof body.sortOrder === "number" ? body.sortOrder : 0;
 
+  // ✅ 追加：Q2タグを正規化して保存
+  const q2AnswerTags = normalizeStringArray(body.q2AnswerTags);
+
   const course = await prisma.diagnosisCourse.create({
     data: {
       schoolId: body.schoolId,
-      label: body.label,
-      slug: body.slug,
+      label: body.label.trim(),
+      slug: body.slug.trim(),
       sortOrder,
       isActive: body.isActive !== false,
+      q2AnswerTags, // ←これが無かった
     },
   });
 
