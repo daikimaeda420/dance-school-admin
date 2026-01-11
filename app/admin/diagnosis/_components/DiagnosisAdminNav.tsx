@@ -9,9 +9,9 @@ type Tab = { href: string; label: string };
 const TABS: Tab[] = [
   { href: "/admin/diagnosis/campuses", label: "校舎" },
   { href: "/admin/diagnosis/courses", label: "コース" },
+  { href: "/admin/diagnosis/lifestyles", label: "年代・ライフスタイル" },
   { href: "/admin/diagnosis/genres", label: "ジャンル" },
   { href: "/admin/diagnosis/instructors", label: "講師" },
-  { href: "/admin/diagnosis/lifestyles", label: "年代・ライフスタイル" },
 ];
 
 export default function DiagnosisAdminNav() {
