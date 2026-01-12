@@ -12,8 +12,8 @@ type GenreRow = {
   schoolId: string;
   label: string;
   slug: string;
-  answerTag?: string | null; // ✅ 追加：Q4固定回答IDと紐づけ（例: "Genre_KPOP"）
-  sortOrder: number;
+  answerTag?: string | null; // Q4固定回答IDと紐づけ
+  sortOrder: number; // UIでは触らない（互換のため保持）
   isActive: boolean;
 };
 
@@ -58,6 +58,11 @@ const btnDanger =
   "hover:bg-red-50 disabled:opacity-50 " +
   "dark:border-red-900/50 dark:bg-gray-900 dark:text-red-300 dark:hover:bg-red-950/40";
 
+const pillActive =
+  "bg-green-50 text-green-700 dark:bg-green-950/40 dark:text-green-200";
+const pillInactive =
+  "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300";
+
 // ✅ Q4固定質問（仕様書通り）
 const GENRE_ANSWER_TAG_OPTIONS: { value: string; label: string }[] = [
   { value: "Genre_KPOP", label: "K-POP・流行りの曲" },
@@ -68,7 +73,6 @@ const GENRE_ANSWER_TAG_OPTIONS: { value: string; label: string }[] = [
 ];
 
 export default function GenreAdminClient({ initialSchoolId }: Props) {
-  // URLの schoolId を初期値に。無ければ空（手入力して読み込み）
   const [schoolId, setSchoolId] = useState<string>(initialSchoolId ?? "");
 
   const [rows, setRows] = useState<GenreRow[]>([]);
@@ -80,8 +84,7 @@ export default function GenreAdminClient({ initialSchoolId }: Props) {
   const [newId, setNewId] = useState("");
   const [newLabel, setNewLabel] = useState("");
   const [newSlug, setNewSlug] = useState("");
-  const [newAnswerTag, setNewAnswerTag] = useState<string>(""); // ✅ 追加（空=未設定）
-  const [newSortOrder, setNewSortOrder] = useState<number>(1);
+  const [newAnswerTag, setNewAnswerTag] = useState<string>(""); // 空=未設定
   const [newIsActive, setNewIsActive] = useState(true);
 
   // 編集用（行ID単位）
@@ -94,7 +97,6 @@ export default function GenreAdminClient({ initialSchoolId }: Props) {
     setLoading(true);
     setError(null);
     try {
-      // ※ もし admin 配下のAPIに寄せたいなら /api/admin/diagnosis/genres に変更
       const res = await fetch(
         `/api/diagnosis/genres?schoolId=${encodeURIComponent(schoolId)}`,
         { cache: "no-store" }
@@ -107,12 +109,17 @@ export default function GenreAdminClient({ initialSchoolId }: Props) {
         schoolId: String(d.schoolId ?? schoolId),
         label: String(d.label ?? ""),
         slug: String(d.slug ?? ""),
-        answerTag: d.answerTag ?? null, // ✅ 追加
+        answerTag: d.answerTag ?? null,
         sortOrder: Number(d.sortOrder ?? 1),
         isActive: Boolean(d.isActive ?? true),
       }));
 
-      setRows(normalized.sort((a, b) => a.sortOrder - b.sortOrder));
+      // ✅ ソート機能はUIから消す：見た目の並びは label 昇順に固定
+      normalized.sort((a, b) =>
+        (a.label || "").localeCompare(b.label || "", "ja")
+      );
+
+      setRows(normalized);
     } catch (e: any) {
       setError(e?.message ?? "読み込みに失敗しました");
     } finally {
@@ -121,7 +128,6 @@ export default function GenreAdminClient({ initialSchoolId }: Props) {
   };
 
   useEffect(() => {
-    // schoolIdが入っている時だけ自動ロード
     if (canLoad) void fetchList();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [schoolId]);
@@ -150,8 +156,9 @@ export default function GenreAdminClient({ initialSchoolId }: Props) {
           schoolId,
           label,
           slug,
-          answerTag, // ✅ 追加
-          sortOrder: newSortOrder,
+          answerTag,
+          // sortOrder は互換のため送る（UIでは触らない）
+          sortOrder: 1,
           isActive: newIsActive,
         }),
       });
@@ -163,8 +170,7 @@ export default function GenreAdminClient({ initialSchoolId }: Props) {
       setNewId("");
       setNewLabel("");
       setNewSlug("");
-      setNewAnswerTag(""); // ✅ 追加
-      setNewSortOrder(1);
+      setNewAnswerTag("");
       setNewIsActive(true);
 
       await fetchList();
@@ -217,9 +223,10 @@ export default function GenreAdminClient({ initialSchoolId }: Props) {
           schoolId,
           label: e.label,
           slug: e.slug,
-          answerTag: (e.answerTag ?? "").trim() || null, // ✅ 追加
-          sortOrder: e.sortOrder,
-          isActive: e.isActive,
+          answerTag: (e.answerTag ?? "").trim() || null,
+          // sortOrder は既存値維持（UIでは触らない）
+          sortOrder: e.sortOrder ?? 1,
+          isActive: Boolean(e.isActive),
         }),
       });
       if (!res.ok) {
@@ -236,23 +243,57 @@ export default function GenreAdminClient({ initialSchoolId }: Props) {
     }
   };
 
-  const deactivate = async (id: string) => {
+  // ✅ 休校(=isActive false) / アクティブ切替（編集に入らず即反映）
+  const toggleActive = async (r: GenreRow, next: boolean) => {
+    setSaving(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/diagnosis/genres", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: r.id,
+          schoolId,
+          label: r.label,
+          slug: r.slug,
+          answerTag: r.answerTag ?? null,
+          sortOrder: r.sortOrder ?? 1,
+          isActive: next,
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.message ?? "更新に失敗しました");
+      }
+      await fetchList();
+    } catch (e: any) {
+      setError(e?.message ?? "更新に失敗しました");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // ✅ 削除（物理削除想定：hard=true）
+  const deleteGenre = async (r: GenreRow) => {
+    const ok = confirm(`「${r.label}」を削除しますか？\n※元に戻せません`);
+    if (!ok) return;
+
     setSaving(true);
     setError(null);
     try {
       const res = await fetch(
         `/api/diagnosis/genres?id=${encodeURIComponent(
-          id
-        )}&schoolId=${encodeURIComponent(schoolId)}`,
+          r.id
+        )}&schoolId=${encodeURIComponent(schoolId)}&hard=true`,
         { method: "DELETE" }
       );
       if (!res.ok) {
         const data = await res.json().catch(() => null);
-        throw new Error(data?.message ?? "無効化に失敗しました");
+        throw new Error(data?.message ?? "削除に失敗しました");
       }
       await fetchList();
     } catch (e: any) {
-      setError(e?.message ?? "無効化に失敗しました");
+      setError(e?.message ?? "削除に失敗しました");
     } finally {
       setSaving(false);
     }
@@ -273,22 +314,9 @@ export default function GenreAdminClient({ initialSchoolId }: Props) {
       <div className="mb-4">
         <div className="text-base font-bold">診断編集：ジャンル管理</div>
         <div className="text-xs text-gray-500 dark:text-gray-400">
-          DiagnosisGenre を追加/編集/無効化します（slug
-          は管理/紐づけ用。診断のQ4は answerTag で紐づけます）。
+          DiagnosisGenre を追加/編集/休校(OFF)/削除します（Q4は answerTag
+          で紐づけ）。
         </div>
-      </div>
-
-      {/* schoolId */}
-      <div className={`mb-4 ${card}`}>
-        <div className="mb-2 text-xs font-semibold text-gray-600 dark:text-gray-300">
-          schoolId
-        </div>
-        <input
-          value={schoolId}
-          onChange={(e) => setSchoolId(e.target.value)}
-          className={input}
-          placeholder="例：daiki.maeda.web（他のIDでもOK）"
-        />
       </div>
 
       {/* create */}
@@ -341,7 +369,6 @@ export default function GenreAdminClient({ initialSchoolId }: Props) {
             />
           </div>
 
-          {/* ✅ 追加：answerTag（Q4固定回答） */}
           <div>
             <div className="mb-1 text-xs font-semibold text-gray-600 dark:text-gray-300">
               answerTag（診断Q4の固定回答と紐づけ）
@@ -359,36 +386,21 @@ export default function GenreAdminClient({ initialSchoolId }: Props) {
               ))}
             </select>
             <div className="mt-1 text-[11px] text-gray-500 dark:text-gray-400">
-              例：Q4で「K-POP・流行りの曲」を選ぶと
-              <code className={codePill}>Genre_KPOP</code>
-              が送られます。
+              例：Q4で「K-POP・流行りの曲」を選ぶと{" "}
+              <code className={codePill}>Genre_KPOP</code> が送られます。
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <div className="mb-1 text-xs font-semibold text-gray-600 dark:text-gray-300">
-                sortOrder
-              </div>
+          <div className="flex items-end gap-2">
+            <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-200">
               <input
-                type="number"
-                value={newSortOrder}
-                onChange={(e) => setNewSortOrder(Number(e.target.value))}
-                className={input}
+                type="checkbox"
+                checked={newIsActive}
+                onChange={(e) => setNewIsActive(e.target.checked)}
+                className="rounded border-gray-300 dark:border-gray-700"
               />
-            </div>
-
-            <div className="flex items-end gap-2">
-              <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-200">
-                <input
-                  type="checkbox"
-                  checked={newIsActive}
-                  onChange={(e) => setNewIsActive(e.target.checked)}
-                  className="rounded border-gray-300 dark:border-gray-700"
-                />
-                active
-              </label>
-            </div>
+              アクティブ（ON）
+            </label>
           </div>
         </div>
 
@@ -488,61 +500,50 @@ export default function GenreAdminClient({ initialSchoolId }: Props) {
                           )}
                         </div>
 
-                        <div className="grid grid-cols-2 gap-2">
-                          <div>
-                            <div className="text-[11px] font-semibold text-gray-600 dark:text-gray-300">
-                              sortOrder
-                            </div>
-                            {editing ? (
+                        {/* ✅ アクティブ ON/OFF */}
+                        <div className="flex items-end justify-between gap-2">
+                          {editing ? (
+                            <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-200">
                               <input
-                                type="number"
-                                value={Number(current.sortOrder ?? 1)}
+                                type="checkbox"
+                                checked={Boolean(current.isActive)}
                                 onChange={(ev) =>
                                   updateEditField(r.id, {
-                                    sortOrder: Number(ev.target.value),
+                                    isActive: ev.target.checked,
                                   })
                                 }
-                                className={input}
+                                className="rounded border-gray-300 dark:border-gray-700"
                               />
-                            ) : (
-                              <div className="text-[12px] text-gray-700 dark:text-gray-200">
-                                {r.sortOrder}
-                              </div>
-                            )}
-                          </div>
-
-                          <div className="flex items-end">
-                            {editing ? (
+                              アクティブ（ON）
+                            </label>
+                          ) : (
+                            <div className="flex items-center gap-2">
                               <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-200">
                                 <input
                                   type="checkbox"
-                                  checked={Boolean(current.isActive)}
+                                  checked={r.isActive}
+                                  disabled={saving}
                                   onChange={(ev) =>
-                                    updateEditField(r.id, {
-                                      isActive: ev.target.checked,
-                                    })
+                                    void toggleActive(r, ev.target.checked)
                                   }
                                   className="rounded border-gray-300 dark:border-gray-700"
                                 />
-                                active
+                                アクティブ
                               </label>
-                            ) : (
                               <div
                                 className={[
                                   "rounded-full px-2 py-0.5 text-[11px] font-semibold",
-                                  r.isActive
-                                    ? "bg-green-50 text-green-700 dark:bg-green-950/40 dark:text-green-200"
-                                    : "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300",
+                                  r.isActive ? pillActive : pillInactive,
                                 ].join(" ")}
                               >
-                                {r.isActive ? "active" : "inactive"}
+                                {r.isActive ? "ON" : "休校"}
                               </div>
-                            )}
-                          </div>
+                            </div>
+                          )}
                         </div>
                       </div>
 
-                      {/* ✅ 追加：answerTag 表示/編集 */}
+                      {/* answerTag 表示/編集 */}
                       <div className="mt-3">
                         <div className="text-[11px] font-semibold text-gray-600 dark:text-gray-300">
                           answerTag（診断Q4と紐づけ）
@@ -599,13 +600,14 @@ export default function GenreAdminClient({ initialSchoolId }: Props) {
                             編集
                           </button>
 
+                          {/* ✅ 削除 */}
                           <button
                             type="button"
-                            onClick={() => deactivate(r.id)}
+                            onClick={() => void deleteGenre(r)}
                             disabled={saving}
                             className={btnDanger}
                           >
-                            無効化
+                            削除
                           </button>
                         </>
                       ) : (
