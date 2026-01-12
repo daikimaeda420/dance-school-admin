@@ -36,8 +36,6 @@ async function ensureDefaults(schoolId: string) {
       sortOrder: d.sortOrder,
       isActive: true,
     })),
-    // ✅ 競合（並列アクセス）に強くする
-    skipDuplicates: true,
   });
 }
 
