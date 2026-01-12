@@ -89,19 +89,33 @@ export default function LifestyleAdminClient({
   async function fetchRows() {
     setLoading(true);
     setError(null);
-    try {
-      const res = await fetch(
-        `${apiBase}?schoolId=${encodeURIComponent(schoolId)}`,
-        { cache: "no-store" }
-      );
-      const data = await res.json();
-      if (!res.ok) throw new Error(data?.message ?? "取得に失敗しました");
+    const url = `${apiBase}?schoolId=${encodeURIComponent(schoolId)}`;
 
-      const normalized = normalizeRowsWithOrder(data.lifestyles ?? []);
+    try {
+      const res = await fetch(url, { cache: "no-store" });
+      const text = await res.text(); // ← 先に text で取る（JSONじゃなくても落ちない）
+
+      let data: any = null;
+      try {
+        data = text ? JSON.parse(text) : null;
+      } catch {
+        // JSONじゃない（404 HTMLなど）
+      }
+
+      if (!res.ok) {
+        const msg =
+          data?.message ??
+          `HTTP ${res.status} ${
+            res.statusText
+          }\nURL: ${url}\n\nBODY:\n${text.slice(0, 500)}`;
+        throw new Error(msg);
+      }
+
+      const normalized = normalizeRowsWithOrder(data?.lifestyles ?? []);
       setRows(normalized);
       originalRef.current = normalized;
     } catch (e: any) {
-      setError(e.message ?? "取得に失敗しました");
+      setError(e?.message ?? "取得に失敗しました");
     } finally {
       setLoading(false);
     }
