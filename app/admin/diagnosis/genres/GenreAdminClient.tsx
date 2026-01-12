@@ -313,7 +313,7 @@ export default function GenreAdminClient({ initialSchoolId }: Props) {
     GENRE_ANSWER_TAG_OPTIONS.find((x) => x.value === tag)?.label ?? "未設定";
 
   return (
-    <div className="mx-auto w-full max-w-5xl p-6 text-gray-900 dark:text-gray-100">
+    <div className="mx-auto w-full p-6 text-gray-900 dark:text-gray-100">
       <div className="mb-4">
         <div className="text-base font-bold">診断編集：ジャンル管理</div>
         <div className="text-xs text-gray-500 dark:text-gray-400">
