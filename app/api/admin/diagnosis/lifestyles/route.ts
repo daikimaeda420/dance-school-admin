@@ -25,7 +25,6 @@ const DEFAULTS: Array<{ label: string; slug: string; sortOrder: number }> = [
 ];
 
 async function ensureDefaults(schoolId: string) {
-  // 1件でもあれば何もしない
   const count = await prisma.diagnosisLifestyle.count({ where: { schoolId } });
   if (count > 0) return;
 
@@ -37,6 +36,8 @@ async function ensureDefaults(schoolId: string) {
       sortOrder: d.sortOrder,
       isActive: true,
     })),
+    // ✅ 競合（並列アクセス）に強くする
+    skipDuplicates: true,
   });
 }
 
@@ -54,12 +55,12 @@ export async function GET(req: NextRequest) {
 
     const rows = await prisma.diagnosisLifestyle.findMany({
       where: { schoolId },
-      orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+      // ✅ createdAt が無い環境でも必ず動く安定ソート
+      orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
     });
 
     return NextResponse.json({ lifestyles: rows });
   } catch (e: any) {
-    // ここで detail を返しておくと原因特定が早い
     return json("lifestyles取得でエラー", 500, {
       detail: e?.message ?? String(e),
     });
@@ -67,7 +68,6 @@ export async function GET(req: NextRequest) {
 }
 
 // POST /api/admin/diagnosis/lifestyles
-// body: { schoolId, label, slug?, sortOrder?, isActive? }
 export async function POST(req: NextRequest) {
   try {
     const session = await ensureLoggedIn();
@@ -99,7 +99,6 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ lifestyle: created });
   } catch (e: any) {
-    // slug重複など Prisma の内容も返す（UI側の原因特定用）
     return json("追加に失敗しました（slug重複の可能性）", 400, {
       detail: e?.message ?? String(e),
     });
@@ -107,7 +106,6 @@ export async function POST(req: NextRequest) {
 }
 
 // PATCH /api/admin/diagnosis/lifestyles
-// body: { id, label?, slug?, sortOrder?, isActive? }
 export async function PATCH(req: NextRequest) {
   try {
     const session = await ensureLoggedIn();
@@ -140,7 +138,6 @@ export async function PATCH(req: NextRequest) {
 }
 
 // DELETE /api/admin/diagnosis/lifestyles
-// body: { id }
 export async function DELETE(req: NextRequest) {
   try {
     const session = await ensureLoggedIn();
