@@ -98,9 +98,12 @@ export default function GenreAdminClient({ initialSchoolId }: Props) {
     setError(null);
     try {
       const res = await fetch(
-        `/api/diagnosis/genres?schoolId=${encodeURIComponent(schoolId)}`,
+        `/api/diagnosis/genres?schoolId=${encodeURIComponent(
+          schoolId
+        )}&includeInactive=true`,
         { cache: "no-store" }
       );
+
       if (!res.ok) throw new Error("DiagnosisGenre の取得に失敗しました");
       const data = (await res.json()) as any[];
 

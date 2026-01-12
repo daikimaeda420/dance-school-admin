@@ -35,11 +35,15 @@ export async function GET(req: NextRequest) {
 
   const { searchParams } = new URL(req.url);
   const schoolId = searchParams.get("schoolId")?.trim();
+  const includeInactive = searchParams.get("includeInactive") === "true";
 
   if (!schoolId) return json("schoolId が必要です", 400);
 
   const rows = await prisma.diagnosisGenre.findMany({
-    where: { schoolId },
+    where: {
+      schoolId,
+      ...(includeInactive ? {} : { isActive: true }), // ←ここがポイント
+    },
     orderBy: [{ sortOrder: "asc" }, { label: "asc" }],
   });
 
