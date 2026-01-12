@@ -24,8 +24,8 @@ const input =
 
 const btn =
   "rounded-xl px-3 py-2 text-sm font-medium border " +
-  "border-gray-200 bg-white hover:bg-gray-50 " +
-  "dark:border-gray-800 dark:bg-gray-900 dark:hover:bg-gray-800";
+  "border-gray-200 bg-white hover:bg-gray-50 text-gray-900 " +
+  "dark:border-gray-800 dark:bg-gray-900 dark:hover:bg-gray-800 dark:text-gray-100";
 
 const btnDanger =
   "rounded-xl px-3 py-2 text-sm font-medium border " +
@@ -238,7 +238,9 @@ export default function LifestyleAdminClient({
   return (
     <div className="space-y-4">
       <div className={card}>
-        <div className="text-lg font-semibold">年代・ライフスタイル（Q3）</div>
+        <div className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+          年代・ライフスタイル（Q3）
+        </div>
         <div className="mt-2 text-sm text-gray-600 dark:text-gray-300">
           デフォルト6項目が自動で作成されます。追加・編集・削除・並び替えが可能です。
           <br />
@@ -254,7 +256,9 @@ export default function LifestyleAdminClient({
 
       {/* 新規追加 */}
       <div className={card}>
-        <div className="font-semibold">新規追加</div>
+        <div className="font-semibold text-gray-900 dark:text-gray-100">
+          新規追加
+        </div>
         <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-3">
           <div className="md:col-span-2">
             <div className="mb-1 text-xs text-gray-500 dark:text-gray-400">
@@ -307,7 +311,9 @@ export default function LifestyleAdminClient({
       {/* 一覧 */}
       <div className={card}>
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="font-semibold">一覧</div>
+          <div className="font-semibold text-gray-900 dark:text-gray-100">
+            一覧
+          </div>
 
           <div className="flex items-center gap-2">
             <button
