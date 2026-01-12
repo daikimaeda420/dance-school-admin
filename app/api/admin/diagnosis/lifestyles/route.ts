@@ -40,6 +40,7 @@ async function ensureDefaults(schoolId: string) {
 }
 
 // GET /api/admin/diagnosis/lifestyles?schoolId=xxx
+// GET /api/admin/diagnosis/lifestyles?schoolId=xxx
 export async function GET(req: NextRequest) {
   try {
     const session = await ensureLoggedIn();
@@ -53,7 +54,6 @@ export async function GET(req: NextRequest) {
 
     const rows = await prisma.diagnosisLifestyle.findMany({
       where: { schoolId },
-      // ✅ createdAt が無い環境でも必ず動く安定ソート
       orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
     });
 
@@ -61,6 +61,9 @@ export async function GET(req: NextRequest) {
   } catch (e: any) {
     return json("lifestyles取得でエラー", 500, {
       detail: e?.message ?? String(e),
+      name: e?.name,
+      code: e?.code, // Prisma error code (P20xx とか)
+      meta: e?.meta, // table名とか出ることが多い
     });
   }
 }
