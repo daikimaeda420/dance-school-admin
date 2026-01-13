@@ -1,15 +1,7 @@
 // app/admin/diagnosis/instructors/InstructorAdminClient.tsx
 "use client";
 
-import {
-  useEffect,
-  useMemo,
-  useState,
-  type Dispatch,
-  type SetStateAction,
-  type MouseEvent,
-  type ChangeEvent,
-} from "react";
+import { useEffect, useMemo, useState } from "react";
 
 type Props = { initialSchoolId?: string };
 
@@ -80,8 +72,6 @@ const btnDanger =
 const thumb =
   "h-12 w-12 rounded-xl border border-gray-200 object-cover dark:border-gray-800";
 
-const selectBox = input + " h-40 leading-tight " + "dark:[color-scheme:dark]";
-
 const EMPTY_IMG =
   "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==";
 
@@ -101,37 +91,6 @@ function joinLabels(opts?: OptionRow[]) {
     .map((o) => o.label)
     .filter(Boolean)
     .join(" / ");
-}
-
-/**
- * ✅ クリックだけで複数選択できるようにする（toggle）
- * - Mac/Winの⌘/Ctrl不要で複数選択できる
- * - Shift範囲選択も自然に残る
- */
-function makeToggleSelectHandlers(
-  selected: string[],
-  setSelected: Dispatch<SetStateAction<string[]>>
-) {
-  const onMouseDown = (e: MouseEvent<HTMLSelectElement>) => {
-    const target = e.target as HTMLElement;
-    if (target?.tagName !== "OPTION") return;
-
-    e.preventDefault(); // 単一置換を防ぐ
-    const opt = target as HTMLOptionElement;
-    const value = opt.value;
-
-    setSelected((prev) => {
-      const has = prev.includes(value);
-      return has ? prev.filter((x) => x !== value) : [...prev, value];
-    });
-  };
-
-  const onChange = (e: ChangeEvent<HTMLSelectElement>) => {
-    // キーボード操作などのフォールバック
-    setSelected(Array.from(e.target.selectedOptions).map((o) => o.value));
-  };
-
-  return { onMouseDown, onChange, value: selected };
 }
 
 function CheckboxList({
@@ -162,6 +121,7 @@ function CheckboxList({
             <label
               key={o.id}
               className="flex items-center gap-2 text-xs text-gray-800 dark:text-gray-200"
+              title={o.label}
             >
               <input
                 type="checkbox"
@@ -735,44 +695,31 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
 
               <div>
                 <div className="mb-1 text-[11px] font-semibold text-gray-600 dark:text-gray-300">
-                  対応ジャンル
+                  対応ジャンル（チェック）
                 </div>
-                <select
-                  className={selectBox}
-                  multiple
-                  size={8}
-                  {...makeToggleSelectHandlers(newGenreIds, setNewGenreIds)}
-                >
-                  {genres.map((g) => (
-                    <option key={g.id} value={g.id}>
-                      {g.label}
-                    </option>
-                  ))}
-                </select>
+                <CheckboxList
+                  options={genres}
+                  selected={newGenreIds}
+                  onChange={setNewGenreIds}
+                  columns={2}
+                />
               </div>
 
               <div>
                 <div className="mb-1 text-[11px] font-semibold text-gray-600 dark:text-gray-300">
-                  対応校舎
+                  対応校舎（チェック）
                 </div>
-                <select
-                  className={selectBox}
-                  multiple
-                  size={8}
-                  {...makeToggleSelectHandlers(newCampusIds, setNewCampusIds)}
-                >
-                  {campuses.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.label}
-                    </option>
-                  ))}
-                </select>
+                <CheckboxList
+                  options={campuses}
+                  selected={newCampusIds}
+                  onChange={setNewCampusIds}
+                  columns={2}
+                />
               </div>
             </div>
 
             <div className="mt-2 text-[11px] text-gray-500 dark:text-gray-400">
-              ✅
-              コースはチェックボックス、ジャンル/校舎はクリックで選択/解除できます（⌘/Ctrl不要）。
+              ✅ コース/ジャンル/校舎はチェックボックスで複数選択できます。
             </div>
           </div>
 
@@ -1014,78 +961,30 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
 
                               <div>
                                 <div className="mb-1 text-[11px] text-gray-600 dark:text-gray-300">
-                                  ジャンル
+                                  ジャンル（チェック）
                                 </div>
-                                <select
-                                  className={selectBox}
-                                  multiple
-                                  size={8}
-                                  value={currentGenreIds}
-                                  onMouseDown={(ev) => {
-                                    const target = ev.target as HTMLElement;
-                                    if (target?.tagName !== "OPTION") return;
-                                    ev.preventDefault();
-                                    const opt = target as HTMLOptionElement;
-                                    const v = opt.value;
-                                    updateEditField(r.id, {
-                                      genreIds: currentGenreIds.includes(v)
-                                        ? currentGenreIds.filter((x) => x !== v)
-                                        : [...currentGenreIds, v],
-                                    });
-                                  }}
-                                  onChange={(ev) =>
-                                    updateEditField(r.id, {
-                                      genreIds: Array.from(
-                                        ev.target.selectedOptions
-                                      ).map((o) => o.value),
-                                    })
+                                <CheckboxList
+                                  options={genres}
+                                  selected={currentGenreIds}
+                                  onChange={(next) =>
+                                    updateEditField(r.id, { genreIds: next })
                                   }
-                                >
-                                  {genres.map((g) => (
-                                    <option key={g.id} value={g.id}>
-                                      {g.label}
-                                    </option>
-                                  ))}
-                                </select>
+                                  columns={2}
+                                />
                               </div>
 
                               <div>
                                 <div className="mb-1 text-[11px] text-gray-600 dark:text-gray-300">
-                                  校舎
+                                  校舎（チェック）
                                 </div>
-                                <select
-                                  className={selectBox}
-                                  multiple
-                                  size={8}
-                                  value={currentCampusIds}
-                                  onMouseDown={(ev) => {
-                                    const target = ev.target as HTMLElement;
-                                    if (target?.tagName !== "OPTION") return;
-                                    ev.preventDefault();
-                                    const opt = target as HTMLOptionElement;
-                                    const v = opt.value;
-                                    updateEditField(r.id, {
-                                      campusIds: currentCampusIds.includes(v)
-                                        ? currentCampusIds.filter(
-                                            (x) => x !== v
-                                          )
-                                        : [...currentCampusIds, v],
-                                    });
-                                  }}
-                                  onChange={(ev) =>
-                                    updateEditField(r.id, {
-                                      campusIds: Array.from(
-                                        ev.target.selectedOptions
-                                      ).map((o) => o.value),
-                                    })
+                                <CheckboxList
+                                  options={campuses}
+                                  selected={currentCampusIds}
+                                  onChange={(next) =>
+                                    updateEditField(r.id, { campusIds: next })
                                   }
-                                >
-                                  {campuses.map((p) => (
-                                    <option key={p.id} value={p.id}>
-                                      {p.label}
-                                    </option>
-                                  ))}
-                                </select>
+                                  columns={2}
+                                />
                               </div>
                             </div>
                           ) : (
