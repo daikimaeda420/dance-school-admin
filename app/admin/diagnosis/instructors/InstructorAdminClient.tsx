@@ -26,11 +26,11 @@ type InstructorRow = {
   schoolId: string;
   label: string;
   slug: string;
+  // sortOrder はDB互換のため型としては保持（UI/機能としては使わない）
   sortOrder: number;
   isActive: boolean;
   photoMime?: string | null;
 
-  // ✅ 追加：プロフィール
   charmTags?: string | null; // 改行区切り
   introduction?: string | null;
 
@@ -104,7 +104,7 @@ function joinLabels(opts?: OptionRow[]) {
 }
 
 /**
- * ✅ 追加：クリックだけで複数選択できるようにする（toggle）
+ * ✅ クリックだけで複数選択できるようにする（toggle）
  * - Mac/Winの⌘/Ctrl不要で複数選択できる
  * - Shift範囲選択も自然に残る
  */
@@ -134,6 +134,55 @@ function makeToggleSelectHandlers(
   return { onMouseDown, onChange, value: selected };
 }
 
+function CheckboxList({
+  options,
+  selected,
+  onChange,
+  columns = 2,
+}: {
+  options: OptionRow[];
+  selected: string[];
+  onChange: (next: string[]) => void;
+  columns?: 1 | 2 | 3;
+}) {
+  const set = new Set(selected);
+  const gridCols =
+    columns === 1
+      ? "grid-cols-1"
+      : columns === 3
+      ? "grid-cols-3"
+      : "grid-cols-2";
+
+  return (
+    <div className="rounded-xl border border-gray-200 bg-white p-3 dark:border-gray-800 dark:bg-gray-950">
+      <div className={`grid gap-2 ${gridCols}`}>
+        {options.map((o) => {
+          const checked = set.has(o.id);
+          return (
+            <label
+              key={o.id}
+              className="flex items-center gap-2 text-xs text-gray-800 dark:text-gray-200"
+            >
+              <input
+                type="checkbox"
+                checked={checked}
+                onChange={(e) => {
+                  const next = e.target.checked
+                    ? uniqStrings([...selected, o.id])
+                    : selected.filter((x) => x !== o.id);
+                  onChange(next);
+                }}
+                className="rounded border-gray-300 dark:border-gray-700"
+              />
+              <span className="truncate">{o.label}</span>
+            </label>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export default function InstructorAdminClient({ initialSchoolId }: Props) {
   const [schoolId, setSchoolId] = useState(initialSchoolId ?? "");
 
@@ -149,7 +198,6 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
   const [newId, setNewId] = useState("");
   const [newLabel, setNewLabel] = useState("");
   const [newSlug, setNewSlug] = useState("");
-  const [newSortOrder, setNewSortOrder] = useState<number>(1);
   const [newIsActive, setNewIsActive] = useState(true);
   const [newFile, setNewFile] = useState<File | null>(null);
 
@@ -171,7 +219,7 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
     {}
   );
 
-  // ✅ 追加：編集画像プレビュー（URL leak対策）
+  // ✅ 編集画像プレビュー（URL leak対策）
   const [editPreviewMap, setEditPreviewMap] = useState<Record<string, string>>(
     {}
   );
@@ -189,7 +237,9 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
       const [cRes, gRes, pRes] = await Promise.all([
         fetch(
           `/api/diagnosis/courses?schoolId=${encodeURIComponent(schoolId)}`,
-          { cache: "no-store" }
+          {
+            cache: "no-store",
+          }
         ),
         fetch(
           `/api/diagnosis/genres?schoolId=${encodeURIComponent(schoolId)}`,
@@ -249,11 +299,10 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
         schoolId: String(d.schoolId ?? schoolId),
         label: String(d.label ?? ""),
         slug: String(d.slug ?? ""),
-        sortOrder: Number(d.sortOrder ?? 1),
+        sortOrder: Number(d.sortOrder ?? 1), // 互換保持
         isActive: Boolean(d.isActive ?? true),
         photoMime: typeof d.photoMime === "string" ? d.photoMime : null,
 
-        // ✅ 追加
         charmTags: typeof d.charmTags === "string" ? d.charmTags : null,
         introduction:
           typeof d.introduction === "string" ? d.introduction : null,
@@ -266,7 +315,12 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
         campusIds: safeJsonArray(d.campusIds),
       }));
 
-      setRows(normalized.sort((a, b) => a.sortOrder - b.sortOrder));
+      // ✅ sortOrder機能は廃止：見やすさ重視で label 昇順に
+      setRows(
+        normalized.sort((a, b) =>
+          (a.label ?? "").localeCompare(b.label ?? "", "ja")
+        )
+      );
     } catch (e: any) {
       setError(e?.message ?? "読み込みに失敗しました");
     } finally {
@@ -323,7 +377,10 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
       fd.append("schoolId", schoolId);
       fd.append("label", label);
       fd.append("slug", slug);
-      fd.append("sortOrder", String(newSortOrder));
+
+      // ✅ sortOrder機能廃止：互換用に固定値を送る
+      fd.append("sortOrder", "1");
+
       fd.append("isActive", String(newIsActive));
       if (newFile) fd.append("file", newFile);
 
@@ -331,7 +388,6 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
       fd.append("genreIds", JSON.stringify(uniqStrings(newGenreIds)));
       fd.append("campusIds", JSON.stringify(uniqStrings(newCampusIds)));
 
-      // ✅ 追加：プロフィール
       fd.append("charmTags", newCharmTags);
       fd.append("introduction", newIntroduction);
 
@@ -347,14 +403,11 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
       setNewId("");
       setNewLabel("");
       setNewSlug("");
-      setNewSortOrder(1);
       setNewIsActive(true);
       setNewFile(null);
       setNewCourseIds([]);
       setNewGenreIds([]);
       setNewCampusIds([]);
-
-      // ✅ 追加
       setNewCharmTags("");
       setNewIntroduction("");
 
@@ -438,7 +491,10 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
       fd.append("schoolId", schoolId);
       fd.append("label", String(e.label));
       fd.append("slug", String(e.slug));
-      fd.append("sortOrder", String(e.sortOrder ?? 0));
+
+      // ✅ sortOrder機能廃止：互換値だけ送る（編集UIは出さない）
+      fd.append("sortOrder", String((e as any).sortOrder ?? 1));
+
       fd.append("isActive", String(e.isActive ?? true));
       fd.append("clearPhoto", String(clearPhotoMap[id] ?? false));
 
@@ -458,7 +514,6 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
         JSON.stringify(uniqStrings(safeJsonArray(e.campusIds)))
       );
 
-      // ✅ 追加：プロフィール
       fd.append("charmTags", String((e as any).charmTags ?? ""));
       fd.append("introduction", String((e as any).introduction ?? ""));
 
@@ -480,23 +535,45 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
     }
   };
 
-  const deactivate = async (id: string) => {
+  // ✅ 「無効化」ではなく「休止/再開」（isActiveのトグル）
+  const toggleActive = async (r: InstructorRow, nextActive: boolean) => {
     setSaving(true);
     setError(null);
     try {
-      const res = await fetch(
-        `/api/diagnosis/instructors?id=${encodeURIComponent(
-          id
-        )}&schoolId=${encodeURIComponent(schoolId)}`,
-        { method: "DELETE" }
+      const fd = new FormData();
+      fd.append("id", r.id);
+      fd.append("schoolId", schoolId);
+      fd.append("label", String(r.label ?? ""));
+      fd.append("slug", String(r.slug ?? ""));
+      fd.append("sortOrder", String(r.sortOrder ?? 1)); // 互換
+      fd.append("isActive", String(nextActive));
+      fd.append("clearPhoto", "false");
+      fd.append(
+        "courseIds",
+        JSON.stringify(uniqStrings(safeJsonArray(r.courseIds)))
       );
+      fd.append(
+        "genreIds",
+        JSON.stringify(uniqStrings(safeJsonArray(r.genreIds)))
+      );
+      fd.append(
+        "campusIds",
+        JSON.stringify(uniqStrings(safeJsonArray(r.campusIds)))
+      );
+      fd.append("charmTags", String(r.charmTags ?? ""));
+      fd.append("introduction", String(r.introduction ?? ""));
+
+      const res = await fetch("/api/diagnosis/instructors", {
+        method: "PUT",
+        body: fd,
+      });
       if (!res.ok) {
         const data = await res.json().catch(() => null);
-        throw new Error(data?.message ?? "無効化に失敗しました");
+        throw new Error(data?.message ?? "更新に失敗しました");
       }
       await fetchList();
     } catch (e: any) {
-      setError(e?.message ?? "無効化に失敗しました");
+      setError(e?.message ?? "更新に失敗しました");
     } finally {
       setSaving(false);
     }
@@ -514,6 +591,9 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
         <div className="text-base font-bold">診断編集：講師管理</div>
         <div className="text-xs text-gray-500 dark:text-gray-400">
           画像は管理画面からアップロードしてDBに保存します（上限はAPI内で制御）。
+          <span className="ml-2">
+            推奨画像サイズ：<span className="font-semibold">500×500</span>
+          </span>
         </div>
       </div>
 
@@ -583,6 +663,9 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
           <div>
             <div className="mb-1 text-xs font-semibold text-gray-600 dark:text-gray-300">
               画像（DB保存）
+              <span className="ml-2 text-[11px] font-normal text-gray-500 dark:text-gray-400">
+                推奨：500×500
+              </span>
             </div>
             <div className="flex items-center gap-3">
               <img src={previewForNew || EMPTY_IMG} className={thumb} alt="" />
@@ -595,7 +678,7 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
             </div>
           </div>
 
-          {/* ✅ 追加：プロフィール */}
+          {/* プロフィール */}
           <div className="md:col-span-2">
             <div className="mb-2 text-xs font-semibold text-gray-600 dark:text-gray-300">
               プロフィール
@@ -640,20 +723,14 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
             <div className="grid gap-3 md:grid-cols-3">
               <div>
                 <div className="mb-1 text-[11px] font-semibold text-gray-600 dark:text-gray-300">
-                  対応コース
+                  対応コース（チェック）
                 </div>
-                <select
-                  className={selectBox}
-                  multiple
-                  size={8}
-                  {...makeToggleSelectHandlers(newCourseIds, setNewCourseIds)}
-                >
-                  {courses.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.label}
-                    </option>
-                  ))}
-                </select>
+                <CheckboxList
+                  options={courses}
+                  selected={newCourseIds}
+                  onChange={setNewCourseIds}
+                  columns={2}
+                />
               </div>
 
               <div>
@@ -695,33 +772,20 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
 
             <div className="mt-2 text-[11px] text-gray-500 dark:text-gray-400">
               ✅
-              クリックで選択/解除できます（⌘/Ctrl不要）。Shiftで範囲選択もOK。
+              コースはチェックボックス、ジャンル/校舎はクリックで選択/解除できます（⌘/Ctrl不要）。
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3 md:col-span-2">
-            <div>
-              <div className="mb-1 text-xs font-semibold text-gray-600 dark:text-gray-300">
-                sortOrder
-              </div>
+          <div className="flex items-end gap-2 md:col-span-2">
+            <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-200">
               <input
-                type="number"
-                value={newSortOrder}
-                onChange={(e) => setNewSortOrder(Number(e.target.value))}
-                className={input}
+                type="checkbox"
+                checked={newIsActive}
+                onChange={(e) => setNewIsActive(e.target.checked)}
+                className="rounded border-gray-300 dark:border-gray-700"
               />
-            </div>
-            <div className="flex items-end gap-2">
-              <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-200">
-                <input
-                  type="checkbox"
-                  checked={newIsActive}
-                  onChange={(e) => setNewIsActive(e.target.checked)}
-                  className="rounded border-gray-300 dark:border-gray-700"
-                />
-                active
-              </label>
-            </div>
+              active
+            </label>
           </div>
         </div>
 
@@ -774,7 +838,6 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
               const e = editMap[r.id] as Partial<InstructorRow> | undefined;
               const current = editing ? (e as InstructorRow) : r;
 
-              const file = editFileMap[r.id] ?? null;
               const localPreview = editPreviewMap[r.id] || "";
               const hasDbPhoto = Boolean(r.photoMime);
 
@@ -835,6 +898,9 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
                         <div>
                           <div className="text-[11px] font-semibold text-gray-600 dark:text-gray-300">
                             画像
+                            <span className="ml-2 text-[11px] font-normal text-gray-500 dark:text-gray-400">
+                              推奨：500×500
+                            </span>
                           </div>
 
                           <div className="mt-1 flex items-center gap-3">
@@ -934,41 +1000,16 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
                             <div className="mt-2 grid gap-2 md:grid-cols-3">
                               <div>
                                 <div className="mb-1 text-[11px] text-gray-600 dark:text-gray-300">
-                                  コース
+                                  コース（チェック）
                                 </div>
-                                <select
-                                  className={selectBox}
-                                  multiple
-                                  size={8}
-                                  value={currentCourseIds}
-                                  onMouseDown={(ev) => {
-                                    const target = ev.target as HTMLElement;
-                                    if (target?.tagName !== "OPTION") return;
-                                    ev.preventDefault();
-                                    const opt = target as HTMLOptionElement;
-                                    const v = opt.value;
-                                    updateEditField(r.id, {
-                                      courseIds: currentCourseIds.includes(v)
-                                        ? currentCourseIds.filter(
-                                            (x) => x !== v
-                                          )
-                                        : [...currentCourseIds, v],
-                                    });
-                                  }}
-                                  onChange={(ev) =>
-                                    updateEditField(r.id, {
-                                      courseIds: Array.from(
-                                        ev.target.selectedOptions
-                                      ).map((o) => o.value),
-                                    })
+                                <CheckboxList
+                                  options={courses}
+                                  selected={currentCourseIds}
+                                  onChange={(next) =>
+                                    updateEditField(r.id, { courseIds: next })
                                   }
-                                >
-                                  {courses.map((c) => (
-                                    <option key={c.id} value={c.id}>
-                                      {c.label}
-                                    </option>
-                                  ))}
-                                </select>
+                                  columns={2}
+                                />
                               </div>
 
                               <div>
@@ -1067,7 +1108,7 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
                           )}
                         </div>
 
-                        {/* ✅ 追加：プロフィール */}
+                        {/* プロフィール */}
                         <div className="md:col-span-3">
                           <div className="text-[11px] font-semibold text-gray-600 dark:text-gray-300">
                             プロフィール（チャームポイント / 自己紹介）
@@ -1147,57 +1188,34 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
                           )}
                         </div>
 
-                        <div className="grid grid-cols-2 gap-2 md:col-span-3">
-                          <div>
-                            <div className="text-[11px] font-semibold text-gray-600 dark:text-gray-300">
-                              sortOrder
-                            </div>
-                            {editing ? (
+                        {/* Active表示（無効化→休止ボタンへ） */}
+                        <div className="md:col-span-3">
+                          {editing ? (
+                            <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-200">
                               <input
-                                type="number"
-                                value={Number(current.sortOrder ?? 1)}
+                                type="checkbox"
+                                checked={Boolean(current.isActive)}
                                 onChange={(ev) =>
                                   updateEditField(r.id, {
-                                    sortOrder: Number(ev.target.value),
+                                    isActive: ev.target.checked,
                                   })
                                 }
-                                className={input}
+                                className="rounded border-gray-300 dark:border-gray-700"
                               />
-                            ) : (
-                              <div className="text-[12px] text-gray-700 dark:text-gray-200">
-                                {r.sortOrder}
-                              </div>
-                            )}
-                          </div>
-
-                          <div className="flex items-end">
-                            {editing ? (
-                              <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-200">
-                                <input
-                                  type="checkbox"
-                                  checked={Boolean(current.isActive)}
-                                  onChange={(ev) =>
-                                    updateEditField(r.id, {
-                                      isActive: ev.target.checked,
-                                    })
-                                  }
-                                  className="rounded border-gray-300 dark:border-gray-700"
-                                />
-                                active
-                              </label>
-                            ) : (
-                              <div
-                                className={[
-                                  "rounded-full px-2 py-0.5 text-[11px] font-semibold",
-                                  r.isActive
-                                    ? "bg-green-50 text-green-700 dark:bg-green-950/40 dark:text-green-200"
-                                    : "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300",
-                                ].join(" ")}
-                              >
-                                {r.isActive ? "active" : "inactive"}
-                              </div>
-                            )}
-                          </div>
+                              active
+                            </label>
+                          ) : (
+                            <div
+                              className={[
+                                "inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold",
+                                r.isActive
+                                  ? "bg-green-50 text-green-700 dark:bg-green-950/40 dark:text-green-200"
+                                  : "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300",
+                              ].join(" ")}
+                            >
+                              {r.isActive ? "active" : "paused"}
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -1216,14 +1234,30 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
                           >
                             編集
                           </button>
-                          <button
-                            type="button"
-                            onClick={() => deactivate(r.id)}
-                            disabled={saving}
-                            className={btnDanger}
-                          >
-                            無効化
-                          </button>
+
+                          {/* ✅ 無効化 → 休止/再開 */}
+                          {r.isActive ? (
+                            <button
+                              type="button"
+                              onClick={() => toggleActive(r, false)}
+                              disabled={saving}
+                              className={btnDanger}
+                            >
+                              休止
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => toggleActive(r, true)}
+                              disabled={saving}
+                              className={btnOutline.replace(
+                                "px-4 py-2 text-sm",
+                                "px-3 py-1.5 text-xs"
+                              )}
+                            >
+                              再開
+                            </button>
+                          )}
                         </>
                       ) : (
                         <>
