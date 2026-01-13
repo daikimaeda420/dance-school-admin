@@ -1,7 +1,9 @@
 // lib/prisma.ts
 import { PrismaClient } from "@prisma/client";
 
-const globalForPrisma = global as unknown as { prisma?: PrismaClient };
+const globalForPrisma = globalThis as unknown as {
+  prisma: PrismaClient | undefined;
+};
 
 export const prisma =
   globalForPrisma.prisma ??
@@ -12,6 +14,8 @@ export const prisma =
         : ["error"],
   });
 
-if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
+// ✅ production でも保持してOK（Vercelで安定しやすい）
+globalForPrisma.prisma = prisma;
 
-export default prisma;
+// default export は混乱の元なので消すのおすすめ
+// export default prisma;
