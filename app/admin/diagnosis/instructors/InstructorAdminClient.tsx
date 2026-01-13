@@ -557,19 +557,6 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
         </div>
       </div>
 
-      {/* schoolId */}
-      <div className={`mb-4 ${card}`}>
-        <div className="mb-2 text-xs font-semibold text-gray-600 dark:text-gray-300">
-          schoolId
-        </div>
-        <input
-          value={schoolId}
-          onChange={(e) => setSchoolId(e.target.value)}
-          className={input}
-          placeholder="例：daiki.maeda.web（他のIDでもOK）"
-        />
-      </div>
-
       {/* create */}
       <div className={`mb-4 ${card}`}>
         <div className="mb-3 text-sm font-semibold">新規追加</div>
