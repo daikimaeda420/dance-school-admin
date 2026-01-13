@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
 
+export const runtime = "nodejs";
+
 async function ensureLoggedIn() {
   const session = await getServerSession(authOptions);
   if (!session?.user?.email) return null;

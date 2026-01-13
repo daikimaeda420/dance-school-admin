@@ -14,8 +14,4 @@ export const prisma =
         : ["error"],
   });
 
-// ✅ production でも保持してOK（Vercelで安定しやすい）
 globalForPrisma.prisma = prisma;
-
-// default export は混乱の元なので消すのおすすめ
-// export default prisma;
