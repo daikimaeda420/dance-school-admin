@@ -16,9 +16,16 @@ type GenreRow = {
   sortOrder: number; // UIでは触らない（互換のため保持）
   isActive: boolean;
 
-  // ✅ 追加：画像（Bytesは返さない / mimeと更新時刻だけ返す想定）
+  // 画像（GETではバイナリを返さない前提）
   photoMime?: string | null;
-  updatedAt?: string | null;
+  hasImage?: boolean; // API(withImage=true)が付与する想定
+};
+
+type PendingImage = {
+  base64: string; // dataURL
+  mime: string;
+  name?: string;
+  size?: number;
 };
 
 function slugifyJa(input: string) {
@@ -62,10 +69,23 @@ const btnDanger =
   "hover:bg-red-50 disabled:opacity-50 " +
   "dark:border-red-900/50 dark:bg-gray-900 dark:text-red-300 dark:hover:bg-red-950/40";
 
+const btnSubtle =
+  "rounded-full border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs text-gray-700 " +
+  "hover:bg-gray-100 disabled:opacity-50 " +
+  "dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 dark:hover:bg-gray-700";
+
 const pillActive =
   "bg-green-50 text-green-700 dark:bg-green-950/40 dark:text-green-200";
 const pillInactive =
   "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300";
+
+const imgBox =
+  "rounded-2xl border border-gray-200 bg-gray-50 p-3 " +
+  "dark:border-gray-800 dark:bg-gray-950/30";
+
+const imgPreview =
+  "h-24 w-24 rounded-xl border border-gray-200 bg-white object-cover " +
+  "dark:border-gray-800 dark:bg-gray-900";
 
 // ✅ Q4固定質問（仕様書通り）
 const GENRE_ANSWER_TAG_OPTIONS: { value: string; label: string }[] = [
@@ -76,15 +96,18 @@ const GENRE_ANSWER_TAG_OPTIONS: { value: string; label: string }[] = [
   { value: "Genre_All", label: "まだ迷っている・色々見てみたい" },
 ];
 
-const MAX_IMAGE_BYTES = 3 * 1024 * 1024; // 3MB
-const OK_MIME = ["image/png", "image/jpeg", "image/webp"];
+function answerTagLabel(tag?: string | null) {
+  return (
+    GENRE_ANSWER_TAG_OPTIONS.find((x) => x.value === tag)?.label ?? "未設定"
+  );
+}
 
-async function fileToDataUrl(file: File): Promise<string> {
-  return await new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result ?? ""));
-    reader.onerror = () => reject(new Error("画像の読み込みに失敗しました"));
-    reader.readAsDataURL(file);
+function readFileAsDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(String(r.result ?? ""));
+    r.onerror = () => reject(new Error("画像の読み込みに失敗しました"));
+    r.readAsDataURL(file);
   });
 }
 
@@ -102,9 +125,16 @@ export default function GenreAdminClient({ initialSchoolId }: Props) {
   const [newSlug, setNewSlug] = useState("");
   const [newAnswerTag, setNewAnswerTag] = useState<string>(""); // 空=未設定
   const [newIsActive, setNewIsActive] = useState(true);
+  const [newImage, setNewImage] = useState<PendingImage | null>(null);
 
   // 編集用（行ID単位）
   const [editMap, setEditMap] = useState<Record<string, Partial<GenreRow>>>({});
+  // 画像の一時保持（行ID単位：選択したがまだ保存してない）
+  const [pendingImages, setPendingImages] = useState<
+    Record<string, PendingImage | null>
+  >({});
+  // 画像削除フラグ（行ID単位：保存時に削除を反映）
+  const [deleteImageIds, setDeleteImageIds] = useState<Set<string>>(new Set());
 
   const canLoad = schoolId.trim().length > 0;
 
@@ -116,7 +146,7 @@ export default function GenreAdminClient({ initialSchoolId }: Props) {
       const res = await fetch(
         `/api/diagnosis/genres?schoolId=${encodeURIComponent(
           schoolId
-        )}&includeInactive=true`,
+        )}&includeInactive=true&withImage=true`,
         { cache: "no-store" }
       );
 
@@ -131,9 +161,8 @@ export default function GenreAdminClient({ initialSchoolId }: Props) {
         answerTag: d.answerTag ?? null,
         sortOrder: Number(d.sortOrder ?? 1),
         isActive: Boolean(d.isActive ?? true),
-
         photoMime: d.photoMime ?? null,
-        updatedAt: d.updatedAt ?? null,
+        hasImage: Boolean(d.hasImage ?? false),
       }));
 
       // ✅ ソート機能はUIから消す：見た目の並びは label 昇順に固定
@@ -154,6 +183,13 @@ export default function GenreAdminClient({ initialSchoolId }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [schoolId]);
 
+  const hintId = useMemo(() => {
+    const base = slugifyJa(newLabel) || "genre";
+    return `genre_${base}`;
+  }, [newLabel]);
+
+  const hintSlug = useMemo(() => slugifyJa(newLabel), [newLabel]);
+
   const createGenre = async () => {
     if (!schoolId.trim()) return;
 
@@ -170,19 +206,26 @@ export default function GenreAdminClient({ initialSchoolId }: Props) {
     setSaving(true);
     setError(null);
     try {
+      const body: any = {
+        id,
+        schoolId,
+        label,
+        slug,
+        answerTag,
+        // sortOrder は互換のため送る（UIでは触らない）
+        sortOrder: 1,
+        isActive: newIsActive,
+      };
+
+      if (newImage) {
+        body.photoBase64 = newImage.base64;
+        body.photoMime = newImage.mime;
+      }
+
       const res = await fetch("/api/diagnosis/genres", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id,
-          schoolId,
-          label,
-          slug,
-          answerTag,
-          // sortOrder は互換のため送る（UIでは触らない）
-          sortOrder: 1,
-          isActive: newIsActive,
-        }),
+        body: JSON.stringify(body),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => null);
@@ -194,6 +237,7 @@ export default function GenreAdminClient({ initialSchoolId }: Props) {
       setNewSlug("");
       setNewAnswerTag("");
       setNewIsActive(true);
+      setNewImage(null);
 
       await fetchList();
     } catch (e: any) {
@@ -208,12 +252,23 @@ export default function GenreAdminClient({ initialSchoolId }: Props) {
       ...prev,
       [r.id]: { ...r },
     }));
+    setError(null);
   };
 
   const cancelEdit = (id: string) => {
     setEditMap((prev) => {
       const next = { ...prev };
       delete next[id];
+      return next;
+    });
+    setPendingImages((prev) => {
+      const next = { ...prev };
+      delete next[id];
+      return next;
+    });
+    setDeleteImageIds((prev) => {
+      const next = new Set(prev);
+      next.delete(id);
       return next;
     });
   };
@@ -237,19 +292,32 @@ export default function GenreAdminClient({ initialSchoolId }: Props) {
     setSaving(true);
     setError(null);
     try {
+      const body: any = {
+        id,
+        schoolId,
+        label: e.label,
+        slug: e.slug,
+        answerTag: (e.answerTag ?? "").trim() || null,
+        sortOrder: e.sortOrder ?? 1,
+        isActive: Boolean(e.isActive),
+      };
+
+      const pending = pendingImages[id];
+      const wantsDelete = deleteImageIds.has(id);
+
+      if (pending) {
+        body.photoBase64 = pending.base64;
+        body.photoMime = pending.mime;
+      } else if (wantsDelete) {
+        // ✅ 削除指示（API仕様：photoBase64を空で送るとNULL化）
+        body.photoBase64 = "";
+        body.photoMime = "";
+      }
+
       const res = await fetch("/api/diagnosis/genres", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id,
-          schoolId,
-          label: e.label,
-          slug: e.slug,
-          answerTag: (e.answerTag ?? "").trim() || null,
-          // sortOrder は既存値維持（UIでは触らない）
-          sortOrder: e.sortOrder ?? 1,
-          isActive: Boolean(e.isActive),
-        }),
+        body: JSON.stringify(body),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => null);
@@ -295,7 +363,7 @@ export default function GenreAdminClient({ initialSchoolId }: Props) {
     }
   };
 
-  // ✅ 削除（物理削除想定：hard=true）
+  // ✅ 削除（hard=trueなら物理削除 / それ以外はisActive=false）
   const deleteGenre = async (r: GenreRow) => {
     const ok = confirm(`「${r.label}」を削除しますか？\n※元に戻せません`);
     if (!ok) return;
@@ -321,84 +389,54 @@ export default function GenreAdminClient({ initialSchoolId }: Props) {
     }
   };
 
-  // ✅ 画像アップロード
-  const uploadGenreImage = async (r: GenreRow, file: File) => {
-    if (!file) return;
-
-    if (!OK_MIME.includes(file.type)) {
-      setError("対応形式は png / jpeg / webp のみです");
+  const onPickNewImage = async (file: File | null) => {
+    if (!file) {
+      setNewImage(null);
       return;
     }
-    if (file.size > MAX_IMAGE_BYTES) {
+    const MAX = 3 * 1024 * 1024; // 3MB
+    if (file.size > MAX) {
       setError("画像サイズが大きすぎます（最大3MB）");
       return;
     }
-
-    setSaving(true);
-    setError(null);
-    try {
-      const imageDataUrl = await fileToDataUrl(file);
-
-      const res = await fetch("/api/diagnosis/genres/image", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id: r.id,
-          schoolId,
-          imageDataUrl,
-        }),
-      });
-
-      if (!res.ok) {
-        const data = await res.json().catch(() => null);
-        throw new Error(data?.message ?? "画像アップロードに失敗しました");
-      }
-
-      await fetchList();
-    } catch (e: any) {
-      setError(e?.message ?? "画像アップロードに失敗しました");
-    } finally {
-      setSaving(false);
-    }
+    const base64 = await readFileAsDataUrl(file);
+    const mime = file.type || "image/jpeg";
+    setNewImage({ base64, mime, name: file.name, size: file.size });
   };
 
-  // ✅ 画像削除
-  const deleteGenreImage = async (r: GenreRow) => {
-    const ok = confirm(`「${r.label}」の画像を削除しますか？`);
-    if (!ok) return;
-
-    setSaving(true);
-    setError(null);
-    try {
-      const res = await fetch(
-        `/api/diagnosis/genres/image?id=${encodeURIComponent(
-          r.id
-        )}&schoolId=${encodeURIComponent(schoolId)}`,
-        { method: "DELETE" }
-      );
-
-      if (!res.ok) {
-        const data = await res.json().catch(() => null);
-        throw new Error(data?.message ?? "画像削除に失敗しました");
-      }
-
-      await fetchList();
-    } catch (e: any) {
-      setError(e?.message ?? "画像削除に失敗しました");
-    } finally {
-      setSaving(false);
+  const onPickRowImage = async (id: string, file: File | null) => {
+    if (!file) {
+      setPendingImages((prev) => ({ ...prev, [id]: null }));
+      return;
     }
+    const MAX = 3 * 1024 * 1024; // 3MB
+    if (file.size > MAX) {
+      setError("画像サイズが大きすぎます（最大3MB）");
+      return;
+    }
+    const base64 = await readFileAsDataUrl(file);
+    const mime = file.type || "image/jpeg";
+
+    setPendingImages((prev) => ({
+      ...prev,
+      [id]: { base64, mime, name: file.name, size: file.size },
+    }));
+    // 画像を選び直したら削除フラグは解除
+    setDeleteImageIds((prev) => {
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
   };
 
-  const hintId = useMemo(() => {
-    const base = slugifyJa(newLabel) || "genre";
-    return `genre_${base}`;
-  }, [newLabel]);
-
-  const hintSlug = useMemo(() => slugifyJa(newLabel), [newLabel]);
-
-  const answerTagLabel = (tag?: string | null) =>
-    GENRE_ANSWER_TAG_OPTIONS.find((x) => x.value === tag)?.label ?? "未設定";
+  const markDeleteRowImage = (id: string) => {
+    setPendingImages((prev) => ({ ...prev, [id]: null }));
+    setDeleteImageIds((prev) => {
+      const next = new Set(prev);
+      next.add(id);
+      return next;
+    });
+  };
 
   return (
     <div className="mx-auto w-full p-6 text-gray-900 dark:text-gray-100">
@@ -482,6 +520,62 @@ export default function GenreAdminClient({ initialSchoolId }: Props) {
             </div>
           </div>
 
+          {/* ✅ 新規：画像 */}
+          <div className={`md:col-span-2 ${imgBox}`}>
+            <div className="mb-2 text-xs font-semibold text-gray-700 dark:text-gray-200">
+              診断結果に表示する画像（任意）
+            </div>
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex items-center gap-3">
+                <img
+                  src={
+                    newImage?.base64 ||
+                    "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iOTYiIGhlaWdodD0iOTYiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9Ijk2IiBoZWlnaHQ9Ijk2IiByeD0iMTYiIGZpbGw9IiNlNWU3ZWIiLz48cGF0aCBkPSJNMjggNjhoNDB2LTRIMjh2NHptMC0xMmg0MHYtNEgyOHY0em0wLTEyaDQwdi00SDI4djR6IiBmaWxsPSIjNjM3Mzg1Ii8+PC9zdmc+"
+                  }
+                  alt=""
+                  className={imgPreview}
+                />
+                <div className="text-xs text-gray-600 dark:text-gray-300">
+                  <div className="font-semibold">プレビュー</div>
+                  <div className="text-[11px] text-gray-500 dark:text-gray-400">
+                    {newImage
+                      ? `${newImage.name ?? "image"} / ${Math.round(
+                          (newImage.size ?? 0) / 1024
+                        )}KB`
+                      : "未設定"}
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <label className={btnSubtle}>
+                  画像を選ぶ
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) =>
+                      void onPickNewImage(e.target.files?.[0] ?? null)
+                    }
+                  />
+                </label>
+                {newImage && (
+                  <button
+                    type="button"
+                    className={btnDanger}
+                    onClick={() => setNewImage(null)}
+                    disabled={saving}
+                  >
+                    クリア
+                  </button>
+                )}
+                <div className="text-[11px] text-gray-500 dark:text-gray-400">
+                  最大3MB（推奨：正方形 or 4:3）
+                </div>
+              </div>
+            </div>
+          </div>
+
           <div className="flex items-end gap-2">
             <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-200">
               <input
@@ -541,13 +635,22 @@ export default function GenreAdminClient({ initialSchoolId }: Props) {
               const e = editMap[r.id] as Partial<GenreRow> | undefined;
               const current = editing ? (e as GenreRow) : r;
 
-              const imgSrc = r.photoMime
-                ? `/api/diagnosis/genres/photo?id=${encodeURIComponent(
-                    r.id
-                  )}&schoolId=${encodeURIComponent(
-                    schoolId
-                  )}&v=${encodeURIComponent(String(r.updatedAt ?? ""))}`
-                : "";
+              const pending = pendingImages[r.id];
+              const wantsDelete = deleteImageIds.has(r.id);
+
+              const hasExistingImage = Boolean(r.hasImage || r.photoMime);
+              const showHasImage =
+                editing && pending
+                  ? true
+                  : editing && wantsDelete
+                  ? false
+                  : hasExistingImage;
+
+              const previewSrc =
+                pending?.base64 ||
+                (showHasImage
+                  ? "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iOTYiIGhlaWdodD0iOTYiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9Ijk2IiBoZWlnaHQ9Ijk2IiByeD0iMTYiIGZpbGw9IiNlNWU3ZWIiLz48cGF0aCBkPSJNMjggNjhoNDB2LTRIMjh2NHptMC0xMmg0MHYtNEgyOHY0em0wLTEyaDQwdi00SDI4djR6IiBmaWxsPSIjNjM3Mzg1Ii8+PC9zdmc+"
+                  : "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iOTYiIGhlaWdodD0iOTYiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9Ijk2IiBoZWlnaHQ9Ijk2IiByeD0iMTYiIGZpbGw9IiNlNWU3ZWIiLz48cGF0aCBkPSJNMjggNjhoNDB2LTRIMjh2NHptMC0xMmg0MHYtNEgyOHY0em0wLTEyaDQwdi00SDI4djR6IiBmaWxsPSIjNjM3Mzg1Ii8+PC9zdmc+");
 
               return (
                 <div
@@ -642,69 +745,6 @@ export default function GenreAdminClient({ initialSchoolId }: Props) {
                         </div>
                       </div>
 
-                      {/* ✅ 画像登録（診断結果に表示） */}
-                      <div className="mt-3">
-                        <div className="text-[11px] font-semibold text-gray-600 dark:text-gray-300">
-                          診断結果に表示する画像
-                        </div>
-
-                        <div className="mt-2 flex flex-wrap items-center gap-3">
-                          <div className="h-16 w-16 overflow-hidden rounded-xl border border-gray-200 bg-gray-50 dark:border-gray-800 dark:bg-gray-900">
-                            {r.photoMime ? (
-                              <img
-                                alt={`${r.label} image`}
-                                className="h-full w-full object-cover"
-                                src={imgSrc}
-                              />
-                            ) : (
-                              <div className="flex h-full w-full items-center justify-center text-[10px] text-gray-400">
-                                No Image
-                              </div>
-                            )}
-                          </div>
-
-                          <div className="flex flex-col gap-2">
-                            <label
-                              className={[
-                                btnOutline.replace(
-                                  "px-4 py-2 text-sm",
-                                  "px-3 py-1.5 text-xs"
-                                ),
-                                "cursor-pointer",
-                              ].join(" ")}
-                            >
-                              画像を選択
-                              <input
-                                type="file"
-                                accept="image/png,image/jpeg,image/webp"
-                                className="hidden"
-                                disabled={saving}
-                                onChange={(ev) => {
-                                  const f = ev.target.files?.[0];
-                                  if (f) void uploadGenreImage(r, f);
-                                  ev.currentTarget.value = "";
-                                }}
-                              />
-                            </label>
-
-                            {r.photoMime ? (
-                              <button
-                                type="button"
-                                className={btnDanger}
-                                disabled={saving}
-                                onClick={() => void deleteGenreImage(r)}
-                              >
-                                画像を削除
-                              </button>
-                            ) : (
-                              <div className="text-[11px] text-gray-500 dark:text-gray-400">
-                                推奨：正方形（例 512×512 / 800×800）・3MB以内
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-
                       {/* answerTag 表示/編集 */}
                       <div className="mt-3">
                         <div className="text-[11px] font-semibold text-gray-600 dark:text-gray-300">
@@ -745,6 +785,95 @@ export default function GenreAdminClient({ initialSchoolId }: Props) {
                           </div>
                         )}
                       </div>
+
+                      {/* ✅ 画像エリア */}
+                      <div className={`mt-3 ${imgBox}`}>
+                        <div className="mb-2 flex items-center justify-between gap-2">
+                          <div className="text-[11px] font-semibold text-gray-700 dark:text-gray-200">
+                            診断結果に表示する画像
+                          </div>
+                          <div className="text-[11px] text-gray-500 dark:text-gray-400">
+                            {showHasImage ? "画像あり" : "未設定"}
+                          </div>
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-3">
+                          <img src={previewSrc} alt="" className={imgPreview} />
+
+                          <div className="flex flex-col gap-2">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <label className={btnSubtle}>
+                                画像を選ぶ
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  className="hidden"
+                                  disabled={!editing || saving}
+                                  onChange={(ev) =>
+                                    void onPickRowImage(
+                                      r.id,
+                                      ev.target.files?.[0] ?? null
+                                    )
+                                  }
+                                />
+                              </label>
+
+                              <button
+                                type="button"
+                                className={btnDanger}
+                                disabled={!editing || saving}
+                                onClick={() => markDeleteRowImage(r.id)}
+                              >
+                                画像削除
+                              </button>
+
+                              {editing && (pending || wantsDelete) && (
+                                <button
+                                  type="button"
+                                  className={btnOutline.replace(
+                                    "px-4 py-2 text-sm",
+                                    "px-3 py-1.5 text-xs"
+                                  )}
+                                  disabled={saving}
+                                  onClick={() => {
+                                    setPendingImages((prev) => ({
+                                      ...prev,
+                                      [r.id]: null,
+                                    }));
+                                    setDeleteImageIds((prev) => {
+                                      const next = new Set(prev);
+                                      next.delete(r.id);
+                                      return next;
+                                    });
+                                  }}
+                                >
+                                  画像変更を戻す
+                                </button>
+                              )}
+                            </div>
+
+                            <div className="text-[11px] text-gray-500 dark:text-gray-400">
+                              {pending
+                                ? `選択中：${
+                                    pending.name ?? "image"
+                                  } / ${Math.round(
+                                    (pending.size ?? 0) / 1024
+                                  )}KB（保存で反映）`
+                                : wantsDelete
+                                ? "削除予定（保存で反映）"
+                                : showHasImage
+                                ? `登録済み（${r.photoMime ?? "image/*"}）`
+                                : "未設定"}
+                            </div>
+
+                            {!editing && (
+                              <div className="text-[11px] text-gray-500 dark:text-gray-400">
+                                ※ 画像変更は「編集」を押してから可能です
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
                     </div>
 
                     <div className="flex flex-wrap items-center gap-2">
@@ -762,7 +891,6 @@ export default function GenreAdminClient({ initialSchoolId }: Props) {
                             編集
                           </button>
 
-                          {/* ✅ 削除 */}
                           <button
                             type="button"
                             onClick={() => void deleteGenre(r)}
