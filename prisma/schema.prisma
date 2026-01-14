@@ -121,13 +121,20 @@ model DiagnosisGenre {
   isActive  Boolean           @default(true)
   createdAt DateTime          @default(now())
   updatedAt DateTime          @updatedAt
+
   answerTag String?
+
+  // ✅ 追加：診断結果に表示する画像（DB保存）
+  photoData Bytes?
+  photoMime String?
+
   results   DiagnosisResult[] @relation("ResultGenres")
 
   @@unique([schoolId, slug])
   @@index([schoolId, sortOrder])
   @@index([schoolId, isActive])
 }
+
 
 model DiagnosisInstructor {
   id           String            @id @default(cuid())

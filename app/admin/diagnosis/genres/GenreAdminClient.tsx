@@ -15,6 +15,10 @@ type GenreRow = {
   answerTag?: string | null; // Q4固定回答IDと紐づけ
   sortOrder: number; // UIでは触らない（互換のため保持）
   isActive: boolean;
+
+  // ✅ 追加：画像（Bytesは返さない / mimeと更新時刻だけ返す想定）
+  photoMime?: string | null;
+  updatedAt?: string | null;
 };
 
 function slugifyJa(input: string) {
@@ -72,6 +76,18 @@ const GENRE_ANSWER_TAG_OPTIONS: { value: string; label: string }[] = [
   { value: "Genre_All", label: "まだ迷っている・色々見てみたい" },
 ];
 
+const MAX_IMAGE_BYTES = 3 * 1024 * 1024; // 3MB
+const OK_MIME = ["image/png", "image/jpeg", "image/webp"];
+
+async function fileToDataUrl(file: File): Promise<string> {
+  return await new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result ?? ""));
+    reader.onerror = () => reject(new Error("画像の読み込みに失敗しました"));
+    reader.readAsDataURL(file);
+  });
+}
+
 export default function GenreAdminClient({ initialSchoolId }: Props) {
   const [schoolId, setSchoolId] = useState<string>(initialSchoolId ?? "");
 
@@ -115,6 +131,9 @@ export default function GenreAdminClient({ initialSchoolId }: Props) {
         answerTag: d.answerTag ?? null,
         sortOrder: Number(d.sortOrder ?? 1),
         isActive: Boolean(d.isActive ?? true),
+
+        photoMime: d.photoMime ?? null,
+        updatedAt: d.updatedAt ?? null,
       }));
 
       // ✅ ソート機能はUIから消す：見た目の並びは label 昇順に固定
@@ -302,6 +321,75 @@ export default function GenreAdminClient({ initialSchoolId }: Props) {
     }
   };
 
+  // ✅ 画像アップロード
+  const uploadGenreImage = async (r: GenreRow, file: File) => {
+    if (!file) return;
+
+    if (!OK_MIME.includes(file.type)) {
+      setError("対応形式は png / jpeg / webp のみです");
+      return;
+    }
+    if (file.size > MAX_IMAGE_BYTES) {
+      setError("画像サイズが大きすぎます（最大3MB）");
+      return;
+    }
+
+    setSaving(true);
+    setError(null);
+    try {
+      const imageDataUrl = await fileToDataUrl(file);
+
+      const res = await fetch("/api/diagnosis/genres/image", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: r.id,
+          schoolId,
+          imageDataUrl,
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.message ?? "画像アップロードに失敗しました");
+      }
+
+      await fetchList();
+    } catch (e: any) {
+      setError(e?.message ?? "画像アップロードに失敗しました");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // ✅ 画像削除
+  const deleteGenreImage = async (r: GenreRow) => {
+    const ok = confirm(`「${r.label}」の画像を削除しますか？`);
+    if (!ok) return;
+
+    setSaving(true);
+    setError(null);
+    try {
+      const res = await fetch(
+        `/api/diagnosis/genres/image?id=${encodeURIComponent(
+          r.id
+        )}&schoolId=${encodeURIComponent(schoolId)}`,
+        { method: "DELETE" }
+      );
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.message ?? "画像削除に失敗しました");
+      }
+
+      await fetchList();
+    } catch (e: any) {
+      setError(e?.message ?? "画像削除に失敗しました");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const hintId = useMemo(() => {
     const base = slugifyJa(newLabel) || "genre";
     return `genre_${base}`;
@@ -453,6 +541,14 @@ export default function GenreAdminClient({ initialSchoolId }: Props) {
               const e = editMap[r.id] as Partial<GenreRow> | undefined;
               const current = editing ? (e as GenreRow) : r;
 
+              const imgSrc = r.photoMime
+                ? `/api/diagnosis/genres/photo?id=${encodeURIComponent(
+                    r.id
+                  )}&schoolId=${encodeURIComponent(
+                    schoolId
+                  )}&v=${encodeURIComponent(String(r.updatedAt ?? ""))}`
+                : "";
+
               return (
                 <div
                   key={r.id}
@@ -543,6 +639,69 @@ export default function GenreAdminClient({ initialSchoolId }: Props) {
                               </div>
                             </div>
                           )}
+                        </div>
+                      </div>
+
+                      {/* ✅ 画像登録（診断結果に表示） */}
+                      <div className="mt-3">
+                        <div className="text-[11px] font-semibold text-gray-600 dark:text-gray-300">
+                          診断結果に表示する画像
+                        </div>
+
+                        <div className="mt-2 flex flex-wrap items-center gap-3">
+                          <div className="h-16 w-16 overflow-hidden rounded-xl border border-gray-200 bg-gray-50 dark:border-gray-800 dark:bg-gray-900">
+                            {r.photoMime ? (
+                              <img
+                                alt={`${r.label} image`}
+                                className="h-full w-full object-cover"
+                                src={imgSrc}
+                              />
+                            ) : (
+                              <div className="flex h-full w-full items-center justify-center text-[10px] text-gray-400">
+                                No Image
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="flex flex-col gap-2">
+                            <label
+                              className={[
+                                btnOutline.replace(
+                                  "px-4 py-2 text-sm",
+                                  "px-3 py-1.5 text-xs"
+                                ),
+                                "cursor-pointer",
+                              ].join(" ")}
+                            >
+                              画像を選択
+                              <input
+                                type="file"
+                                accept="image/png,image/jpeg,image/webp"
+                                className="hidden"
+                                disabled={saving}
+                                onChange={(ev) => {
+                                  const f = ev.target.files?.[0];
+                                  if (f) void uploadGenreImage(r, f);
+                                  ev.currentTarget.value = "";
+                                }}
+                              />
+                            </label>
+
+                            {r.photoMime ? (
+                              <button
+                                type="button"
+                                className={btnDanger}
+                                disabled={saving}
+                                onClick={() => void deleteGenreImage(r)}
+                              >
+                                画像を削除
+                              </button>
+                            ) : (
+                              <div className="text-[11px] text-gray-500 dark:text-gray-400">
+                                推奨：正方形（例 512×512 / 800×800）・3MB以内
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
 
