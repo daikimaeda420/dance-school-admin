@@ -19,6 +19,7 @@ type GenreRow = {
   // 画像（GETではバイナリを返さない前提）
   photoMime?: string | null;
   hasImage?: boolean; // API(withImage=true)が付与する想定
+  updatedAt?: string | null; // ✅ 追加（キャッシュバスター用）
 };
 
 type PendingImage = {
@@ -163,6 +164,7 @@ export default function GenreAdminClient({ initialSchoolId }: Props) {
         isActive: Boolean(d.isActive ?? true),
         photoMime: d.photoMime ?? null,
         hasImage: Boolean(d.hasImage ?? false),
+        updatedAt: d.updatedAt ? String(d.updatedAt) : null, // ✅ 追加
       }));
 
       // ✅ ソート機能はUIから消す：見た目の並びは label 昇順に固定
@@ -646,10 +648,16 @@ export default function GenreAdminClient({ initialSchoolId }: Props) {
                   ? false
                   : hasExistingImage;
 
+              const genreImageUrl = `/api/diagnosis/genres/image?id=${encodeURIComponent(
+                r.id
+              )}&schoolId=${encodeURIComponent(
+                schoolId
+              )}&v=${encodeURIComponent(r.updatedAt ?? "")}`;
+
               const previewSrc =
                 pending?.base64 ||
                 (showHasImage
-                  ? "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iOTYiIGhlaWdodD0iOTYiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9Ijk2IiBoZWlnaHQ9Ijk2IiByeD0iMTYiIGZpbGw9IiNlNWU3ZWIiLz48cGF0aCBkPSJNMjggNjhoNDB2LTRIMjh2NHptMC0xMmg0MHYtNEgyOHY0em0wLTEyaDQwdi00SDI4djR6IiBmaWxsPSIjNjM3Mzg1Ii8+PC9zdmc+"
+                  ? genreImageUrl
                   : "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iOTYiIGhlaWdodD0iOTYiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9Ijk2IiBoZWlnaHQ9Ijk2IiByeD0iMTYiIGZpbGw9IiNlNWU3ZWIiLz48cGF0aCBkPSJNMjggNjhoNDB2LTRIMjh2NHptMC0xMmg0MHYtNEgyOHY0em0wLTEyaDQwdi00SDI4djR6IiBmaWxsPSIjNjM3Mzg1Ii8+PC9zdmc+");
 
               return (
