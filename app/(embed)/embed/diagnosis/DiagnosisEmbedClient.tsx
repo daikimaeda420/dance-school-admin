@@ -289,7 +289,7 @@ export default function DiagnosisEmbedClient({
         {/* メイン提案エリア */}
         <div className="mb-4 rounded-2xl bg-gray-50 p-4">
           <div className="text-xs font-semibold text-gray-500">
-            あなたにおすすめのクラス
+            あなたにおすすめのクラスは
           </div>
 
           {(() => {
@@ -300,12 +300,40 @@ export default function DiagnosisEmbedClient({
               result.selectedGenre?.label?.trim() ||
               (result.bestMatch.genres?.[0] ?? "").trim();
 
+            // ✅ ジャンル画像（selectedGenre.id がある時だけ表示）
+            const genreId = result.selectedGenre?.id;
+            const genreImgSrc = genreId
+              ? `/api/diagnosis/genres/image?id=${encodeURIComponent(
+                  genreId
+                )}&schoolId=${encodeURIComponent(schoolId)}`
+              : null;
+
             return (
-              <div className="mt-2 flex flex-wrap items-center gap-2">
-                <div className="text-lg font-bold">
-                  {genreLabel}&nbsp;
-                  {className}
+              <div className="mt-2">
+                {/* クラス名 */}
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="text-lg font-bold">
+                    {genreLabel}&nbsp;{className}
+                  </div>
                 </div>
+
+                {/* ✅ ジャンル画像：クラス名の下 */}
+                {genreImgSrc && (
+                  <div className="mt-3">
+                    <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={genreImgSrc}
+                        alt={
+                          genreLabel ? `${genreLabel}の画像` : "ジャンル画像"
+                        }
+                        className="h-40 w-full object-cover"
+                        loading="lazy"
+                        // NO IMAGE(svg) が返るなら表示されるので、onErrorは基本不要
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
             );
           })()}
