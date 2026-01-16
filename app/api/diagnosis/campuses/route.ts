@@ -1,7 +1,8 @@
 // app/api/diagnosis/campuses/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { DiagnosisQuestionOption } from "@/lib/diagnosis/config";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/authOptions";
 
 export const runtime = "nodejs";
 
@@ -18,27 +19,28 @@ function toBool(v: any, fallback = false) {
   return fallback;
 }
 
+async function ensureLoggedIn() {
+  const session = await getServerSession(authOptions);
+  return session?.user?.email ? session : null;
+}
+
+// GET /api/admin/diagnosis/campuses?schoolId=xxx&full=1
 export async function GET(req: NextRequest) {
+  const session = await ensureLoggedIn();
+  if (!session)
+    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+
   const { searchParams } = new URL(req.url);
-
-  // ✅ 後方互換：school / schoolId どちらでもOK
-  const schoolId =
-    searchParams.get("schoolId") ?? searchParams.get("school") ?? "";
-
-  // ✅ 追加：詳細返却フラグ
+  const schoolId = searchParams.get("schoolId") ?? "";
   const full = searchParams.get("full") === "1";
 
   if (!schoolId) {
     return NextResponse.json(
-      { message: "schoolId（または school）パラメータが必要です" },
+      { message: "schoolId が必要です" },
       { status: 400 }
     );
   }
 
-  /**
-   * full=1: 管理画面用（有効/無効含む全件）
-   * full!=1: 診断フロント用（有効のみ・必要最低限）
-   */
   const campuses = await prisma.diagnosisCampus.findMany({
     where: full ? { schoolId } : { schoolId, isActive: true },
     orderBy: [{ sortOrder: "asc" }, { label: "asc" }],
@@ -53,37 +55,26 @@ export async function GET(req: NextRequest) {
           address: true,
           access: true,
           googleMapUrl: true,
-          googleMapEmbedUrl: true, // ✅ 返す（管理画面で必須）
+          googleMapEmbedUrl: true, // ✅ 追加：返す
         }
       : {
           label: true,
           slug: true,
-          // ✅ 診断フロントで埋め込み表示するならこちらも返す
-          // googleMapUrl: true,
-          // googleMapEmbedUrl: true,
         },
   });
-
-  if (!full) {
-    const options: DiagnosisQuestionOption[] = campuses.map((c: any) => ({
-      id: c.slug,
-      label: c.label,
-    }));
-    return NextResponse.json(options);
-  }
 
   return NextResponse.json(campuses);
 }
 
-/**
- * ✅ POSTで校舎を新規作成できるようにする
- * POST /api/diagnosis/campuses
- * body: { schoolId, label, slug, sortOrder?, isActive?, address?, access?, googleMapUrl?, googleMapEmbedUrl? }
- */
+// POST /api/admin/diagnosis/campuses
 export async function POST(req: NextRequest) {
+  const session = await ensureLoggedIn();
+  if (!session)
+    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+
   const body = await req.json().catch(() => ({} as any));
 
-  const schoolId = norm(body.schoolId ?? body.school);
+  const schoolId = norm(body.schoolId);
   const label = norm(body.label);
   const slug = norm(body.slug);
 
@@ -100,22 +91,18 @@ export async function POST(req: NextRequest) {
   const googleMapEmbedUrl =
     body.googleMapEmbedUrl !== undefined
       ? norm(body.googleMapEmbedUrl) || null
-      : null;
+      : null; // ✅ 追加
 
-  if (!schoolId) {
+  if (!schoolId)
     return NextResponse.json(
-      { message: "schoolId（または school）が必要です" },
+      { message: "schoolId が必要です" },
       { status: 400 }
     );
-  }
-  if (!label) {
+  if (!label)
     return NextResponse.json({ message: "label が必要です" }, { status: 400 });
-  }
-  if (!slug) {
+  if (!slug)
     return NextResponse.json({ message: "slug が必要です" }, { status: 400 });
-  }
 
-  // slug重複チェック（schoolId内でユニーク運用）
   const dup = await prisma.diagnosisCampus.findFirst({
     where: { schoolId, slug },
     select: { id: true },

@@ -1,6 +1,8 @@
-// app/api/diagnosis/campuses/[id]/route.ts
+// app/api/diagnosis/campuses/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/authOptions";
 
 export const runtime = "nodejs";
 
@@ -17,31 +19,32 @@ function toBool(v: any, fallback = false) {
   return fallback;
 }
 
-/**
- * PATCH /api/diagnosis/campuses/:id
- * - 編集保存（label/slug/sortOrder/isActive/address/access/googleMapUrl/googleMapEmbedUrl）
- */
+async function ensureLoggedIn() {
+  const session = await getServerSession(authOptions);
+  return session?.user?.email ? session : null;
+}
+
+// PATCH /api/admin/diagnosis/campuses/:id
 export async function PATCH(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const session = await ensureLoggedIn();
+  if (!session)
+    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+
   const id = norm(params.id);
-  if (!id) {
+  if (!id)
     return NextResponse.json({ message: "id が必要です" }, { status: 400 });
-  }
 
   const body = await req.json().catch(() => ({} as any));
-
-  // ✅ 後方互換：school / schoolId
-  const schoolId = norm(body.schoolId ?? body.school);
-  if (!schoolId) {
+  const schoolId = norm(body.schoolId);
+  if (!schoolId)
     return NextResponse.json(
-      { message: "schoolId（または school）が必要です" },
+      { message: "schoolId が必要です" },
       { status: 400 }
     );
-  }
 
-  // ✅ 対象が schoolId に属するか確認（誤更新防止）
   const existing = await prisma.diagnosisCampus.findFirst({
     where: { id, schoolId },
     select: { id: true, slug: true },
@@ -53,19 +56,14 @@ export async function PATCH(
     );
   }
 
-  // 入力の取り出し（渡されたものだけ更新）
   const label = body.label !== undefined ? norm(body.label) : undefined;
   const slug = body.slug !== undefined ? norm(body.slug) : undefined;
-
   const sortOrder =
     body.sortOrder !== undefined ? toNum(body.sortOrder, 0) : undefined;
-
   const isActive =
     body.isActive !== undefined ? toBool(body.isActive, true) : undefined;
-
   const address =
     body.address !== undefined ? norm(body.address) || null : undefined;
-
   const access =
     body.access !== undefined ? norm(body.access) || null : undefined;
 
@@ -74,13 +72,12 @@ export async function PATCH(
       ? norm(body.googleMapUrl) || null
       : undefined;
 
-  // ✅ ★追加：iframe 用 Google Maps 埋め込みURL
   const googleMapEmbedUrl =
     body.googleMapEmbedUrl !== undefined
       ? norm(body.googleMapEmbedUrl) || null
-      : undefined;
+      : undefined; // ✅ 追加
 
-  // slug 変更時の重複チェック（schoolId内でユニーク運用）
+  // slug 変更時の重複チェック
   if (slug && slug !== existing.slug) {
     const dup = await prisma.diagnosisCampus.findFirst({
       where: { schoolId, slug },
@@ -104,7 +101,7 @@ export async function PATCH(
       ...(address !== undefined ? { address } : {}),
       ...(access !== undefined ? { access } : {}),
       ...(googleMapUrl !== undefined ? { googleMapUrl } : {}),
-      ...(googleMapEmbedUrl !== undefined ? { googleMapEmbedUrl } : {}),
+      ...(googleMapEmbedUrl !== undefined ? { googleMapEmbedUrl } : {}), // ✅ 追加
     },
     select: {
       id: true,
@@ -116,37 +113,34 @@ export async function PATCH(
       address: true,
       access: true,
       googleMapUrl: true,
-      googleMapEmbedUrl: true, // ✅ 返却
+      googleMapEmbedUrl: true, // ✅ 返す
     },
   });
 
   return NextResponse.json(updated);
 }
 
-/**
- * DELETE /api/diagnosis/campuses/:id?schoolId=xxx（または &school=xxx）
- */
+// DELETE /api/admin/diagnosis/campuses/:id?schoolId=xxx
 export async function DELETE(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const session = await ensureLoggedIn();
+  if (!session)
+    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+
   const id = norm(params.id);
-  if (!id) {
+  if (!id)
     return NextResponse.json({ message: "id が必要です" }, { status: 400 });
-  }
 
   const { searchParams } = new URL(req.url);
-  const schoolId = norm(
-    searchParams.get("schoolId") ?? searchParams.get("school")
-  );
-  if (!schoolId) {
+  const schoolId = norm(searchParams.get("schoolId"));
+  if (!schoolId)
     return NextResponse.json(
-      { message: "schoolId（または school）が必要です" },
+      { message: "schoolId が必要です" },
       { status: 400 }
     );
-  }
 
-  // ✅ 対象が schoolId に属するか確認（誤削除防止）
   const existing = await prisma.diagnosisCampus.findFirst({
     where: { id, schoolId },
     select: { id: true },
