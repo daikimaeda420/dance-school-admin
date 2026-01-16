@@ -335,6 +335,10 @@ export default function DiagnosisEmbedClient({
             );
           })()}
 
+          <div className="mt-1 inline-flex items-center rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
+            {result.headerLabel}
+          </div>
+
           {/* ✅ 担当講師 */}
           <div className="mt-3">
             <div className="text-xs font-semibold text-gray-500">担当講師</div>

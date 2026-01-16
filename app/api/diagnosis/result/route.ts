@@ -388,6 +388,8 @@ export async function POST(req: NextRequest) {
       pattern: "A",
       patternMessage: null,
       score: 100,
+      // headerLabel: "あなたにおすすめの理由",
+
       bestMatch: {
         classId: best.id, // 互換
         className: recommendedCourse?.label ?? best.title,
