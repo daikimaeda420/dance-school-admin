@@ -12,7 +12,12 @@ type Campus = {
   isActive: boolean;
   address?: string | null;
   access?: string | null;
+
+  // 外部リンク用（従来）
   googleMapUrl?: string | null;
+
+  // ★追加：埋め込み用（iframe src）
+  googleMapEmbedUrl?: string | null;
 };
 
 type Props = { schoolId: string };
@@ -25,6 +30,7 @@ type Draft = {
   address: string; // null -> ""
   access: string; // null -> ""
   googleMapUrl: string; // null -> ""
+  googleMapEmbedUrl: string; // ★追加
 };
 
 const inputBase =
@@ -47,6 +53,7 @@ function toDraft(c: Campus): Draft {
     address: c.address ?? "",
     access: c.access ?? "",
     googleMapUrl: c.googleMapUrl ?? "",
+    googleMapEmbedUrl: c.googleMapEmbedUrl ?? "",
   };
 }
 
@@ -62,7 +69,8 @@ function isSameDraftIgnoringOrder(d: Draft, c: Campus): boolean {
     d.isActive === b.isActive &&
     d.address === b.address &&
     d.access === b.access &&
-    d.googleMapUrl === b.googleMapUrl
+    d.googleMapUrl === b.googleMapUrl &&
+    d.googleMapEmbedUrl === b.googleMapEmbedUrl
   );
 }
 
@@ -95,6 +103,7 @@ export default function CampusAdminClient({ schoolId }: Props) {
   const [newAddress, setNewAddress] = useState("");
   const [newAccess, setNewAccess] = useState("");
   const [newGoogleMapUrl, setNewGoogleMapUrl] = useState("");
+  const [newGoogleMapEmbedUrl, setNewGoogleMapEmbedUrl] = useState(""); // ★追加
 
   const disabled = !schoolId;
   const abortRef = useRef<AbortController | null>(null);
@@ -229,6 +238,7 @@ export default function CampusAdminClient({ schoolId }: Props) {
     const address = newAddress.trim();
     const access = newAccess.trim();
     const googleMapUrl = newGoogleMapUrl.trim();
+    const googleMapEmbedUrl = newGoogleMapEmbedUrl.trim();
 
     if (!label || !slug) {
       setError("校舎名とスラッグは必須です。");
@@ -258,6 +268,7 @@ export default function CampusAdminClient({ schoolId }: Props) {
           address: address || null,
           access: access || null,
           googleMapUrl: googleMapUrl || null,
+          googleMapEmbedUrl: googleMapEmbedUrl || null, // ★追加
         }),
       });
 
@@ -273,6 +284,7 @@ export default function CampusAdminClient({ schoolId }: Props) {
       setNewAddress("");
       setNewAccess("");
       setNewGoogleMapUrl("");
+      setNewGoogleMapEmbedUrl(""); // ★追加
 
       await fetchCampuses();
     } catch (e) {
@@ -323,6 +335,9 @@ export default function CampusAdminClient({ schoolId }: Props) {
           address: d.address.trim() ? d.address.trim() : null,
           access: d.access.trim() ? d.access.trim() : null,
           googleMapUrl: d.googleMapUrl.trim() ? d.googleMapUrl.trim() : null,
+          googleMapEmbedUrl: d.googleMapEmbedUrl.trim()
+            ? d.googleMapEmbedUrl.trim()
+            : null, // ★追加
         }),
       });
 
@@ -408,6 +423,9 @@ export default function CampusAdminClient({ schoolId }: Props) {
             address: d.address.trim() ? d.address.trim() : null,
             access: d.access.trim() ? d.access.trim() : null,
             googleMapUrl: d.googleMapUrl.trim() ? d.googleMapUrl.trim() : null,
+            googleMapEmbedUrl: d.googleMapEmbedUrl.trim()
+              ? d.googleMapEmbedUrl.trim()
+              : null, // ★追加
           }),
         });
 
@@ -508,8 +526,6 @@ export default function CampusAdminClient({ schoolId }: Props) {
             />
           </div>
 
-          {/* ✅ 表示順（sortOrder）はUIから削除 */}
-
           <div className="md:col-span-5 flex items-end gap-2">
             <label className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-200">
               <input
@@ -562,14 +578,27 @@ export default function CampusAdminClient({ schoolId }: Props) {
 
           <div className="md:col-span-3">
             <label className="mb-1 block text-xs text-gray-500 dark:text-gray-400">
-              Google Map URL
+              Google Map URL（外部リンク）
             </label>
             <input
               className={inputBase}
               value={newGoogleMapUrl}
               onChange={(e) => setNewGoogleMapUrl(e.target.value)}
               disabled={disabled || savingId === "__create__"}
-              placeholder="maps.app.goo.gl/..."
+              placeholder="https://maps.app.goo.gl/..."
+            />
+          </div>
+
+          <div className="md:col-span-12">
+            <label className="mb-1 block text-xs text-gray-500 dark:text-gray-400">
+              Google Map 埋め込みURL（iframe用）
+            </label>
+            <input
+              className={inputBase}
+              value={newGoogleMapEmbedUrl}
+              onChange={(e) => setNewGoogleMapEmbedUrl(e.target.value)}
+              disabled={disabled || savingId === "__create__"}
+              placeholder="https://www.google.com/maps/embed?pb=..."
             />
           </div>
         </div>
@@ -662,7 +691,6 @@ export default function CampusAdminClient({ schoolId }: Props) {
                   ].join(" ")}
                 >
                   <div className="grid gap-2 md:grid-cols-12">
-                    {/* ✅ ドラッグ用ハンドル（見た目だけ。行自体がドラッグ可能） */}
                     <div className="md:col-span-12 flex items-center gap-2 pb-1">
                       <span className="select-none text-[11px] text-gray-400 dark:text-gray-500">
                         ⠿ ドラッグして並び替え
@@ -701,8 +729,6 @@ export default function CampusAdminClient({ schoolId }: Props) {
                         disabled={busy}
                       />
                     </div>
-
-                    {/* ✅ sortOrder 表示・編集は削除 */}
 
                     <div className="md:col-span-5">
                       <div className="mb-1 text-[11px] font-semibold text-gray-600 dark:text-gray-300">
@@ -750,7 +776,7 @@ export default function CampusAdminClient({ schoolId }: Props) {
                     <div className="md:col-span-5">
                       <div className="mb-1 flex items-center justify-between">
                         <span className="text-[11px] font-semibold text-gray-600 dark:text-gray-300">
-                          Google Map URL
+                          Google Map URL（外部リンク）
                         </span>
                         {d.googleMapUrl ? (
                           <a
@@ -770,8 +796,35 @@ export default function CampusAdminClient({ schoolId }: Props) {
                           setDraft(c.id, { googleMapUrl: e.target.value })
                         }
                         disabled={busy}
-                        placeholder="URL"
+                        placeholder="https://maps.app.goo.gl/..."
                       />
+                    </div>
+
+                    <div className="md:col-span-12">
+                      <div className="mb-1 text-[11px] font-semibold text-gray-600 dark:text-gray-300">
+                        Google Map 埋め込みURL（iframe用）
+                      </div>
+                      <input
+                        className={inputBase}
+                        value={d.googleMapEmbedUrl}
+                        onChange={(e) =>
+                          setDraft(c.id, { googleMapEmbedUrl: e.target.value })
+                        }
+                        disabled={busy}
+                        placeholder="https://www.google.com/maps/embed?pb=..."
+                      />
+
+                      {d.googleMapEmbedUrl ? (
+                        <div className="mt-2 overflow-hidden rounded-lg border border-gray-200 dark:border-gray-800">
+                          <iframe
+                            src={d.googleMapEmbedUrl}
+                            className="h-[180px] w-full"
+                            style={{ border: 0 }}
+                            loading="lazy"
+                            referrerPolicy="no-referrer-when-downgrade"
+                          />
+                        </div>
+                      ) : null}
                     </div>
 
                     <div className="md:col-span-12 flex items-center justify-end gap-2">
