@@ -16,7 +16,7 @@ type Campus = {
   // 外部リンク用（従来）
   googleMapUrl?: string | null;
 
-  // ★追加：埋め込み用（iframe src）
+  // 埋め込み用（iframe src）
   googleMapEmbedUrl?: string | null;
 };
 
@@ -30,7 +30,7 @@ type Draft = {
   address: string; // null -> ""
   access: string; // null -> ""
   googleMapUrl: string; // null -> ""
-  googleMapEmbedUrl: string; // ★追加
+  googleMapEmbedUrl: string; // null -> ""（iframeタグでも可で入力される可能性あり）
 };
 
 const inputBase =
@@ -44,6 +44,35 @@ const textareaBase =
   "focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 " +
   "dark:bg-gray-950 dark:text-gray-100 dark:border-gray-700 dark:[color-scheme:dark]";
 
+/**
+ * 入力値の正規化
+ * - 前後空白除去
+ * - <iframe ...> が入ってたら src を抽出して返す
+ * - それ以外はそのまま
+ */
+function normalizeEmbedInput(input: string): string {
+  const s = String(input ?? "").trim();
+  if (!s) return "";
+
+  // iframeタグごと貼られた場合
+  if (s.includes("<iframe")) {
+    // src="..." or src='...'
+    const m = s.match(/src\s*=\s*["']([^"']+)["']/i);
+    if (m?.[1]) return String(m[1]).trim();
+    return "";
+  }
+
+  // たまに iframe の src だけじゃなく attribute ごと貼る人対策（念のため）
+  // 例: src=https://... width=... など
+  if (s.startsWith("src=")) {
+    const m = s.match(/src\s*=\s*["']?([^"'\s>]+)["']?/i);
+    if (m?.[1]) return String(m[1]).trim();
+    return "";
+  }
+
+  return s;
+}
+
 function toDraft(c: Campus): Draft {
   return {
     label: c.label ?? "",
@@ -53,16 +82,22 @@ function toDraft(c: Campus): Draft {
     address: c.address ?? "",
     access: c.access ?? "",
     googleMapUrl: c.googleMapUrl ?? "",
-    googleMapEmbedUrl: c.googleMapEmbedUrl ?? "",
+    // DBはsrcだけ入っている想定。draftは常に正規化して持つ
+    googleMapEmbedUrl: normalizeEmbedInput(c.googleMapEmbedUrl ?? ""),
   };
 }
 
 /**
  * ✅ sortOrder は「並び替え専用」なので、通常の「未保存」判定からは除外する
- * （並び替えは上部の「並び替えを保存」ボタンで保存する）
+ * さらに googleMapEmbedUrl は iframeタグ貼りを吸収するため両方正規化して比較する
  */
 function isSameDraftIgnoringOrder(d: Draft, c: Campus): boolean {
   const b = toDraft(c);
+
+  // draft側は入力途中で iframe が混ざる可能性があるので比較時に正規化
+  const dEmbed = normalizeEmbedInput(d.googleMapEmbedUrl);
+  const bEmbed = normalizeEmbedInput(b.googleMapEmbedUrl);
+
   return (
     d.label === b.label &&
     d.slug === b.slug &&
@@ -70,7 +105,7 @@ function isSameDraftIgnoringOrder(d: Draft, c: Campus): boolean {
     d.address === b.address &&
     d.access === b.access &&
     d.googleMapUrl === b.googleMapUrl &&
-    d.googleMapEmbedUrl === b.googleMapEmbedUrl
+    dEmbed === bEmbed
   );
 }
 
@@ -103,7 +138,7 @@ export default function CampusAdminClient({ schoolId }: Props) {
   const [newAddress, setNewAddress] = useState("");
   const [newAccess, setNewAccess] = useState("");
   const [newGoogleMapUrl, setNewGoogleMapUrl] = useState("");
-  const [newGoogleMapEmbedUrl, setNewGoogleMapEmbedUrl] = useState(""); // ★追加
+  const [newGoogleMapEmbedUrl, setNewGoogleMapEmbedUrl] = useState("");
 
   const disabled = !schoolId;
   const abortRef = useRef<AbortController | null>(null);
@@ -238,7 +273,9 @@ export default function CampusAdminClient({ schoolId }: Props) {
     const address = newAddress.trim();
     const access = newAccess.trim();
     const googleMapUrl = newGoogleMapUrl.trim();
-    const googleMapEmbedUrl = newGoogleMapEmbedUrl.trim();
+
+    // ★ここで正規化して保存（iframe丸ごとでもOK）
+    const googleMapEmbedUrl = normalizeEmbedInput(newGoogleMapEmbedUrl);
 
     if (!label || !slug) {
       setError("校舎名とスラッグは必須です。");
@@ -268,7 +305,7 @@ export default function CampusAdminClient({ schoolId }: Props) {
           address: address || null,
           access: access || null,
           googleMapUrl: googleMapUrl || null,
-          googleMapEmbedUrl: googleMapEmbedUrl || null, // ★追加
+          googleMapEmbedUrl: googleMapEmbedUrl || null,
         }),
       });
 
@@ -284,7 +321,7 @@ export default function CampusAdminClient({ schoolId }: Props) {
       setNewAddress("");
       setNewAccess("");
       setNewGoogleMapUrl("");
-      setNewGoogleMapEmbedUrl(""); // ★追加
+      setNewGoogleMapEmbedUrl("");
 
       await fetchCampuses();
     } catch (e) {
@@ -318,6 +355,9 @@ export default function CampusAdminClient({ schoolId }: Props) {
       return;
     }
 
+    // ★ここで正規化して送る（iframe丸ごとでもOK）
+    const embedSrc = normalizeEmbedInput(d.googleMapEmbedUrl);
+
     setSavingId(id);
     setError(null);
 
@@ -335,9 +375,7 @@ export default function CampusAdminClient({ schoolId }: Props) {
           address: d.address.trim() ? d.address.trim() : null,
           access: d.access.trim() ? d.access.trim() : null,
           googleMapUrl: d.googleMapUrl.trim() ? d.googleMapUrl.trim() : null,
-          googleMapEmbedUrl: d.googleMapEmbedUrl.trim()
-            ? d.googleMapEmbedUrl.trim()
-            : null, // ★追加
+          googleMapEmbedUrl: embedSrc ? embedSrc : null,
         }),
       });
 
@@ -346,6 +384,9 @@ export default function CampusAdminClient({ schoolId }: Props) {
         setError(data?.message ?? "更新に失敗しました。");
         return;
       }
+
+      // 保存後、draft側も正規化しておく（見た目も一致＝dirtyが消える）
+      setDraft(id, { googleMapEmbedUrl: embedSrc });
 
       await fetchCampuses();
     } catch (e) {
@@ -410,6 +451,8 @@ export default function CampusAdminClient({ schoolId }: Props) {
           throw new Error("校舎名（label）とslugは空にできません。");
         }
 
+        const embedSrc = normalizeEmbedInput(d.googleMapEmbedUrl);
+
         const res = await fetch(`/api/admin/diagnosis/campuses/${c.id}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
@@ -423,9 +466,7 @@ export default function CampusAdminClient({ schoolId }: Props) {
             address: d.address.trim() ? d.address.trim() : null,
             access: d.access.trim() ? d.access.trim() : null,
             googleMapUrl: d.googleMapUrl.trim() ? d.googleMapUrl.trim() : null,
-            googleMapEmbedUrl: d.googleMapEmbedUrl.trim()
-              ? d.googleMapEmbedUrl.trim()
-              : null, // ★追加
+            googleMapEmbedUrl: embedSrc ? embedSrc : null,
           }),
         });
 
@@ -592,13 +633,16 @@ export default function CampusAdminClient({ schoolId }: Props) {
           <div className="md:col-span-12">
             <label className="mb-1 block text-xs text-gray-500 dark:text-gray-400">
               Google Map 埋め込みURL（iframe用）
+              <span className="ml-2 text-[10px] text-gray-400">
+                ※ iframeタグを貼ってもOK（srcだけ抽出して保存します）
+              </span>
             </label>
             <input
               className={inputBase}
               value={newGoogleMapEmbedUrl}
               onChange={(e) => setNewGoogleMapEmbedUrl(e.target.value)}
               disabled={disabled || savingId === "__create__"}
-              placeholder="https://www.google.com/maps/embed?pb=..."
+              placeholder='https://www.google.com/maps/embed?pb=...  または  <iframe src="..."></iframe>'
             />
           </div>
         </div>
@@ -673,6 +717,11 @@ export default function CampusAdminClient({ schoolId }: Props) {
               const isDragging = draggingId === c.id;
               const isOver =
                 dragOverId === c.id && draggingId && draggingId !== c.id;
+
+              // プレビュー用は常に src として正規化
+              const embedSrcForPreview = normalizeEmbedInput(
+                d.googleMapEmbedUrl
+              );
 
               return (
                 <div
@@ -803,6 +852,9 @@ export default function CampusAdminClient({ schoolId }: Props) {
                     <div className="md:col-span-12">
                       <div className="mb-1 text-[11px] font-semibold text-gray-600 dark:text-gray-300">
                         Google Map 埋め込みURL（iframe用）
+                        <span className="ml-2 text-[10px] text-gray-400">
+                          ※ iframeタグOK（srcだけ保存）
+                        </span>
                       </div>
                       <input
                         className={inputBase}
@@ -811,13 +863,13 @@ export default function CampusAdminClient({ schoolId }: Props) {
                           setDraft(c.id, { googleMapEmbedUrl: e.target.value })
                         }
                         disabled={busy}
-                        placeholder="https://www.google.com/maps/embed?pb=..."
+                        placeholder='https://www.google.com/maps/embed?pb=...  または  <iframe src="..."></iframe>'
                       />
 
-                      {d.googleMapEmbedUrl ? (
+                      {embedSrcForPreview ? (
                         <div className="mt-2 overflow-hidden rounded-lg border border-gray-200 dark:border-gray-800">
                           <iframe
-                            src={d.googleMapEmbedUrl}
+                            src={embedSrcForPreview}
                             className="h-[180px] w-full"
                             style={{ border: 0 }}
                             loading="lazy"
