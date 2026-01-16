@@ -84,6 +84,13 @@ type DiagnosisResult = {
     slug: string;
     answerTag?: string;
   } | null;
+
+  resultCopy?: {
+    level?: string | null;
+    age?: string | null;
+    teacher?: string | null;
+    concern?: string | null;
+  };
 };
 
 type Props = {
@@ -338,6 +345,55 @@ export default function DiagnosisEmbedClient({
           <div className="mt-1 inline-flex items-center rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
             {result.headerLabel}
           </div>
+
+          {/* ✅ 担当講師の上：診断コピー（resultCopy） */}
+          {result.resultCopy && (
+            <div className="mt-4 space-y-3">
+              {result.resultCopy.level && (
+                <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+                  <div className="text-xs font-semibold text-gray-500">
+                    あなたのレベルに合わせた提案
+                  </div>
+                  <div className="mt-2 text-sm text-gray-800 whitespace-pre-wrap">
+                    {result.resultCopy.level}
+                  </div>
+                </div>
+              )}
+
+              {result.resultCopy.age && (
+                <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+                  <div className="text-xs font-semibold text-gray-500">
+                    ライフスタイルに合わせた提案
+                  </div>
+                  <div className="mt-2 text-sm text-gray-800 whitespace-pre-wrap">
+                    {result.resultCopy.age}
+                  </div>
+                </div>
+              )}
+
+              {result.resultCopy.teacher && (
+                <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+                  <div className="text-xs font-semibold text-gray-500">
+                    先生のタイプに合わせた提案
+                  </div>
+                  <div className="mt-2 text-sm text-gray-800 whitespace-pre-wrap">
+                    {result.resultCopy.teacher}
+                  </div>
+                </div>
+              )}
+
+              {result.resultCopy.concern && (
+                <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+                  <div className="text-xs font-semibold text-gray-500">
+                    不安への回答
+                  </div>
+                  <div className="mt-2 text-sm text-gray-800 whitespace-pre-wrap">
+                    {result.resultCopy.concern}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* ✅ 担当講師 */}
           <div className="mt-3">
