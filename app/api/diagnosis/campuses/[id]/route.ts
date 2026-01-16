@@ -19,20 +19,7 @@ function toBool(v: any, fallback = false) {
 
 /**
  * PATCH /api/diagnosis/campuses/:id
- * - 編集保存（label/slug/sortOrder/isOnline/address/access/googleMapUrl）
- * - 有効/無効切替（isActive）
- *
- * body:
- * {
- *   schoolId: string,
- *   label?: string,
- *   slug?: string,
- *   sortOrder?: number,
- *   isActive?: boolean,
- *   address?: string | null,
- *   access?: string | null,
- *   googleMapUrl?: string | null
- * }
+ * - 編集保存（label/slug/sortOrder/isActive/address/access/googleMapUrl/googleMapEmbedUrl）
  */
 export async function PATCH(
   req: NextRequest,
@@ -87,6 +74,12 @@ export async function PATCH(
       ? norm(body.googleMapUrl) || null
       : undefined;
 
+  // ✅ ★追加：iframe 用 Google Maps 埋め込みURL
+  const googleMapEmbedUrl =
+    body.googleMapEmbedUrl !== undefined
+      ? norm(body.googleMapEmbedUrl) || null
+      : undefined;
+
   // slug 変更時の重複チェック（schoolId内でユニーク運用）
   if (slug && slug !== existing.slug) {
     const dup = await prisma.diagnosisCampus.findFirst({
@@ -111,6 +104,7 @@ export async function PATCH(
       ...(address !== undefined ? { address } : {}),
       ...(access !== undefined ? { access } : {}),
       ...(googleMapUrl !== undefined ? { googleMapUrl } : {}),
+      ...(googleMapEmbedUrl !== undefined ? { googleMapEmbedUrl } : {}),
     },
     select: {
       id: true,
@@ -122,6 +116,7 @@ export async function PATCH(
       address: true,
       access: true,
       googleMapUrl: true,
+      googleMapEmbedUrl: true, // ✅ 返却
     },
   });
 
@@ -130,10 +125,6 @@ export async function PATCH(
 
 /**
  * DELETE /api/diagnosis/campuses/:id?schoolId=xxx（または &school=xxx）
- * - 削除（物理削除）
- *
- * ※ 関連レコードがあると外部キー制約で失敗する可能性があります。
- *    その場合は「削除＝isActive=false（論理削除）」運用に変更してください。
  */
 export async function DELETE(
   req: NextRequest,
@@ -171,7 +162,6 @@ export async function DELETE(
     await prisma.diagnosisCampus.delete({ where: { id } });
     return NextResponse.json({ ok: true });
   } catch (e: any) {
-    // 外部キー制約などで消せないケース
     return NextResponse.json(
       {
         message:

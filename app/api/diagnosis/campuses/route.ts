@@ -53,14 +53,14 @@ export async function GET(req: NextRequest) {
           address: true,
           access: true,
           googleMapUrl: true,
-          googleMapEmbedUrl: true, // ★追加
+          googleMapEmbedUrl: true, // ✅ 返す（管理画面で必須）
         }
       : {
           label: true,
           slug: true,
-          // ※診断フロント側で埋め込み表示したい場合はここも返す
-          // googleMapEmbedUrl: true,
+          // ✅ 診断フロントで埋め込み表示するならこちらも返す
           // googleMapUrl: true,
+          // googleMapEmbedUrl: true,
         },
   });
 
@@ -72,7 +72,6 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(options);
   }
 
-  // full=1 のときは詳細を返す（管理画面や詳細表示用）
   return NextResponse.json(campuses);
 }
 
@@ -101,7 +100,7 @@ export async function POST(req: NextRequest) {
   const googleMapEmbedUrl =
     body.googleMapEmbedUrl !== undefined
       ? norm(body.googleMapEmbedUrl) || null
-      : null; // ★追加
+      : null;
 
   if (!schoolId) {
     return NextResponse.json(
@@ -138,7 +137,7 @@ export async function POST(req: NextRequest) {
       address,
       access,
       googleMapUrl,
-      googleMapEmbedUrl, // ★追加
+      googleMapEmbedUrl, // ✅ 保存
     },
     select: {
       id: true,
@@ -150,7 +149,7 @@ export async function POST(req: NextRequest) {
       address: true,
       access: true,
       googleMapUrl: true,
-      googleMapEmbedUrl: true, // ★追加
+      googleMapEmbedUrl: true, // ✅ 返す
     },
   });
 
