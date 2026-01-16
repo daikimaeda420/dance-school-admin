@@ -12,7 +12,6 @@ type Campus = {
   isActive: boolean;
   address?: string | null;
   access?: string | null;
-
   googleMapUrl?: string | null;
   googleMapEmbedUrl?: string | null;
 };
@@ -41,11 +40,6 @@ const textareaBase =
   "focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 " +
   "dark:bg-gray-950 dark:text-gray-100 dark:border-gray-700 dark:[color-scheme:dark]";
 
-/**
- * 入力値の正規化
- * - 前後空白除去
- * - <iframe ...> が入ってたら src を抽出して返す
- */
 function normalizeEmbedInput(input: string): string {
   const s = String(input ?? "").trim();
   if (!s) return "";
@@ -111,11 +105,9 @@ export default function CampusAdminClient({ schoolId }: Props) {
 
   const [orderDirty, setOrderDirty] = useState(false);
 
-  // ✅ DnD
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
 
-  // 新規追加フォーム
   const [newLabel, setNewLabel] = useState("");
   const [newSlug, setNewSlug] = useState("");
   const [newIsActive, setNewIsActive] = useState(true);
@@ -140,7 +132,6 @@ export default function CampusAdminClient({ schoolId }: Props) {
 
   const applyOrderToState = (nextList: Campus[], markDirty: boolean) => {
     const ordered = recomputeSortOrders(nextList);
-
     setCampuses(ordered);
 
     setDrafts((prev) => {
@@ -356,7 +347,6 @@ export default function CampusAdminClient({ schoolId }: Props) {
       }
 
       setDraft(id, { googleMapEmbedUrl: embedSrc });
-
       await fetchCampuses();
     } catch (e) {
       console.error(e);
@@ -452,25 +442,18 @@ export default function CampusAdminClient({ schoolId }: Props) {
 
   const busy = !!savingId || !!deletingId;
 
-  /**
-   * ✅ DnD：カードは draggable にしない
-   * 代わりに「⠿」ハンドルだけ draggable にする
-   */
+  // ✅ ここが重要：ドラッグ開始は「ハンドル」からだけ
   const onDragStartHandle = (id: string, e: React.DragEvent) => {
     if (busy) return;
+    e.dataTransfer.setData("text/plain", id);
+    e.dataTransfer.effectAllowed = "move";
     setDraggingId(id);
     setDragOverId(null);
-
-    // Chromeで必須（これがないとdropが安定しない）
-    try {
-      e.dataTransfer.setData("text/plain", id);
-      e.dataTransfer.effectAllowed = "move";
-    } catch {}
   };
 
   const onDragOverRow = (id: string, e: React.DragEvent) => {
     if (busy) return;
-    e.preventDefault(); // drop を許可
+    e.preventDefault();
     if (dragOverId !== id) setDragOverId(id);
   };
 
@@ -478,16 +461,7 @@ export default function CampusAdminClient({ schoolId }: Props) {
     if (busy) return;
     e.preventDefault();
 
-    const fromId =
-      draggingId ||
-      ((): string | null => {
-        try {
-          return e.dataTransfer.getData("text/plain") || null;
-        } catch {
-          return null;
-        }
-      })();
-
+    const fromId = e.dataTransfer.getData("text/plain") || draggingId;
     const toId = id;
 
     setDraggingId(null);
@@ -616,7 +590,7 @@ export default function CampusAdminClient({ schoolId }: Props) {
             <label className="mb-1 block text-xs text-gray-500 dark:text-gray-400">
               Google Map 埋め込みURL（iframe用）
               <span className="ml-2 text-[10px] text-gray-400">
-                ※ iframeタグを貼ってもOK（srcだけ抽出して保存します）
+                ※ iframeタグOK（srcだけ抽出して保存）
               </span>
             </label>
             <input
@@ -707,7 +681,7 @@ export default function CampusAdminClient({ schoolId }: Props) {
               return (
                 <div
                   key={c.id}
-                  // ✅ ここは draggable にしない
+                  // ✅ カード自体は draggable にしない（ここが肝）
                   onDragOver={(e) => onDragOverRow(c.id, e)}
                   onDrop={(e) => onDropRow(c.id, e)}
                   className={[
@@ -720,12 +694,12 @@ export default function CampusAdminClient({ schoolId }: Props) {
                 >
                   <div className="grid gap-2 md:grid-cols-12">
                     <div className="md:col-span-12 flex items-center gap-2 pb-1">
-                      {/* ✅ これだけ draggable */}
+                      {/* ✅ ここだけ draggable */}
                       <span
                         draggable={!busy}
                         onDragStart={(e) => onDragStartHandle(c.id, e)}
                         onDragEnd={onDragEndHandle}
-                        className="select-none text-[11px] text-gray-400 dark:text-gray-500 cursor-grab active:cursor-grabbing"
+                        className="select-none text-[11px] text-gray-400 dark:text-gray-500 cursor-move"
                         title="ドラッグして並び替え"
                       >
                         ⠿ ドラッグして並び替え
@@ -820,7 +794,6 @@ export default function CampusAdminClient({ schoolId }: Props) {
                             target="_blank"
                             rel="noreferrer"
                             className="text-[11px] underline text-blue-600 hover:text-blue-700 dark:text-blue-300 dark:hover:text-blue-200"
-                            onClick={(e) => e.stopPropagation()}
                           >
                             開く
                           </a>
@@ -856,6 +829,7 @@ export default function CampusAdminClient({ schoolId }: Props) {
 
                       {embedSrcForPreview ? (
                         <div className="mt-2 overflow-hidden rounded-lg border border-gray-200 dark:border-gray-800">
+                          {/* ✅ iframe がクリック奪わないように */}
                           <iframe
                             src={embedSrcForPreview}
                             className="h-[180px] w-full pointer-events-none"
@@ -871,10 +845,7 @@ export default function CampusAdminClient({ schoolId }: Props) {
                     <div className="md:col-span-12 flex items-center justify-end gap-2">
                       <button
                         type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          void handleSave(c.id);
-                        }}
+                        onClick={() => handleSave(c.id)}
                         disabled={!dirty || busy}
                         className="rounded-full bg-blue-600 px-3 py-1 text-[11px] font-semibold text-white
                                    hover:bg-blue-700 disabled:opacity-40
@@ -885,10 +856,7 @@ export default function CampusAdminClient({ schoolId }: Props) {
 
                       <button
                         type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleCancel(c.id);
-                        }}
+                        onClick={() => handleCancel(c.id)}
                         disabled={!dirty || busy}
                         className="rounded-full border border-gray-300 px-3 py-1 text-[11px] font-semibold text-gray-700
                                    hover:bg-gray-100 disabled:opacity-40
@@ -899,10 +867,7 @@ export default function CampusAdminClient({ schoolId }: Props) {
 
                       <button
                         type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          void handleDelete(c.id);
-                        }}
+                        onClick={() => handleDelete(c.id)}
                         disabled={busy}
                         className="rounded-full border border-red-300 px-3 py-1 text-[11px] font-semibold text-red-600
                                    hover:bg-red-50 disabled:opacity-40
