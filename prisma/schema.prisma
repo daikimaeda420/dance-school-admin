@@ -73,6 +73,9 @@ model DiagnosisCampus {
   googleMapUrl String?
   results      DiagnosisResult[] @relation("ResultCampuses")
 
+  mapEmbedUrl String?  // Google Mapsの埋め込み用URL（/maps/embed?pb=...）
+  mapLinkUrl  String?  // 「Googleマップで大きく見る」用（任意）
+
   @@unique([schoolId, slug])
   @@index([schoolId, sortOrder])
   @@index([schoolId, isActive])
