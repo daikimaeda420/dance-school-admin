@@ -3,8 +3,8 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 model Faq {
@@ -60,21 +60,26 @@ model SuperAdmin {
 }
 
 model DiagnosisCampus {
-  id           String            @id @default(cuid())
-  schoolId     String
-  label        String
-  slug         String
-  sortOrder    Int               @default(0)
-  isActive     Boolean           @default(true)
-  createdAt    DateTime          @default(now())
-  updatedAt    DateTime          @updatedAt
-  address      String?
-  access       String?
-  googleMapUrl String?
-  results      DiagnosisResult[] @relation("ResultCampuses")
+  id        String   @id @default(cuid())
+  schoolId  String
+  label     String
+  slug      String
+  sortOrder Int      @default(0)
+  isActive  Boolean  @default(true)
 
-  mapEmbedUrl String?  // Google Mapsの埋め込み用URL（/maps/embed?pb=...）
-  mapLinkUrl  String?  // 「Googleマップで大きく見る」用（任意）
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  address String?
+  access  String?
+
+  // ✅ Google Map（外部リンク用）
+  googleMapUrl String?
+
+  // ✅ Google Map（iframe埋め込み用）
+  googleMapEmbedUrl String?
+
+  results DiagnosisResult[] @relation("ResultCampuses")
 
   @@unique([schoolId, slug])
   @@index([schoolId, sortOrder])
@@ -113,46 +118,47 @@ model DiagnosisLifestyle {
   @@index([schoolId, isActive])
 }
 
-
 model DiagnosisGenre {
-  id        String            @id @default(cuid())
+  id        String   @id @default(cuid())
   schoolId  String
   label     String
   slug      String
-  sortOrder Int               @default(0)
-  isActive  Boolean           @default(true)
-  createdAt DateTime          @default(now())
-  updatedAt DateTime          @updatedAt
+  sortOrder Int      @default(0)
+  isActive  Boolean  @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   answerTag String?
 
-  // ✅ 追加：診断結果に表示する画像（DB保存）
   photoData Bytes?
   photoMime String?
 
-  results   DiagnosisResult[] @relation("ResultGenres")
+  results DiagnosisResult[] @relation("ResultGenres")
 
   @@unique([schoolId, slug])
   @@index([schoolId, sortOrder])
   @@index([schoolId, isActive])
 }
 
-
 model DiagnosisInstructor {
-  id           String            @id @default(cuid())
+  id           String   @id @default(cuid())
   schoolId     String
   label        String
   slug         String
-  sortOrder    Int               @default(0)
-  isActive     Boolean           @default(true)
-  createdAt    DateTime          @default(now())
-  updatedAt    DateTime          @updatedAt
+  sortOrder    Int      @default(0)
+  isActive     Boolean  @default(true)
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
   photoData    Bytes?
   photoMime    String?
   photoUrl     String?
   charmTags    String?
   introduction String?
-  results      DiagnosisResult[] @relation("ResultInstructors")
+
+  results DiagnosisResult[] @relation("ResultInstructors")
 
   @@unique([schoolId, slug])
   @@index([schoolId, isActive])
@@ -193,19 +199,21 @@ model DiagnosisInstructorCampus {
 }
 
 model DiagnosisResult {
-  id          String                @id @default(cuid())
-  schoolId    String
-  title       String
-  body        String?
-  ctaLabel    String?
-  ctaUrl      String?
-  sortOrder   Int                   @default(0)
-  isActive    Boolean               @default(true)
-  createdAt   DateTime              @default(now())
-  updatedAt   DateTime              @updatedAt
-  priority    Int                   @default(0)
-  conditions  Json?
-  isFallback  Boolean               @default(false)
+  id         String   @id @default(cuid())
+  schoolId   String
+  title      String
+  body       String?
+  ctaLabel   String?
+  ctaUrl     String?
+  sortOrder  Int      @default(0)
+  isActive   Boolean  @default(true)
+  priority   Int      @default(0)
+  conditions Json?
+  isFallback Boolean  @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   campuses    DiagnosisCampus[]     @relation("ResultCampuses")
   courses     DiagnosisCourse[]     @relation("ResultCourses")
   genres      DiagnosisGenre[]      @relation("ResultGenres")
@@ -216,7 +224,7 @@ model DiagnosisResult {
 }
 
 model SchoolClass {
-  id          String         @id @default(cuid())
+  id          String   @id @default(cuid())
   schoolId    String
   name        String
   description String?
@@ -224,36 +232,41 @@ model SchoolClass {
   targets     String[]
   genres      String[]
   schedule    String?
-  isActive    Boolean        @default(true)
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
-  teachers    TeacherClass[]
+  isActive    Boolean  @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  teachers TeacherClass[]
 
   @@index([schoolId])
   @@index([isActive])
 }
 
 model Teacher {
-  id        String         @id @default(cuid())
+  id        String   @id @default(cuid())
   schoolId  String
   name      String
   photoUrl  String?
   styles    String[]
   bio       String?
-  createdAt DateTime       @default(now())
-  updatedAt DateTime       @updatedAt
-  classes   TeacherClass[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  classes TeacherClass[]
 
   @@index([schoolId])
 }
 
 model TeacherClass {
-  id        String      @id @default(cuid())
+  id        String   @id @default(cuid())
   classId   String
   teacherId String
-  createdAt DateTime    @default(now())
-  clazz     SchoolClass @relation(fields: [classId], references: [id])
-  teacher   Teacher     @relation(fields: [teacherId], references: [id])
+  createdAt DateTime @default(now())
+
+  clazz   SchoolClass @relation(fields: [classId], references: [id])
+  teacher Teacher     @relation(fields: [teacherId], references: [id])
 
   @@unique([classId, teacherId])
   @@index([classId])

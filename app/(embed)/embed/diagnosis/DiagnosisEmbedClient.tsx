@@ -61,6 +61,7 @@ type DiagnosisResult = {
     teacherName?: string;
     score: number;
   }[];
+
   campus?: {
     id?: string;
     label: string;
@@ -68,13 +69,16 @@ type DiagnosisResult = {
     address?: string | null;
     access?: string | null;
     googleMapUrl?: string | null;
+    googleMapEmbedUrl?: string | null; // ★追加
   };
+
   selectedCampus?: {
     label: string;
     slug: string;
     address?: string | null;
     access?: string | null;
     googleMapUrl?: string | null;
+    googleMapEmbedUrl?: string | null; // ★追加
   };
 
   // ✅ 追加：Q4（answerTag）から引いたジャンル（管理画面の紐づけ結果）
@@ -107,13 +111,11 @@ type Props = {
 function splitCharmTags(input?: string | null): string[] {
   const s = String(input ?? "").trim();
   if (!s) return [];
-
-  // よくある区切り: カンマ、読点、スラッシュ、縦棒、改行
   return s
     .split(/[,、\/|]\s*|\n+/g)
     .map((x) => x.trim())
     .filter(Boolean)
-    .slice(0, 12); // 出しすぎ防止
+    .slice(0, 12);
 }
 
 export default function DiagnosisEmbedClient({
@@ -333,7 +335,6 @@ export default function DiagnosisEmbedClient({
                         }
                         className="h-40 w-full object-cover"
                         loading="lazy"
-                        // NO IMAGE(svg) が返るなら表示されるので、onErrorは基本不要
                       />
                     </div>
                   </div>
@@ -354,7 +355,7 @@ export default function DiagnosisEmbedClient({
                   <div className="text-xs font-semibold text-gray-500">
                     あなたのレベルに合わせた提案
                   </div>
-                  <div className="mt-2 text-sm text-gray-800 whitespace-pre-wrap">
+                  <div className="mt-2 whitespace-pre-wrap text-sm text-gray-800">
                     {result.resultCopy.level}
                   </div>
                 </div>
@@ -365,7 +366,7 @@ export default function DiagnosisEmbedClient({
                   <div className="text-xs font-semibold text-gray-500">
                     ライフスタイルに合わせた提案
                   </div>
-                  <div className="mt-2 text-sm text-gray-800 whitespace-pre-wrap">
+                  <div className="mt-2 whitespace-pre-wrap text-sm text-gray-800">
                     {result.resultCopy.age}
                   </div>
                 </div>
@@ -376,7 +377,7 @@ export default function DiagnosisEmbedClient({
                   <div className="text-xs font-semibold text-gray-500">
                     先生のタイプに合わせた提案
                   </div>
-                  <div className="mt-2 text-sm text-gray-800 whitespace-pre-wrap">
+                  <div className="mt-2 whitespace-pre-wrap text-sm text-gray-800">
                     {result.resultCopy.teacher}
                   </div>
                 </div>
@@ -387,7 +388,7 @@ export default function DiagnosisEmbedClient({
                   <div className="text-xs font-semibold text-gray-500">
                     不安への回答
                   </div>
-                  <div className="mt-2 text-sm text-gray-800 whitespace-pre-wrap">
+                  <div className="mt-2 whitespace-pre-wrap text-sm text-gray-800">
                     {result.resultCopy.concern}
                   </div>
                 </div>
@@ -410,9 +411,7 @@ export default function DiagnosisEmbedClient({
                       key={t.id}
                       className="rounded-3xl border border-gray-200 bg-white p-4 shadow-sm"
                     >
-                      {/* 上段：写真 + 名前/タグ */}
                       <div className="flex items-start gap-4">
-                        {/* 写真 */}
                         <div className="h-24 w-24 overflow-hidden rounded-2xl bg-gray-200">
                           {t.photoUrl ? (
                             // eslint-disable-next-line @next/next/no-img-element
@@ -426,7 +425,6 @@ export default function DiagnosisEmbedClient({
                           )}
                         </div>
 
-                        {/* 右側：名前 + タグ */}
                         <div className="min-w-0 flex-1">
                           <div className="text-xl font-extrabold tracking-tight">
                             {t.label}
@@ -447,11 +445,9 @@ export default function DiagnosisEmbedClient({
                         </div>
                       </div>
 
-                      {/* 下段：吹き出し（紹介文） */}
                       {intro && (
                         <div className="mt-4">
                           <div className="relative rounded-2xl bg-gray-100 px-4 py-3 text-sm leading-relaxed text-gray-700">
-                            {/* しっぽ */}
                             <div className="absolute -top-2 left-10 h-4 w-4 rotate-45 bg-gray-100" />
                             <span className="whitespace-pre-wrap">{intro}</span>
                           </div>
@@ -462,7 +458,6 @@ export default function DiagnosisEmbedClient({
                 })}
               </div>
             ) : (
-              // 既存 teacher fallback のままでOK
               <div className="mt-2 flex items-center gap-3">
                 {result.teacher.photoUrl && (
                   <div className="h-12 w-12 overflow-hidden rounded-full bg-gray-200">
@@ -494,6 +489,9 @@ export default function DiagnosisEmbedClient({
           const c = result.campus ?? result.selectedCampus;
           if (!c) return null;
 
+          const embedUrl = String(c.googleMapEmbedUrl ?? "").trim();
+          const linkUrl = String(c.googleMapUrl ?? "").trim();
+
           return (
             <div className="mb-4 rounded-2xl bg-gray-50 p-4">
               <div className="text-xs font-semibold text-gray-500">
@@ -501,7 +499,7 @@ export default function DiagnosisEmbedClient({
               </div>
               <div className="mt-1 text-lg font-bold">{c.label}</div>
 
-              {(c.address || c.access || c.googleMapUrl) && (
+              {(c.address || c.access || embedUrl || linkUrl) && (
                 <div className="mt-3 space-y-2 text-xs text-gray-700">
                   {c.address ? (
                     <div>
@@ -519,9 +517,33 @@ export default function DiagnosisEmbedClient({
                     </div>
                   ) : null}
 
-                  {c.googleMapUrl ? (
+                  {/* ★ここが変更点：埋め込みがあれば iframe、なければリンク */}
+                  {embedUrl ? (
+                    <div className="pt-2">
+                      <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white">
+                        <iframe
+                          src={embedUrl}
+                          className="h-64 w-full"
+                          style={{ border: 0 }}
+                          loading="lazy"
+                          referrerPolicy="no-referrer-when-downgrade"
+                        />
+                      </div>
+
+                      {linkUrl ? (
+                        <a
+                          href={linkUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="mt-2 inline-flex items-center gap-2 text-blue-600 hover:underline"
+                        >
+                          Googleマップで見る
+                        </a>
+                      ) : null}
+                    </div>
+                  ) : linkUrl ? (
                     <a
-                      href={c.googleMapUrl}
+                      href={linkUrl}
                       target="_blank"
                       rel="noreferrer"
                       className="inline-flex items-center gap-2 text-blue-600 hover:underline"

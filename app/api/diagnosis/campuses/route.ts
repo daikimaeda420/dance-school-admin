@@ -53,15 +53,19 @@ export async function GET(req: NextRequest) {
           address: true,
           access: true,
           googleMapUrl: true,
+          googleMapEmbedUrl: true, // ★追加
         }
       : {
           label: true,
           slug: true,
+          // ※診断フロント側で埋め込み表示したい場合はここも返す
+          // googleMapEmbedUrl: true,
+          // googleMapUrl: true,
         },
   });
 
   if (!full) {
-    const options: DiagnosisQuestionOption[] = campuses.map((c) => ({
+    const options: DiagnosisQuestionOption[] = campuses.map((c: any) => ({
       id: c.slug,
       label: c.label,
     }));
@@ -73,9 +77,9 @@ export async function GET(req: NextRequest) {
 }
 
 /**
- * ✅ 追加：POSTで校舎を新規作成できるようにする
+ * ✅ POSTで校舎を新規作成できるようにする
  * POST /api/diagnosis/campuses
- * body: { schoolId, label, slug, sortOrder?, isActive?, address?, access?, googleMapUrl? }
+ * body: { schoolId, label, slug, sortOrder?, isActive?, address?, access?, googleMapUrl?, googleMapEmbedUrl? }
  */
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({} as any));
@@ -90,8 +94,14 @@ export async function POST(req: NextRequest) {
   const address =
     body.address !== undefined ? norm(body.address) || null : null;
   const access = body.access !== undefined ? norm(body.access) || null : null;
+
   const googleMapUrl =
     body.googleMapUrl !== undefined ? norm(body.googleMapUrl) || null : null;
+
+  const googleMapEmbedUrl =
+    body.googleMapEmbedUrl !== undefined
+      ? norm(body.googleMapEmbedUrl) || null
+      : null; // ★追加
 
   if (!schoolId) {
     return NextResponse.json(
@@ -128,6 +138,7 @@ export async function POST(req: NextRequest) {
       address,
       access,
       googleMapUrl,
+      googleMapEmbedUrl, // ★追加
     },
     select: {
       id: true,
@@ -139,6 +150,7 @@ export async function POST(req: NextRequest) {
       address: true,
       access: true,
       googleMapUrl: true,
+      googleMapEmbedUrl: true, // ★追加
     },
   });
 
