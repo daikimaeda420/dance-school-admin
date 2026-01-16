@@ -13,10 +13,7 @@ type Campus = {
   address?: string | null;
   access?: string | null;
 
-  // 外部リンク用（従来）
   googleMapUrl?: string | null;
-
-  // 埋め込み用（iframe src）
   googleMapEmbedUrl?: string | null;
 };
 
@@ -25,12 +22,12 @@ type Props = { schoolId: string };
 type Draft = {
   label: string;
   slug: string;
-  sortOrder: number; // UIでは編集しない（並び替えで自動更新）
+  sortOrder: number;
   isActive: boolean;
-  address: string; // null -> ""
-  access: string; // null -> ""
-  googleMapUrl: string; // null -> ""
-  googleMapEmbedUrl: string; // null -> ""（iframeタグでも可で入力される可能性あり）
+  address: string;
+  access: string;
+  googleMapUrl: string;
+  googleMapEmbedUrl: string;
 };
 
 const inputBase =
@@ -48,22 +45,17 @@ const textareaBase =
  * 入力値の正規化
  * - 前後空白除去
  * - <iframe ...> が入ってたら src を抽出して返す
- * - それ以外はそのまま
  */
 function normalizeEmbedInput(input: string): string {
   const s = String(input ?? "").trim();
   if (!s) return "";
 
-  // iframeタグごと貼られた場合
   if (s.includes("<iframe")) {
-    // src="..." or src='...'
     const m = s.match(/src\s*=\s*["']([^"']+)["']/i);
     if (m?.[1]) return String(m[1]).trim();
     return "";
   }
 
-  // たまに iframe の src だけじゃなく attribute ごと貼る人対策（念のため）
-  // 例: src=https://... width=... など
   if (s.startsWith("src=")) {
     const m = s.match(/src\s*=\s*["']?([^"'\s>]+)["']?/i);
     if (m?.[1]) return String(m[1]).trim();
@@ -82,19 +74,12 @@ function toDraft(c: Campus): Draft {
     address: c.address ?? "",
     access: c.access ?? "",
     googleMapUrl: c.googleMapUrl ?? "",
-    // DBはsrcだけ入っている想定。draftは常に正規化して持つ
     googleMapEmbedUrl: normalizeEmbedInput(c.googleMapEmbedUrl ?? ""),
   };
 }
 
-/**
- * ✅ sortOrder は「並び替え専用」なので、通常の「未保存」判定からは除外する
- * さらに googleMapEmbedUrl は iframeタグ貼りを吸収するため両方正規化して比較する
- */
 function isSameDraftIgnoringOrder(d: Draft, c: Campus): boolean {
   const b = toDraft(c);
-
-  // draft側は入力途中で iframe が混ざる可能性があるので比較時に正規化
   const dEmbed = normalizeEmbedInput(d.googleMapEmbedUrl);
   const bEmbed = normalizeEmbedInput(b.googleMapEmbedUrl);
 
@@ -116,14 +101,6 @@ function arrayMove<T>(arr: T[], from: number, to: number): T[] {
   return next;
 }
 
-/**
- * ✅ 入力/ボタン上でのドラッグ開始を無効化（保存クリックが潰れるのを防ぐ）
- */
-function isInteractiveTarget(el: EventTarget | null): boolean {
-  if (!(el instanceof HTMLElement)) return false;
-  return !!el.closest("button, a, input, textarea, select, label");
-}
-
 export default function CampusAdminClient({ schoolId }: Props) {
   const [campuses, setCampuses] = useState<Campus[]>([]);
   const [drafts, setDrafts] = useState<Record<string, Draft>>({});
@@ -132,14 +109,13 @@ export default function CampusAdminClient({ schoolId }: Props) {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // ✅ 並び替えの未保存フラグ
   const [orderDirty, setOrderDirty] = useState(false);
 
-  // DnD 用
+  // ✅ DnD
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
 
-  // 新規追加用フォーム（表示順は入力させない）
+  // 新規追加フォーム
   const [newLabel, setNewLabel] = useState("");
   const [newSlug, setNewSlug] = useState("");
   const [newIsActive, setNewIsActive] = useState(true);
@@ -150,8 +126,6 @@ export default function CampusAdminClient({ schoolId }: Props) {
 
   const disabled = !schoolId;
   const abortRef = useRef<AbortController | null>(null);
-
-  // 最後に保存された並び（id配列）を保持して「未保存」を判定
   const lastSavedOrderRef = useRef<string[]>([]);
 
   const apiBase = useMemo(() => {
@@ -161,7 +135,6 @@ export default function CampusAdminClient({ schoolId }: Props) {
   }, [schoolId]);
 
   const recomputeSortOrders = (list: Campus[]) => {
-    // sortOrder を “表示順” に対応させる（0,10,20... で安定させる）
     return list.map((c, idx) => ({ ...c, sortOrder: idx * 10 }));
   };
 
@@ -170,14 +143,12 @@ export default function CampusAdminClient({ schoolId }: Props) {
 
     setCampuses(ordered);
 
-    // drafts の sortOrder も同期（ただし通常の未保存とは別扱い）
     setDrafts((prev) => {
       const next = { ...prev };
       for (const c of ordered) {
         const base = next[c.id] ?? toDraft(c);
         next[c.id] = { ...base, sortOrder: c.sortOrder };
       }
-      // 存在しないidを削除
       for (const id of Object.keys(next)) {
         if (!ordered.find((x) => x.id === id)) delete next[id];
       }
@@ -210,13 +181,10 @@ export default function CampusAdminClient({ schoolId }: Props) {
       }
 
       const data = (await res.json()) as Campus[];
-
-      // sortOrder順に並べる（表示安定）
       const sorted = [...(Array.isArray(data) ? data : [])].sort(
         (a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0)
       );
 
-      // ✅ state へ反映（fetch直後は未保存なし）
       const normalized = recomputeSortOrders(sorted);
       setCampuses(normalized);
 
@@ -226,7 +194,6 @@ export default function CampusAdminClient({ schoolId }: Props) {
         for (const id of Object.keys(next)) {
           if (!normalized.find((x) => x.id === id)) delete next[id];
         }
-        // sortOrder も同期
         for (const c of normalized) {
           next[c.id] = {
             ...(next[c.id] ?? toDraft(c)),
@@ -258,7 +225,6 @@ export default function CampusAdminClient({ schoolId }: Props) {
     }
 
     void fetchCampuses();
-
     return () => abortRef.current?.abort();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [schoolId]);
@@ -281,8 +247,6 @@ export default function CampusAdminClient({ schoolId }: Props) {
     const address = newAddress.trim();
     const access = newAccess.trim();
     const googleMapUrl = newGoogleMapUrl.trim();
-
-    // ★ここで正規化して保存（iframe丸ごとでもOK）
     const googleMapEmbedUrl = normalizeEmbedInput(newGoogleMapEmbedUrl);
 
     if (!label || !slug) {
@@ -290,7 +254,6 @@ export default function CampusAdminClient({ schoolId }: Props) {
       return;
     }
 
-    // ✅ 新規は末尾に追加（現在の末尾より大きい sortOrder）
     const nextSortOrder =
       campuses.length > 0
         ? (campuses[campuses.length - 1]?.sortOrder ?? 0) + 10
@@ -363,7 +326,6 @@ export default function CampusAdminClient({ schoolId }: Props) {
       return;
     }
 
-    // ★ここで正規化して送る（iframe丸ごとでもOK）
     const embedSrc = normalizeEmbedInput(d.googleMapEmbedUrl);
 
     setSavingId(id);
@@ -378,7 +340,7 @@ export default function CampusAdminClient({ schoolId }: Props) {
           schoolId,
           label: nextLabel,
           slug: nextSlug,
-          sortOrder: d.sortOrder, // ✅ 並び替えで変わっていても送る
+          sortOrder: d.sortOrder,
           isActive: d.isActive,
           address: d.address.trim() ? d.address.trim() : null,
           access: d.access.trim() ? d.access.trim() : null,
@@ -393,7 +355,6 @@ export default function CampusAdminClient({ schoolId }: Props) {
         return;
       }
 
-      // 保存後、draft側も正規化しておく（見た目も一致＝dirtyが消える）
       setDraft(id, { googleMapEmbedUrl: embedSrc });
 
       await fetchCampuses();
@@ -435,7 +396,6 @@ export default function CampusAdminClient({ schoolId }: Props) {
     }
   };
 
-  // ✅ 並び替え保存（全件の sortOrder を一括で PATCH）
   const handleSaveOrder = async () => {
     if (savingId || deletingId) return;
     if (!orderDirty) return;
@@ -444,10 +404,7 @@ export default function CampusAdminClient({ schoolId }: Props) {
     setError(null);
 
     try {
-      // 現在の並びを sortOrder へ反映
       const ordered = recomputeSortOrders(campuses);
-
-      // drafts へも同期（直近状態で送る）
       const currentDrafts = drafts;
 
       for (const c of ordered) {
@@ -495,30 +452,42 @@ export default function CampusAdminClient({ schoolId }: Props) {
 
   const busy = !!savingId || !!deletingId;
 
-  // DnD handlers（✅ インタラクティブ要素上ではドラッグ開始しない）
-  const onDragStartRow = (id: string, e: React.DragEvent) => {
+  /**
+   * ✅ DnD：カードは draggable にしない
+   * 代わりに「⠿」ハンドルだけ draggable にする
+   */
+  const onDragStartHandle = (id: string, e: React.DragEvent) => {
     if (busy) return;
-    if (isInteractiveTarget(e.target)) {
-      e.preventDefault();
-      return;
-    }
     setDraggingId(id);
     setDragOverId(null);
+
+    // Chromeで必須（これがないとdropが安定しない）
+    try {
+      e.dataTransfer.setData("text/plain", id);
+      e.dataTransfer.effectAllowed = "move";
+    } catch {}
   };
 
   const onDragOverRow = (id: string, e: React.DragEvent) => {
     if (busy) return;
-    if (isInteractiveTarget(e.target)) return;
     e.preventDefault(); // drop を許可
     if (dragOverId !== id) setDragOverId(id);
   };
 
   const onDropRow = (id: string, e: React.DragEvent) => {
     if (busy) return;
-    if (isInteractiveTarget(e.target)) return;
     e.preventDefault();
 
-    const fromId = draggingId;
+    const fromId =
+      draggingId ||
+      ((): string | null => {
+        try {
+          return e.dataTransfer.getData("text/plain") || null;
+        } catch {
+          return null;
+        }
+      })();
+
     const toId = id;
 
     setDraggingId(null);
@@ -532,7 +501,6 @@ export default function CampusAdminClient({ schoolId }: Props) {
 
     const moved = arrayMove(campuses, fromIndex, toIndex);
 
-    // 「最後に保存された並び」と違えば dirty
     const movedIds = moved.map((c) => c.id);
     const dirtyNow =
       movedIds.length !== lastSavedOrderRef.current.length ||
@@ -541,7 +509,7 @@ export default function CampusAdminClient({ schoolId }: Props) {
     applyOrderToState(moved, dirtyNow);
   };
 
-  const onDragEndRow = () => {
+  const onDragEndHandle = () => {
     setDraggingId(null);
     setDragOverId(null);
   };
@@ -724,7 +692,7 @@ export default function CampusAdminClient({ schoolId }: Props) {
           <div className="space-y-2">
             {campuses.map((c) => {
               const d = drafts[c.id] ?? toDraft(c);
-              const dirty = !isSameDraftIgnoringOrder(d, c); // ✅ sortOrderは無視
+              const dirty = !isSameDraftIgnoringOrder(d, c);
               const rowSaving = savingId === c.id;
               const rowDeleting = deletingId === c.id;
 
@@ -732,7 +700,6 @@ export default function CampusAdminClient({ schoolId }: Props) {
               const isOver =
                 dragOverId === c.id && draggingId && draggingId !== c.id;
 
-              // プレビュー用は常に src として正規化
               const embedSrcForPreview = normalizeEmbedInput(
                 d.googleMapEmbedUrl
               );
@@ -740,11 +707,9 @@ export default function CampusAdminClient({ schoolId }: Props) {
               return (
                 <div
                   key={c.id}
-                  draggable={!busy}
-                  onDragStart={(e) => onDragStartRow(c.id, e)}
+                  // ✅ ここは draggable にしない
                   onDragOver={(e) => onDragOverRow(c.id, e)}
                   onDrop={(e) => onDropRow(c.id, e)}
-                  onDragEnd={onDragEndRow}
                   className={[
                     "rounded-lg border bg-white p-2 shadow-sm dark:bg-gray-950",
                     isOver
@@ -755,9 +720,17 @@ export default function CampusAdminClient({ schoolId }: Props) {
                 >
                   <div className="grid gap-2 md:grid-cols-12">
                     <div className="md:col-span-12 flex items-center gap-2 pb-1">
-                      <span className="select-none text-[11px] text-gray-400 dark:text-gray-500">
+                      {/* ✅ これだけ draggable */}
+                      <span
+                        draggable={!busy}
+                        onDragStart={(e) => onDragStartHandle(c.id, e)}
+                        onDragEnd={onDragEndHandle}
+                        className="select-none text-[11px] text-gray-400 dark:text-gray-500 cursor-grab active:cursor-grabbing"
+                        title="ドラッグして並び替え"
+                      >
                         ⠿ ドラッグして並び替え
                       </span>
+
                       {dirty && (
                         <span className="ml-auto text-[10px] text-amber-500">
                           未保存（内容）
@@ -847,6 +820,7 @@ export default function CampusAdminClient({ schoolId }: Props) {
                             target="_blank"
                             rel="noreferrer"
                             className="text-[11px] underline text-blue-600 hover:text-blue-700 dark:text-blue-300 dark:hover:text-blue-200"
+                            onClick={(e) => e.stopPropagation()}
                           >
                             開く
                           </a>
@@ -896,7 +870,10 @@ export default function CampusAdminClient({ schoolId }: Props) {
                     <div className="md:col-span-12 flex items-center justify-end gap-2">
                       <button
                         type="button"
-                        onClick={() => handleSave(c.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          void handleSave(c.id);
+                        }}
                         disabled={!dirty || busy}
                         className="rounded-full bg-blue-600 px-3 py-1 text-[11px] font-semibold text-white
                                    hover:bg-blue-700 disabled:opacity-40
@@ -907,7 +884,10 @@ export default function CampusAdminClient({ schoolId }: Props) {
 
                       <button
                         type="button"
-                        onClick={() => handleCancel(c.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleCancel(c.id);
+                        }}
                         disabled={!dirty || busy}
                         className="rounded-full border border-gray-300 px-3 py-1 text-[11px] font-semibold text-gray-700
                                    hover:bg-gray-100 disabled:opacity-40
@@ -918,7 +898,10 @@ export default function CampusAdminClient({ schoolId }: Props) {
 
                       <button
                         type="button"
-                        onClick={() => handleDelete(c.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          void handleDelete(c.id);
+                        }}
                         disabled={busy}
                         className="rounded-full border border-red-300 px-3 py-1 text-[11px] font-semibold text-red-600
                                    hover:bg-red-50 disabled:opacity-40
