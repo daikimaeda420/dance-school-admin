@@ -266,9 +266,6 @@ export default function DiagnosisEmbedClient({
               {result.score}
               <span className="text-lg font-semibold"> / 100</span>
             </div>
-            <div className="mt-1 inline-flex items-center rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
-              {result.headerLabel}
-            </div>
             {result.patternMessage && (
               <div className="mt-1 text-xs text-gray-500">
                 {result.patternMessage}
