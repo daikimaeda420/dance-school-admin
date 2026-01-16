@@ -858,10 +858,11 @@ export default function CampusAdminClient({ schoolId }: Props) {
                         <div className="mt-2 overflow-hidden rounded-lg border border-gray-200 dark:border-gray-800">
                           <iframe
                             src={embedSrcForPreview}
-                            className="h-[180px] w-full"
+                            className="h-[180px] w-full pointer-events-none"
                             style={{ border: 0 }}
                             loading="lazy"
                             referrerPolicy="no-referrer-when-downgrade"
+                            tabIndex={-1}
                           />
                         </div>
                       ) : null}
