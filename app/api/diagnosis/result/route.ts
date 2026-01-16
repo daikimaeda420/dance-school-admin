@@ -6,6 +6,12 @@ import {
   concernMessages,
   ConcernMessageKey,
 } from "@/lib/diagnosis/config";
+import {
+  LEVEL_RESULT_COPY,
+  AGE_RESULT_COPY,
+  TEACHER_RESULT_COPY,
+  CONCERN_RESULT_COPY,
+} from "@/lib/diagnosis/resultCopy";
 
 type DiagnosisRequestBody = {
   schoolId?: string;
@@ -20,6 +26,21 @@ function getConcernKey(answers: Record<string, string>): ConcernMessageKey {
   const opt = q6?.options.find((o) => o.id === optionId);
   const key = opt?.messageKey ?? "Msg_Consult";
   return key as ConcernMessageKey;
+}
+
+/**
+ * Qx の選択肢から option.tag を取り出す（Lv0_超入門 / Age_Adult_Work / Style_Healing など）
+ * ※ answers[Qx] は option.id なので QUESTIONS から引き直す
+ */
+function getOptionTagFromAnswers(
+  questionId: string,
+  answers: Record<string, string>
+): string | null {
+  const q = QUESTIONS.find((q) => q.id === questionId);
+  const optionId = answers[questionId];
+  const opt = q?.options.find((o: any) => o.id === optionId) as any;
+  const tag = opt?.tag;
+  return typeof tag === "string" && tag.trim() ? tag.trim() : null;
 }
 
 /**
@@ -192,7 +213,7 @@ export async function POST(req: NextRequest) {
     }
 
     // =========================================================
-    // ✅ 修正ポイント：Q4は「answerTag で DiagnosisGenre を引く」
+    // ✅ Q4は「answerTag で DiagnosisGenre を引く」
     // =========================================================
     const genreTag = getGenreTagFromAnswers(answers);
 
@@ -204,7 +225,7 @@ export async function POST(req: NextRequest) {
             where: {
               schoolId,
               isActive: true,
-              answerTag: genreTag, // ← 管理画面の「answerTag」と一致させる
+              answerTag: genreTag,
             },
             select: { id: true, label: true, slug: true, answerTag: true },
           });
@@ -253,7 +274,7 @@ export async function POST(req: NextRequest) {
 
     const ctx = {
       campusSlug: campus.slug,
-      genreSlug: genre?.slug ?? null, // ← 条件判定は slug を使う前提のまま
+      genreSlug: genre?.slug ?? null,
       q2ForCourse,
       recommendedCourseSlug: recommendedCourse?.slug ?? null,
     };
@@ -283,20 +304,17 @@ export async function POST(req: NextRequest) {
     // ==========================
     // ✅ 講師取得（段階的に緩める）※中間テーブルで絞り込む
     // ==========================
-
-    // campusは必須：まずcampusに紐づく instructorIds を取得
     const campusInstructorIds = await instructorIdsByCampus({
       schoolId,
       campusId: campus.id,
     });
 
-    // select（重いなら photoData を外してOK）
     const selectInstructor = {
       id: true,
       label: true,
       slug: true,
       photoMime: true,
-      photoData: true, // length判定のため（重いなら消してOK）
+      photoData: true,
       charmTags: true,
       introduction: true,
     } as const;
@@ -381,7 +399,22 @@ export async function POST(req: NextRequest) {
 
     if (instructors.length === 0) instructorMatchedBy = "none";
 
-    const concernKey = getConcernKey(answers);
+    // ==========================
+    // ✅ ここが今回の追加：resultCopy を作る
+    // ==========================
+    const levelTag = getOptionTagFromAnswers("Q2", answers); // Lv0_超入門 等
+    const ageTag = getOptionTagFromAnswers("Q3", answers); // Age_Adult_Work 等
+    const teacherTag = getOptionTagFromAnswers("Q5", answers); // Style_Healing 等
+    const concernKey = getConcernKey(answers); // Msg_Pace 等
+
+    const resultCopy = {
+      level: (levelTag && LEVEL_RESULT_COPY[levelTag]) || null,
+      age: (ageTag && AGE_RESULT_COPY[ageTag]) || null,
+      teacher: (teacherTag && TEACHER_RESULT_COPY[teacherTag]) || null,
+      concern: CONCERN_RESULT_COPY[concernKey] || null,
+    };
+
+    // 既存：concernMessage（短文）が必要ならそのまま
     const concernMessage = concernMessages[concernKey];
 
     return NextResponse.json({
@@ -391,9 +424,9 @@ export async function POST(req: NextRequest) {
       headerLabel: "あなたにおすすめの理由",
 
       bestMatch: {
-        classId: best.id, // 互換
+        classId: best.id,
         className: recommendedCourse?.label ?? best.title,
-        genres: genre ? [genre.label] : [], // ← ここで表示してもOK
+        genres: genre ? [genre.label] : [],
         levels: [],
         targets: [],
       },
@@ -405,7 +438,6 @@ export async function POST(req: NextRequest) {
         styles: [],
       },
 
-      // ✅ 講師管理で紐づいた講師（photoUrl を付与）
       instructors: instructors.map((t) => {
         const url = `/api/diagnosis/instructors/photo?schoolId=${encodeURIComponent(
           schoolId
@@ -428,7 +460,12 @@ export async function POST(req: NextRequest) {
 
       breakdown: [],
       worstMatch: null,
+
+      // 既存（短いメッセージ）
       concernMessage,
+
+      // ✅ 追加（長いコピー：結果ページで表示する用）
+      resultCopy,
 
       result: {
         id: best.id,
@@ -446,7 +483,6 @@ export async function POST(req: NextRequest) {
         googleMapUrl: campus.googleMapUrl ?? null,
       },
 
-      // ✅ 追加：結果ページで「おすすめのクラス」下に表示する用
       selectedGenre: genre
         ? {
             id: genre.id,
@@ -464,6 +500,14 @@ export async function POST(req: NextRequest) {
         recommendedCourseId: recommendedCourse?.id ?? null,
         instructorMatchedBy,
         instructorsCount: instructors.length,
+
+        // ✅ デバッグしやすいように追加
+        copyKeys: {
+          levelTag,
+          ageTag,
+          teacherTag,
+          concernKey,
+        },
       },
     });
   } catch (e: any) {
