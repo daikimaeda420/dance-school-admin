@@ -40,22 +40,23 @@ const textareaBase =
   "focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 " +
   "dark:bg-gray-950 dark:text-gray-100 dark:border-gray-700 dark:[color-scheme:dark]";
 
+/**
+ * 入力値の正規化
+ * - 前後空白除去
+ * - <iframe ...> が入ってたら src を抽出
+ */
 function normalizeEmbedInput(input: string): string {
   const s = String(input ?? "").trim();
   if (!s) return "";
 
   if (s.includes("<iframe")) {
     const m = s.match(/src\s*=\s*["']([^"']+)["']/i);
-    if (m?.[1]) return String(m[1]).trim();
-    return "";
+    return m?.[1] ? String(m[1]).trim() : "";
   }
-
   if (s.startsWith("src=")) {
     const m = s.match(/src\s*=\s*["']?([^"'\s>]+)["']?/i);
-    if (m?.[1]) return String(m[1]).trim();
-    return "";
+    return m?.[1] ? String(m[1]).trim() : "";
   }
-
   return s;
 }
 
@@ -105,7 +106,8 @@ export default function CampusAdminClient({ schoolId }: Props) {
 
   const [orderDirty, setOrderDirty] = useState(false);
 
-  const [draggingId, setDraggingId] = useState<string | null>(null);
+  // DnD（取っ手ドラッグ方式）
+  const dragFromIdRef = useRef<string | null>(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
 
   const [newLabel, setNewLabel] = useState("");
@@ -118,6 +120,7 @@ export default function CampusAdminClient({ schoolId }: Props) {
 
   const disabled = !schoolId;
   const abortRef = useRef<AbortController | null>(null);
+
   const lastSavedOrderRef = useRef<string[]>([]);
 
   const apiBase = useMemo(() => {
@@ -346,7 +349,9 @@ export default function CampusAdminClient({ schoolId }: Props) {
         return;
       }
 
+      // ここで draft も src に揃える（未保存が消える）
       setDraft(id, { googleMapEmbedUrl: embedSrc });
+
       await fetchCampuses();
     } catch (e) {
       console.error(e);
@@ -402,9 +407,8 @@ export default function CampusAdminClient({ schoolId }: Props) {
 
         const nextLabel = d.label.trim();
         const nextSlug = d.slug.trim();
-        if (!nextLabel || !nextSlug) {
-          throw new Error("校舎名（label）とslugは空にできません。");
-        }
+        if (!nextLabel || !nextSlug)
+          throw new Error("校舎名とslugは必須です。");
 
         const embedSrc = normalizeEmbedInput(d.googleMapEmbedUrl);
 
@@ -442,13 +446,14 @@ export default function CampusAdminClient({ schoolId }: Props) {
 
   const busy = !!savingId || !!deletingId;
 
-  // ✅ ここが重要：ドラッグ開始は「ハンドル」からだけ
+  // ===== DnD（取っ手だけ draggable） =====
   const onDragStartHandle = (id: string, e: React.DragEvent) => {
     if (busy) return;
-    e.dataTransfer.setData("text/plain", id);
-    e.dataTransfer.effectAllowed = "move";
-    setDraggingId(id);
+    dragFromIdRef.current = id;
     setDragOverId(null);
+    // HTML5 DnD のため一応セット
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", id);
   };
 
   const onDragOverRow = (id: string, e: React.DragEvent) => {
@@ -461,10 +466,11 @@ export default function CampusAdminClient({ schoolId }: Props) {
     if (busy) return;
     e.preventDefault();
 
-    const fromId = e.dataTransfer.getData("text/plain") || draggingId;
+    const fromId =
+      dragFromIdRef.current ?? e.dataTransfer.getData("text/plain");
     const toId = id;
 
-    setDraggingId(null);
+    dragFromIdRef.current = null;
     setDragOverId(null);
 
     if (!fromId || fromId === toId) return;
@@ -483,8 +489,8 @@ export default function CampusAdminClient({ schoolId }: Props) {
     applyOrderToState(moved, dirtyNow);
   };
 
-  const onDragEndHandle = () => {
-    setDraggingId(null);
+  const onDragEndAny = () => {
+    dragFromIdRef.current = null;
     setDragOverId(null);
   };
 
@@ -590,7 +596,7 @@ export default function CampusAdminClient({ schoolId }: Props) {
             <label className="mb-1 block text-xs text-gray-500 dark:text-gray-400">
               Google Map 埋め込みURL（iframe用）
               <span className="ml-2 text-[10px] text-gray-400">
-                ※ iframeタグOK（srcだけ抽出して保存）
+                ※ iframeタグを貼ってもOK（srcだけ抽出して保存します）
               </span>
             </label>
             <input
@@ -670,9 +676,7 @@ export default function CampusAdminClient({ schoolId }: Props) {
               const rowSaving = savingId === c.id;
               const rowDeleting = deletingId === c.id;
 
-              const isDragging = draggingId === c.id;
-              const isOver =
-                dragOverId === c.id && draggingId && draggingId !== c.id;
+              const isOver = dragOverId === c.id;
 
               const embedSrcForPreview = normalizeEmbedInput(
                 d.googleMapEmbedUrl
@@ -681,25 +685,23 @@ export default function CampusAdminClient({ schoolId }: Props) {
               return (
                 <div
                   key={c.id}
-                  // ✅ カード自体は draggable にしない（ここが肝）
                   onDragOver={(e) => onDragOverRow(c.id, e)}
                   onDrop={(e) => onDropRow(c.id, e)}
+                  onDragEnd={onDragEndAny}
                   className={[
                     "rounded-lg border bg-white p-2 shadow-sm dark:bg-gray-950",
                     isOver
                       ? "border-blue-400 dark:border-blue-500"
                       : "border-gray-200 dark:border-gray-800",
-                    isDragging ? "opacity-60" : "",
                   ].join(" ")}
                 >
                   <div className="grid gap-2 md:grid-cols-12">
                     <div className="md:col-span-12 flex items-center gap-2 pb-1">
-                      {/* ✅ ここだけ draggable */}
+                      {/* ✅ 取っ手だけ draggable */}
                       <span
                         draggable={!busy}
                         onDragStart={(e) => onDragStartHandle(c.id, e)}
-                        onDragEnd={onDragEndHandle}
-                        className="select-none text-[11px] text-gray-400 dark:text-gray-500 cursor-move"
+                        className="select-none cursor-grab text-[11px] text-gray-400 dark:text-gray-500"
                         title="ドラッグして並び替え"
                       >
                         ⠿ ドラッグして並び替え
@@ -794,6 +796,7 @@ export default function CampusAdminClient({ schoolId }: Props) {
                             target="_blank"
                             rel="noreferrer"
                             className="text-[11px] underline text-blue-600 hover:text-blue-700 dark:text-blue-300 dark:hover:text-blue-200"
+                            draggable={false}
                           >
                             開く
                           </a>
@@ -829,14 +832,12 @@ export default function CampusAdminClient({ schoolId }: Props) {
 
                       {embedSrcForPreview ? (
                         <div className="mt-2 overflow-hidden rounded-lg border border-gray-200 dark:border-gray-800">
-                          {/* ✅ iframe がクリック奪わないように */}
                           <iframe
                             src={embedSrcForPreview}
-                            className="h-[180px] w-full pointer-events-none"
+                            className="h-[180px] w-full"
                             style={{ border: 0 }}
                             loading="lazy"
                             referrerPolicy="no-referrer-when-downgrade"
-                            tabIndex={-1}
                           />
                         </div>
                       ) : null}
