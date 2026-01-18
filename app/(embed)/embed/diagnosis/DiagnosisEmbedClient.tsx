@@ -68,8 +68,14 @@ type DiagnosisResult = {
     slug: string;
     address?: string | null;
     access?: string | null;
+
+    // 新キー
     googleMapUrl?: string | null;
     googleMapEmbedUrl?: string | null;
+
+    // 旧キー（result API が旧形式で返す場合の保険）
+    mapLinkUrl?: string | null;
+    mapEmbedUrl?: string | null;
   };
 
   selectedCampus?: {
@@ -77,8 +83,14 @@ type DiagnosisResult = {
     slug: string;
     address?: string | null;
     access?: string | null;
+
+    // 新キー
     googleMapUrl?: string | null;
     googleMapEmbedUrl?: string | null;
+
+    // 旧キー（result API が旧形式で返す場合の保険）
+    mapLinkUrl?: string | null;
+    mapEmbedUrl?: string | null;
   };
 
   selectedGenre?: {
@@ -118,6 +130,43 @@ function splitCharmTags(input?: string | null): string[] {
     .slice(0, 12);
 }
 
+/**
+ * - 前後空白除去
+ * - <iframe ...> が入ってたら src を抽出
+ * - "src=..." 形式も許可
+ */
+function normalizeEmbedInput(input: unknown): string {
+  const s = String(input ?? "").trim();
+  if (!s) return "";
+
+  if (s.includes("<iframe")) {
+    const m = s.match(/src\s*=\s*["']([^"']+)["']/i);
+    return m?.[1] ? String(m[1]).trim() : "";
+  }
+  if (s.startsWith("src=")) {
+    const m = s.match(/src\s*=\s*["']?([^"'\s>]+)["']?/i);
+    return m?.[1] ? String(m[1]).trim() : "";
+  }
+  return s;
+}
+
+/**
+ * 結果APIの互換キーも拾って iframe src / link を決定する
+ * - googleMapEmbedUrl / mapEmbedUrl を両対応
+ * - googleMapUrl / mapLinkUrl を両対応
+ */
+function pickCampusMapFields(c: any): { embedSrc: string; linkUrl: string } {
+  const embedRaw =
+    c?.googleMapEmbedUrl ?? c?.mapEmbedUrl ?? c?.google_map_embed_url ?? null;
+
+  const linkRaw = c?.googleMapUrl ?? c?.mapLinkUrl ?? c?.google_map_url ?? null;
+
+  const embedSrc = normalizeEmbedInput(embedRaw);
+  const linkUrl = String(linkRaw ?? "").trim();
+
+  return { embedSrc, linkUrl };
+}
+
 export default function DiagnosisEmbedClient({
   schoolIdProp,
   onClose,
@@ -139,9 +188,6 @@ export default function DiagnosisEmbedClient({
 
   // =========================================================
   // ✅ Q1 校舎 options を API から取得（フラッシュ対策）
-  // - 親から campusOptionsProp が来るならそれを優先
-  // - それ以外は /api/diagnosis/campuses から取る
-  // - 取得完了するまで Q1 を空配列にする（渋谷等を一瞬出さない）
   // =========================================================
   const [campusOptions, setCampusOptions] = useState<DiagnosisQuestionOption[]>(
     campusOptionsProp ?? [],
@@ -187,8 +233,9 @@ export default function DiagnosisEmbedClient({
     setCampusLoaded(false);
     setCampusOptions([]);
 
+    // ✅ 速度優先：no-store を外す（Nextのfetchキャッシュ/ブラウザキャッシュを効かせる）
+    // ※校舎が頻繁に変わるなら、API側で revalidate を付けるのが推奨
     fetch(`/api/diagnosis/campuses?schoolId=${encodeURIComponent(schoolId)}`, {
-      cache: "no-store",
       signal: controller.signal,
     })
       .then(async (r) => {
@@ -210,7 +257,7 @@ export default function DiagnosisEmbedClient({
         if ((e as any)?.name === "AbortError") return;
         console.error("Failed to load campuses:", e);
         setCampusOptions([]);
-        setCampusLoaded(true); // 失敗でも「読み込み完了扱い」にして固定に落ちないようにする
+        setCampusLoaded(true);
       })
       .finally(() => {
         if (cancelled) return;
@@ -230,11 +277,9 @@ export default function DiagnosisEmbedClient({
     return QUESTIONS.map((q) => {
       if (q.id !== "Q1") return q;
 
-      // まだ校舎一覧が取れていない間は、固定の渋谷等を出さない
       if (!campusLoaded)
         return { ...q, options: [] as DiagnosisQuestionOption[] };
 
-      // 取れたら差し替え（0件でもそのまま）
       return { ...q, options: campusOptions };
     });
   }, [campusLoaded, campusOptions]);
@@ -571,8 +616,7 @@ export default function DiagnosisEmbedClient({
           const c = result.campus ?? result.selectedCampus;
           if (!c) return null;
 
-          const embedUrl = String(c.googleMapEmbedUrl ?? "").trim();
-          const linkUrl = String(c.googleMapUrl ?? "").trim();
+          const { embedSrc, linkUrl } = pickCampusMapFields(c);
 
           return (
             <div className="mb-4 rounded-2xl bg-gray-50 p-4">
@@ -581,7 +625,7 @@ export default function DiagnosisEmbedClient({
               </div>
               <div className="mt-1 text-lg font-bold">{c.label}</div>
 
-              {(c.address || c.access || embedUrl || linkUrl) && (
+              {(c.address || c.access || embedSrc || linkUrl) && (
                 <div className="mt-3 space-y-2 text-xs text-gray-700">
                   {c.address ? (
                     <div>
@@ -599,30 +643,23 @@ export default function DiagnosisEmbedClient({
                     </div>
                   ) : null}
 
-                  {embedUrl ? (
+                  {/* ✅ リンクの上に iframe */}
+                  {embedSrc ? (
                     <div className="pt-2">
                       <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white">
                         <iframe
-                          src={embedUrl}
+                          src={embedSrc}
                           className="h-64 w-full"
                           style={{ border: 0 }}
                           loading="lazy"
                           referrerPolicy="no-referrer-when-downgrade"
                         />
                       </div>
-
-                      {linkUrl ? (
-                        <a
-                          href={linkUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="mt-2 inline-flex items-center gap-2 text-blue-600 hover:underline"
-                        >
-                          Googleマップで見る
-                        </a>
-                      ) : null}
                     </div>
-                  ) : linkUrl ? (
+                  ) : null}
+
+                  {/* ✅ iframeの下にリンク */}
+                  {linkUrl ? (
                     <a
                       href={linkUrl}
                       target="_blank"
@@ -770,12 +807,12 @@ export default function DiagnosisEmbedClient({
       {/* 質問項目 */}
       <div className="mb-4 grid gap-3 md:grid-cols-2">
         {(() => {
-          const isQ1 = currentQuestion.id === "Q1";
+          const isQ1Local = currentQuestion.id === "Q1";
 
           // ✅ Q1 は校舎が取れるまで「何も描画しない」(空枠も出さない)
-          if (isQ1 && !campusLoaded) return null;
+          if (isQ1Local && !campusLoaded) return null;
 
-          // ✅ options が 0 件なら空表示（必要ならエラー文にしてもOK）
+          // ✅ options が 0 件なら空表示
           if (currentQuestion.options.length === 0) {
             return (
               <div className="md:col-span-2 text-center text-xs text-gray-400">
