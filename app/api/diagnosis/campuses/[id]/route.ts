@@ -24,13 +24,18 @@ async function ensureLoggedIn() {
   return session?.user?.email ? session : null;
 }
 
+/**
+ * 返却互換:
+ * - DB実体: googleMapUrl / googleMapEmbedUrl（schema.prisma準拠）
+ * - 旧キー: mapEmbedUrl / mapLinkUrl も返す（フロント互換用）
+ */
 function addAliases<
-  T extends { mapEmbedUrl?: string | null; mapLinkUrl?: string | null }
+  T extends { googleMapEmbedUrl?: string | null; googleMapUrl?: string | null }
 >(row: T) {
   return {
     ...row,
-    googleMapEmbedUrl: row.mapEmbedUrl ?? null,
-    googleMapLinkUrl: row.mapLinkUrl ?? null,
+    mapEmbedUrl: row.googleMapEmbedUrl ?? null,
+    mapLinkUrl: row.googleMapUrl ?? null,
   };
 }
 
@@ -89,19 +94,12 @@ export async function PATCH(
       ? norm(body.googleMapUrl) || null
       : undefined;
 
-  // ✅ 受け取りは googleMapEmbedUrl / mapEmbedUrl どっちでもOK → DBは mapEmbedUrl
-  const mapEmbedUrl =
+  // ✅ 受け取りは googleMapEmbedUrl / mapEmbedUrl どっちでもOK → DBは googleMapEmbedUrl
+  const googleMapEmbedUrl =
     body.googleMapEmbedUrl !== undefined
       ? norm(body.googleMapEmbedUrl) || null
       : body.mapEmbedUrl !== undefined
       ? norm(body.mapEmbedUrl) || null
-      : undefined;
-
-  const mapLinkUrl =
-    body.googleMapLinkUrl !== undefined
-      ? norm(body.googleMapLinkUrl) || null
-      : body.mapLinkUrl !== undefined
-      ? norm(body.mapLinkUrl) || null
       : undefined;
 
   // slug 変更時の重複チェック
@@ -128,10 +126,7 @@ export async function PATCH(
       ...(address !== undefined ? { address } : {}),
       ...(access !== undefined ? { access } : {}),
       ...(googleMapUrl !== undefined ? { googleMapUrl } : {}),
-
-      // ✅ DB実カラムに保存（ここが重要）
-      ...(mapEmbedUrl !== undefined ? { mapEmbedUrl } : {}),
-      ...(mapLinkUrl !== undefined ? { mapLinkUrl } : {}),
+      ...(googleMapEmbedUrl !== undefined ? { googleMapEmbedUrl } : {}),
     },
     select: {
       id: true,
@@ -143,12 +138,11 @@ export async function PATCH(
       address: true,
       access: true,
       googleMapUrl: true,
-      mapEmbedUrl: true,
-      mapLinkUrl: true,
+      googleMapEmbedUrl: true,
     },
   });
 
-  return NextResponse.json(addAliases(updated as any));
+  return NextResponse.json(addAliases(updated));
 }
 
 // DELETE /api/diagnosis/campuses/:id?schoolId=xxx
