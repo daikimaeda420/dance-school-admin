@@ -758,6 +758,13 @@ export default function DiagnosisEmbedClient({
             {currentQuestion.description}
           </div>
         )}
+
+        {/* ✅ Q1ローディング表示（フラッシュ対策の見た目） */}
+        {isQ1 && campusLoading && (
+          <div className="mt-2 text-[11px] text-gray-400">
+            校舎一覧を読み込み中...
+          </div>
+        )}
       </div>
 
       {/* 質問項目 */}
