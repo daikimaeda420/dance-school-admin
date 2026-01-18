@@ -758,26 +758,26 @@ export default function DiagnosisEmbedClient({
             {currentQuestion.description}
           </div>
         )}
-
-        {/* ✅ Q1ローディング表示（フラッシュ対策の見た目） */}
-        {isQ1 && campusLoading && (
-          <div className="mt-2 text-[11px] text-gray-400">
-            校舎一覧を読み込み中...
-          </div>
-        )}
       </div>
 
       {/* 質問項目 */}
       <div className="mb-4 grid gap-3 md:grid-cols-2">
-        {currentQuestion.options.length === 0 && isQ1 && !campusLoaded ? (
-          // ✅ まだ校舎が取れてない間はプレースホルダ（渋谷等は出さない）
-          <>
-            <div className="h-12 rounded-2xl border border-gray-200 bg-gray-50" />
-            <div className="h-12 rounded-2xl border border-gray-200 bg-gray-50" />
-            <div className="h-12 rounded-2xl border border-gray-200 bg-gray-50" />
-          </>
-        ) : (
-          currentQuestion.options.map((opt) => {
+        {(() => {
+          const isQ1 = currentQuestion.id === "Q1";
+
+          // ✅ Q1 は校舎が取れるまで「何も描画しない」(空枠も出さない)
+          if (isQ1 && !campusLoaded) return null;
+
+          // ✅ options が 0 件なら空表示（必要ならエラー文にしてもOK）
+          if (currentQuestion.options.length === 0) {
+            return (
+              <div className="md:col-span-2 text-center text-xs text-gray-400">
+                選択肢がありません。
+              </div>
+            );
+          }
+
+          return currentQuestion.options.map((opt) => {
             const selected = answers[currentQuestion.id] === opt.id;
             return (
               <button
@@ -794,8 +794,8 @@ export default function DiagnosisEmbedClient({
                 <div className="flex-1 leading-snug">{opt.label}</div>
               </button>
             );
-          })
-        )}
+          });
+        })()}
       </div>
 
       {/* エラーメッセージ */}
