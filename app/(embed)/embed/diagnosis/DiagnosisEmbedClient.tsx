@@ -2,7 +2,7 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   QUESTIONS,
   DiagnosisQuestionId,
@@ -69,7 +69,7 @@ type DiagnosisResult = {
     address?: string | null;
     access?: string | null;
     googleMapUrl?: string | null;
-    googleMapEmbedUrl?: string | null; // ★追加
+    googleMapEmbedUrl?: string | null;
   };
 
   selectedCampus?: {
@@ -78,10 +78,9 @@ type DiagnosisResult = {
     address?: string | null;
     access?: string | null;
     googleMapUrl?: string | null;
-    googleMapEmbedUrl?: string | null; // ★追加
+    googleMapEmbedUrl?: string | null;
   };
 
-  // ✅ 追加：Q4（answerTag）から引いたジャンル（管理画面の紐づけ結果）
   selectedGenre?: {
     id: string;
     label: string;
@@ -134,24 +133,87 @@ export default function DiagnosisEmbedClient({
   const [result, setResult] = useState<DiagnosisResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // ✅ schoolId / school どっちでも受ける
+  // ✅ embed 内で schoolId を URL から読む（propsがあればprops優先）
   const schoolId = useMemo(() => {
     if (schoolIdProp) return schoolIdProp;
     return searchParams.get("schoolId") ?? searchParams.get("school") ?? "";
   }, [schoolIdProp, searchParams]);
 
+  // ✅ Q1 校舎 options を API から取得して差し替える（propsがあれば props を優先）
+  const [campusOptionsFromApi, setCampusOptionsFromApi] = useState<
+    DiagnosisQuestionOption[]
+  >([]);
+  const [campusLoading, setCampusLoading] = useState(false);
+
+  useEffect(() => {
+    // propsが渡ってくる構成なら API で取らなくてOK
+    if ((campusOptions?.length ?? 0) > 0) return;
+
+    if (!schoolId) {
+      setCampusOptionsFromApi([]);
+      return;
+    }
+
+    let cancelled = false;
+    const controller = new AbortController();
+
+    (async () => {
+      try {
+        setCampusLoading(true);
+        const res = await fetch(
+          `/api/diagnosis/campuses?schoolId=${encodeURIComponent(schoolId)}`,
+          { cache: "no-store", signal: controller.signal },
+        );
+
+        if (!res.ok) {
+          // 失敗時は固定QUESTIONSにフォールバックするので、ここではログだけ
+          const txt = await res.text().catch(() => "");
+          console.error("Failed to load campus options:", res.status, txt);
+          if (!cancelled) setCampusOptionsFromApi([]);
+          return;
+        }
+
+        const data = (await res.json()) as DiagnosisQuestionOption[];
+        if (cancelled) return;
+
+        setCampusOptionsFromApi(Array.isArray(data) ? data : []);
+      } catch (e: any) {
+        if (e?.name === "AbortError") return;
+        console.error("Failed to load campus options:", e);
+        if (!cancelled) setCampusOptionsFromApi([]);
+      } finally {
+        if (!cancelled) setCampusLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
+  }, [schoolId, campusOptions]);
+
   // ✅ Q1のみ管理画面連動、Q2〜Q6は固定
+  // props.campusOptions → API取得 → どちらも無いなら固定（QUESTIONS）の順で採用
   const questions = useMemo(() => {
-    const hasCampus = (campusOptions?.length ?? 0) > 0;
+    const resolvedCampus =
+      (campusOptions?.length ?? 0) > 0 ? campusOptions! : campusOptionsFromApi;
+
+    const hasCampus = (resolvedCampus?.length ?? 0) > 0;
     if (!hasCampus) return QUESTIONS;
 
     return QUESTIONS.map((q) => {
-      if (q.id === "Q1" && campusOptions && campusOptions.length > 0) {
-        return { ...q, options: campusOptions };
-      }
+      if (q.id === "Q1") return { ...q, options: resolvedCampus };
       return q;
     });
-  }, [campusOptions]);
+  }, [campusOptions, campusOptionsFromApi]);
+
+  // ✅ schoolIdが変わったら、前の学校の回答が残らないようリセット
+  useEffect(() => {
+    setAnswers({});
+    setStepIndex(0);
+    setResult(null);
+    setError(null);
+  }, [schoolId]);
 
   const currentQuestion = questions[stepIndex];
   const totalSteps = questions.length;
@@ -170,7 +232,7 @@ export default function DiagnosisEmbedClient({
 
     if (!schoolId) {
       setError(
-        "schoolId が指定されていません。（URL: ?schoolId=xxx もしくは ?school=xxx）"
+        "schoolId が指定されていません。（URL: ?schoolId=xxx もしくは ?school=xxx）",
       );
       return;
     }
@@ -179,7 +241,7 @@ export default function DiagnosisEmbedClient({
     (["Q1", "Q2", "Q3", "Q4", "Q5", "Q6"] as DiagnosisQuestionId[]).forEach(
       (id) => {
         if (!finalAnswers[id]) missing.push(id);
-      }
+      },
     );
 
     if (missing.length > 0) {
@@ -301,29 +363,25 @@ export default function DiagnosisEmbedClient({
           {(() => {
             const className = result.bestMatch.className ?? "おすすめクラス";
 
-            // まず selectedGenre を優先、なければ bestMatch.genres の先頭
             const genreLabel =
               result.selectedGenre?.label?.trim() ||
               (result.bestMatch.genres?.[0] ?? "").trim();
 
-            // ✅ ジャンル画像（selectedGenre.id がある時だけ表示）
             const genreId = result.selectedGenre?.id;
             const genreImgSrc = genreId
               ? `/api/diagnosis/genres/image?id=${encodeURIComponent(
-                  genreId
+                  genreId,
                 )}&schoolId=${encodeURIComponent(schoolId)}`
               : null;
 
             return (
               <div className="mt-2">
-                {/* クラス名 */}
                 <div className="flex flex-wrap items-center gap-2">
                   <div className="text-lg font-bold">
                     {genreLabel}&nbsp;{className}
                   </div>
                 </div>
 
-                {/* ✅ ジャンル画像：クラス名の下 */}
                 {genreImgSrc && (
                   <div className="mt-3">
                     <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white">
@@ -517,7 +575,6 @@ export default function DiagnosisEmbedClient({
                     </div>
                   ) : null}
 
-                  {/* ★ここが変更点：埋め込みがあれば iframe、なければリンク */}
                   {embedUrl ? (
                     <div className="pt-2">
                       <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white">
@@ -599,7 +656,7 @@ export default function DiagnosisEmbedClient({
             href={
               result.bestMatch.classId
                 ? `/reserve?classId=${encodeURIComponent(
-                    result.bestMatch.classId
+                    result.bestMatch.classId,
                   )}`
                 : "/reserve"
             }
@@ -656,8 +713,8 @@ export default function DiagnosisEmbedClient({
                 idx === stepIndex
                   ? "bg-blue-600"
                   : idx < stepIndex
-                  ? "bg-blue-200"
-                  : "bg-gray-200",
+                    ? "bg-blue-200"
+                    : "bg-gray-200",
               ].join(" ")}
             />
           ))}
@@ -676,6 +733,13 @@ export default function DiagnosisEmbedClient({
           </div>
         )}
       </div>
+
+      {/* ✅ 校舎取得中（Q1だけ） */}
+      {currentQuestion.id === "Q1" && campusLoading && (
+        <div className="mb-3 text-center text-[11px] text-gray-400">
+          校舎一覧を読み込み中...
+        </div>
+      )}
 
       {/* 質問項目 */}
       <div className="mb-4 grid gap-3 md:grid-cols-2">
