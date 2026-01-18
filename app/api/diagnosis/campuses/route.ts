@@ -25,14 +25,18 @@ async function ensureLoggedIn() {
   return session?.user?.email ? session : null;
 }
 
-/** 返却互換：googleMapEmbedUrl を付ける（DBの実体は mapEmbedUrl） */
+/**
+ * 返却互換:
+ * - DB実体: googleMapUrl / googleMapEmbedUrl（schema.prisma準拠）
+ * - 旧キー: mapEmbedUrl / mapLinkUrl が欲しい場合も返す（保存はしない）
+ */
 function addAliases<
-  T extends { mapEmbedUrl?: string | null; mapLinkUrl?: string | null }
+  T extends { googleMapEmbedUrl?: string | null; googleMapUrl?: string | null }
 >(row: T) {
   return {
     ...row,
-    googleMapEmbedUrl: row.mapEmbedUrl ?? null,
-    googleMapLinkUrl: row.mapLinkUrl ?? null,
+    mapEmbedUrl: row.googleMapEmbedUrl ?? null,
+    mapLinkUrl: row.googleMapUrl ?? null,
   };
 }
 
@@ -72,12 +76,9 @@ export async function GET(req: NextRequest) {
           address: true,
           access: true,
 
-          // 既存
+          // ✅ schema.prisma に存在するフィールドのみ
           googleMapUrl: true,
-
-          // ✅ DB実カラム（ここが重要）
-          mapEmbedUrl: true,
-          mapLinkUrl: true,
+          googleMapEmbedUrl: true,
         }
       : {
           label: true,
@@ -85,7 +86,7 @@ export async function GET(req: NextRequest) {
         },
   });
 
-  // フロント診断用（fullじゃない）は options 形式で返す運用ならここで変換
+  // フロント診断用（fullじゃない）は options 形式で返す運用
   if (!full) {
     const options: DiagnosisQuestionOption[] = (campuses as any[]).map((c) => ({
       id: c.slug,
@@ -122,20 +123,12 @@ export async function POST(req: NextRequest) {
   const googleMapUrl =
     body.googleMapUrl !== undefined ? norm(body.googleMapUrl) || null : null;
 
-  // ✅ 受け取りはどっちでもOK、DBは mapEmbedUrl へ保存
-  const mapEmbedUrl =
+  // ✅ 受け取りはどっちでもOK、DBは googleMapEmbedUrl へ保存（schema準拠）
+  const googleMapEmbedUrl =
     body.googleMapEmbedUrl !== undefined
       ? norm(body.googleMapEmbedUrl) || null
       : body.mapEmbedUrl !== undefined
       ? norm(body.mapEmbedUrl) || null
-      : null;
-
-  // 任意：外部リンクも mapLinkUrl に寄せたい場合（今は未使用でもOK）
-  const mapLinkUrl =
-    body.googleMapLinkUrl !== undefined
-      ? norm(body.googleMapLinkUrl) || null
-      : body.mapLinkUrl !== undefined
-      ? norm(body.mapLinkUrl) || null
       : null;
 
   if (!schoolId) {
@@ -173,9 +166,8 @@ export async function POST(req: NextRequest) {
       access,
       googleMapUrl,
 
-      // ✅ DB保存先
-      mapEmbedUrl,
-      mapLinkUrl,
+      // ✅ schema.prismaのフィールドへ保存
+      googleMapEmbedUrl,
     },
     select: {
       id: true,
@@ -187,10 +179,9 @@ export async function POST(req: NextRequest) {
       address: true,
       access: true,
       googleMapUrl: true,
-      mapEmbedUrl: true,
-      mapLinkUrl: true,
+      googleMapEmbedUrl: true,
     },
   });
 
-  return NextResponse.json(addAliases(created as any), { status: 201 });
+  return NextResponse.json(addAliases(created), { status: 201 });
 }
