@@ -100,6 +100,7 @@ type Props = {
   schoolIdProp?: string;
   onClose?: () => void;
 
+  // 既存：親から渡せる場合は優先する
   campusOptions?: DiagnosisQuestionOption[];
   courseOptions?: DiagnosisQuestionOption[];
   genreOptions?: DiagnosisQuestionOption[];
@@ -120,10 +121,7 @@ function splitCharmTags(input?: string | null): string[] {
 export default function DiagnosisEmbedClient({
   schoolIdProp,
   onClose,
-  campusOptions,
-  courseOptions,
-  genreOptions,
-  instructorOptions,
+  campusOptions: campusOptionsProp,
 }: Props) {
   const searchParams = useSearchParams();
 
@@ -133,87 +131,113 @@ export default function DiagnosisEmbedClient({
   const [result, setResult] = useState<DiagnosisResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // ✅ embed 内で schoolId を URL から読む（propsがあればprops優先）
+  // ✅ schoolId / school どっちでも受ける
   const schoolId = useMemo(() => {
     if (schoolIdProp) return schoolIdProp;
     return searchParams.get("schoolId") ?? searchParams.get("school") ?? "";
   }, [schoolIdProp, searchParams]);
 
-  // ✅ Q1 校舎 options を API から取得して差し替える（propsがあれば props を優先）
-  const [campusOptionsFromApi, setCampusOptionsFromApi] = useState<
-    DiagnosisQuestionOption[]
-  >([]);
-  const [campusLoading, setCampusLoading] = useState(false);
+  // =========================================================
+  // ✅ Q1 校舎 options を API から取得（フラッシュ対策）
+  // - 親から campusOptionsProp が来るならそれを優先
+  // - それ以外は /api/diagnosis/campuses から取る
+  // - 取得完了するまで Q1 を空配列にする（渋谷等を一瞬出さない）
+  // =========================================================
+  const [campusOptions, setCampusOptions] = useState<DiagnosisQuestionOption[]>(
+    campusOptionsProp ?? [],
+  );
+  const [campusLoaded, setCampusLoaded] = useState<boolean>(
+    (campusOptionsProp?.length ?? 0) > 0,
+  );
+  const [campusLoading, setCampusLoading] = useState<boolean>(false);
 
+  // 親から渡された options が変わったら反映
   useEffect(() => {
-    // propsが渡ってくる構成なら API で取らなくてOK
-    if ((campusOptions?.length ?? 0) > 0) return;
+    if ((campusOptionsProp?.length ?? 0) > 0) {
+      setCampusOptions(campusOptionsProp ?? []);
+      setCampusLoaded(true);
+    }
+  }, [campusOptionsProp]);
+
+  // schoolId が変わったら校舎を取り直し & 途中回答の混在を防ぐ
+  useEffect(() => {
+    setAnswers({});
+    setStepIndex(0);
+    setResult(null);
+    setError(null);
+
+    // 親から来てるなら fetch 不要
+    if ((campusOptionsProp?.length ?? 0) > 0) {
+      setCampusLoaded(true);
+      setCampusLoading(false);
+      return;
+    }
 
     if (!schoolId) {
-      setCampusOptionsFromApi([]);
+      setCampusOptions([]);
+      setCampusLoaded(false);
+      setCampusLoading(false);
       return;
     }
 
     let cancelled = false;
     const controller = new AbortController();
 
-    (async () => {
-      try {
-        setCampusLoading(true);
-        const res = await fetch(
-          `/api/diagnosis/campuses?schoolId=${encodeURIComponent(schoolId)}`,
-          { cache: "no-store", signal: controller.signal },
-        );
+    setCampusLoading(true);
+    setCampusLoaded(false);
+    setCampusOptions([]);
 
-        if (!res.ok) {
-          // 失敗時は固定QUESTIONSにフォールバックするので、ここではログだけ
-          const txt = await res.text().catch(() => "");
-          console.error("Failed to load campus options:", res.status, txt);
-          if (!cancelled) setCampusOptionsFromApi([]);
-          return;
-        }
-
-        const data = (await res.json()) as DiagnosisQuestionOption[];
+    fetch(`/api/diagnosis/campuses?schoolId=${encodeURIComponent(schoolId)}`, {
+      cache: "no-store",
+      signal: controller.signal,
+    })
+      .then(async (r) => {
+        if (!r.ok) throw new Error(await r.text());
+        return r.json();
+      })
+      .then((data) => {
         if (cancelled) return;
-
-        setCampusOptionsFromApi(Array.isArray(data) ? data : []);
-      } catch (e: any) {
-        if (e?.name === "AbortError") return;
-        console.error("Failed to load campus options:", e);
-        if (!cancelled) setCampusOptionsFromApi([]);
-      } finally {
-        if (!cancelled) setCampusLoading(false);
-      }
-    })();
+        const opts = Array.isArray(data) ? (data as any[]) : [];
+        setCampusOptions(
+          opts
+            .map((x) => ({ id: String(x.id), label: String(x.label) }))
+            .filter((x) => x.id && x.label),
+        );
+        setCampusLoaded(true);
+      })
+      .catch((e) => {
+        if (cancelled) return;
+        if ((e as any)?.name === "AbortError") return;
+        console.error("Failed to load campuses:", e);
+        setCampusOptions([]);
+        setCampusLoaded(true); // 失敗でも「読み込み完了扱い」にして固定に落ちないようにする
+      })
+      .finally(() => {
+        if (cancelled) return;
+        setCampusLoading(false);
+      });
 
     return () => {
       cancelled = true;
       controller.abort();
     };
-  }, [schoolId, campusOptions]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [schoolId]);
 
   // ✅ Q1のみ管理画面連動、Q2〜Q6は固定
-  // props.campusOptions → API取得 → どちらも無いなら固定（QUESTIONS）の順で採用
+  // ★フラッシュ対策：campusLoaded までは Q1 を空 options にする
   const questions = useMemo(() => {
-    const resolvedCampus =
-      (campusOptions?.length ?? 0) > 0 ? campusOptions! : campusOptionsFromApi;
-
-    const hasCampus = (resolvedCampus?.length ?? 0) > 0;
-    if (!hasCampus) return QUESTIONS;
-
     return QUESTIONS.map((q) => {
-      if (q.id === "Q1") return { ...q, options: resolvedCampus };
-      return q;
-    });
-  }, [campusOptions, campusOptionsFromApi]);
+      if (q.id !== "Q1") return q;
 
-  // ✅ schoolIdが変わったら、前の学校の回答が残らないようリセット
-  useEffect(() => {
-    setAnswers({});
-    setStepIndex(0);
-    setResult(null);
-    setError(null);
-  }, [schoolId]);
+      // まだ校舎一覧が取れていない間は、固定の渋谷等を出さない
+      if (!campusLoaded)
+        return { ...q, options: [] as DiagnosisQuestionOption[] };
+
+      // 取れたら差し替え（0件でもそのまま）
+      return { ...q, options: campusOptions };
+    });
+  }, [campusLoaded, campusOptions]);
 
   const currentQuestion = questions[stepIndex];
   const totalSteps = questions.length;
@@ -679,6 +703,8 @@ export default function DiagnosisEmbedClient({
   // ==========================
   // 質問ステップ画面
   // ==========================
+  const isQ1 = currentQuestion?.id === "Q1";
+
   return (
     <div className="w-full max-w-4xl rounded-3xl border bg-white p-8 shadow-xl text-gray-900">
       {/* 上部ヘッダー */}
@@ -732,35 +758,44 @@ export default function DiagnosisEmbedClient({
             {currentQuestion.description}
           </div>
         )}
-      </div>
 
-      {/* ✅ 校舎取得中（Q1だけ） */}
-      {currentQuestion.id === "Q1" && campusLoading && (
-        <div className="mb-3 text-center text-[11px] text-gray-400">
-          校舎一覧を読み込み中...
-        </div>
-      )}
+        {/* ✅ Q1ローディング表示（フラッシュ対策の見た目） */}
+        {isQ1 && campusLoading && (
+          <div className="mt-2 text-[11px] text-gray-400">
+            校舎一覧を読み込み中...
+          </div>
+        )}
+      </div>
 
       {/* 質問項目 */}
       <div className="mb-4 grid gap-3 md:grid-cols-2">
-        {currentQuestion.options.map((opt) => {
-          const selected = answers[currentQuestion.id] === opt.id;
-          return (
-            <button
-              key={opt.id}
-              type="button"
-              onClick={() => handleSelectOption(currentQuestion.id, opt.id)}
-              className={[
-                "flex h-full items-start rounded-2xl border px-3 py-3 text-left text-xs transition",
-                selected
-                  ? "border-blue-600 bg-blue-50 text-blue-700 shadow-sm"
-                  : "border-gray-200 bg-white text-gray-800 hover:border-blue-300 hover:bg-blue-50/40",
-              ].join(" ")}
-            >
-              <div className="flex-1 leading-snug">{opt.label}</div>
-            </button>
-          );
-        })}
+        {currentQuestion.options.length === 0 && isQ1 && !campusLoaded ? (
+          // ✅ まだ校舎が取れてない間はプレースホルダ（渋谷等は出さない）
+          <>
+            <div className="h-12 rounded-2xl border border-gray-200 bg-gray-50" />
+            <div className="h-12 rounded-2xl border border-gray-200 bg-gray-50" />
+            <div className="h-12 rounded-2xl border border-gray-200 bg-gray-50" />
+          </>
+        ) : (
+          currentQuestion.options.map((opt) => {
+            const selected = answers[currentQuestion.id] === opt.id;
+            return (
+              <button
+                key={opt.id}
+                type="button"
+                onClick={() => handleSelectOption(currentQuestion.id, opt.id)}
+                className={[
+                  "flex h-full items-start rounded-2xl border px-3 py-3 text-left text-xs transition",
+                  selected
+                    ? "border-blue-600 bg-blue-50 text-blue-700 shadow-sm"
+                    : "border-gray-200 bg-white text-gray-800 hover:border-blue-300 hover:bg-blue-50/40",
+                ].join(" ")}
+              >
+                <div className="flex-1 leading-snug">{opt.label}</div>
+              </button>
+            );
+          })
+        )}
       </div>
 
       {/* エラーメッセージ */}
