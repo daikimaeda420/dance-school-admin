@@ -34,7 +34,7 @@ function getConcernKey(answers: Record<string, string>): ConcernMessageKey {
  */
 function getOptionTagFromAnswers(
   questionId: string,
-  answers: Record<string, string>
+  answers: Record<string, string>,
 ): string | null {
   const q = QUESTIONS.find((q) => q.id === questionId);
   const optionId = answers[questionId];
@@ -101,7 +101,7 @@ function matchesConditions(
     genreSlug: string | null;
     q2ForCourse: string;
     recommendedCourseSlug: string | null;
-  }
+  },
 ): boolean {
   if (!includesOrEmpty(cond.campus, ctx.campusSlug)) return false;
   if (!includesOrEmpty(cond.genre, ctx.genreSlug)) return false;
@@ -171,7 +171,7 @@ export async function POST(req: NextRequest) {
     if (!schoolId) {
       return NextResponse.json(
         { error: "NO_SCHOOL_ID", message: "schoolId が指定されていません。" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -182,7 +182,7 @@ export async function POST(req: NextRequest) {
           error: "MISSING_ANSWERS",
           message: `未回答の質問があります: ${missing.join(", ")}`,
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -197,6 +197,7 @@ export async function POST(req: NextRequest) {
         address: true,
         access: true,
         googleMapUrl: true,
+        googleMapEmbedUrl: true, // ★追加
       },
     });
 
@@ -208,7 +209,7 @@ export async function POST(req: NextRequest) {
             "選択した校舎が見つかりません（管理画面の登録/有効化を確認してください）。",
           debug: { campusSlug },
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -239,7 +240,7 @@ export async function POST(req: NextRequest) {
             "選択したジャンルが見つかりません（ジャンル管理の answerTag 紐づけ / 有効化を確認してください）。",
           debug: { genreTag },
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -281,7 +282,7 @@ export async function POST(req: NextRequest) {
 
     // 1) 条件マッチ
     let best = candidates.find((r) =>
-      matchesConditions(parseConditions(r.conditions), ctx)
+      matchesConditions(parseConditions(r.conditions), ctx),
     );
 
     // 2) fallback
@@ -297,7 +298,7 @@ export async function POST(req: NextRequest) {
           message:
             "診断結果が1件も登録されていません（管理画面で診断結果を作成してください）。",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -336,7 +337,7 @@ export async function POST(req: NextRequest) {
 
       const ids = intersectIds(
         intersectIds(campusInstructorIds, genreIds),
-        courseIds
+        courseIds,
       );
 
       if (ids.length > 0) {
@@ -400,12 +401,12 @@ export async function POST(req: NextRequest) {
     if (instructors.length === 0) instructorMatchedBy = "none";
 
     // ==========================
-    // ✅ ここが今回の追加：resultCopy を作る
+    // ✅ resultCopy
     // ==========================
-    const levelTag = getOptionTagFromAnswers("Q2", answers); // Lv0_超入門 等
-    const ageTag = getOptionTagFromAnswers("Q3", answers); // Age_Adult_Work 等
-    const teacherTag = getOptionTagFromAnswers("Q5", answers); // Style_Healing 等
-    const concernKey = getConcernKey(answers); // Msg_Pace 等
+    const levelTag = getOptionTagFromAnswers("Q2", answers);
+    const ageTag = getOptionTagFromAnswers("Q3", answers);
+    const teacherTag = getOptionTagFromAnswers("Q5", answers);
+    const concernKey = getConcernKey(answers);
 
     const resultCopy = {
       level: (levelTag && LEVEL_RESULT_COPY[levelTag]) || null,
@@ -414,7 +415,6 @@ export async function POST(req: NextRequest) {
       concern: CONCERN_RESULT_COPY[concernKey] || null,
     };
 
-    // 既存：concernMessage（短文）が必要ならそのまま
     const concernMessage = concernMessages[concernKey];
 
     return NextResponse.json({
@@ -440,7 +440,7 @@ export async function POST(req: NextRequest) {
 
       instructors: instructors.map((t) => {
         const url = `/api/diagnosis/instructors/photo?schoolId=${encodeURIComponent(
-          schoolId
+          schoolId,
         )}&id=${encodeURIComponent(t.id)}`;
 
         const hasPhoto =
@@ -461,10 +461,7 @@ export async function POST(req: NextRequest) {
       breakdown: [],
       worstMatch: null,
 
-      // 既存（短いメッセージ）
       concernMessage,
-
-      // ✅ 追加（長いコピー：結果ページで表示する用）
       resultCopy,
 
       result: {
@@ -481,6 +478,7 @@ export async function POST(req: NextRequest) {
         address: campus.address ?? null,
         access: campus.access ?? null,
         googleMapUrl: campus.googleMapUrl ?? null,
+        googleMapEmbedUrl: campus.googleMapEmbedUrl ?? null, // ★追加
       },
 
       selectedGenre: genre
@@ -500,8 +498,6 @@ export async function POST(req: NextRequest) {
         recommendedCourseId: recommendedCourse?.id ?? null,
         instructorMatchedBy,
         instructorsCount: instructors.length,
-
-        // ✅ デバッグしやすいように追加
         copyKeys: {
           levelTag,
           ageTag,
@@ -514,7 +510,7 @@ export async function POST(req: NextRequest) {
     console.error("[POST /api/diagnosis/result] error", e);
     return NextResponse.json(
       { error: "INTERNAL_ERROR", message: e?.message ?? "サーバーエラー" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
