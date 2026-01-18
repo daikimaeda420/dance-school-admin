@@ -3,6 +3,7 @@
 
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+import DiagnosisForm from "./_components/DiagnosisForm";
 import {
   QUESTIONS,
   DiagnosisQuestionId,
@@ -179,6 +180,7 @@ export default function DiagnosisEmbedClient({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [result, setResult] = useState<DiagnosisResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [diagnosisForm, setDiagnosisForm] = useState<any | null>(null);
 
   // ✅ schoolId / school どっちでも受ける
   const schoolId = useMemo(() => {
@@ -388,6 +390,23 @@ export default function DiagnosisEmbedClient({
     setResult(null);
     setError(null);
   };
+
+  // ==========================
+  // 診断結果フォーム取得
+  // ==========================
+  useEffect(() => {
+    if (!result || !schoolId) return;
+
+    fetch(`/api/diagnosis/form?schoolId=${encodeURIComponent(schoolId)}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (!data) return;
+        setDiagnosisForm(data);
+      })
+      .catch(() => {
+        setDiagnosisForm(null);
+      });
+  }, [result, schoolId]);
 
   // ==========================
   // 診断結果画面
@@ -733,6 +752,26 @@ export default function DiagnosisEmbedClient({
             診断をやり直す
           </button>
         </div>
+
+        {/* ==========================
+            診断結果フォーム
+        ========================== */}
+        {diagnosisForm && (
+          <DiagnosisForm
+            form={diagnosisForm}
+            hiddenValues={{
+              schoolId,
+              campus:
+                result.campus?.label ?? result.selectedCampus?.label ?? "",
+              campusSlug:
+                result.campus?.slug ?? result.selectedCampus?.slug ?? "",
+              genre: result.selectedGenre?.label ?? "",
+              genreSlug: result.selectedGenre?.slug ?? "",
+              score: String(result.score),
+              pattern: result.pattern,
+            }}
+          />
+        )}
       </div>
     );
   }
