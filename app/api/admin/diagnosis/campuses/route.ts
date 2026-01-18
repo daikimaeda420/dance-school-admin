@@ -35,7 +35,6 @@ export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
 
-    // ✅ 後方互換：school / schoolId
     const schoolId = norm(
       searchParams.get("schoolId") ?? searchParams.get("school")
     );
@@ -49,7 +48,6 @@ export async function GET(req: NextRequest) {
     }
 
     const campuses = await prisma.diagnosisCampus.findMany({
-      // ✅ full=1 のときは無効も含む / それ以外は有効のみ
       where: full ? { schoolId } : { schoolId, isActive: true },
       orderBy: [{ sortOrder: "asc" }, { label: "asc" }],
       select: {
@@ -62,6 +60,8 @@ export async function GET(req: NextRequest) {
         address: true,
         access: true,
         googleMapUrl: true,
+        // ✅ 追加：iframe 用
+        googleMapEmbedUrl: true,
       },
     });
 
@@ -100,7 +100,6 @@ export async function POST(req: NextRequest) {
     const isActive =
       body?.isActive === undefined ? true : toBool(body?.isActive, true);
 
-    // ✅ 追加3項目（空文字は null に寄せる）
     const address =
       body?.address !== undefined ? norm(body.address) || null : null;
     const access =
@@ -108,7 +107,14 @@ export async function POST(req: NextRequest) {
     const googleMapUrl =
       body?.googleMapUrl !== undefined ? norm(body.googleMapUrl) || null : null;
 
-    // ✅ slug 重複（schoolId内でユニーク運用）
+    // ✅ 追加：iframe（互換で mapEmbedUrl も受ける）
+    const googleMapEmbedUrl =
+      body?.googleMapEmbedUrl !== undefined
+        ? norm(body.googleMapEmbedUrl) || null
+        : body?.mapEmbedUrl !== undefined
+        ? norm(body.mapEmbedUrl) || null
+        : null;
+
     const dup = await prisma.diagnosisCampus.findFirst({
       where: { schoolId, slug },
       select: { id: true },
@@ -130,6 +136,8 @@ export async function POST(req: NextRequest) {
         address,
         access,
         googleMapUrl,
+        // ✅ 追加：iframe 用
+        googleMapEmbedUrl,
       },
       select: {
         id: true,
@@ -141,6 +149,8 @@ export async function POST(req: NextRequest) {
         address: true,
         access: true,
         googleMapUrl: true,
+        // ✅ 追加：iframe 用
+        googleMapEmbedUrl: true,
       },
     });
 

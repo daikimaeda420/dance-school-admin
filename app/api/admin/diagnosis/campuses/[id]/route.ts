@@ -48,7 +48,6 @@ export async function PATCH(
     );
   }
 
-  // ✅ 誤更新防止：schoolId 必須（フロントが送る前提）
   const schoolId = norm(body.schoolId ?? body.school);
   if (!schoolId) {
     return NextResponse.json(
@@ -57,7 +56,6 @@ export async function PATCH(
     );
   }
 
-  // ✅ 対象が schoolId に属するか確認
   const existing = await prisma.diagnosisCampus.findFirst({
     where: { id, schoolId },
     select: { id: true, slug: true },
@@ -81,7 +79,6 @@ export async function PATCH(
         { status: 400 }
       );
     }
-    // ✅ slug変更時の重複チェック
     if (nextSlug !== existing.slug) {
       const dup = await prisma.diagnosisCampus.findFirst({
         where: { schoolId, slug: nextSlug },
@@ -100,7 +97,6 @@ export async function PATCH(
   if (body.sortOrder !== undefined) data.sortOrder = toNum(body.sortOrder, 0);
   if (body.isActive !== undefined) data.isActive = toBool(body.isActive, true);
 
-  // ✅ 追加：null も許可（空にしたいケース）
   if (body.address !== undefined) {
     if (body.address === null) data.address = null;
     else if (typeof body.address === "string")
@@ -115,6 +111,17 @@ export async function PATCH(
     if (body.googleMapUrl === null) data.googleMapUrl = null;
     else if (typeof body.googleMapUrl === "string")
       data.googleMapUrl = norm(body.googleMapUrl) || null;
+  }
+
+  // ✅ 追加：googleMapEmbedUrl（互換で mapEmbedUrl も受ける）
+  if (body.googleMapEmbedUrl !== undefined || body.mapEmbedUrl !== undefined) {
+    const v =
+      body.googleMapEmbedUrl !== undefined
+        ? body.googleMapEmbedUrl
+        : body.mapEmbedUrl;
+
+    if (v === null) data.googleMapEmbedUrl = null;
+    else if (typeof v === "string") data.googleMapEmbedUrl = norm(v) || null;
   }
 
   if (Object.keys(data).length === 0) {
@@ -138,6 +145,8 @@ export async function PATCH(
         address: true,
         access: true,
         googleMapUrl: true,
+        // ✅ 追加：iframe 用
+        googleMapEmbedUrl: true,
       },
     });
 
@@ -150,6 +159,15 @@ export async function PATCH(
         { status: 409 }
       );
     }
+    if (code === "P2022") {
+      return NextResponse.json(
+        {
+          message:
+            "DBに必要なカラムが見つかりません（migration未適用の可能性）。",
+        },
+        { status: 500 }
+      );
+    }
     return NextResponse.json(
       { message: e?.message || "更新に失敗しました。" },
       { status: 500 }
@@ -157,7 +175,7 @@ export async function PATCH(
   }
 }
 
-// DELETE /api/admin/diagnosis/campuses/:id?schoolId=xxx
+// DELETE はそのままでOK（貼ってくれた既存のままで問題なし）
 export async function DELETE(
   req: NextRequest,
   { params }: { params: { id: string } }
@@ -183,7 +201,6 @@ export async function DELETE(
     );
   }
 
-  // ✅ 誤削除防止：schoolIdに属するか確認
   const existing = await prisma.diagnosisCampus.findFirst({
     where: { id, schoolId },
     select: { id: true },

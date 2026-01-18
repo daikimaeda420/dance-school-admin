@@ -1,4 +1,4 @@
-// app/api/diagnosis/campuses/[id]/route.ts
+// app/api/admin/diagnosis/campuses/[id]/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
@@ -27,7 +27,7 @@ async function ensureLoggedIn() {
 /**
  * 返却互換:
  * - DB実体: googleMapUrl / googleMapEmbedUrl（schema.prisma準拠）
- * - 旧キー: mapEmbedUrl / mapLinkUrl も返す（フロント互換用）
+ * - 旧キー: mapEmbedUrl / mapLinkUrl も返す（必要なら）
  */
 function addAliases<
   T extends { googleMapEmbedUrl?: string | null; googleMapUrl?: string | null }
@@ -39,7 +39,7 @@ function addAliases<
   };
 }
 
-// PATCH /api/diagnosis/campuses/:id
+// PATCH /api/admin/diagnosis/campuses/:id
 export async function PATCH(
   req: NextRequest,
   { params }: { params: { id: string } }
@@ -56,7 +56,7 @@ export async function PATCH(
 
   const body = await req.json().catch(() => ({} as any));
 
-  // 後方互換：schoolId / school
+  // schoolId は管理画面から必ず来る想定（来ない場合はエラー）
   const schoolId = norm(body.schoolId ?? body.school);
   if (!schoolId) {
     return NextResponse.json(
@@ -145,7 +145,7 @@ export async function PATCH(
   return NextResponse.json(addAliases(updated));
 }
 
-// DELETE /api/diagnosis/campuses/:id?schoolId=xxx
+// DELETE /api/admin/diagnosis/campuses/:id?schoolId=xxx
 export async function DELETE(
   req: NextRequest,
   { params }: { params: { id: string } }
