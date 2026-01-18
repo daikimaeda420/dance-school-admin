@@ -273,6 +273,81 @@ model TeacherClass {
   @@index([teacherId])
 }
 
+/// 診断結果ページの最下部に出す「フォーム」設定（スクール単位で1つ）
+model DiagnosisForm {
+  id          String   @id @default(cuid())
+  schoolId    String   @unique
+
+  isActive    Boolean  @default(true)
+
+  title       String?  // 見出し
+  description String?  // 説明文（任意）
+
+  submitType  DiagnosisFormSubmitType @default(INTERNAL)
+  submitUrl   String?  // EXTERNAL / GOOGLE のときに利用
+
+  thanksType  DiagnosisFormThanksType @default(MESSAGE)
+  thanksText  String?  // MESSAGE のときに利用
+  thanksUrl   String?  // REDIRECT のときに利用
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // fields
+  fields      DiagnosisFormField[]
+
+  // relation（Schoolモデルが存在する前提）
+  school      School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@index([schoolId])
+}
+
+/// フォームの項目（並び順・必須・placeholderなど）
+model DiagnosisFormField {
+  id          String   @id @default(cuid())
+  formId      String
+
+  label       String
+  type        DiagnosisFormFieldType
+  required    Boolean  @default(false)
+  placeholder String?
+
+  // select用（任意）
+  optionsJson Json?    // ["渋谷","新宿"] など
+
+  sortOrder   Int      @default(0)
+  isActive    Boolean  @default(true)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  form        DiagnosisForm @relation(fields: [formId], references: [id], onDelete: Cascade)
+
+  @@index([formId])
+  @@index([formId, sortOrder])
+}
+
+enum DiagnosisFormSubmitType {
+  INTERNAL  // DBに保存（将来的にリード管理）
+  EXTERNAL  // 外部URLにPOST（or リダイレクト/JS送信など実装方針次第）
+  GOOGLE    // Googleフォームなど（submitUrlにURL）
+}
+
+enum DiagnosisFormThanksType {
+  MESSAGE   // 完了メッセージ表示
+  REDIRECT  // サンクスページへ遷移
+}
+
+enum DiagnosisFormFieldType {
+  TEXT
+  EMAIL
+  TEL
+  TEXTAREA
+  SELECT
+  CHECKBOX
+  HIDDEN
+}
+
 enum UserRole {
   SUPERADMIN
   SCHOOL_ADMIN
