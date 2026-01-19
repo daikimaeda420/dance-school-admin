@@ -73,11 +73,8 @@ model DiagnosisCampus {
   address String?
   access  String?
 
-  // ✅ Google Map（外部リンク用）
-  googleMapUrl String?
-
-  // ✅ Google Map（iframe埋め込み用）
-  googleMapEmbedUrl String?
+  googleMapUrl        String?
+  googleMapEmbedUrl  String?
 
   results DiagnosisResult[] @relation("ResultCampuses")
 
@@ -273,33 +270,32 @@ model TeacherClass {
   @@index([teacherId])
 }
 
-/// 診断結果ページの最下部に出す「フォーム」設定（スクール単位で1つ）
+/// 診断結果ページの最下部に出す「フォーム」設定
 model DiagnosisForm {
   id          String   @id @default(cuid())
   schoolId    String   @unique
 
   isActive    Boolean  @default(true)
 
-  title       String?  // 見出し
-  description String?  // 説明文（任意）
+  title       String?
+  description String?
 
-  submitType  DiagnosisFormSubmitType @default(INTERNAL)
-  submitUrl   String?  // EXTERNAL / GOOGLE のときに利用
+  // ✅ enumを使わず String に変更
+  submitType  String   @default("INTERNAL")
+  submitUrl   String?
 
-  thanksType  DiagnosisFormThanksType @default(MESSAGE)
-  thanksText  String?  // MESSAGE のときに利用
-  thanksUrl   String?  // REDIRECT のときに利用
+  thanksType  String   @default("MESSAGE")
+  thanksText  String?
+  thanksUrl   String?
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  // fields
   fields      DiagnosisFormField[]
 
   @@index([schoolId])
 }
 
-/// フォームの項目（並び順・必須・placeholderなど）
 model DiagnosisFormField {
   id          String   @id @default(cuid())
   formId      String
@@ -309,8 +305,7 @@ model DiagnosisFormField {
   required    Boolean  @default(false)
   placeholder String?
 
-  // select用（任意）
-  optionsJson Json?    // ["渋谷","新宿"] など
+  optionsJson Json?
 
   sortOrder   Int      @default(0)
   isActive    Boolean  @default(true)
@@ -322,17 +317,6 @@ model DiagnosisFormField {
 
   @@index([formId])
   @@index([formId, sortOrder])
-}
-
-enum DiagnosisFormSubmitType {
-  INTERNAL  // DBに保存（将来的にリード管理）
-  EXTERNAL  // 外部URLにPOST（or リダイレクト/JS送信など実装方針次第）
-  GOOGLE    // Googleフォームなど（submitUrlにURL）
-}
-
-enum DiagnosisFormThanksType {
-  MESSAGE   // 完了メッセージ表示
-  REDIRECT  // サンクスページへ遷移
 }
 
 enum DiagnosisFormFieldType {
