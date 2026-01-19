@@ -21,7 +21,9 @@ export default function Page({
 
   return (
     <div className="p-6">
-      <div className="mb-4 text-lg font-bold">診断編集：フォーム</div>
+      <div className="mb-4 text-lg font-bold dark:text-gray-100">
+        診断編集：フォーム
+      </div>
       <FormAdminClient schoolId={schoolId} />
     </div>
   );
