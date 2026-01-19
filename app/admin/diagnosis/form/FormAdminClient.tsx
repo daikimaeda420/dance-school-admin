@@ -1,4 +1,3 @@
-// app/admin/diagnosis/form/FormAdminClient.tsx
 "use client";
 
 import { useEffect, useState } from "react";
@@ -56,12 +55,10 @@ export default function FormAdminClient({ schoolId }: { schoolId: string }) {
         );
 
         const ct = res.headers.get("content-type") ?? "";
-
-        // JSONじゃない（=ログインHTMLやエラーページ）を弾く
         if (!ct.includes("application/json")) {
           const text = await res.text();
           throw new Error(
-            `APIがJSONを返していません (status=${res.status}). 先頭: ${text.slice(
+            `APIがJSONを返していません (status=${res.status}). ${text.slice(
               0,
               120,
             )}`,
@@ -69,10 +66,7 @@ export default function FormAdminClient({ schoolId }: { schoolId: string }) {
         }
 
         const data = await res.json();
-
-        if (!res.ok) {
-          throw new Error(data?.message ?? `API error: ${res.status}`);
-        }
+        if (!res.ok) throw new Error(data?.message ?? "API error");
 
         if (!cancelled) setForm(data);
       } catch (e: any) {
@@ -90,17 +84,25 @@ export default function FormAdminClient({ schoolId }: { schoolId: string }) {
     };
   }, [schoolId]);
 
-  if (loading) return <div>読み込み中...</div>;
+  if (loading)
+    return (
+      <div className="text-gray-600 dark:text-gray-400">読み込み中...</div>
+    );
 
   if (err) {
     return (
-      <div className="rounded-xl border p-4 text-sm text-red-600 bg-red-50">
+      <div className="rounded-xl border border-red-300 bg-red-50 p-4 text-sm text-red-700 dark:border-red-700 dark:bg-red-900/30 dark:text-red-300">
         {err}
       </div>
     );
   }
 
-  if (!form) return <div>フォームが見つかりません</div>;
+  if (!form)
+    return (
+      <div className="text-gray-600 dark:text-gray-400">
+        フォームが見つかりません
+      </div>
+    );
 
   function updateField(index: number, patch: Partial<Field>) {
     const next = [...form.fields];
@@ -136,23 +138,13 @@ export default function FormAdminClient({ schoolId }: { schoolId: string }) {
   async function save() {
     setSaving(true);
     setErr(null);
+
     try {
       const res = await fetch("/api/admin/diagnosis/form", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
       });
-
-      const ct = res.headers.get("content-type") ?? "";
-      if (!ct.includes("application/json")) {
-        const text = await res.text();
-        throw new Error(
-          `保存APIがJSONを返していません (status=${res.status}). 先頭: ${text.slice(
-            0,
-            120,
-          )}`,
-        );
-      }
 
       const data = await res.json();
       if (!res.ok) throw new Error(data?.message ?? "保存に失敗しました");
@@ -166,15 +158,9 @@ export default function FormAdminClient({ schoolId }: { schoolId: string }) {
   }
 
   return (
-    <div className="space-y-6">
-      {err && (
-        <div className="rounded-xl border p-4 text-sm text-red-600 bg-red-50">
-          {err}
-        </div>
-      )}
-
-      <section className="rounded-xl border p-4 space-y-3">
-        <label className="flex items-center gap-2">
+    <div className="space-y-6 text-gray-900 dark:text-gray-100">
+      <section className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900 space-y-3">
+        <label className="flex items-center gap-2 text-sm">
           <input
             type="checkbox"
             checked={form.isActive}
@@ -186,7 +172,8 @@ export default function FormAdminClient({ schoolId }: { schoolId: string }) {
         <div>
           <label className="block text-sm mb-1">タイトル</label>
           <input
-            className="w-full rounded border px-3 py-2"
+            className="w-full rounded border border-gray-300 bg-white px-3 py-2 text-sm
+                       dark:border-gray-600 dark:bg-gray-800"
             value={form.title ?? ""}
             onChange={(e) => setForm({ ...form, title: e.target.value })}
           />
@@ -195,18 +182,19 @@ export default function FormAdminClient({ schoolId }: { schoolId: string }) {
         <div>
           <label className="block text-sm mb-1">説明文</label>
           <textarea
-            className="w-full rounded border px-3 py-2"
+            className="w-full rounded border border-gray-300 bg-white px-3 py-2 text-sm
+                       dark:border-gray-600 dark:bg-gray-800"
             value={form.description ?? ""}
             onChange={(e) => setForm({ ...form, description: e.target.value })}
           />
         </div>
       </section>
 
-      <section className="rounded-xl border p-4 space-y-4">
+      <section className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900 space-y-4">
         <div className="flex justify-between items-center">
           <h3 className="font-semibold">フォーム項目</h3>
           <button
-            className="rounded bg-blue-600 text-white px-3 py-1"
+            className="rounded bg-blue-600 px-3 py-1 text-sm text-white hover:bg-blue-700"
             onClick={addField}
             type="button"
           >
@@ -217,16 +205,19 @@ export default function FormAdminClient({ schoolId }: { schoolId: string }) {
         {form.fields.map((f, i) => (
           <div
             key={i}
-            className="rounded border p-3 grid grid-cols-12 gap-2 items-center"
+            className="grid grid-cols-12 gap-2 items-center rounded border border-gray-200 bg-gray-50 p-3
+                       dark:border-gray-700 dark:bg-gray-800"
           >
             <input
-              className="col-span-3 rounded border px-2 py-1"
+              className="col-span-3 rounded border border-gray-300 bg-white px-2 py-1 text-sm
+                         dark:border-gray-600 dark:bg-gray-900"
               value={f.label}
               onChange={(e) => updateField(i, { label: e.target.value })}
             />
 
             <select
-              className="col-span-2 rounded border px-2 py-1"
+              className="col-span-2 rounded border border-gray-300 bg-white px-2 py-1 text-sm
+                         dark:border-gray-600 dark:bg-gray-900"
               value={f.type}
               onChange={(e) => updateField(i, { type: e.target.value })}
             >
@@ -238,13 +229,14 @@ export default function FormAdminClient({ schoolId }: { schoolId: string }) {
             </select>
 
             <input
-              className="col-span-3 rounded border px-2 py-1"
+              className="col-span-3 rounded border border-gray-300 bg-white px-2 py-1 text-sm
+                         dark:border-gray-600 dark:bg-gray-900"
               placeholder="placeholder"
               value={f.placeholder ?? ""}
               onChange={(e) => updateField(i, { placeholder: e.target.value })}
             />
 
-            <label className="col-span-2 flex items-center gap-1 text-sm">
+            <label className="col-span-2 flex items-center gap-1 text-xs">
               <input
                 type="checkbox"
                 checked={!!f.required}
@@ -253,25 +245,19 @@ export default function FormAdminClient({ schoolId }: { schoolId: string }) {
               必須
             </label>
 
-            <div className="col-span-2 flex gap-1 justify-end">
-              <button
-                disabled={i === 0}
-                onClick={() => moveField(i, -1)}
-                type="button"
-              >
+            <div className="col-span-2 flex justify-end gap-1 text-sm">
+              <button disabled={i === 0} onClick={() => moveField(i, -1)}>
                 ↑
               </button>
               <button
                 disabled={i === form.fields.length - 1}
                 onClick={() => moveField(i, 1)}
-                type="button"
               >
                 ↓
               </button>
               <button
-                className="text-red-600"
+                className="text-red-600 dark:text-red-400"
                 onClick={() => removeField(i)}
-                type="button"
               >
                 削除
               </button>
@@ -284,7 +270,7 @@ export default function FormAdminClient({ schoolId }: { schoolId: string }) {
         <button
           onClick={save}
           disabled={saving}
-          className="rounded bg-green-600 text-white px-6 py-2"
+          className="rounded bg-green-600 px-6 py-2 text-sm text-white hover:bg-green-700 disabled:opacity-50"
           type="button"
         >
           {saving ? "保存中..." : "保存する"}
