@@ -10,6 +10,7 @@ type Field = {
   required: boolean;
   placeholder?: string | null;
   isActive?: boolean;
+  optionsJson?: any;
 };
 
 type FormData = {
@@ -33,24 +34,72 @@ const FIELD_TYPES = [
   "SELECT",
   "CHECKBOX",
   "HIDDEN",
-];
+] as const;
 
 export default function FormAdminClient({ schoolId }: { schoolId: string }) {
   const [form, setForm] = useState<FormData | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
 
-  // 初期取得（なければ自動生成される）
   useEffect(() => {
+    let cancelled = false;
+
     (async () => {
-      const res = await fetch(`/api/admin/diagnosis/form?schoolId=${schoolId}`);
-      const json = await res.json();
-      setForm(json);
-      setLoading(false);
+      setLoading(true);
+      setErr(null);
+
+      try {
+        const res = await fetch(
+          `/api/admin/diagnosis/form?schoolId=${encodeURIComponent(schoolId)}`,
+          { cache: "no-store" },
+        );
+
+        const ct = res.headers.get("content-type") ?? "";
+
+        // JSONじゃない（=ログインHTMLやエラーページ）を弾く
+        if (!ct.includes("application/json")) {
+          const text = await res.text();
+          throw new Error(
+            `APIがJSONを返していません (status=${res.status}). 先頭: ${text.slice(
+              0,
+              120,
+            )}`,
+          );
+        }
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          throw new Error(data?.message ?? `API error: ${res.status}`);
+        }
+
+        if (!cancelled) setForm(data);
+      } catch (e: any) {
+        if (!cancelled) {
+          setForm(null);
+          setErr(e?.message ?? "読み込みに失敗しました");
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
     })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [schoolId]);
 
   if (loading) return <div>読み込み中...</div>;
+
+  if (err) {
+    return (
+      <div className="rounded-xl border p-4 text-sm text-red-600 bg-red-50">
+        {err}
+      </div>
+    );
+  }
+
   if (!form) return <div>フォームが見つかりません</div>;
 
   function updateField(index: number, patch: Partial<Field>) {
@@ -72,11 +121,7 @@ export default function FormAdminClient({ schoolId }: { schoolId: string }) {
       ...form,
       fields: [
         ...form.fields,
-        {
-          label: "新しい項目",
-          type: "TEXT",
-          required: false,
-        },
+        { label: "新しい項目", type: "TEXT", required: false, isActive: true },
       ],
     });
   }
@@ -90,18 +135,44 @@ export default function FormAdminClient({ schoolId }: { schoolId: string }) {
 
   async function save() {
     setSaving(true);
-    await fetch("/api/admin/diagnosis/form", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(form),
-    });
-    setSaving(false);
-    alert("保存しました");
+    setErr(null);
+    try {
+      const res = await fetch("/api/admin/diagnosis/form", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+
+      const ct = res.headers.get("content-type") ?? "";
+      if (!ct.includes("application/json")) {
+        const text = await res.text();
+        throw new Error(
+          `保存APIがJSONを返していません (status=${res.status}). 先頭: ${text.slice(
+            0,
+            120,
+          )}`,
+        );
+      }
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.message ?? "保存に失敗しました");
+
+      alert("保存しました");
+    } catch (e: any) {
+      setErr(e?.message ?? "保存に失敗しました");
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
     <div className="space-y-6">
-      {/* 基本設定 */}
+      {err && (
+        <div className="rounded-xl border p-4 text-sm text-red-600 bg-red-50">
+          {err}
+        </div>
+      )}
+
       <section className="rounded-xl border p-4 space-y-3">
         <label className="flex items-center gap-2">
           <input
@@ -131,13 +202,13 @@ export default function FormAdminClient({ schoolId }: { schoolId: string }) {
         </div>
       </section>
 
-      {/* フィールド編集 */}
       <section className="rounded-xl border p-4 space-y-4">
         <div className="flex justify-between items-center">
           <h3 className="font-semibold">フォーム項目</h3>
           <button
             className="rounded bg-blue-600 text-white px-3 py-1"
             onClick={addField}
+            type="button"
           >
             ＋ 項目追加
           </button>
@@ -176,23 +247,32 @@ export default function FormAdminClient({ schoolId }: { schoolId: string }) {
             <label className="col-span-2 flex items-center gap-1 text-sm">
               <input
                 type="checkbox"
-                checked={f.required}
+                checked={!!f.required}
                 onChange={(e) => updateField(i, { required: e.target.checked })}
               />
               必須
             </label>
 
             <div className="col-span-2 flex gap-1 justify-end">
-              <button disabled={i === 0} onClick={() => moveField(i, -1)}>
+              <button
+                disabled={i === 0}
+                onClick={() => moveField(i, -1)}
+                type="button"
+              >
                 ↑
               </button>
               <button
                 disabled={i === form.fields.length - 1}
                 onClick={() => moveField(i, 1)}
+                type="button"
               >
                 ↓
               </button>
-              <button className="text-red-600" onClick={() => removeField(i)}>
+              <button
+                className="text-red-600"
+                onClick={() => removeField(i)}
+                type="button"
+              >
                 削除
               </button>
             </div>
@@ -200,12 +280,12 @@ export default function FormAdminClient({ schoolId }: { schoolId: string }) {
         ))}
       </section>
 
-      {/* 保存 */}
       <div className="text-right">
         <button
           onClick={save}
           disabled={saving}
           className="rounded bg-green-600 text-white px-6 py-2"
+          type="button"
         >
           {saving ? "保存中..." : "保存する"}
         </button>
