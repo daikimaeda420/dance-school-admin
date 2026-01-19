@@ -301,7 +301,7 @@ model DiagnosisFormField {
   formId      String
 
   label       String
-  type        DiagnosisFormFieldType
+  type        String
   required    Boolean  @default(false)
   placeholder String?
 
@@ -317,16 +317,6 @@ model DiagnosisFormField {
 
   @@index([formId])
   @@index([formId, sortOrder])
-}
-
-enum DiagnosisFormFieldType {
-  TEXT
-  EMAIL
-  TEL
-  TEXTAREA
-  SELECT
-  CHECKBOX
-  HIDDEN
 }
 
 enum UserRole {
