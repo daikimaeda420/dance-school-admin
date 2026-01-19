@@ -1,3 +1,4 @@
+// app/admin/diagnosis/form/FormAdminClient.tsx
 "use client";
 
 import { useEffect, useState } from "react";
