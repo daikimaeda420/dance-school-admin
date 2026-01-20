@@ -60,12 +60,12 @@ model SuperAdmin {
 }
 
 model DiagnosisCampus {
-  id        String   @id @default(cuid())
+  id        String  @id @default(cuid())
   schoolId  String
   label     String
   slug      String
-  sortOrder Int      @default(0)
-  isActive  Boolean  @default(true)
+  sortOrder Int     @default(0)
+  isActive  Boolean @default(true)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -73,8 +73,8 @@ model DiagnosisCampus {
   address String?
   access  String?
 
-  googleMapUrl       String?
-  googleMapEmbedUrl  String?
+  googleMapUrl      String?
+  googleMapEmbedUrl String?
 
   results DiagnosisResult[] @relation("ResultCampuses")
 
@@ -116,12 +116,12 @@ model DiagnosisLifestyle {
 }
 
 model DiagnosisGenre {
-  id        String   @id @default(cuid())
+  id        String  @id @default(cuid())
   schoolId  String
   label     String
   slug      String
-  sortOrder Int      @default(0)
-  isActive  Boolean  @default(true)
+  sortOrder Int     @default(0)
+  isActive  Boolean @default(true)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -139,15 +139,15 @@ model DiagnosisGenre {
 }
 
 model DiagnosisInstructor {
-  id           String   @id @default(cuid())
-  schoolId     String
-  label        String
-  slug         String
-  sortOrder    Int      @default(0)
-  isActive     Boolean  @default(true)
+  id        String  @id @default(cuid())
+  schoolId  String
+  label     String
+  slug      String
+  sortOrder Int     @default(0)
+  isActive  Boolean @default(true)
 
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   photoData    Bytes?
   photoMime    String?
@@ -196,17 +196,17 @@ model DiagnosisInstructorCampus {
 }
 
 model DiagnosisResult {
-  id         String   @id @default(cuid())
+  id         String  @id @default(cuid())
   schoolId   String
   title      String
   body       String?
   ctaLabel   String?
   ctaUrl     String?
-  sortOrder  Int      @default(0)
-  isActive   Boolean  @default(true)
-  priority   Int      @default(0)
+  sortOrder  Int     @default(0)
+  isActive   Boolean @default(true)
+  priority   Int     @default(0)
   conditions Json?
-  isFallback Boolean  @default(false)
+  isFallback Boolean @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -241,12 +241,12 @@ model SchoolClass {
 }
 
 model Teacher {
-  id        String   @id @default(cuid())
-  schoolId  String
-  name      String
-  photoUrl  String?
-  styles    String[]
-  bio       String?
+  id       String   @id @default(cuid())
+  schoolId String
+  name     String
+  photoUrl String?
+  styles   String[]
+  bio      String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -272,47 +272,47 @@ model TeacherClass {
 
 /// 診断結果ページの最下部に出す「フォーム」設定
 model DiagnosisForm {
-  id          String   @id @default(cuid())
-  schoolId    String   @unique
+  id       String @id @default(cuid())
+  schoolId String @unique
 
-  isActive    Boolean  @default(true)
+  isActive Boolean @default(true)
 
   title       String?
   description String?
 
-  submitType  String   @default("INTERNAL") // INTERNAL / EXTERNAL / GOOGLE（運用で文字列）
-  submitUrl   String?
+  submitType String  @default("INTERNAL") // INTERNAL / EXTERNAL / GOOGLE（運用で文字列）
+  submitUrl  String?
 
-  thanksType  String   @default("MESSAGE")  // MESSAGE / REDIRECT（運用で文字列）
-  thanksText  String?
-  thanksUrl   String?
+  thanksType String  @default("MESSAGE") // MESSAGE / REDIRECT（運用で文字列）
+  thanksText String?
+  thanksUrl  String?
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  fields      DiagnosisFormField[]
+  fields DiagnosisFormField[]
 
   @@index([schoolId])
 }
 
 model DiagnosisFormField {
-  id          String   @id @default(cuid())
-  formId      String
+  id     String @id @default(cuid())
+  formId String
 
   label       String
-  type        String  // TEXT / EMAIL / TEL / TEXTAREA / SELECT / CHECKBOX / HIDDEN
-  required    Boolean  @default(false)
+  type        String // TEXT / EMAIL / TEL / TEXTAREA / SELECT / CHECKBOX / HIDDEN
+  required    Boolean @default(false)
   placeholder String?
 
   optionsJson Json?
 
-  sortOrder   Int      @default(0)
-  isActive    Boolean  @default(true)
+  sortOrder Int     @default(0)
+  isActive  Boolean @default(true)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  form        DiagnosisForm @relation(fields: [formId], references: [id], onDelete: Cascade)
+  form DiagnosisForm @relation(fields: [formId], references: [id], onDelete: Cascade)
 
   @@index([formId])
   @@index([formId, sortOrder])
@@ -320,10 +320,10 @@ model DiagnosisFormField {
 
 /// ✅ 追加：フォーム送信時の「メール通知/自動返信」設定（スクール単位で1つ）
 model DiagnosisFormEmailSetting {
-  id        String   @id @default(cuid())
-  schoolId  String   @unique
+  id       String @id @default(cuid())
+  schoolId String @unique
 
-  isActive  Boolean  @default(true)
+  isActive Boolean @default(true)
 
   // 送信元
   fromName  String?
@@ -331,11 +331,11 @@ model DiagnosisFormEmailSetting {
   replyTo   String?
 
   // 管理者通知
-  adminTo   String   // カンマ区切りで複数OK（例: a@x.com,b@y.com）
-  adminCc   String?
-  adminBcc  String?
+  adminTo  String // カンマ区切りで複数OK（例: a@x.com,b@y.com）
+  adminCc  String?
+  adminBcc String?
 
-  adminSubjectTemplate String @default("【診断フォーム】新しいお問い合わせ")
+  adminSubjectTemplate String  @default("【診断フォーム】新しいお問い合わせ")
   adminBodyTemplate    String?
 
   // 自動返信（ユーザー宛）
