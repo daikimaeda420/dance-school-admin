@@ -73,7 +73,7 @@ model DiagnosisCampus {
   address String?
   access  String?
 
-  googleMapUrl        String?
+  googleMapUrl       String?
   googleMapEmbedUrl  String?
 
   results DiagnosisResult[] @relation("ResultCampuses")
@@ -280,11 +280,10 @@ model DiagnosisForm {
   title       String?
   description String?
 
-  // ✅ enumを使わず String に変更
-  submitType  String   @default("INTERNAL")
+  submitType  String   @default("INTERNAL") // INTERNAL / EXTERNAL / GOOGLE（運用で文字列）
   submitUrl   String?
 
-  thanksType  String   @default("MESSAGE")
+  thanksType  String   @default("MESSAGE")  // MESSAGE / REDIRECT（運用で文字列）
   thanksText  String?
   thanksUrl   String?
 
@@ -292,6 +291,9 @@ model DiagnosisForm {
   updatedAt   DateTime @updatedAt
 
   fields      DiagnosisFormField[]
+
+  // ✅ メール設定（スクール単位で1つ）
+  emailSetting DiagnosisFormEmailSetting?
 
   @@index([schoolId])
 }
@@ -301,7 +303,7 @@ model DiagnosisFormField {
   formId      String
 
   label       String
-  type        String
+  type        String  // TEXT / EMAIL / TEL / TEXTAREA / SELECT / CHECKBOX / HIDDEN
   required    Boolean  @default(false)
   placeholder String?
 
@@ -317,6 +319,37 @@ model DiagnosisFormField {
 
   @@index([formId])
   @@index([formId, sortOrder])
+}
+
+/// ✅ 追加：フォーム送信時の「メール通知/自動返信」設定（スクール単位で1つ）
+model DiagnosisFormEmailSetting {
+  id        String   @id @default(cuid())
+  schoolId  String   @unique
+
+  isActive  Boolean  @default(true)
+
+  // 送信元
+  fromName  String?
+  fromEmail String?
+  replyTo   String?
+
+  // 管理者通知
+  adminTo   String   // カンマ区切りで複数OK（例: a@x.com,b@y.com）
+  adminCc   String?
+  adminBcc  String?
+
+  adminSubjectTemplate String @default("【診断フォーム】新しいお問い合わせ")
+  adminBodyTemplate    String?
+
+  // 自動返信（ユーザー宛）
+  userAutoReplyEnabled Boolean @default(true)
+  userSubjectTemplate  String  @default("お問い合わせありがとうございます")
+  userBodyTemplate     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolId])
 }
 
 enum UserRole {
