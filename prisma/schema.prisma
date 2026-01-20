@@ -292,9 +292,6 @@ model DiagnosisForm {
 
   fields      DiagnosisFormField[]
 
-  // ✅ メール設定（スクール単位で1つ）
-  emailSetting DiagnosisFormEmailSetting?
-
   @@index([schoolId])
 }
 
