@@ -1,3 +1,4 @@
+// app/admin/diagnosis/form/FormAdminClient.tsx
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
@@ -34,7 +35,7 @@ type EmailSetting = {
   fromEmail?: string | null;
   replyTo?: string | null;
 
-  adminTo: string; // カンマ区切り
+  adminTo: string;
   adminCc?: string | null;
   adminBcc?: string | null;
 
@@ -61,7 +62,7 @@ const INPUT_BASE =
   "dark:border-gray-600 dark:bg-gray-800";
 
 const TEXTAREA_BASE =
-  "w-full rounded border border-gray-300 bg-white px-3 py-2 text-sm " +
+  "w-full min-h-[96px] rounded border border-gray-300 bg-white px-3 py-2 text-sm " +
   "dark:border-gray-600 dark:bg-gray-800";
 
 function ensureJsonContentType(res: Response, bodyText: string) {
@@ -109,7 +110,7 @@ export default function FormAdminClient({ schoolId }: { schoolId: string }) {
         if (!cancelled) setForm(data);
 
         // ✅ メール設定（別API）
-        // まだAPIが無い場合は 404 になるので、エラー表示だけしてフォーム編集は生かす
+        // API未実装/テーブル未作成などで失敗しても、フォーム編集は生かす
         try {
           const res2 = await fetch(
             `/api/admin/diagnosis/form-email?schoolId=${encodeURIComponent(
@@ -130,7 +131,7 @@ export default function FormAdminClient({ schoolId }: { schoolId: string }) {
             setEmailSetting(null);
             setEmailErr(
               e?.message ??
-                "メール設定の読み込みに失敗しました（API未実装の可能性）",
+                "メール設定の読み込みに失敗しました（API未実装/テーブル未作成の可能性）",
             );
           }
         }
@@ -149,10 +150,11 @@ export default function FormAdminClient({ schoolId }: { schoolId: string }) {
     };
   }, [schoolId]);
 
-  if (loading)
+  if (loading) {
     return (
       <div className="text-gray-600 dark:text-gray-400">読み込み中...</div>
     );
+  }
 
   if (!form) {
     return (
@@ -213,10 +215,12 @@ export default function FormAdminClient({ schoolId }: { schoolId: string }) {
 
         if (!res.ok)
           throw new Error(data?.message ?? "フォームの保存に失敗しました");
+
+        // 返却がフォーム本体なら反映（{ok:true}でも害なし）
+        if (data?.id && data?.fields) setForm(data);
       }
 
       // ✅ メール設定がロードされている場合のみ保存
-      // （API未実装/未ロードの場合は、フォーム保存だけ成功させる）
       if (emailSetting) {
         const res2 = await fetch("/api/admin/diagnosis/form-email", {
           method: "PUT",
@@ -228,15 +232,18 @@ export default function FormAdminClient({ schoolId }: { schoolId: string }) {
         ensureJsonContentType(res2, text2);
         const data2 = JSON.parse(text2);
 
-        if (!res2.ok)
-          throw new Error(data2?.message ?? "メール設定の保存に失敗しました");
+        if (!res2.ok) {
+          // フォーム保存は成功してるので、メール側だけエラー表示
+          setEmailErr(data2?.message ?? "メール設定の保存に失敗しました");
+        } else {
+          // 返ってきた最新を反映
+          if (data2?.id) setEmailSetting(data2);
+        }
       }
 
       alert("保存しました");
     } catch (e: any) {
-      const msg = e?.message ?? "保存に失敗しました";
-      // フォーム保存失敗かメール設定保存失敗か判別が難しいので、とりあえず上部に出す
-      setErr(msg);
+      setErr(e?.message ?? "保存に失敗しました");
     } finally {
       setSaving(false);
     }
@@ -344,7 +351,7 @@ export default function FormAdminClient({ schoolId }: { schoolId: string }) {
                 disabled={i === 0}
                 onClick={() => moveField(i, -1)}
                 type="button"
-                className="rounded border border-gray-300 px-2 py-1 text-xs dark:border-gray-600"
+                className="rounded border border-gray-300 px-2 py-1 text-xs disabled:opacity-40 dark:border-gray-600"
               >
                 ↑
               </button>
@@ -352,7 +359,7 @@ export default function FormAdminClient({ schoolId }: { schoolId: string }) {
                 disabled={i === form.fields.length - 1}
                 onClick={() => moveField(i, 1)}
                 type="button"
-                className="rounded border border-gray-300 px-2 py-1 text-xs dark:border-gray-600"
+                className="rounded border border-gray-300 px-2 py-1 text-xs disabled:opacity-40 dark:border-gray-600"
               >
                 ↓
               </button>
@@ -374,7 +381,7 @@ export default function FormAdminClient({ schoolId }: { schoolId: string }) {
           <h3 className="font-semibold">メール設定</h3>
           {!emailSetting && (
             <div className="text-xs text-gray-500 dark:text-gray-400">
-              （メール設定APIが未実装/未取得の可能性があります）
+              （メール設定APIが未取得の可能性があります）
             </div>
           )}
         </div>
