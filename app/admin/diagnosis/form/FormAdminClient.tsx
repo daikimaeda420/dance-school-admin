@@ -57,13 +57,22 @@ const FIELD_TYPES = [
   "HIDDEN",
 ] as const;
 
+// ✅ placeholder を必ず見えるように（light/dark 両対応）
 const INPUT_BASE =
-  "w-full rounded border border-gray-300 bg-white px-3 py-2 text-sm " +
-  "dark:border-gray-600 dark:bg-gray-800";
+  "w-full rounded border px-3 py-2 text-sm outline-none " +
+  "border-gray-300 bg-white text-gray-900 " +
+  "placeholder:text-gray-400 placeholder:opacity-100 " +
+  "focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 " +
+  "dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100 " +
+  "dark:placeholder:text-gray-500";
 
 const TEXTAREA_BASE =
-  "w-full min-h-[96px] rounded border border-gray-300 bg-white px-3 py-2 text-sm " +
-  "dark:border-gray-600 dark:bg-gray-800";
+  "w-full min-h-[96px] rounded border px-3 py-2 text-sm outline-none " +
+  "border-gray-300 bg-white text-gray-900 " +
+  "placeholder:text-gray-400 placeholder:opacity-100 " +
+  "focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 " +
+  "dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100 " +
+  "dark:placeholder:text-gray-500";
 
 function ensureJsonContentType(res: Response, bodyText: string) {
   const ct = res.headers.get("content-type") ?? "";
@@ -309,16 +318,16 @@ export default function FormAdminClient({ schoolId }: { schoolId: string }) {
             className="grid grid-cols-12 gap-2 items-center rounded border border-gray-200 bg-gray-50 p-3
                        dark:border-gray-700 dark:bg-gray-800"
           >
+            {/* ✅ ラベル */}
             <input
-              className="col-span-3 rounded border border-gray-300 bg-white px-2 py-1 text-sm
-                         dark:border-gray-600 dark:bg-gray-900"
+              className={`col-span-3 ${INPUT_BASE}`}
               value={f.label}
               onChange={(e) => updateField(i, { label: e.target.value })}
             />
 
+            {/* ✅ 種別 */}
             <select
-              className="col-span-2 rounded border border-gray-300 bg-white px-2 py-1 text-sm
-                         dark:border-gray-600 dark:bg-gray-900"
+              className={`col-span-2 ${INPUT_BASE}`}
               value={f.type}
               onChange={(e) => updateField(i, { type: e.target.value })}
             >
@@ -329,10 +338,10 @@ export default function FormAdminClient({ schoolId }: { schoolId: string }) {
               ))}
             </select>
 
+            {/* ✅ placeholder（ここが見えない問題の対策） */}
             <input
-              className="col-span-3 rounded border border-gray-300 bg-white px-2 py-1 text-sm
-                         dark:border-gray-600 dark:bg-gray-900"
-              placeholder="placeholder"
+              className={`col-span-3 ${INPUT_BASE}`}
+              placeholder="例）山田 太郎"
               value={f.placeholder ?? ""}
               onChange={(e) => updateField(i, { placeholder: e.target.value })}
             />
