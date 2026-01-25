@@ -1,5 +1,7 @@
 "use client";
 
+import { useMemo, useState } from "react";
+
 type Field = {
   id: string;
   label: string;
@@ -26,6 +28,24 @@ const INPUT_BASE =
   "dark:placeholder:text-gray-500";
 
 export default function DiagnosisForm({ form, hiddenValues }: Props) {
+  const schoolId = useMemo(() => hiddenValues?.schoolId ?? "", [hiddenValues]);
+
+  const [values, setValues] = useState<Record<string, string>>({});
+  const [sending, setSending] = useState(false);
+  const [done, setDone] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  const setVal = (fieldId: string, v: string) => {
+    setValues((prev) => ({ ...prev, [fieldId]: v }));
+  };
+
+  const toSendFields = () => {
+    // API側で読みやすいよう「ラベル: 値」形式も混ぜたければここで加工OK
+    const out: Record<string, string> = {};
+    for (const f of form.fields) out[f.label] = values[f.id] ?? "";
+    return out;
+  };
+
   return (
     <section className="mt-12 rounded-2xl border border-gray-200 bg-white p-6 text-gray-900 shadow-sm dark:border-gray-800 dark:bg-gray-950 dark:text-gray-100">
       {form.title && <h2 className="mb-2 text-xl font-bold">{form.title}</h2>}
@@ -35,25 +55,49 @@ export default function DiagnosisForm({ form, hiddenValues }: Props) {
         </p>
       )}
 
-      <form className="space-y-4">
-        {/* hidden（診断結果用） */}
-        {hiddenValues &&
-          Object.entries(hiddenValues).map(([k, v]) => (
-            <input key={k} type="hidden" name={k} value={v} />
-          ))}
+      {done ? (
+        <div className="rounded-xl border border-green-200 bg-green-50 p-4 text-sm text-green-800 dark:border-green-900/40 dark:bg-green-900/20 dark:text-green-200">
+          送信が完了しました。ご連絡をお待ちください。
+        </div>
+      ) : (
+        <form
+          className="space-y-4"
+          onSubmit={async (e) => {
+            e.preventDefault();
+            setErr(null);
 
-        {form.fields.map((f) => {
-          // ✅ label は人間向けなので name は id を推奨（重複や日本語の問題を避ける）
-          const name = `field_${f.id}`;
+            if (!schoolId) {
+              setErr(
+                "schoolId が取得できません（hiddenValues.schoolId が必要です）",
+              );
+              return;
+            }
 
-          const common = {
-            name,
-            required: f.required,
-            placeholder: f.placeholder ?? undefined,
-            className: INPUT_BASE,
-          };
+            setSending(true);
+            try {
+              const res = await fetch("/api/diagnosis/submit", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  schoolId,
+                  fields: toSendFields(),
+                  hiddenValues: hiddenValues ?? {},
+                }),
+              });
 
-          return (
+              const data = await res.json().catch(() => null);
+              if (!res.ok) {
+                throw new Error(data?.message ?? "送信に失敗しました");
+              }
+              setDone(true);
+            } catch (e: any) {
+              setErr(e?.message ?? "送信に失敗しました");
+            } finally {
+              setSending(false);
+            }
+          }}
+        >
+          {form.fields.map((f) => (
             <div key={f.id} className="space-y-1">
               <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200">
                 {f.label}
@@ -64,36 +108,49 @@ export default function DiagnosisForm({ form, hiddenValues }: Props) {
                 )}
               </label>
 
-              {(() => {
-                switch (f.type) {
-                  case "TEXTAREA":
-                    return <textarea {...common} rows={4} />;
-
-                  case "EMAIL":
-                    return <input type="email" {...common} />;
-
-                  case "TEL":
-                    return <input type="tel" {...common} />;
-
-                  default:
-                    return <input type="text" {...common} />;
-                }
-              })()}
+              {f.type === "TEXTAREA" ? (
+                <textarea
+                  className={INPUT_BASE}
+                  rows={4}
+                  required={f.required}
+                  placeholder={f.placeholder ?? undefined}
+                  value={values[f.id] ?? ""}
+                  onChange={(e) => setVal(f.id, e.target.value)}
+                />
+              ) : (
+                <input
+                  className={INPUT_BASE}
+                  type={
+                    f.type === "EMAIL"
+                      ? "email"
+                      : f.type === "TEL"
+                        ? "tel"
+                        : "text"
+                  }
+                  required={f.required}
+                  placeholder={f.placeholder ?? undefined}
+                  value={values[f.id] ?? ""}
+                  onChange={(e) => setVal(f.id, e.target.value)}
+                />
+              )}
             </div>
-          );
-        })}
+          ))}
 
-        <button
-          type="submit"
-          className="w-full rounded-xl bg-blue-600 py-3 font-semibold text-white hover:bg-blue-700 active:bg-blue-800"
-        >
-          送信する
-        </button>
+          {err && (
+            <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-xs text-red-700 dark:border-red-900/40 dark:bg-red-900/20 dark:text-red-200">
+              {err}
+            </div>
+          )}
 
-        <p className="text-[11px] text-gray-500 dark:text-gray-400">
-          ※送信前に入力内容をご確認ください
-        </p>
-      </form>
+          <button
+            type="submit"
+            disabled={sending}
+            className="w-full rounded-xl bg-blue-600 py-3 font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
+          >
+            {sending ? "送信中..." : "送信する"}
+          </button>
+        </form>
+      )}
     </section>
   );
 }
