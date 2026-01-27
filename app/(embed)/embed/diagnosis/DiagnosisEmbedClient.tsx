@@ -738,9 +738,12 @@ export default function DiagnosisEmbedClient({
         </div>
 
         {/* 不安解消メッセージ */}
+        {/* 不安解消メッセージ */}
         <div className="mb-4 rounded-xl bg-blue-50 p-3 text-xs text-blue-900">
           <div className="mb-1 font-semibold">こんな不安はありませんか？</div>
-          <div>{result.concernMessage}</div>
+          <div className="whitespace-pre-wrap">
+            {result.resultCopy?.concern ?? result.concernMessage}
+          </div>
         </div>
 
         {/* CTA */}
