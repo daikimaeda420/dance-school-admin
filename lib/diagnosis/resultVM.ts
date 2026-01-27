@@ -13,6 +13,7 @@ import {
   AGE_RESULT_COPY,
   TEACHER_RESULT_COPY,
   CONCERN_RESULT_COPY,
+  type ResultCopy,
 } from "./resultCopy";
 
 type AnswersByQuestion = Partial<Record<DiagnosisQuestionId, string>>;
@@ -20,7 +21,7 @@ type AnswersByQuestion = Partial<Record<DiagnosisQuestionId, string>>;
 
 export type DiagnosisResultVM<
   TClass extends ClassLike = ClassLike,
-  TTeacher extends TeacherLike = TeacherLike
+  TTeacher extends TeacherLike = TeacherLike,
 > = {
   pattern: "A" | "B";
   best: ScoredPair<TClass, TTeacher>;
@@ -29,9 +30,9 @@ export type DiagnosisResultVM<
 
   // 画面に出す “固定コピー” 群
   userMessages: {
-    level?: { selectedLabel: string; message: string };
-    age?: { selectedLabel: string; message: string };
-    teacher?: { selectedLabel: string; message: string };
+    level?: { selectedLabel: string; message: ResultCopy | string };
+    age?: { selectedLabel: string; message: ResultCopy | string };
+    teacher?: { selectedLabel: string; message: ResultCopy | string };
     concern?: {
       selectedLabel: string;
       message: string;
@@ -53,7 +54,7 @@ function getOption(qid: DiagnosisQuestionId, optionId: string | undefined) {
 }
 
 export function buildMatchContextFromAnswers(
-  answers: AnswersByQuestion
+  answers: AnswersByQuestion,
 ): MatchContext {
   const optQ2 = getOption("Q2", answers.Q2);
   const optQ3 = getOption("Q3", answers.Q3);
@@ -70,10 +71,10 @@ export function buildMatchContextFromAnswers(
 
 export function buildDiagnosisResultVM<
   TClass extends ClassLike,
-  TTeacher extends TeacherLike
+  TTeacher extends TeacherLike,
 >(
   answers: AnswersByQuestion,
-  pairs: PairLike<TClass, TTeacher>[]
+  pairs: PairLike<TClass, TTeacher>[],
 ): DiagnosisResultVM<TClass, TTeacher> {
   const ctx = buildMatchContextFromAnswers(answers);
 
