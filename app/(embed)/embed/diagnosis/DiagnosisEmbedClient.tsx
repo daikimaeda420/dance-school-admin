@@ -505,7 +505,7 @@ export default function DiagnosisEmbedClient({
                   </div>
 
                   {/* タイトル */}
-                  <div className="mt-2 text-sm font-semibold text-gray-900">
+                  <div className="mt-2 whitespace-pre-wrap text-sm font-semibold text-gray-900">
                     {result.resultCopy.level.title}
                   </div>
 
@@ -524,10 +524,9 @@ export default function DiagnosisEmbedClient({
                   </div>
 
                   {/* タイトル */}
-                  <div className="mt-2 text-sm font-semibold text-gray-900">
+                  <div className="mt-2 whitespace-pre-wrap text-sm font-semibold text-gray-900">
                     {result.resultCopy.age.title}
                   </div>
-
                   {/* 本文 */}
                   <div className="mt-1 whitespace-pre-wrap text-sm text-gray-800">
                     {result.resultCopy.age.body}
@@ -543,12 +542,12 @@ export default function DiagnosisEmbedClient({
                   </div>
 
                   {/* タイトル */}
-                  <div className="mt-2 text-sm font-semibold text-gray-900">
+                  <div className="mt-2 whitespace-pre-wrap text-sm font-semibold text-gray-900">
                     {result.resultCopy.teacher.title}
                   </div>
 
                   {/* 本文 */}
-                  <div className="mt-1 whitespace-pre-wrap text-sm text-gray-800">
+                  <div className="mt-1 whitespace-pre-wrap whitespace-pre-wrap text-sm text-gray-800">
                     {result.resultCopy.teacher.body}
                   </div>
                 </div>
