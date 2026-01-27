@@ -1,6 +1,7 @@
 // app/(embed)/embed/diagnosis/DiagnosisEmbedClient.tsx
 "use client";
 
+import type { ResultCopy } from "@/lib/diagnosis/resultCopy";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import DiagnosisForm from "./_components/DiagnosisForm";
@@ -102,10 +103,10 @@ type DiagnosisResult = {
   } | null;
 
   resultCopy?: {
-    level?: string | null;
-    age?: string | null;
-    teacher?: string | null;
-    concern?: string | null;
+    level?: ResultCopy | null;
+    age?: ResultCopy | null;
+    teacher?: ResultCopy | null;
+    concern?: string | null; // concernは今はstringのままでOK
   };
 };
 
@@ -530,18 +531,6 @@ export default function DiagnosisEmbedClient({
                   {/* 本文 */}
                   <div className="mt-1 whitespace-pre-wrap text-sm text-gray-800">
                     {result.resultCopy.age.body}
-                  </div>
-                </div>
-              )}
-
-              {/* ▼ 講師 */}
-              {result.resultCopy.teacher && (
-                <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-                  <div className="text-xs font-semibold text-gray-500">
-                    先生のタイプに合わせた提案
-                  </div>
-                  <div className="mt-2 whitespace-pre-wrap text-sm text-gray-800">
-                    {result.resultCopy.teacher}
                   </div>
                 </div>
               )}
