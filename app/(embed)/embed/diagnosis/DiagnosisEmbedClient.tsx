@@ -496,28 +496,45 @@ export default function DiagnosisEmbedClient({
           {/* ✅ 担当講師の上：診断コピー（resultCopy） */}
           {result.resultCopy && (
             <div className="mt-4 space-y-3">
+              {/* ▼ レベル（title + body） */}
               {result.resultCopy.level && (
                 <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
                   <div className="text-xs font-semibold text-gray-500">
                     あなたのレベルに合わせた提案
                   </div>
-                  <div className="mt-2 whitespace-pre-wrap text-sm text-gray-800">
-                    {result.resultCopy.level}
+
+                  {/* タイトル */}
+                  <div className="mt-2 text-sm font-semibold text-gray-900">
+                    {result.resultCopy.level.title}
+                  </div>
+
+                  {/* 本文 */}
+                  <div className="mt-1 whitespace-pre-wrap text-sm text-gray-800">
+                    {result.resultCopy.level.body}
                   </div>
                 </div>
               )}
 
+              {/* ▼ 年代（title + body） */}
               {result.resultCopy.age && (
                 <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
                   <div className="text-xs font-semibold text-gray-500">
                     ライフスタイルに合わせた提案
                   </div>
-                  <div className="mt-2 whitespace-pre-wrap text-sm text-gray-800">
-                    {result.resultCopy.age}
+
+                  {/* タイトル */}
+                  <div className="mt-2 text-sm font-semibold text-gray-900">
+                    {result.resultCopy.age.title}
+                  </div>
+
+                  {/* 本文 */}
+                  <div className="mt-1 whitespace-pre-wrap text-sm text-gray-800">
+                    {result.resultCopy.age.body}
                   </div>
                 </div>
               )}
 
+              {/* ▼ 講師 */}
               {result.resultCopy.teacher && (
                 <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
                   <div className="text-xs font-semibold text-gray-500">
@@ -529,13 +546,21 @@ export default function DiagnosisEmbedClient({
                 </div>
               )}
 
-              {result.resultCopy.concern && (
+              {/* ▼ 講師（title + body） */}
+              {result.resultCopy.teacher && (
                 <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
                   <div className="text-xs font-semibold text-gray-500">
-                    不安への回答
+                    先生のタイプに合わせた提案
                   </div>
-                  <div className="mt-2 whitespace-pre-wrap text-sm text-gray-800">
-                    {result.resultCopy.concern}
+
+                  {/* タイトル */}
+                  <div className="mt-2 text-sm font-semibold text-gray-900">
+                    {result.resultCopy.teacher.title}
+                  </div>
+
+                  {/* 本文 */}
+                  <div className="mt-1 whitespace-pre-wrap text-sm text-gray-800">
+                    {result.resultCopy.teacher.body}
                   </div>
                 </div>
               )}
