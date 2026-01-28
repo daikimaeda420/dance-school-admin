@@ -555,6 +555,14 @@ export default function DiagnosisEmbedClient({
             </div>
           )}
 
+          {/* 不安解消メッセージ */}
+          <div className="mb-4 rounded-xl bg-blue-50 p-3 text-xs text-blue-900">
+            <div className="mb-1 font-semibold">こんな不安はありませんか？</div>
+            <div className="whitespace-pre-wrap">
+              {result.resultCopy?.concern ?? result.concernMessage}
+            </div>
+          </div>
+
           {/* ✅ 担当講師 */}
           <div className="mt-3">
             <div className="text-xs font-semibold text-gray-500">担当講師</div>
@@ -734,14 +742,6 @@ export default function DiagnosisEmbedClient({
                 </div>
               </div>
             ))}
-          </div>
-        </div>
-
-        {/* 不安解消メッセージ */}
-        <div className="mb-4 rounded-xl bg-blue-50 p-3 text-xs text-blue-900">
-          <div className="mb-1 font-semibold">こんな不安はありませんか？</div>
-          <div className="whitespace-pre-wrap">
-            {result.resultCopy?.concern ?? result.concernMessage}
           </div>
         </div>
 
