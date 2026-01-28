@@ -68,13 +68,16 @@ export const AGE_RESULT_COPY: Record<string, ResultCopy> = {
       "学校以外の「第二の青春」の場所として、\n" +
       "同世代の仲間と一緒にダンスに熱中できるクラスです！",
   },
+
+  // ✅ FIX: "Age_Student" のコピーが社会人向けになっていたので学生向けに修正
   Age_Student: {
-    title:
-      "「やってみたかった」を今すぐ形に\n社会人でも続けられる趣味を見つける",
+    title: "忙しくても続けやすい！\n学業と両立できるダンス習慣",
     body:
-      "「いつかやりたい」と思っているうちに時間は過ぎてしまいます。\n" +
-      "基礎からしっかり学べる今スタートすれば、大人になってからも楽しめる趣味になります。",
+      "授業やバイトで忙しくても、通いやすい時間帯・ペースで続けられます。\n" +
+      "基礎からしっかり学べるので、はじめてでも安心。\n" +
+      "（スクールによっては）学割プランが使えることもあります。",
   },
+
   Age_Adult_Work: {
     title: "仕事帰りにリフレッシュ！\n「残業後」でも間に合うクラス",
     body:
@@ -125,7 +128,7 @@ export const TEACHER_RESULT_COPY: Record<string, ResultCopy> = {
   },
 };
 
-// Q6（concern）の messageKey（Msg_Pace 等）に対応（今回は string のまま）
+// Q6（concern）の messageKey（Msg_Pace 等）に対応（タイトル不要なので string のまま）
 export const CONCERN_RESULT_COPY: Record<ConcernMessageKey, string> = {
   Msg_Pace:
     "「待って、今のどうやるの？」が言える環境なのでご安心ください。\n" +
