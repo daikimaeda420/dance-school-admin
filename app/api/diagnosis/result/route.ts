@@ -401,21 +401,30 @@ export async function POST(req: NextRequest) {
     if (instructors.length === 0) instructorMatchedBy = "none";
 
     // ==========================
-    // ✅ resultCopy
+    // ✅ resultCopy（concern は必ず文字列を返す）
     // ==========================
     const levelTag = getOptionTagFromAnswers("Q2", answers);
     const ageTag = getOptionTagFromAnswers("Q3", answers);
     const teacherTag = getOptionTagFromAnswers("Q5", answers);
     const concernKey = getConcernKey(answers);
 
+    // ✅ concern は「必ず文字列」になるようにフォールバックを重ねる
+    const concernText =
+      CONCERN_RESULT_COPY[concernKey] ??
+      concernMessages[concernKey] ??
+      CONCERN_RESULT_COPY["Msg_Consult"] ??
+      concernMessages["Msg_Consult"] ??
+      "";
+
     const resultCopy = {
       level: (levelTag && LEVEL_RESULT_COPY[levelTag]) || null,
       age: (ageTag && AGE_RESULT_COPY[ageTag]) || null,
       teacher: (teacherTag && TEACHER_RESULT_COPY[teacherTag]) || null,
-      concern: CONCERN_RESULT_COPY[concernKey] || null,
+      concern: concernText || null,
     };
 
-    const concernMessage = concernMessages[concernKey];
+    // ✅ フロント互換：concernMessage も同じ文字列を返しておく（どっちで描画しても出る）
+    const concernMessage = concernText || "";
 
     return NextResponse.json({
       pattern: "A",
@@ -503,6 +512,13 @@ export async function POST(req: NextRequest) {
           ageTag,
           teacherTag,
           concernKey,
+        },
+        // ✅ 追加：確認用（必要なら消してOK）
+        concernResolved: {
+          concernKey,
+          hasConcernCopy: Boolean(CONCERN_RESULT_COPY[concernKey]),
+          hasConcernMessage: Boolean(concernMessages[concernKey]),
+          concernTextLength: concernText.length,
         },
       },
     });
