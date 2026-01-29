@@ -285,6 +285,48 @@ model TeacherClass {
   @@index([teacherId])
 }
 
+enum Weekday {
+  MON
+  TUE
+  WED
+  THU
+  FRI
+  SAT
+  SUN
+}
+
+model DiagnosisScheduleSlot {
+  id        String   @id @default(cuid())
+  schoolId  String
+
+  weekday   Weekday
+  genreText String   // 例: "K-POP"
+  timeText  String   // 例: "15:00〜17:00"
+  teacher   String   // 例: "AYAKA"
+  place     String   // 例: "大阪校"
+
+  isActive  Boolean  @default(true)
+  sortOrder Int      @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  courses   DiagnosisScheduleSlotCourse[]
+
+  @@index([schoolId, weekday, isActive])
+}
+
+model DiagnosisScheduleSlotCourse {
+  slotId   String
+  courseId String
+
+  slot     DiagnosisScheduleSlot @relation(fields: [slotId], references: [id], onDelete: Cascade)
+  course   DiagnosisCourse       @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@id([slotId, courseId])
+}
+
+
 /// 診断結果ページの最下部に出す「フォーム」設定
 model DiagnosisForm {
   id       String @id @default(cuid())

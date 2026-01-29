@@ -191,6 +191,22 @@ export default function DiagnosisEmbedClient({
   const [error, setError] = useState<string | null>(null);
   const [diagnosisForm, setDiagnosisForm] = useState<any | null>(null);
 
+  type PublicScheduleSlot = {
+    id: string;
+    genreText: string;
+    timeText: string;
+    teacher: string;
+    place: string;
+  };
+
+  type PublicSchedule = Record<
+    "MON" | "TUE" | "WED" | "THU" | "FRI" | "SAT" | "SUN",
+    PublicScheduleSlot[]
+  >;
+
+  const [schedule, setSchedule] = useState<PublicSchedule | null>(null);
+  const [scheduleError, setScheduleError] = useState<string | null>(null);
+
   // ✅ schoolId / school どっちでも受ける
   const schoolId = useMemo(() => {
     if (schoolIdProp) return schoolIdProp;
@@ -415,6 +431,46 @@ export default function DiagnosisEmbedClient({
       .catch(() => {
         setDiagnosisForm(null);
       });
+  }, [result, schoolId]);
+
+  useEffect(() => {
+    if (!result || !schoolId) return;
+
+    const courseId = result.bestMatch?.classId;
+    if (!courseId) return;
+
+    let cancelled = false;
+    const controller = new AbortController();
+
+    setSchedule(null);
+    setScheduleError(null);
+
+    fetch(
+      `/api/diagnosis/schedule?schoolId=${encodeURIComponent(
+        schoolId,
+      )}&courseId=${encodeURIComponent(courseId)}`,
+      { signal: controller.signal },
+    )
+      .then(async (r) => {
+        if (!r.ok) throw new Error(await r.text());
+        return r.json();
+      })
+      .then((data) => {
+        if (cancelled) return;
+        setSchedule((data?.schedule ?? null) as PublicSchedule | null);
+      })
+      .catch((e) => {
+        if (cancelled) return;
+        if ((e as any)?.name === "AbortError") return;
+        console.error("Failed to load schedule:", e);
+        setSchedule(null);
+        setScheduleError("スケジュールの取得に失敗しました");
+      });
+
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
   }, [result, schoolId]);
 
   // ==========================
@@ -687,6 +743,69 @@ export default function DiagnosisEmbedClient({
               </div>
             )}
           </div>
+        </div>
+
+        {/* ✅ スケジュール（担当講師の下に表示） */}
+        <div className="mt-4">
+          <div className="text-xs font-semibold text-gray-500">
+            スケジュール
+          </div>
+
+          {scheduleError && (
+            <div className="mt-2 rounded-md bg-red-50 px-2 py-1 text-[11px] text-red-600">
+              {scheduleError}
+            </div>
+          )}
+
+          {!schedule && !scheduleError && (
+            <div className="mt-2 text-[11px] text-gray-400">読み込み中...</div>
+          )}
+
+          {schedule && (
+            <div className="mt-2 space-y-4">
+              {(
+                [
+                  ["MON", "月"],
+                  ["TUE", "火"],
+                  ["WED", "水"],
+                  ["THU", "木"],
+                  ["FRI", "金"],
+                  ["SAT", "土"],
+                  ["SUN", "日"],
+                ] as const
+              ).map(([key, label]) => {
+                const items = schedule[key] ?? [];
+                return (
+                  <div key={key}>
+                    <div className="font-semibold text-gray-800">{label}</div>
+
+                    <div className="mt-2 space-y-2">
+                      {items.length === 0 ? (
+                        <div className="text-xs text-gray-500">なし</div>
+                      ) : (
+                        items.map((s) => (
+                          <div
+                            key={s.id}
+                            className="rounded-2xl border border-gray-200 bg-white p-3 shadow-sm"
+                          >
+                            <div className="font-semibold">
+                              {s.genreText} / {s.timeText}
+                            </div>
+                            <div className="mt-1 text-xs text-gray-700">
+                              講師：{s.teacher}
+                            </div>
+                            <div className="text-xs text-gray-700">
+                              場所：{s.place}
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* ✅ 校舎情報 */}
