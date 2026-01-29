@@ -28,10 +28,6 @@ function getConcernKey(answers: Record<string, string>): ConcernMessageKey {
   return key as ConcernMessageKey;
 }
 
-/**
- * Qx の選択肢から option.tag を取り出す（Lv0_超入門 / Age_Adult_Work / Style_Healing など）
- * ※ answers[Qx] は option.id なので QUESTIONS から引き直す
- */
 function getOptionTagFromAnswers(
   questionId: string,
   answers: Record<string, string>,
@@ -41,17 +37,6 @@ function getOptionTagFromAnswers(
   const opt = q?.options.find((o: any) => o.id === optionId) as any;
   const tag = opt?.tag;
   return typeof tag === "string" && tag.trim() ? tag.trim() : null;
-}
-
-/**
- * Q4 の選択肢から genreTag を取り出す（DBのDiagnosisGenreはもう引かない）
- * 例: Genre_KPOP / Genre_HIPHOP ...
- */
-function getGenreTagFromAnswers(answers: Record<string, string>): string {
-  const q4 = QUESTIONS.find((q) => q.id === "Q4");
-  const optionId = answers["Q4"];
-  const opt = q4?.options.find((o) => o.id === optionId);
-  return (opt as any)?.tag ?? "Genre_All";
 }
 
 function getQ4Meta(answers: Record<string, string>): {
@@ -82,7 +67,7 @@ function getQ2ValueForCourse(answers: Record<string, string>): string {
 
 type ResultConditions = {
   campus?: string[];
-  genre?: string[]; // ✅ tag（Genre_KPOPなど）で判定
+  genre?: string[]; // tag（Genre_KPOPなど）
   q2Tags?: string[];
   courseSlug?: string[];
 };
@@ -113,14 +98,12 @@ function matchesConditions(
   cond: ResultConditions,
   ctx: {
     campusSlug: string;
-    genreTag: string; // ✅ tag
+    genreTag: string;
     q2ForCourse: string;
     recommendedCourseSlug: string | null;
   },
 ): boolean {
   if (!includesOrEmpty(cond.campus, ctx.campusSlug)) return false;
-
-  // ✅ cond.genre は tag（Genre_KPOP等）で判定
   if (!includesOrEmpty(cond.genre, ctx.genreTag)) return false;
 
   if (cond.q2Tags && cond.q2Tags.length > 0) {
@@ -136,7 +119,7 @@ function matchesConditions(
 }
 
 // =========================
-// ✅ ここから「中間テーブルで instructorIds を絞る」ヘルパー
+// 中間テーブルで instructorIds を絞る
 // =========================
 function intersectIds(a: string[], b: string[]): string[] {
   const bSet = new Set(b);
@@ -219,13 +202,11 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // =========================================================
-    // ✅ Q4: DBのDiagnosisGenreはもう使わない
-    // =========================================================
+    // Q4: DBのDiagnosisGenreは使わない
     const q4Meta = getQ4Meta(answers);
-    const genreTag = q4Meta.tag; // Genre_KPOP 等（Genre_All含む）
+    const genreTag = q4Meta.tag;
 
-    // Q2に紐づく「おすすめコース」
+    // Q2→おすすめコース
     const q2ForCourse = getQ2ValueForCourse(answers);
 
     const recommendedCourse = await prisma.diagnosisCourse.findFirst({
@@ -235,17 +216,19 @@ export async function POST(req: NextRequest) {
         q2AnswerTags: { has: q2ForCourse },
       },
       orderBy: { sortOrder: "asc" },
-      // ✅ Bytes(photoData)は取らない（重い & URLで配信する）
+      // ✅ Embed側が courseId(cuid) で画像を引くので id は必須
+      // ✅ 画像があるか確実に判定したいので photoData も取る（3MB上限なら許容）
       select: {
         id: true,
         label: true,
         slug: true,
         answerTag: true,
-        photoMime: true, // hasImage判定用（厳密性が必要なら別設計）
+        photoMime: true,
+        photoData: true,
       },
     });
 
-    // 診断結果決定
+    // 診断結果候補
     const candidates = await prisma.diagnosisResult.findMany({
       where: { schoolId, isActive: true },
       orderBy: [{ priority: "desc" }, { sortOrder: "asc" }],
@@ -268,15 +251,10 @@ export async function POST(req: NextRequest) {
       recommendedCourseSlug: recommendedCourse?.slug ?? null,
     };
 
-    // 1) 条件マッチ
     let best = candidates.find((r) =>
       matchesConditions(parseConditions(r.conditions), ctx),
     );
-
-    // 2) fallback
     if (!best) best = candidates.find((r) => r.isFallback) ?? null;
-
-    // 3) 保険
     if (!best) best = candidates[0] ?? null;
 
     if (!best) {
@@ -290,9 +268,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // ==========================
-    // ✅ 講師取得（新: campus+course → campus）
-    // ==========================
+    // 講師取得（campus+course → campus）
     const campusInstructorIds = await instructorIdsByCampus({
       schoolId,
       campusId: campus.id,
@@ -311,7 +287,6 @@ export async function POST(req: NextRequest) {
     let instructors: any[] = [];
     let instructorMatchedBy: "campus+course" | "campus" | "none" = "none";
 
-    // ① campus + course
     if (recommendedCourse?.id) {
       const courseIds = await instructorIdsByCourse({
         schoolId,
@@ -329,23 +304,18 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // ② campus only
-    if (instructors.length === 0) {
-      if (campusInstructorIds.length > 0) {
-        instructors = await prisma.diagnosisInstructor.findMany({
-          where: { schoolId, isActive: true, id: { in: campusInstructorIds } },
-          orderBy: { sortOrder: "asc" },
-          select: selectInstructor,
-        });
-        if (instructors.length > 0) instructorMatchedBy = "campus";
-      }
+    if (instructors.length === 0 && campusInstructorIds.length > 0) {
+      instructors = await prisma.diagnosisInstructor.findMany({
+        where: { schoolId, isActive: true, id: { in: campusInstructorIds } },
+        orderBy: { sortOrder: "asc" },
+        select: selectInstructor,
+      });
+      if (instructors.length > 0) instructorMatchedBy = "campus";
     }
 
     if (instructors.length === 0) instructorMatchedBy = "none";
 
-    // ==========================
-    // ✅ resultCopy（concern は必ず文字列）
-    // ==========================
+    // resultCopy
     const levelTag = getOptionTagFromAnswers("Q2", answers);
     const ageTag = getOptionTagFromAnswers("Q3", answers);
     const teacherTag = getOptionTagFromAnswers("Q5", answers);
@@ -367,8 +337,12 @@ export async function POST(req: NextRequest) {
 
     const concernMessage = concernText || "";
 
-    // ✅ コース画像URL（photoMimeがあれば表示対象）
-    const courseHasPhoto = Boolean(recommendedCourse?.photoMime);
+    // ✅ コース画像URL（photoDataが入っている時だけ）
+    const courseHasPhoto =
+      Boolean(recommendedCourse?.photoMime) &&
+      Boolean(recommendedCourse?.photoData) &&
+      (recommendedCourse.photoData as any)?.length > 0;
+
     const coursePhotoUrl =
       recommendedCourse?.id && courseHasPhoto
         ? `/api/diagnosis/courses/photo?schoolId=${encodeURIComponent(
@@ -385,20 +359,20 @@ export async function POST(req: NextRequest) {
       bestMatch: {
         classId: best.id,
         className: recommendedCourse?.label ?? best.title,
-        // ✅ 互換：genres は Q4ラベルを詰める（空でもOK）
+        // genresは互換でQ4ラベル（空でもOK）
         genres: q4Meta.label ? [q4Meta.label] : [],
         levels: [],
         targets: [],
       },
 
-      // ✅ 新：Embedが参照する（画像含む）
+      // ✅ ここが今回の本丸：Embedが参照する
       selectedCourse: recommendedCourse
         ? {
-            id: recommendedCourse.id,
+            id: recommendedCourse.id, // ← cuid
             label: recommendedCourse.label,
             slug: recommendedCourse.slug,
             answerTag: recommendedCourse.answerTag ?? null,
-            photoUrl: coursePhotoUrl,
+            photoUrl: coursePhotoUrl, // ← 直接使えるURLも返す
           }
         : null,
 
@@ -452,11 +426,11 @@ export async function POST(req: NextRequest) {
         googleMapEmbedUrl: campus.googleMapEmbedUrl ?? null,
       },
 
-      // ✅ 旧selectedGenre(DB)は廃止。Embed互換：answerTagフィールド名で返す
+      // ✅ Embed互換の形に寄せる（DiagnosisEmbedClientの型に合わせる）
       selectedGenre: {
         id: q4Meta.id,
         label: q4Meta.label,
-        slug: q4Meta.tag, // 互換のためslug相当としてtagを入れておく
+        slug: q4Meta.tag, // slug相当としてtagを入れる
         answerTag: q4Meta.tag,
       },
 
@@ -467,12 +441,7 @@ export async function POST(req: NextRequest) {
         recommendedCourseId: recommendedCourse?.id ?? null,
         instructorMatchedBy,
         instructorsCount: instructors.length,
-        copyKeys: {
-          levelTag,
-          ageTag,
-          teacherTag,
-          concernKey,
-        },
+        copyKeys: { levelTag, ageTag, teacherTag, concernKey },
         concernResolved: {
           concernKey,
           hasConcernCopy: Boolean(CONCERN_RESULT_COPY[concernKey]),
