@@ -460,36 +460,32 @@ export default function DiagnosisEmbedClient({
           {(() => {
             const className = result.bestMatch.className ?? "おすすめクラス";
 
-            // 旧：ジャンル名（残っていれば表示する）
+            // 旧：ジャンル名（画像フォールバック用にだけ残す。タイトルには使わない）
             const genreLabel =
               result.selectedGenre?.label?.trim() ||
               (result.bestMatch.genres?.[0] ?? "").trim();
 
-            // ✅ 新：コース画像（最優先）
-            const courseId = result.selectedCourse?.id;
-            const courseImgSrc = courseId
-              ? `/api/diagnosis/courses/photo?schoolId=${encodeURIComponent(
-                  schoolId,
-                )}&id=${encodeURIComponent(courseId)}`
+            // ✅ 新：コース画像（APIが返すURLを最優先）
+            const courseImgSrc = (result as any)?.bestMatch?.coursePhotoUrl
+              ? String((result as any).bestMatch.coursePhotoUrl)
               : null;
 
-            // 互換：旧ジャンル画像（selectedCourse が無い場合だけ）
-            const genreId = result.selectedGenre?.id;
+            // 互換：旧ジャンル画像（コース画像が無い場合だけ）
+            const genreId = (result as any)?.selectedGenre?.id;
             const genreImgSrc =
               !courseImgSrc && genreId
                 ? `/api/diagnosis/genres/image?id=${encodeURIComponent(
-                    genreId,
+                    String(genreId),
                   )}&schoolId=${encodeURIComponent(schoolId)}`
                 : null;
 
-            const titleText = [genreLabel, className].filter(Boolean).join(" ");
+            // ✅ タイトルは「クラス名だけ」
+            const titleText = className;
 
             return (
               <div className="mt-2">
                 <div className="flex flex-wrap items-center gap-2">
-                  <div className="text-lg font-bold">
-                    {titleText || className}
-                  </div>
+                  <div className="text-lg font-bold">{titleText}</div>
                 </div>
 
                 {/* ✅ コース画像 → なければ旧ジャンル画像 */}
@@ -499,7 +495,13 @@ export default function DiagnosisEmbedClient({
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={courseImgSrc || genreImgSrc || ""}
-                        alt={titleText ? `${titleText}の画像` : "診断結果画像"}
+                        alt={
+                          courseImgSrc
+                            ? `${titleText}の画像`
+                            : genreLabel
+                              ? `${genreLabel}の画像`
+                              : "診断結果画像"
+                        }
                         className="h-40 w-full object-cover"
                         loading="lazy"
                       />
