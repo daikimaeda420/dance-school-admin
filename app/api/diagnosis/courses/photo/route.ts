@@ -1,4 +1,4 @@
-// app/api/diagnosis/instructors/photo/route.ts
+// app/api/diagnosis/courses/photo/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
@@ -11,7 +11,7 @@ function json(message: string, status = 400) {
   return NextResponse.json({ message }, { status });
 }
 
-// GET /api/diagnosis/instructors/photo?id=xxx&schoolId=yyy
+// GET /api/diagnosis/courses/photo?id=xxx&schoolId=yyy
 // ✅ Embed から表示できるように「公開」にする（認証なし）
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
   if (!id || !schoolId)
     return new Response("id / schoolId required", { status: 400 });
 
-  const row = await prisma.diagnosisInstructor.findFirst({
+  const row = await prisma.diagnosisCourse.findFirst({
     where: { id, schoolId, isActive: true },
     select: { photoData: true, photoMime: true },
   });
@@ -43,7 +43,7 @@ export async function GET(req: NextRequest) {
   });
 }
 
-// POST /api/diagnosis/instructors/photo  (multipart/form-data: id, schoolId, file)
+// POST /api/diagnosis/courses/photo (multipart/form-data: id, schoolId, file)
 // ✅ アップロードは管理画面だけにしたいので、認証必須のまま
 export async function POST(req: NextRequest) {
   try {
@@ -70,7 +70,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const exists = await prisma.diagnosisInstructor.findFirst({
+    const exists = await prisma.diagnosisCourse.findFirst({
       where: { id, schoolId },
       select: { id: true },
     });
@@ -80,7 +80,7 @@ export async function POST(req: NextRequest) {
     const ab = await file.arrayBuffer();
     const photoData = Buffer.from(ab);
 
-    const updated = await prisma.diagnosisInstructor.update({
+    const updated = await prisma.diagnosisCourse.update({
       where: { id: exists.id },
       data: { photoMime, photoData },
       select: { id: true, schoolId: true, photoMime: true },

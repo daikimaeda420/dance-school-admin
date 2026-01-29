@@ -80,6 +80,14 @@ type DiagnosisResult = {
     mapEmbedUrl?: string | null;
   };
 
+  selectedCourse?: {
+    id: string; // DiagnosisCourse.id（cuid）
+    label: string;
+    slug: string;
+    answerTag?: string | null;
+    photoUrl?: string | null; // 返せるならベスト（なければクライアント側で生成）
+  } | null;
+
   selectedCampus?: {
     label: string;
     slug: string;
@@ -452,34 +460,46 @@ export default function DiagnosisEmbedClient({
           {(() => {
             const className = result.bestMatch.className ?? "おすすめクラス";
 
+            // 旧：ジャンル名（残っていれば表示する）
             const genreLabel =
               result.selectedGenre?.label?.trim() ||
               (result.bestMatch.genres?.[0] ?? "").trim();
 
-            const genreId = result.selectedGenre?.id;
-            const genreImgSrc = genreId
-              ? `/api/diagnosis/genres/image?id=${encodeURIComponent(
-                  genreId,
-                )}&schoolId=${encodeURIComponent(schoolId)}`
+            // ✅ 新：コース画像（最優先）
+            const courseId = result.selectedCourse?.id;
+            const courseImgSrc = courseId
+              ? `/api/diagnosis/courses/photo?schoolId=${encodeURIComponent(
+                  schoolId,
+                )}&id=${encodeURIComponent(courseId)}`
               : null;
+
+            // 互換：旧ジャンル画像（selectedCourse が無い場合だけ）
+            const genreId = result.selectedGenre?.id;
+            const genreImgSrc =
+              !courseImgSrc && genreId
+                ? `/api/diagnosis/genres/image?id=${encodeURIComponent(
+                    genreId,
+                  )}&schoolId=${encodeURIComponent(schoolId)}`
+                : null;
+
+            const titleText = [genreLabel, className].filter(Boolean).join(" ");
 
             return (
               <div className="mt-2">
                 <div className="flex flex-wrap items-center gap-2">
                   <div className="text-lg font-bold">
-                    {genreLabel}&nbsp;{className}
+                    {titleText || className}
                   </div>
                 </div>
 
-                {genreImgSrc && (
+                {/* ✅ コース画像 → なければ旧ジャンル画像 */}
+                {(courseImgSrc || genreImgSrc) && (
                   <div className="mt-3">
                     <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
-                        src={genreImgSrc}
-                        alt={
-                          genreLabel ? `${genreLabel}の画像` : "ジャンル画像"
-                        }
+                        src={courseImgSrc || genreImgSrc || ""}
+                        alt={titleText ? `${titleText}の画像` : "診断結果画像"}
                         className="h-40 w-full object-cover"
                         loading="lazy"
                       />
@@ -781,7 +801,10 @@ export default function DiagnosisEmbedClient({
               campusSlug:
                 result.campus?.slug ?? result.selectedCampus?.slug ?? "",
               genre: result.selectedGenre?.label ?? "",
-              genreSlug: result.selectedGenre?.slug ?? "",
+              genreSlug:
+                result.selectedGenre?.answerTag ??
+                result.selectedGenre?.slug ??
+                "",
               score: String(result.score),
               pattern: result.pattern,
             }}

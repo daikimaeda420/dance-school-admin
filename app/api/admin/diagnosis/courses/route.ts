@@ -19,8 +19,8 @@ function normalizeStringArray(v: any): string[] {
       v
         .filter((x) => typeof x === "string")
         .map((s) => s.trim())
-        .filter(Boolean)
-    )
+        .filter(Boolean),
+    ),
   );
 }
 
@@ -37,16 +37,52 @@ export async function GET(req: NextRequest) {
   if (!schoolId) {
     return NextResponse.json(
       { message: "schoolId が必要です" },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
   const courses = await prisma.diagnosisCourse.findMany({
     where: { schoolId },
     orderBy: { sortOrder: "asc" },
+    // ✅ Bytesは返さない（重い）。存在判定だけできればOK
+    select: {
+      id: true,
+      schoolId: true,
+      label: true,
+      slug: true,
+      sortOrder: true,
+      isActive: true,
+      createdAt: true,
+      updatedAt: true,
+      q2AnswerTags: true,
+
+      // ✅ 追加
+      answerTag: true,
+      photoMime: true,
+      // photoData は select しない
+    },
   });
 
-  return NextResponse.json(courses);
+  // ✅ UI用の付加情報（hasImage / photoUrl）
+  const withMeta = courses.map((c) => {
+    const hasImage = Boolean(c.photoMime); // photoData未selectなのでmimeで代用（※より厳密にしたいなら後述）
+    const photoUrl = hasImage
+      ? `/api/diagnosis/courses/photo?schoolId=${encodeURIComponent(
+          schoolId,
+        )}&id=${encodeURIComponent(c.id)}`
+      : null;
+
+    // photoMime はUIに不要なので落として返す
+    const { photoMime, ...rest } = c as any;
+
+    return {
+      ...rest,
+      hasImage,
+      photoUrl,
+    };
+  });
+
+  return NextResponse.json(withMeta);
 }
 
 // POST /api/admin/diagnosis/courses
@@ -69,14 +105,20 @@ export async function POST(req: NextRequest) {
   ) {
     return NextResponse.json(
       { message: "schoolId / label / slug は必須です" },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
   const sortOrder = typeof body.sortOrder === "number" ? body.sortOrder : 0;
 
-  // ✅ 追加：Q2タグを正規化して保存
+  // ✅ Q2タグを正規化して保存
   const q2AnswerTags = normalizeStringArray(body.q2AnswerTags);
+
+  // ✅ 追加：answerTag（Q4紐づけ）
+  const answerTag =
+    typeof body.answerTag === "string" && body.answerTag.trim()
+      ? body.answerTag.trim()
+      : null;
 
   const course = await prisma.diagnosisCourse.create({
     data: {
@@ -85,7 +127,8 @@ export async function POST(req: NextRequest) {
       slug: body.slug.trim(),
       sortOrder,
       isActive: body.isActive !== false,
-      q2AnswerTags, // ←これが無かった
+      q2AnswerTags,
+      answerTag, // ✅ 追加
     },
   });
 

@@ -92,13 +92,27 @@ model DiagnosisCourse {
   isActive     Boolean           @default(true)
   createdAt    DateTime          @default(now())
   updatedAt    DateTime          @updatedAt
+
+  // 既存：Q2の複数回答タグ
   q2AnswerTags String[]          @default([])
+
+  // ✅ 追加：Q4の固定回答タグ（ジャンル管理から移動）
+  // 例: "Genre_KPOP" / "Genre_HIPH" など（configのQ4 optionが返すID/タグに合わせる）
+  answerTag    String?
+
+  // ✅ 追加：診断結果に表示する画像（任意）
+  // （Genreと同方式で持つ）
+  photoMime    String?
+  photoData    Bytes?
+
   results      DiagnosisResult[] @relation("ResultCourses")
 
   @@unique([schoolId, slug])
   @@index([schoolId, sortOrder])
   @@index([schoolId, isActive])
+  @@index([schoolId, answerTag])
 }
+
 
 model DiagnosisLifestyle {
   id        String   @id @default(cuid())

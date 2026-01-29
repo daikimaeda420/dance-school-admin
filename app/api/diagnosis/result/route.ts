@@ -24,7 +24,7 @@ function getConcernKey(answers: Record<string, string>): ConcernMessageKey {
   const q6 = QUESTIONS.find((q) => q.id === "Q6");
   const optionId = answers["Q6"];
   const opt = q6?.options.find((o) => o.id === optionId);
-  const key = opt?.messageKey ?? "Msg_Consult";
+  const key = (opt as any)?.messageKey ?? "Msg_Consult";
   return key as ConcernMessageKey;
 }
 
@@ -44,7 +44,7 @@ function getOptionTagFromAnswers(
 }
 
 /**
- * Q4 の選択肢から Genre の answerTag を取り出す
+ * Q4 の選択肢から genreTag を取り出す（DBのDiagnosisGenreはもう引かない）
  * 例: Genre_KPOP / Genre_HIPHOP ...
  */
 function getGenreTagFromAnswers(answers: Record<string, string>): string {
@@ -52,6 +52,21 @@ function getGenreTagFromAnswers(answers: Record<string, string>): string {
   const optionId = answers["Q4"];
   const opt = q4?.options.find((o) => o.id === optionId);
   return (opt as any)?.tag ?? "Genre_All";
+}
+
+function getQ4Meta(answers: Record<string, string>): {
+  id: string;
+  label: string | null;
+  tag: string;
+} {
+  const q4 = QUESTIONS.find((q) => q.id === "Q4");
+  const optionId = answers["Q4"];
+  const opt: any = q4?.options.find((o: any) => o.id === optionId);
+  return {
+    id: String(optionId ?? ""),
+    label: typeof opt?.label === "string" ? opt.label : null,
+    tag: typeof opt?.tag === "string" ? opt.tag : "Genre_All",
+  };
 }
 
 function norm(s: unknown): string {
@@ -67,7 +82,7 @@ function getQ2ValueForCourse(answers: Record<string, string>): string {
 
 type ResultConditions = {
   campus?: string[];
-  genre?: string[];
+  genre?: string[]; // ✅ tag（Genre_KPOPなど）で判定
   q2Tags?: string[];
   courseSlug?: string[];
 };
@@ -98,13 +113,15 @@ function matchesConditions(
   cond: ResultConditions,
   ctx: {
     campusSlug: string;
-    genreSlug: string | null;
+    genreTag: string; // ✅ tag
     q2ForCourse: string;
     recommendedCourseSlug: string | null;
   },
 ): boolean {
   if (!includesOrEmpty(cond.campus, ctx.campusSlug)) return false;
-  if (!includesOrEmpty(cond.genre, ctx.genreSlug)) return false;
+
+  // ✅ cond.genre は tag（Genre_KPOP等）で判定
+  if (!includesOrEmpty(cond.genre, ctx.genreTag)) return false;
 
   if (cond.q2Tags && cond.q2Tags.length > 0) {
     if (!cond.q2Tags.includes(ctx.q2ForCourse)) return false;
@@ -132,17 +149,6 @@ async function instructorIdsByCampus(params: {
 }): Promise<string[]> {
   const rows = await prisma.diagnosisInstructorCampus.findMany({
     where: { schoolId: params.schoolId, campusId: params.campusId },
-    select: { instructorId: true },
-  });
-  return rows.map((r) => r.instructorId);
-}
-
-async function instructorIdsByGenre(params: {
-  schoolId: string;
-  genreId: string;
-}): Promise<string[]> {
-  const rows = await prisma.diagnosisInstructorGenre.findMany({
-    where: { schoolId: params.schoolId, genreId: params.genreId },
     select: { instructorId: true },
   });
   return rows.map((r) => r.instructorId);
@@ -197,7 +203,7 @@ export async function POST(req: NextRequest) {
         address: true,
         access: true,
         googleMapUrl: true,
-        googleMapEmbedUrl: true, // ★追加
+        googleMapEmbedUrl: true,
       },
     });
 
@@ -214,35 +220,10 @@ export async function POST(req: NextRequest) {
     }
 
     // =========================================================
-    // ✅ Q4は「answerTag で DiagnosisGenre を引く」
+    // ✅ Q4: DBのDiagnosisGenreはもう使わない
     // =========================================================
-    const genreTag = getGenreTagFromAnswers(answers);
-
-    // Genre_All（未指定/迷っている）は紐づけなし扱い
-    const genre =
-      !genreTag || genreTag === "Genre_All"
-        ? null
-        : await prisma.diagnosisGenre.findFirst({
-            where: {
-              schoolId,
-              isActive: true,
-              answerTag: genreTag,
-            },
-            select: { id: true, label: true, slug: true, answerTag: true },
-          });
-
-    // tag が Genre_All 以外なのに見つからない場合は登録漏れ
-    if (genreTag !== "Genre_All" && !genre) {
-      return NextResponse.json(
-        {
-          error: "NO_GENRE",
-          message:
-            "選択したジャンルが見つかりません（ジャンル管理の answerTag 紐づけ / 有効化を確認してください）。",
-          debug: { genreTag },
-        },
-        { status: 400 },
-      );
-    }
+    const q4Meta = getQ4Meta(answers);
+    const genreTag = q4Meta.tag; // Genre_KPOP 等（Genre_All含む）
 
     // Q2に紐づく「おすすめコース」
     const q2ForCourse = getQ2ValueForCourse(answers);
@@ -254,7 +235,14 @@ export async function POST(req: NextRequest) {
         q2AnswerTags: { has: q2ForCourse },
       },
       orderBy: { sortOrder: "asc" },
-      select: { id: true, label: true, slug: true },
+      // ✅ Bytes(photoData)は取らない（重い & URLで配信する）
+      select: {
+        id: true,
+        label: true,
+        slug: true,
+        answerTag: true,
+        photoMime: true, // hasImage判定用（厳密性が必要なら別設計）
+      },
     });
 
     // 診断結果決定
@@ -275,7 +263,7 @@ export async function POST(req: NextRequest) {
 
     const ctx = {
       campusSlug: campus.slug,
-      genreSlug: genre?.slug ?? null,
+      genreTag,
       q2ForCourse,
       recommendedCourseSlug: recommendedCourse?.slug ?? null,
     };
@@ -303,7 +291,7 @@ export async function POST(req: NextRequest) {
     }
 
     // ==========================
-    // ✅ 講師取得（段階的に緩める）※中間テーブルで絞り込む
+    // ✅ 講師取得（新: campus+course → campus）
     // ==========================
     const campusInstructorIds = await instructorIdsByCampus({
       schoolId,
@@ -321,55 +309,10 @@ export async function POST(req: NextRequest) {
     } as const;
 
     let instructors: any[] = [];
-    let instructorMatchedBy:
-      | "campus+genre+course"
-      | "campus+genre"
-      | "campus+course"
-      | "campus"
-      | "none" = "none";
+    let instructorMatchedBy: "campus+course" | "campus" | "none" = "none";
 
-    // ① campus + genre + course
-    if (genre?.id && recommendedCourse?.id) {
-      const [genreIds, courseIds] = await Promise.all([
-        instructorIdsByGenre({ schoolId, genreId: genre.id }),
-        instructorIdsByCourse({ schoolId, courseId: recommendedCourse.id }),
-      ]);
-
-      const ids = intersectIds(
-        intersectIds(campusInstructorIds, genreIds),
-        courseIds,
-      );
-
-      if (ids.length > 0) {
-        instructors = await prisma.diagnosisInstructor.findMany({
-          where: { schoolId, isActive: true, id: { in: ids } },
-          orderBy: { sortOrder: "asc" },
-          select: selectInstructor,
-        });
-        if (instructors.length > 0) instructorMatchedBy = "campus+genre+course";
-      }
-    }
-
-    // ② campus + genre
-    if (instructors.length === 0 && genre?.id) {
-      const genreIds = await instructorIdsByGenre({
-        schoolId,
-        genreId: genre.id,
-      });
-      const ids = intersectIds(campusInstructorIds, genreIds);
-
-      if (ids.length > 0) {
-        instructors = await prisma.diagnosisInstructor.findMany({
-          where: { schoolId, isActive: true, id: { in: ids } },
-          orderBy: { sortOrder: "asc" },
-          select: selectInstructor,
-        });
-        if (instructors.length > 0) instructorMatchedBy = "campus+genre";
-      }
-    }
-
-    // ③ campus + course
-    if (instructors.length === 0 && recommendedCourse?.id) {
+    // ① campus + course
+    if (recommendedCourse?.id) {
       const courseIds = await instructorIdsByCourse({
         schoolId,
         courseId: recommendedCourse.id,
@@ -386,7 +329,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // ④ campus only
+    // ② campus only
     if (instructors.length === 0) {
       if (campusInstructorIds.length > 0) {
         instructors = await prisma.diagnosisInstructor.findMany({
@@ -401,14 +344,13 @@ export async function POST(req: NextRequest) {
     if (instructors.length === 0) instructorMatchedBy = "none";
 
     // ==========================
-    // ✅ resultCopy（concern は必ず文字列を返す）
+    // ✅ resultCopy（concern は必ず文字列）
     // ==========================
     const levelTag = getOptionTagFromAnswers("Q2", answers);
     const ageTag = getOptionTagFromAnswers("Q3", answers);
     const teacherTag = getOptionTagFromAnswers("Q5", answers);
     const concernKey = getConcernKey(answers);
 
-    // ✅ concern は「必ず文字列」になるようにフォールバックを重ねる
     const concernText =
       CONCERN_RESULT_COPY[concernKey] ??
       concernMessages[concernKey] ??
@@ -423,8 +365,16 @@ export async function POST(req: NextRequest) {
       concern: concernText || null,
     };
 
-    // ✅ フロント互換：concernMessage も同じ文字列を返しておく（どっちで描画しても出る）
     const concernMessage = concernText || "";
+
+    // ✅ コース画像URL（photoMimeがあれば表示対象）
+    const courseHasPhoto = Boolean(recommendedCourse?.photoMime);
+    const coursePhotoUrl =
+      recommendedCourse?.id && courseHasPhoto
+        ? `/api/diagnosis/courses/photo?schoolId=${encodeURIComponent(
+            schoolId,
+          )}&id=${encodeURIComponent(recommendedCourse.id)}`
+        : null;
 
     return NextResponse.json({
       pattern: "A",
@@ -435,10 +385,22 @@ export async function POST(req: NextRequest) {
       bestMatch: {
         classId: best.id,
         className: recommendedCourse?.label ?? best.title,
-        genres: genre ? [genre.label] : [],
+        // ✅ 互換：genres は Q4ラベルを詰める（空でもOK）
+        genres: q4Meta.label ? [q4Meta.label] : [],
         levels: [],
         targets: [],
       },
+
+      // ✅ 新：Embedが参照する（画像含む）
+      selectedCourse: recommendedCourse
+        ? {
+            id: recommendedCourse.id,
+            label: recommendedCourse.label,
+            slug: recommendedCourse.slug,
+            answerTag: recommendedCourse.answerTag ?? null,
+            photoUrl: coursePhotoUrl,
+          }
+        : null,
 
       teacher: {
         id: undefined,
@@ -487,23 +449,21 @@ export async function POST(req: NextRequest) {
         address: campus.address ?? null,
         access: campus.access ?? null,
         googleMapUrl: campus.googleMapUrl ?? null,
-        googleMapEmbedUrl: campus.googleMapEmbedUrl ?? null, // ★追加
+        googleMapEmbedUrl: campus.googleMapEmbedUrl ?? null,
       },
 
-      selectedGenre: genre
-        ? {
-            id: genre.id,
-            label: genre.label,
-            slug: genre.slug,
-            answerTag: genre.answerTag,
-          }
-        : null,
+      // ✅ 旧selectedGenre(DB)は廃止。Embed互換：answerTagフィールド名で返す
+      selectedGenre: {
+        id: q4Meta.id,
+        label: q4Meta.label,
+        slug: q4Meta.tag, // 互換のためslug相当としてtagを入れておく
+        answerTag: q4Meta.tag,
+      },
 
       debug: {
         ctx,
         campusId: campus.id,
         genreTag,
-        genreId: genre?.id ?? null,
         recommendedCourseId: recommendedCourse?.id ?? null,
         instructorMatchedBy,
         instructorsCount: instructors.length,
@@ -513,7 +473,6 @@ export async function POST(req: NextRequest) {
           teacherTag,
           concernKey,
         },
-        // ✅ 追加：確認用（必要なら消してOK）
         concernResolved: {
           concernKey,
           hasConcernCopy: Boolean(CONCERN_RESULT_COPY[concernKey]),

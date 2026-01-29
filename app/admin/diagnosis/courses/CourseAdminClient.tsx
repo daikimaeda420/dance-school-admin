@@ -21,14 +21,24 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
+// ✅ Q4 options を拾う
+import { QUESTIONS } from "@/lib/diagnosis/config";
+
 type Course = {
-  id: string;
+  id: string; // ✅ DBのid(cuid) で運用（admin API側）
   schoolId: string;
   label: string;
   slug: string;
   sortOrder: number;
   isActive: boolean;
   q2AnswerTags: string[];
+
+  // ✅ 追加：Q4紐づけ
+  answerTag: string | null;
+
+  // ✅ 追加：画像（診断結果用）
+  hasImage?: boolean;
+  photoUrl?: string | null;
 };
 
 type Props = { schoolId: string };
@@ -58,7 +68,7 @@ const Q2_OPTIONS = [
 
 function uniqStrings(xs: string[]) {
   return Array.from(
-    new Set(xs.map((s) => String(s ?? "").trim()).filter(Boolean))
+    new Set(xs.map((s) => String(s ?? "").trim()).filter(Boolean)),
   );
 }
 
@@ -186,6 +196,12 @@ const inputCls =
   "placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 " +
   "disabled:opacity-50 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100 dark:placeholder:text-gray-500";
 
+const selectCls =
+  inputCls +
+  " appearance-none pr-7 bg-[length:10px_10px] bg-no-repeat bg-[right_8px_center] " +
+  "bg-[image:linear-gradient(45deg,transparent_50%,#888_50%),linear-gradient(135deg,#888_50%,transparent_50%)] " +
+  "bg-[position:right_14px_center,right_9px_center] dark:bg-[image:linear-gradient(45deg,transparent_50%,#aaa_50%),linear-gradient(135deg,#aaa_50%,transparent_50%)]";
+
 export default function CourseAdminClient({ schoolId }: Props) {
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(false);
@@ -199,17 +215,41 @@ export default function CourseAdminClient({ schoolId }: Props) {
   const [newSlug, setNewSlug] = useState("");
   const [newSortOrder, setNewSortOrder] = useState<number>(0); // UIは出さない
   const [newIsActive, setNewIsActive] = useState(true);
-
   const [newQ2Tags, setNewQ2Tags] = useState<string[]>([]);
+
+  // ✅ 追加
+  const [newAnswerTag, setNewAnswerTag] = useState<string>(""); // "" = 未設定
+  const [newImageFile, setNewImageFile] = useState<File | null>(null);
+
+  // ✅ 行ごとの画像アップロード用
+  const [pendingFiles, setPendingFiles] = useState<Record<string, File | null>>(
+    {},
+  );
 
   const disabled = !schoolId;
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
   );
 
   const courseIds = useMemo(() => courses.map((c) => c.id), [courses]);
+
+  // ✅ Q4 options: QUESTIONS から取得
+  const q4Options = useMemo(() => {
+    const q4 = QUESTIONS.find((q: any) => q.id === "Q4") as any;
+    const opts = Array.isArray(q4?.options) ? q4.options : [];
+    const mapped = opts
+      .map((o: any) => ({
+        id: String(o?.id ?? ""),
+        label: String(o?.label ?? o?.value ?? o?.id ?? ""),
+        tag: typeof o?.tag === "string" ? String(o.tag) : "",
+      }))
+      .filter((x: any) => x.tag && x.label);
+    return mapped;
+  }, []);
 
   const fetchCourses = async () => {
     if (!schoolId) return;
@@ -218,7 +258,7 @@ export default function CourseAdminClient({ schoolId }: Props) {
     try {
       const res = await fetch(
         `/api/admin/diagnosis/courses?schoolId=${encodeURIComponent(schoolId)}`,
-        { cache: "no-store" }
+        { cache: "no-store" },
       );
       if (!res.ok) throw new Error("コース一覧の取得に失敗しました。");
 
@@ -234,7 +274,10 @@ export default function CourseAdminClient({ schoolId }: Props) {
           q2AnswerTags: Array.isArray(d.q2AnswerTags)
             ? uniqStrings(d.q2AnswerTags)
             : [],
-        })
+          answerTag: typeof d.answerTag === "string" ? d.answerTag : null,
+          hasImage: Boolean(d.hasImage ?? false),
+          photoUrl: typeof d.photoUrl === "string" ? d.photoUrl : null,
+        }),
       );
 
       normalized.sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
@@ -251,6 +294,24 @@ export default function CourseAdminClient({ schoolId }: Props) {
     void fetchCourses();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [schoolId]);
+
+  // ✅ 画像アップロード（公開GET / 認証POST）
+  const uploadCoursePhoto = async (courseId: string, file: File) => {
+    const fd = new FormData();
+    fd.append("id", courseId);
+    fd.append("schoolId", schoolId);
+    fd.append("file", file);
+
+    const res = await fetch("/api/diagnosis/courses/photo", {
+      method: "POST",
+      body: fd,
+    });
+
+    if (!res.ok) {
+      const data = await res.json().catch(() => null);
+      throw new Error(data?.message ?? "画像アップロードに失敗しました。");
+    }
+  };
 
   const handleCreate = async () => {
     if (!schoolId) return;
@@ -272,11 +333,23 @@ export default function CourseAdminClient({ schoolId }: Props) {
           sortOrder: newSortOrder,
           isActive: newIsActive,
           q2AnswerTags: uniqStrings(newQ2Tags),
+
+          // ✅ 追加
+          answerTag: newAnswerTag ? newAnswerTag : null,
         }),
       });
+
       if (!res.ok) {
         const data = await res.json().catch(() => null);
         throw new Error(data?.message ?? "作成に失敗しました。");
+      }
+
+      // ✅ 作成後に画像があればアップロード（courseIdが必要）
+      const created = await res.json().catch(() => null);
+      const createdId = String(created?.id ?? "");
+
+      if (createdId && newImageFile) {
+        await uploadCoursePhoto(createdId, newImageFile);
       }
 
       setNewLabel("");
@@ -284,6 +357,8 @@ export default function CourseAdminClient({ schoolId }: Props) {
       setNewSortOrder(0);
       setNewIsActive(true);
       setNewQ2Tags([]);
+      setNewAnswerTag("");
+      setNewImageFile(null);
 
       await fetchCourses();
     } catch (e: any) {
@@ -297,9 +372,9 @@ export default function CourseAdminClient({ schoolId }: Props) {
     id: string,
     field: keyof Pick<
       Course,
-      "label" | "slug" | "sortOrder" | "isActive" | "q2AnswerTags"
+      "label" | "slug" | "sortOrder" | "isActive" | "q2AnswerTags" | "answerTag"
     >,
-    value: string | number | boolean | string[]
+    value: string | number | boolean | string[] | null,
   ) => {
     setSaving(true);
     setSavingRowId(id);
@@ -314,6 +389,25 @@ export default function CourseAdminClient({ schoolId }: Props) {
         const data = await res.json().catch(() => null);
         throw new Error(data?.message ?? "更新に失敗しました。");
       }
+      await fetchCourses();
+    } catch (e: any) {
+      setError(e?.message ?? "通信エラーが発生しました。");
+    } finally {
+      setSaving(false);
+      setSavingRowId(null);
+    }
+  };
+
+  const handleUploadRowPhoto = async (id: string) => {
+    const file = pendingFiles[id];
+    if (!file) return;
+
+    setSaving(true);
+    setSavingRowId(id);
+    setError(null);
+    try {
+      await uploadCoursePhoto(id, file);
+      setPendingFiles((prev) => ({ ...prev, [id]: null }));
       await fetchCourses();
     } catch (e: any) {
       setError(e?.message ?? "通信エラーが発生しました。");
@@ -378,8 +472,8 @@ export default function CourseAdminClient({ schoolId }: Props) {
               const data = await r.json().catch(() => null);
               throw new Error(data?.message ?? "並び順の保存に失敗しました。");
             }
-          })
-        )
+          }),
+        ),
       );
       await fetchCourses();
     } catch (e: any) {
@@ -443,12 +537,53 @@ export default function CourseAdminClient({ schoolId }: Props) {
           </label>
         </div>
 
+        {/* ✅ Q4紐づけ */}
+        <div className="mt-2 grid gap-2 md:grid-cols-3">
+          <div className="md:col-span-2">
+            <div className="mb-1 text-[11px] font-semibold text-gray-600 dark:text-gray-300">
+              Q4紐づけ（answerTag）
+            </div>
+            <select
+              className={selectCls}
+              value={newAnswerTag}
+              onChange={(e) => setNewAnswerTag(e.target.value)}
+              disabled={disabled || saving || savingSort}
+            >
+              <option value="">未設定（紐づけなし）</option>
+              {q4Options.map((o) => (
+                <option key={o.id} value={o.tag}>
+                  {o.label}（{o.tag}）
+                </option>
+              ))}
+            </select>
+            <div className="mt-1 text-[11px] text-gray-500 dark:text-gray-400">
+              ※ Q4の選択肢（tag）とコースを紐づけます
+            </div>
+          </div>
+
+          {/* ✅ 画像（任意） */}
+          <div className="md:col-span-1">
+            <div className="mb-1 text-[11px] font-semibold text-gray-600 dark:text-gray-300">
+              診断結果画像（任意）
+            </div>
+            <input
+              className={inputCls}
+              type="file"
+              accept="image/*"
+              onChange={(e) => setNewImageFile(e.target.files?.[0] ?? null)}
+              disabled={disabled || saving || savingSort}
+            />
+            <div className="mt-1 text-[11px] text-gray-500 dark:text-gray-400">
+              ※ 3MBまで
+            </div>
+          </div>
+        </div>
+
         <div className="mt-2">
           <div className="mb-1 text-[11px] font-semibold text-gray-600 dark:text-gray-300">
             Q2 対応（経験・運動レベル）※複数OK
           </div>
 
-          {/* ✅ ここがチェックボックスのように分かりやすいUI */}
           <Q2ToggleChips
             selected={newQ2Tags}
             setSelected={setNewQ2Tags}
@@ -517,19 +652,21 @@ export default function CourseAdminClient({ schoolId }: Props) {
                           const nextValue =
                             typeof v === "function"
                               ? (v as (prev: string[]) => string[])(
-                                  p.q2AnswerTags ?? []
+                                  p.q2AnswerTags ?? [],
                                 )
                               : v;
                           return {
                             ...p,
                             q2AnswerTags: uniqStrings(nextValue ?? []),
                           };
-                        })
+                        }),
                       );
                     };
 
                     const rowSaving = savingRowId === c.id;
                     const dndDisabled = saving || savingSort || rowSaving;
+
+                    const pending = pendingFiles[c.id] ?? null;
 
                     return (
                       <SortableRow
@@ -550,7 +687,7 @@ export default function CourseAdminClient({ schoolId }: Props) {
                         )}
                       >
                         <div className="grid gap-2 md:grid-cols-12">
-                          <div className="md:col-span-4">
+                          <div className="md:col-span-3">
                             <div className="mb-1 text-[11px] font-semibold text-gray-600 dark:text-gray-300">
                               コース名
                             </div>
@@ -562,8 +699,8 @@ export default function CourseAdminClient({ schoolId }: Props) {
                                   prev.map((p) =>
                                     p.id === c.id
                                       ? { ...p, label: e.target.value }
-                                      : p
-                                  )
+                                      : p,
+                                  ),
                                 )
                               }
                               onBlur={(e) =>
@@ -573,7 +710,7 @@ export default function CourseAdminClient({ schoolId }: Props) {
                             />
                           </div>
 
-                          <div className="md:col-span-3">
+                          <div className="md:col-span-2">
                             <div className="mb-1 text-[11px] font-semibold text-gray-600 dark:text-gray-300">
                               slug
                             </div>
@@ -585,8 +722,8 @@ export default function CourseAdminClient({ schoolId }: Props) {
                                   prev.map((p) =>
                                     p.id === c.id
                                       ? { ...p, slug: e.target.value }
-                                      : p
-                                  )
+                                      : p,
+                                  ),
                                 )
                               }
                               onBlur={(e) =>
@@ -596,12 +733,49 @@ export default function CourseAdminClient({ schoolId }: Props) {
                             />
                           </div>
 
+                          {/* ✅ answerTag */}
                           <div className="md:col-span-3">
+                            <div className="mb-1 text-[11px] font-semibold text-gray-600 dark:text-gray-300">
+                              Q4紐づけ（answerTag）
+                            </div>
+                            <select
+                              className={selectCls}
+                              value={c.answerTag ?? ""}
+                              onChange={(e) => {
+                                const v = e.target.value;
+                                setCourses((prev) =>
+                                  prev.map((p) =>
+                                    p.id === c.id
+                                      ? { ...p, answerTag: v ? v : null }
+                                      : p,
+                                  ),
+                                );
+                              }}
+                              onBlur={() =>
+                                handleUpdateField(
+                                  c.id,
+                                  "answerTag",
+                                  c.answerTag ?? null,
+                                )
+                              }
+                              disabled={saving || savingSort}
+                            >
+                              <option value="">未設定（紐づけなし）</option>
+                              {q4Options.map((o) => (
+                                <option key={o.id} value={o.tag}>
+                                  {o.label}（{o.tag}）
+                                </option>
+                              ))}
+                            </select>
+                            <div className="mt-1 text-[11px] text-gray-500 dark:text-gray-400">
+                              ※ Q4のtagと一致させてください
+                            </div>
+                          </div>
+
+                          <div className="md:col-span-2">
                             <div className="mb-1 text-[11px] font-semibold text-gray-600 dark:text-gray-300">
                               Q2対応（複数）
                             </div>
-
-                            {/* ✅ ここをチップ型ON/OFFに */}
                             <Q2ToggleChips
                               selected={c.q2AnswerTags ?? []}
                               setSelected={setRowSelected}
@@ -610,49 +784,113 @@ export default function CourseAdminClient({ schoolId }: Props) {
                             />
                           </div>
 
+                          {/* ✅ 画像 */}
                           <div className="md:col-span-2">
                             <div className="mb-1 text-[11px] font-semibold text-gray-600 dark:text-gray-300">
-                              操作
+                              診断結果画像
                             </div>
 
-                            <label className="mb-2 flex items-center gap-2 rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-xs text-gray-700 dark:border-gray-800 dark:bg-gray-950 dark:text-gray-200">
-                              <input
-                                type="checkbox"
-                                checked={c.isActive}
-                                onChange={(e) =>
-                                  handleUpdateField(
-                                    c.id,
-                                    "isActive",
-                                    e.target.checked
-                                  )
-                                }
-                                disabled={saving || savingSort}
-                              />
-                              有効
-                            </label>
+                            <div className="flex items-start gap-2">
+                              <div className="h-12 w-12 overflow-hidden rounded-md border border-gray-200 bg-gray-50 dark:border-gray-800 dark:bg-gray-950">
+                                {c.photoUrl ? (
+                                  // eslint-disable-next-line @next/next/no-img-element
+                                  <img
+                                    src={c.photoUrl}
+                                    alt=""
+                                    className="h-full w-full object-cover"
+                                  />
+                                ) : (
+                                  <div className="flex h-full w-full items-center justify-center text-[10px] text-gray-400">
+                                    no
+                                  </div>
+                                )}
+                              </div>
 
-                            <div className="flex items-center gap-2">
-                              <button
-                                onClick={() =>
-                                  handleUpdateField(
-                                    c.id,
-                                    "q2AnswerTags",
-                                    uniqStrings(c.q2AnswerTags ?? [])
-                                  )
-                                }
-                                disabled={saving || savingSort || rowSaving}
-                                className="rounded-full border border-gray-300 bg-white px-3 py-1 text-[11px] font-semibold text-gray-800 hover:bg-gray-50 disabled:opacity-40 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100 dark:hover:bg-gray-900"
-                              >
-                                {rowSaving ? "保存中..." : "保存"}
-                              </button>
+                              <div className="min-w-0 flex-1">
+                                <input
+                                  className={inputCls}
+                                  type="file"
+                                  accept="image/*"
+                                  onChange={(e) =>
+                                    setPendingFiles((prev) => ({
+                                      ...prev,
+                                      [c.id]: e.target.files?.[0] ?? null,
+                                    }))
+                                  }
+                                  disabled={saving || savingSort || rowSaving}
+                                />
+                                <div className="mt-1 flex items-center gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleUploadRowPhoto(c.id)}
+                                    disabled={
+                                      saving ||
+                                      savingSort ||
+                                      rowSaving ||
+                                      !pending
+                                    }
+                                    className="rounded-full border border-gray-300 bg-white px-3 py-1 text-[11px] font-semibold text-gray-800 hover:bg-gray-50 disabled:opacity-40 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100 dark:hover:bg-gray-900"
+                                  >
+                                    {rowSaving
+                                      ? "保存中..."
+                                      : "画像アップロード"}
+                                  </button>
 
-                              <button
-                                onClick={() => handleDelete(c.id)}
-                                className="text-[11px] text-red-600 underline hover:text-red-700 disabled:opacity-40 dark:text-red-300 dark:hover:text-red-200"
-                                disabled={saving || savingSort || rowSaving}
-                              >
-                                削除
-                              </button>
+                                  {pending && (
+                                    <span className="truncate text-[10px] text-gray-500 dark:text-gray-400">
+                                      選択中: {pending.name}
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="mt-1 text-[10px] text-gray-500 dark:text-gray-400">
+                                  ※ 3MBまで / 差し替えは再アップロード
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* 操作 */}
+                          <div className="md:col-span-12">
+                            <div className="mt-1 flex flex-wrap items-center justify-between gap-2">
+                              <label className="flex items-center gap-2 rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-xs text-gray-700 dark:border-gray-800 dark:bg-gray-950 dark:text-gray-200">
+                                <input
+                                  type="checkbox"
+                                  checked={c.isActive}
+                                  onChange={(e) =>
+                                    handleUpdateField(
+                                      c.id,
+                                      "isActive",
+                                      e.target.checked,
+                                    )
+                                  }
+                                  disabled={saving || savingSort}
+                                />
+                                有効
+                              </label>
+
+                              <div className="flex items-center gap-2">
+                                <button
+                                  onClick={() =>
+                                    handleUpdateField(
+                                      c.id,
+                                      "q2AnswerTags",
+                                      uniqStrings(c.q2AnswerTags ?? []),
+                                    )
+                                  }
+                                  disabled={saving || savingSort || rowSaving}
+                                  className="rounded-full border border-gray-300 bg-white px-3 py-1 text-[11px] font-semibold text-gray-800 hover:bg-gray-50 disabled:opacity-40 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100 dark:hover:bg-gray-900"
+                                >
+                                  {rowSaving ? "保存中..." : "保存"}
+                                </button>
+
+                                <button
+                                  onClick={() => handleDelete(c.id)}
+                                  className="text-[11px] text-red-600 underline hover:text-red-700 disabled:opacity-40 dark:text-red-300 dark:hover:text-red-200"
+                                  disabled={saving || savingSort || rowSaving}
+                                >
+                                  削除
+                                </button>
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -665,7 +903,7 @@ export default function CourseAdminClient({ schoolId }: Props) {
 
             <div className="mt-2 text-[11px] text-gray-500 dark:text-gray-400">
               ※ 並び替えは「☰」をドラッグ → ドロップで自動保存 /
-              Q2はチップでON/OFF → 「保存」
+              Q2はチップでON/OFF → 「保存」 / 画像は「画像アップロード」
             </div>
           </>
         )}

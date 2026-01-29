@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
   if (!schoolId) {
     return NextResponse.json(
       { message: "schoolId（または school）パラメータが必要です" },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
@@ -25,17 +25,48 @@ export async function GET(req: NextRequest) {
       label: true,
       sortOrder: true,
       isActive: true,
-      q2AnswerTags: true, // ✅ 追加
+      q2AnswerTags: true,
+
+      // ✅ 追加：Q4紐づけ
+      answerTag: true,
+
+      // ✅ 追加：画像（判定にだけ使う：Bytesは返さない）
+      photoMime: true,
+      photoData: true,
     },
   });
 
   // 互換維持：id は slug を返す（既存UIを壊さない）
-  const options = courses.map((c) => ({
-    id: c.slug, // ← ここ重要：今まで通り
-    dbId: c.id, // ✅ 新規追加：必要ならDB操作に使える
-    label: c.label,
-    q2AnswerTags: c.q2AnswerTags ?? [], // ✅ 追加
-  }));
+  const options = courses.map((c) => {
+    const hasImage =
+      Boolean(c.photoMime) &&
+      Boolean(c.photoData) &&
+      (c.photoData as any)?.length > 0;
+
+    const photoUrl = hasImage
+      ? `/api/diagnosis/courses/photo?schoolId=${encodeURIComponent(
+          schoolId,
+        )}&id=${encodeURIComponent(c.id)}`
+      : null;
+
+    return {
+      id: c.slug, // ← ここ重要：今まで通り
+      dbId: c.id, // ✅ DB操作用
+      slug: c.slug,
+      label: c.label,
+      sortOrder: c.sortOrder,
+      isActive: c.isActive,
+
+      q2AnswerTags: c.q2AnswerTags ?? [],
+
+      // ✅ 追加
+      answerTag: c.answerTag ?? null,
+
+      // ✅ 追加
+      hasImage,
+      photoUrl,
+    };
+  });
 
   return NextResponse.json(options);
 }
