@@ -24,6 +24,13 @@ function normalizeStringArray(v: any): string[] {
   );
 }
 
+function normalizeNullableText(v: unknown): string | null {
+  if (v === null || v === undefined) return null;
+  if (typeof v !== "string") return null;
+  const t = v.trim();
+  return t ? t : null;
+}
+
 // GET /api/admin/diagnosis/courses?schoolId=xxx
 export async function GET(req: NextRequest) {
   const session = await ensureLoggedIn();
@@ -56,8 +63,12 @@ export async function GET(req: NextRequest) {
       updatedAt: true,
       q2AnswerTags: true,
 
-      // ✅ 追加
+      // ✅ 既存
       answerTag: true,
+
+      // ✅ 追加：コース説明文
+      description: true,
+
       photoMime: true,
       // photoData は select しない
     },
@@ -65,7 +76,7 @@ export async function GET(req: NextRequest) {
 
   // ✅ UI用の付加情報（hasImage / photoUrl）
   const withMeta = courses.map((c) => {
-    const hasImage = Boolean(c.photoMime); // photoData未selectなのでmimeで代用（※より厳密にしたいなら後述）
+    const hasImage = Boolean(c.photoMime); // photoData未selectなのでmimeで代用
     const photoUrl = hasImage
       ? `/api/diagnosis/courses/photo?schoolId=${encodeURIComponent(
           schoolId,
@@ -114,11 +125,14 @@ export async function POST(req: NextRequest) {
   // ✅ Q2タグを正規化して保存
   const q2AnswerTags = normalizeStringArray(body.q2AnswerTags);
 
-  // ✅ 追加：answerTag（Q4紐づけ）
+  // ✅ answerTag（Q4紐づけ）
   const answerTag =
     typeof body.answerTag === "string" && body.answerTag.trim()
       ? body.answerTag.trim()
       : null;
+
+  // ✅ 追加：description（任意）
+  const description = normalizeNullableText(body.description);
 
   const course = await prisma.diagnosisCourse.create({
     data: {
@@ -128,7 +142,10 @@ export async function POST(req: NextRequest) {
       sortOrder,
       isActive: body.isActive !== false,
       q2AnswerTags,
-      answerTag, // ✅ 追加
+      answerTag,
+
+      // ✅ 追加
+      description,
     },
   });
 

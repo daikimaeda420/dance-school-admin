@@ -36,6 +36,9 @@ type Course = {
   // ✅ 追加：Q4紐づけ
   answerTag: string | null;
 
+  // ✅ 追加：コース説明文
+  description?: string | null;
+
   // ✅ 追加：画像（診断結果用）
   hasImage?: boolean;
   photoUrl?: string | null;
@@ -217,6 +220,9 @@ export default function CourseAdminClient({ schoolId }: Props) {
   const [newIsActive, setNewIsActive] = useState(true);
   const [newQ2Tags, setNewQ2Tags] = useState<string[]>([]);
 
+  // ✅ 追加：コース説明文（新規）
+  const [newDescription, setNewDescription] = useState<string>("");
+
   // ✅ 追加
   const [newAnswerTag, setNewAnswerTag] = useState<string>(""); // "" = 未設定
   const [newImageFile, setNewImageFile] = useState<File | null>(null);
@@ -275,6 +281,10 @@ export default function CourseAdminClient({ schoolId }: Props) {
             ? uniqStrings(d.q2AnswerTags)
             : [],
           answerTag: typeof d.answerTag === "string" ? d.answerTag : null,
+
+          // ✅ 追加：コース説明文
+          description: typeof d.description === "string" ? d.description : null,
+
           hasImage: Boolean(d.hasImage ?? false),
           photoUrl: typeof d.photoUrl === "string" ? d.photoUrl : null,
         }),
@@ -336,6 +346,9 @@ export default function CourseAdminClient({ schoolId }: Props) {
 
           // ✅ 追加
           answerTag: newAnswerTag ? newAnswerTag : null,
+
+          // ✅ 追加：説明文
+          description: newDescription ? newDescription : null,
         }),
       });
 
@@ -360,6 +373,9 @@ export default function CourseAdminClient({ schoolId }: Props) {
       setNewAnswerTag("");
       setNewImageFile(null);
 
+      // ✅ 追加
+      setNewDescription("");
+
       await fetchCourses();
     } catch (e: any) {
       setError(e?.message ?? "通信エラーが発生しました。");
@@ -372,7 +388,13 @@ export default function CourseAdminClient({ schoolId }: Props) {
     id: string,
     field: keyof Pick<
       Course,
-      "label" | "slug" | "sortOrder" | "isActive" | "q2AnswerTags" | "answerTag"
+      | "label"
+      | "slug"
+      | "sortOrder"
+      | "isActive"
+      | "q2AnswerTags"
+      | "answerTag"
+      | "description"
     >,
     value: string | number | boolean | string[] | null,
   ) => {
@@ -576,6 +598,23 @@ export default function CourseAdminClient({ schoolId }: Props) {
             <div className="mt-1 text-[11px] text-gray-500 dark:text-gray-400">
               ※ 3MBまで
             </div>
+          </div>
+        </div>
+
+        {/* ✅ コース説明（任意） */}
+        <div className="mt-2">
+          <div className="mb-1 text-[11px] font-semibold text-gray-600 dark:text-gray-300">
+            コース説明（任意）
+          </div>
+          <textarea
+            className={inputCls + " min-h-[84px] py-2"}
+            placeholder="例：初心者向けに基礎からゆっくり。リズムトレーニング〜振付まで丁寧に進めます。"
+            value={newDescription}
+            onChange={(e) => setNewDescription(e.target.value)}
+            disabled={disabled || saving || savingSort}
+          />
+          <div className="mt-1 text-[11px] text-gray-500 dark:text-gray-400">
+            ※ 診断結果に表示するなら 120〜200文字くらいが読みやすいです
           </div>
         </div>
 
@@ -849,6 +888,38 @@ export default function CourseAdminClient({ schoolId }: Props) {
                             </div>
                           </div>
 
+                          {/* ✅ 説明文（フル幅） */}
+                          <div className="md:col-span-12">
+                            <div className="mb-1 text-[11px] font-semibold text-gray-600 dark:text-gray-300">
+                              コース説明
+                            </div>
+                            <textarea
+                              className={inputCls + " min-h-[84px] py-2"}
+                              value={c.description ?? ""}
+                              onChange={(e) =>
+                                setCourses((prev) =>
+                                  prev.map((p) =>
+                                    p.id === c.id
+                                      ? { ...p, description: e.target.value }
+                                      : p,
+                                  ),
+                                )
+                              }
+                              onBlur={(e) =>
+                                handleUpdateField(
+                                  c.id,
+                                  "description",
+                                  e.target.value ? e.target.value : null,
+                                )
+                              }
+                              disabled={saving || savingSort}
+                              placeholder="例：初心者向けに基礎からゆっくり。リズムトレーニング〜振付まで丁寧に進めます。"
+                            />
+                            <div className="mt-1 text-[11px] text-gray-500 dark:text-gray-400">
+                              ※ 入力後、フォーカスを外すと保存（onBlur）
+                            </div>
+                          </div>
+
                           {/* 操作 */}
                           <div className="md:col-span-12">
                             <div className="mt-1 flex flex-wrap items-center justify-between gap-2">
@@ -903,7 +974,8 @@ export default function CourseAdminClient({ schoolId }: Props) {
 
             <div className="mt-2 text-[11px] text-gray-500 dark:text-gray-400">
               ※ 並び替えは「☰」をドラッグ → ドロップで自動保存 /
-              Q2はチップでON/OFF → 「保存」 / 画像は「画像アップロード」
+              Q2はチップでON/OFF → 「保存」 / 画像は「画像アップロード」 /
+              説明文は入力後にフォーカスを外すと保存
             </div>
           </>
         )}

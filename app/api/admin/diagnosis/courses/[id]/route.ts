@@ -29,9 +29,19 @@ type PatchBody = {
   isActive?: boolean;
   q2AnswerTags?: string[];
 
-  // ✅ 追加
+  // ✅ 既存
   answerTag?: string | null;
+
+  // ✅ 追加：コース説明文
+  description?: string | null;
 };
+
+function normalizeNullableText(v: unknown): string | null {
+  if (v === null) return null;
+  if (typeof v !== "string") return null;
+  const t = v.trim();
+  return t ? t : null;
+}
 
 export async function PATCH(
   req: NextRequest,
@@ -64,6 +74,12 @@ export async function PATCH(
             ? body.answerTag.trim()
             : null;
 
+    // ✅ 追加：description（undefined=更新しない / null or string=更新する）
+    const nextDescription =
+      body.description === undefined
+        ? undefined
+        : normalizeNullableText(body.description);
+
     const updated = await prisma.diagnosisCourse.update({
       where: { id },
       data: {
@@ -75,8 +91,12 @@ export async function PATCH(
         ...(body.isActive !== undefined ? { isActive: body.isActive } : {}),
         ...(q2 !== undefined ? { q2AnswerTags: q2 } : {}),
 
-        // ✅ 追加
         ...(nextAnswerTag !== undefined ? { answerTag: nextAnswerTag } : {}),
+
+        // ✅ 追加
+        ...(nextDescription !== undefined
+          ? { description: nextDescription }
+          : {}),
       },
     });
 

@@ -92,6 +92,7 @@ model DiagnosisCourse {
   isActive     Boolean           @default(true)
   createdAt    DateTime          @default(now())
   updatedAt    DateTime          @updatedAt
+  description String?  // ← 追加（コース説明文）
 
   // 既存：Q2の複数回答タグ
   q2AnswerTags String[]          @default([])
