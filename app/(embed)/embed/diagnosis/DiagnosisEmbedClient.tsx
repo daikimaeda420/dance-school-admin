@@ -460,26 +460,42 @@ export default function DiagnosisEmbedClient({
           {(() => {
             const className = result.bestMatch.className ?? "おすすめクラス";
 
-            // 旧：ジャンル名（画像フォールバック用にだけ残す。タイトルには使わない）
+            // 旧：ジャンル名（表示しない。alt/フォールバック用途のみ）
             const genreLabel =
               result.selectedGenre?.label?.trim() ||
               (result.bestMatch.genres?.[0] ?? "").trim();
 
-            // ✅ 新：コース画像（APIが返すURLを最優先）
-            const courseImgSrc = (result as any)?.bestMatch?.coursePhotoUrl
-              ? String((result as any).bestMatch.coursePhotoUrl)
+            // ✅ 新：まず API が返した photoUrl を最優先で使う
+            // ついでにキャッシュ対策で ?v= を付ける（同じURLでも画像差し替えが反映されやすい）
+            const rawCoursePhotoUrl = result.selectedCourse?.photoUrl ?? null;
+            const coursePhotoUrl = rawCoursePhotoUrl
+              ? `${rawCoursePhotoUrl}${rawCoursePhotoUrl.includes("?") ? "&" : "?"}v=${encodeURIComponent(
+                  String(result.selectedCourse?.id ?? ""),
+                )}`
               : null;
 
+            // ✅ 互換フォールバック：photoUrl が無い場合は id から生成
+            const fallbackCourseImgSrc =
+              !coursePhotoUrl && result.selectedCourse?.id
+                ? `/api/diagnosis/courses/photo?schoolId=${encodeURIComponent(
+                    schoolId,
+                  )}&id=${encodeURIComponent(result.selectedCourse.id)}`
+                : null;
+
             // 互換：旧ジャンル画像（コース画像が無い場合だけ）
-            const genreId = (result as any)?.selectedGenre?.id;
+            const genreId = result.selectedGenre?.id;
             const genreImgSrc =
-              !courseImgSrc && genreId
+              !coursePhotoUrl && !fallbackCourseImgSrc && genreId
                 ? `/api/diagnosis/genres/image?id=${encodeURIComponent(
                     String(genreId),
                   )}&schoolId=${encodeURIComponent(schoolId)}`
                 : null;
 
-            // ✅ タイトルは「クラス名だけ」
+            // ✅ 最終的に表示する画像
+            const imgSrc =
+              coursePhotoUrl || fallbackCourseImgSrc || genreImgSrc || null;
+
+            // ✅ タイトルは「クラス名だけ」＝ジャンルを消す
             const titleText = className;
 
             return (
@@ -489,14 +505,14 @@ export default function DiagnosisEmbedClient({
                 </div>
 
                 {/* ✅ コース画像 → なければ旧ジャンル画像 */}
-                {(courseImgSrc || genreImgSrc) && (
+                {imgSrc && (
                   <div className="mt-3">
                     <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
-                        src={courseImgSrc || genreImgSrc || ""}
+                        src={imgSrc}
                         alt={
-                          courseImgSrc
+                          coursePhotoUrl || fallbackCourseImgSrc
                             ? `${titleText}の画像`
                             : genreLabel
                               ? `${genreLabel}の画像`
