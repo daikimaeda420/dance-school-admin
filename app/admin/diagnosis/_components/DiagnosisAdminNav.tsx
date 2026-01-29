@@ -11,6 +11,7 @@ const TABS: Tab[] = [
   { href: "/admin/diagnosis/courses", label: "コース" },
   { href: "/admin/diagnosis/lifestyles", label: "年代・ライフスタイル" },
   { href: "/admin/diagnosis/instructors", label: "講師" },
+  { href: "/admin/diagnosis/schedule", label: "スケジュール" },
   { href: "/admin/diagnosis/form", label: "フォーム" },
 ];
 
