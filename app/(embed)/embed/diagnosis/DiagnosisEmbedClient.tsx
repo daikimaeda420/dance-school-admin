@@ -25,6 +25,16 @@ type DiagnosisInstructorVM = {
   introduction?: string | null;
 };
 
+type ScheduleSlotVM = {
+  id: string;
+  weekday: "MON" | "TUE" | "WED" | "THU" | "FRI" | "SAT" | "SUN";
+  genreText: string;
+  timeText: string;
+  teacher: string;
+  place: string;
+  sortOrder: number;
+};
+
 type DiagnosisResult = {
   pattern: "A" | "B";
   patternMessage: string | null;
@@ -116,6 +126,7 @@ type DiagnosisResult = {
     teacher?: ResultCopy | null;
     concern?: string | null; // concernは今はstringのままでOK
   };
+  scheduleSlots?: ScheduleSlotVM[];
 };
 
 type Props = {
@@ -473,6 +484,39 @@ export default function DiagnosisEmbedClient({
     };
   }, [result, schoolId]);
 
+  const scheduleByDay = useMemo(() => {
+    const map: Record<
+      "MON" | "TUE" | "WED" | "THU" | "FRI" | "SAT" | "SUN",
+      ScheduleSlotVM[]
+    > = {
+      MON: [],
+      TUE: [],
+      WED: [],
+      THU: [],
+      FRI: [],
+      SAT: [],
+      SUN: [],
+    };
+
+    const scheduleByDay = useMemo(() => {
+      const map: Record<
+        "MON" | "TUE" | "WED" | "THU" | "FRI" | "SAT" | "SUN",
+        ScheduleSlotVM[]
+      > = { MON: [], TUE: [], WED: [], THU: [], FRI: [], SAT: [], SUN: [] };
+
+      const list = Array.isArray(result?.scheduleSlots) ? result!.scheduleSlots : [];
+      for (const s of list) {
+        map[s.weekday]?.push(s);
+      }
+
+      for (const k of Object.keys(map) as (keyof typeof map)[]) {
+        map[k].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+      }
+
+      return map;
+    }, [result?.scheduleSlots]);
+
+
   // ==========================
   // 診断結果画面
   // ==========================
@@ -747,65 +791,75 @@ export default function DiagnosisEmbedClient({
 
         {/* ✅ スケジュール（担当講師の下に表示） */}
         <div className="mt-4">
-          <div className="text-xs font-semibold text-gray-500">
+          <div className="text-xs font-semibold text-gray-500 dark:text-gray-400">
             スケジュール
           </div>
 
-          {scheduleError && (
-            <div className="mt-2 rounded-md bg-red-50 px-2 py-1 text-[11px] text-red-600">
-              {scheduleError}
-            </div>
-          )}
+          {(() => {
+            const hasAny =
+              Object.values(scheduleByDay).reduce(
+                (sum, arr) => sum + arr.length,
+                0,
+              ) > 0;
 
-          {!schedule && !scheduleError && (
-            <div className="mt-2 text-[11px] text-gray-400">読み込み中...</div>
-          )}
+            if (!hasAny) {
+              return (
+                <div className="mt-2 text-[11px] text-gray-400 dark:text-gray-500">
+                  現在、該当するスケジュールはありません。
+                </div>
+              );
+            }
 
-          {schedule && (
-            <div className="mt-2 space-y-4">
-              {(
-                [
-                  ["MON", "月"],
-                  ["TUE", "火"],
-                  ["WED", "水"],
-                  ["THU", "木"],
-                  ["FRI", "金"],
-                  ["SAT", "土"],
-                  ["SUN", "日"],
-                ] as const
-              ).map(([key, label]) => {
-                const items = schedule[key] ?? [];
-                return (
-                  <div key={key}>
-                    <div className="font-semibold text-gray-800">{label}</div>
+            return (
+              <div className="mt-2 space-y-4">
+                {(
+                  [
+                    ["MON", "月"],
+                    ["TUE", "火"],
+                    ["WED", "水"],
+                    ["THU", "木"],
+                    ["FRI", "金"],
+                    ["SAT", "土"],
+                    ["SUN", "日"],
+                  ] as const
+                ).map(([key, label]) => {
+                  const items = scheduleByDay[key] ?? [];
+                  return (
+                    <div key={key}>
+                      <div className="font-semibold text-gray-800 dark:text-gray-200">
+                        {label}
+                      </div>
 
-                    <div className="mt-2 space-y-2">
-                      {items.length === 0 ? (
-                        <div className="text-xs text-gray-500">なし</div>
-                      ) : (
-                        items.map((s) => (
-                          <div
-                            key={s.id}
-                            className="rounded-2xl border border-gray-200 bg-white p-3 shadow-sm"
-                          >
-                            <div className="font-semibold">
-                              {s.genreText} / {s.timeText}
-                            </div>
-                            <div className="mt-1 text-xs text-gray-700">
-                              講師：{s.teacher}
-                            </div>
-                            <div className="text-xs text-gray-700">
-                              場所：{s.place}
-                            </div>
+                      <div className="mt-2 space-y-2">
+                        {items.length === 0 ? (
+                          <div className="text-xs text-gray-500 dark:text-gray-400">
+                            なし
                           </div>
-                        ))
-                      )}
+                        ) : (
+                          items.map((s) => (
+                            <div
+                              key={s.id}
+                              className="rounded-2xl border border-gray-200 bg-white p-3 shadow-sm dark:border-gray-700 dark:bg-gray-950"
+                            >
+                              <div className="font-semibold text-gray-900 dark:text-gray-100">
+                                {s.genreText} / {s.timeText}
+                              </div>
+                              <div className="mt-1 text-xs text-gray-700 dark:text-gray-300">
+                                講師：{s.teacher}
+                              </div>
+                              <div className="text-xs text-gray-700 dark:text-gray-300">
+                                場所：{s.place}
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
+                  );
+                })}
+              </div>
+            );
+          })()}
         </div>
 
         {/* ✅ 校舎情報 */}

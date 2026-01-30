@@ -149,6 +149,19 @@ async function instructorIdsByCourse(params: {
 }
 
 // =========================
+// ✅ スケジュール表示用VM
+// =========================
+type ScheduleSlotVM = {
+  id: string;
+  weekday: "MON" | "TUE" | "WED" | "THU" | "FRI" | "SAT" | "SUN";
+  genreText: string;
+  timeText: string;
+  teacher: string;
+  place: string;
+  sortOrder: number;
+};
+
+// =========================
 // POST /api/diagnosis/result
 // =========================
 export async function POST(req: NextRequest) {
@@ -216,8 +229,6 @@ export async function POST(req: NextRequest) {
         q2AnswerTags: { has: q2ForCourse },
       },
       orderBy: { sortOrder: "asc" },
-      // ✅ Embed側が courseId(cuid) で画像を引くので id は必須
-      // ✅ 画像があるか確実に判定したいので photoData も取る（3MB上限なら許容）
       select: {
         id: true,
         label: true,
@@ -350,6 +361,37 @@ export async function POST(req: NextRequest) {
           )}&id=${encodeURIComponent(recommendedCourse.id)}`
         : null;
 
+    // ✅ スケジュール取得（選ばれたコースに紐づく枠）
+    let scheduleSlots: ScheduleSlotVM[] = [];
+    if (recommendedCourse?.id) {
+      const slots = await prisma.diagnosisScheduleSlot.findMany({
+        where: {
+          schoolId,
+          isActive: true,
+          courses: {
+            some: { courseId: recommendedCourse.id },
+          },
+          // 校舎で絞りたい場合は place が運用で一致している前提で↓をON
+          // ...(campus?.label ? { place: campus.label } : {}),
+        },
+        orderBy: [
+          { weekday: "asc" },
+          { sortOrder: "asc" },
+          { createdAt: "asc" },
+        ],
+      });
+
+      scheduleSlots = slots.map((s) => ({
+        id: s.id,
+        weekday: s.weekday as any,
+        genreText: s.genreText,
+        timeText: s.timeText,
+        teacher: s.teacher,
+        place: s.place,
+        sortOrder: s.sortOrder,
+      }));
+    }
+
     return NextResponse.json({
       pattern: "A",
       patternMessage: null,
@@ -375,6 +417,9 @@ export async function POST(req: NextRequest) {
             photoUrl: coursePhotoUrl, // ← 直接使えるURLも返す
           }
         : null,
+
+      // ✅ 診断結果側にスケジュールを返す
+      scheduleSlots,
 
       teacher: {
         id: undefined,
@@ -441,6 +486,7 @@ export async function POST(req: NextRequest) {
         recommendedCourseId: recommendedCourse?.id ?? null,
         instructorMatchedBy,
         instructorsCount: instructors.length,
+        scheduleSlotsCount: scheduleSlots.length,
         copyKeys: { levelTag, ageTag, teacherTag, concernKey },
         concernResolved: {
           concernKey,

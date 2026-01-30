@@ -11,7 +11,7 @@ export async function GET(req: NextRequest) {
   if (!schoolId) {
     return NextResponse.json(
       { error: "NO_SCHOOL_ID", message: "schoolId が指定されていません。" },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
