@@ -25,16 +25,6 @@ type DiagnosisInstructorVM = {
   introduction?: string | null;
 };
 
-type ScheduleSlotVM = {
-  id: string;
-  weekday: "MON" | "TUE" | "WED" | "THU" | "FRI" | "SAT" | "SUN";
-  genreText: string;
-  timeText: string;
-  teacher: string;
-  place: string;
-  sortOrder: number;
-};
-
 type DiagnosisResult = {
   pattern: "A" | "B";
   patternMessage: string | null;
@@ -126,7 +116,6 @@ type DiagnosisResult = {
     teacher?: ResultCopy | null;
     concern?: string | null; // concernは今はstringのままでOK
   };
-  scheduleSlots?: ScheduleSlotVM[];
 };
 
 type Props = {
@@ -484,39 +473,6 @@ export default function DiagnosisEmbedClient({
     };
   }, [result, schoolId]);
 
-  const scheduleByDay = useMemo(() => {
-    const map: Record<
-      "MON" | "TUE" | "WED" | "THU" | "FRI" | "SAT" | "SUN",
-      ScheduleSlotVM[]
-    > = {
-      MON: [],
-      TUE: [],
-      WED: [],
-      THU: [],
-      FRI: [],
-      SAT: [],
-      SUN: [],
-    };
-
-    const scheduleByDay = useMemo(() => {
-      const map: Record<
-        "MON" | "TUE" | "WED" | "THU" | "FRI" | "SAT" | "SUN",
-        ScheduleSlotVM[]
-      > = { MON: [], TUE: [], WED: [], THU: [], FRI: [], SAT: [], SUN: [] };
-
-      const list = Array.isArray(result?.scheduleSlots) ? result!.scheduleSlots : [];
-      for (const s of list) {
-        map[s.weekday]?.push(s);
-      }
-
-      for (const k of Object.keys(map) as (keyof typeof map)[]) {
-        map[k].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
-      }
-
-      return map;
-    }, [result?.scheduleSlots]);
-
-
   // ==========================
   // 診断結果画面
   // ==========================
@@ -795,14 +751,22 @@ export default function DiagnosisEmbedClient({
             スケジュール
           </div>
 
-          {(() => {
-            const hasAny =
-              Object.values(scheduleByDay).reduce(
-                (sum, arr) => sum + arr.length,
-                0,
-              ) > 0;
+          {scheduleError && (
+            <div className="mt-2 rounded-md bg-red-50 px-3 py-2 text-[11px] text-red-600">
+              {scheduleError}
+            </div>
+          )}
 
-            if (!hasAny) {
+          {(() => {
+            const s = schedule; // fetchした PublicSchedule
+            const total = s
+              ? (Object.values(s).reduce(
+                  (sum, arr) => sum + arr.length,
+                  0,
+                ) as number)
+              : 0;
+
+            if (!s || total === 0) {
               return (
                 <div className="mt-2 text-[11px] text-gray-400 dark:text-gray-500">
                   現在、該当するスケジュールはありません。
@@ -823,7 +787,7 @@ export default function DiagnosisEmbedClient({
                     ["SUN", "日"],
                   ] as const
                 ).map(([key, label]) => {
-                  const items = scheduleByDay[key] ?? [];
+                  const items = s[key] ?? [];
                   return (
                     <div key={key}>
                       <div className="font-semibold text-gray-800 dark:text-gray-200">
@@ -836,19 +800,19 @@ export default function DiagnosisEmbedClient({
                             なし
                           </div>
                         ) : (
-                          items.map((s) => (
+                          items.map((slot) => (
                             <div
-                              key={s.id}
+                              key={slot.id}
                               className="rounded-2xl border border-gray-200 bg-white p-3 shadow-sm dark:border-gray-700 dark:bg-gray-950"
                             >
                               <div className="font-semibold text-gray-900 dark:text-gray-100">
-                                {s.genreText} / {s.timeText}
+                                {slot.genreText} / {slot.timeText}
                               </div>
                               <div className="mt-1 text-xs text-gray-700 dark:text-gray-300">
-                                講師：{s.teacher}
+                                講師：{slot.teacher}
                               </div>
                               <div className="text-xs text-gray-700 dark:text-gray-300">
-                                場所：{s.place}
+                                場所：{slot.place}
                               </div>
                             </div>
                           ))
