@@ -293,7 +293,10 @@ enum Weekday {
   FRI
   SAT
   SUN
+
+  @@map("Weekday")
 }
+
 
 model DiagnosisScheduleSlot {
   id       String @id @default(cuid())
