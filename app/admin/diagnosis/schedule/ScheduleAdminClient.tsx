@@ -1,7 +1,7 @@
 // app/admin/diagnosis/schedule/ScheduleAdminClient.tsx
 "use client";
 
-import { useEffect, useMemo, useState, type ChangeEvent } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
 type Props = { initialSchoolId?: string };
@@ -37,32 +37,46 @@ const WEEKDAYS: { key: Weekday; label: string }[] = [
   { key: "SUN", label: "日" },
 ];
 
+// ---- UI classes（ダークモードをしっかり整える） ----
 const card =
   "rounded-2xl border border-gray-200 bg-white p-4 shadow-sm " +
-  "dark:border-gray-800 dark:bg-gray-900";
+  "text-gray-900 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-100";
 
 const input =
   "w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm " +
-  "outline-none focus:border-blue-500 dark:border-gray-700 dark:bg-gray-950";
+  "text-gray-900 placeholder:text-gray-400 outline-none focus:border-blue-500 " +
+  "dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100 dark:placeholder:text-gray-500";
+
+const select =
+  "w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm " +
+  "text-gray-900 outline-none focus:border-blue-500 " +
+  "dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100";
 
 const label = "text-xs font-semibold text-gray-600 dark:text-gray-300";
 
 const btn =
   "inline-flex items-center justify-center rounded-xl px-3 py-2 text-sm font-semibold " +
-  "border border-gray-200 bg-white hover:bg-gray-50 " +
-  "dark:border-gray-700 dark:bg-gray-950 dark:hover:bg-gray-900";
+  "border border-gray-200 bg-white text-gray-900 hover:bg-gray-50 " +
+  "dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100 dark:hover:bg-gray-900";
 
 const btnPrimary =
   "inline-flex items-center justify-center rounded-xl px-3 py-2 text-sm font-semibold " +
-  "bg-blue-600 text-white hover:bg-blue-700";
+  "bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50";
 
 const btnDanger =
   "inline-flex items-center justify-center rounded-xl px-3 py-2 text-sm font-semibold " +
   "border border-red-200 bg-white text-red-600 hover:bg-red-50 " +
   "dark:border-red-900/40 dark:bg-gray-950 dark:hover:bg-red-950/30";
 
-function uniq<T>(arr: T[]) {
-  return Array.from(new Set(arr));
+const badge =
+  "ml-2 inline-flex items-center rounded-full px-2 py-0.5 text-xs font-bold " +
+  "bg-gray-100 text-gray-700 dark:bg-white/10 dark:text-gray-100";
+
+function arrayMove<T>(arr: T[], from: number, to: number) {
+  const a = arr.slice();
+  const [item] = a.splice(from, 1);
+  a.splice(to, 0, item);
+  return a;
 }
 
 export default function ScheduleAdminClient({ initialSchoolId }: Props) {
@@ -97,6 +111,10 @@ export default function ScheduleAdminClient({ initialSchoolId }: Props) {
     isActive: true,
     courseIds: [],
   });
+
+  // ---- DnD state ----
+  const dragFromIdRef = useRef<string | null>(null);
+  const [draggingId, setDraggingId] = useState<string | null>(null);
 
   // schoolId が変わったら初期化
   useEffect(() => {
@@ -137,7 +155,9 @@ export default function ScheduleAdminClient({ initialSchoolId }: Props) {
 
         // schedule slots
         const slotRes = await fetch(
-          `/api/admin/diagnosis/schedule-slots?schoolId=${encodeURIComponent(schoolId)}`,
+          `/api/admin/diagnosis/schedule-slots?schoolId=${encodeURIComponent(
+            schoolId,
+          )}`,
           { signal: controller.signal, cache: "no-store" },
         );
         if (!slotRes.ok) {
@@ -233,11 +253,21 @@ export default function ScheduleAdminClient({ initialSchoolId }: Props) {
     setSlots((prev) => prev.map((s) => (s.id === id ? { ...s, ...patch } : s)));
   }
 
+  function toggleCourse(list: string[], courseId: string) {
+    const set = new Set(list);
+    if (set.has(courseId)) set.delete(courseId);
+    else set.add(courseId);
+    return Array.from(set);
+  }
+
+  const activeCourses = useMemo(() => {
+    return courses.slice().sort((a, b) => a.label.localeCompare(b.label, "ja"));
+  }, [courses]);
+
   async function saveSlot(id: string) {
     const slot = slots.find((s) => s.id === id);
     if (!slot) return;
 
-    // バリデーション（最低限）
     if (
       !slot.genreText.trim() ||
       !slot.timeText.trim() ||
@@ -282,7 +312,6 @@ export default function ScheduleAdminClient({ initialSchoolId }: Props) {
       const data = await res.json();
       const saved = data?.slot;
       if (saved?.id) {
-        // APIの返しを正として同期
         updateSlotLocal(id, {
           weekday: saved.weekday,
           genreText: saved.genreText,
@@ -313,9 +342,7 @@ export default function ScheduleAdminClient({ initialSchoolId }: Props) {
     try {
       const res = await fetch(
         `/api/admin/diagnosis/schedule-slots/${encodeURIComponent(id)}`,
-        {
-          method: "DELETE",
-        },
+        { method: "DELETE" },
       );
 
       if (!res.ok) {
@@ -323,7 +350,6 @@ export default function ScheduleAdminClient({ initialSchoolId }: Props) {
         throw new Error(data?.message ?? "削除に失敗しました");
       }
 
-      // 論理削除想定：一覧からは消す（運用上見やすい）
       setSlots((prev) => prev.filter((s) => s.id !== id));
     } catch (e) {
       console.error(e);
@@ -402,7 +428,6 @@ export default function ScheduleAdminClient({ initialSchoolId }: Props) {
         },
       ]);
 
-      // 連続入力しやすいように、曜日はそのままでフォームだけクリア
       setNewSlot((prev) => ({
         ...prev,
         genreText: "",
@@ -420,17 +445,75 @@ export default function ScheduleAdminClient({ initialSchoolId }: Props) {
     }
   }
 
-  function toggleCourse(list: string[], courseId: string) {
-    const set = new Set(list);
-    if (set.has(courseId)) set.delete(courseId);
-    else set.add(courseId);
-    return Array.from(set);
+  // ---- D&D: 並び替え → sortOrderを付け替えて保存 ----
+  async function persistOrderForActiveDay(ordered: SlotRow[]) {
+    // sortOrder を 0.. に振り直し
+    const withOrder = ordered.map((s, idx) => ({
+      ...s,
+      sortOrder: idx,
+    }));
+
+    // ローカル反映（即時）
+    setSlots((prev) =>
+      prev.map((x) => {
+        const hit = withOrder.find((w) => w.id === x.id);
+        return hit ? { ...x, sortOrder: hit.sortOrder } : x;
+      }),
+    );
+
+    // サーバ保存（PATCHをまとめて）
+    // 失敗してもUIは崩さない。エラー表示だけ。
+    setSavingId("REORDER");
+    setError(null);
+
+    try {
+      await Promise.all(
+        withOrder.map((s) =>
+          fetch(
+            `/api/admin/diagnosis/schedule-slots/${encodeURIComponent(s.id)}`,
+            {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ sortOrder: s.sortOrder }),
+            },
+          ).then(async (r) => {
+            if (!r.ok) {
+              const data = await r.json().catch(() => null);
+              throw new Error(data?.message ?? "並び順の保存に失敗しました");
+            }
+          }),
+        ),
+      );
+    } catch (e) {
+      console.error(e);
+      setError((e as any)?.message ?? "並び順の保存に失敗しました");
+    } finally {
+      setSavingId(null);
+    }
   }
 
-  const activeCourses = useMemo(() => {
-    // isActive を返さないAPIもあるので、念のため全件表示
-    return courses.slice().sort((a, b) => a.label.localeCompare(b.label, "ja"));
-  }, [courses]);
+  function onDragStart(id: string) {
+    dragFromIdRef.current = id;
+    setDraggingId(id);
+  }
+
+  function onDragEnd() {
+    dragFromIdRef.current = null;
+    setDraggingId(null);
+  }
+
+  function onDrop(toId: string) {
+    const fromId = dragFromIdRef.current;
+    if (!fromId || fromId === toId) return;
+
+    const ordered = activeSlots.slice(); // sortOrder順で並んでいる
+    const fromIndex = ordered.findIndex((x) => x.id === fromId);
+    const toIndex = ordered.findIndex((x) => x.id === toId);
+    if (fromIndex < 0 || toIndex < 0) return;
+
+    const moved = arrayMove(ordered, fromIndex, toIndex);
+    void persistOrderForActiveDay(moved);
+  }
 
   return (
     <div className="space-y-4">
@@ -441,12 +524,17 @@ export default function ScheduleAdminClient({ initialSchoolId }: Props) {
             <div className="text-lg font-extrabold">スケジュール管理</div>
             <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">
               曜日ごとに枠を作り、対応コース（チェックボックス）を紐付けてください。
+              <span className="ml-2">
+                並び順は{" "}
+                <span className="font-semibold">ドラッグ＆ドロップ</span>{" "}
+                で変更できます。
+              </span>
             </div>
           </div>
 
           <div className="text-xs text-gray-500 dark:text-gray-400">
             schoolId:{" "}
-            <span className="font-semibold text-gray-800 dark:text-gray-200">
+            <span className="font-semibold text-gray-900 dark:text-gray-100">
               {schoolId || "(未指定)"}
             </span>
           </div>
@@ -462,6 +550,12 @@ export default function ScheduleAdminClient({ initialSchoolId }: Props) {
         {error && (
           <div className="mt-3 rounded-xl bg-red-50 p-3 text-xs text-red-700 dark:bg-red-950/40 dark:text-red-200">
             {error}
+          </div>
+        )}
+
+        {savingId === "REORDER" && (
+          <div className="mt-3 rounded-xl bg-blue-50 p-3 text-xs text-blue-800 dark:bg-blue-950/40 dark:text-blue-200">
+            並び順を保存しています...
           </div>
         )}
       </div>
@@ -480,13 +574,12 @@ export default function ScheduleAdminClient({ initialSchoolId }: Props) {
                   "rounded-xl px-3 py-2 text-sm font-semibold transition",
                   active
                     ? "bg-blue-600 text-white"
-                    : "border border-gray-200 bg-white text-gray-800 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200 dark:hover:bg-gray-900",
+                    : "border border-gray-200 bg-white text-gray-900 hover:bg-gray-50 " +
+                      "dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100 dark:hover:bg-gray-900",
                 ].join(" ")}
               >
                 {d.label}
-                <span className="ml-2 rounded-full bg-black/10 px-2 py-0.5 text-xs font-bold">
-                  {slotsByDay[d.key]?.length ?? 0}
-                </span>
+                <span className={badge}>{slotsByDay[d.key]?.length ?? 0}</span>
               </button>
             );
           })}
@@ -517,7 +610,7 @@ export default function ScheduleAdminClient({ initialSchoolId }: Props) {
           <div>
             <div className={label}>曜日</div>
             <select
-              className={input}
+              className={select}
               value={newSlot.weekday}
               onChange={(e) =>
                 setNewSlot((p) => ({
@@ -607,7 +700,7 @@ export default function ScheduleAdminClient({ initialSchoolId }: Props) {
                 return (
                   <label
                     key={c.id}
-                    className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-950"
+                    className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
                   >
                     <input
                       type="checkbox"
@@ -637,6 +730,9 @@ export default function ScheduleAdminClient({ initialSchoolId }: Props) {
         <div className="flex items-center justify-between">
           <div className="text-sm font-extrabold">
             {WEEKDAYS.find((d) => d.key === activeDay)?.label} の枠
+            <span className="ml-2 text-xs font-semibold text-gray-500 dark:text-gray-400">
+              （カード左の「≡」をドラッグで並び替え）
+            </span>
           </div>
           <div className="text-xs text-gray-500 dark:text-gray-400">
             {activeSlots.length} 件
@@ -652,11 +748,43 @@ export default function ScheduleAdminClient({ initialSchoolId }: Props) {
             {activeSlots.map((s) => (
               <div
                 key={s.id}
-                className="rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-950"
+                className={[
+                  "rounded-2xl border p-4 transition",
+                  "border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-950",
+                  draggingId === s.id ? "opacity-60" : "opacity-100",
+                ].join(" ")}
+                onDragOver={(e) => {
+                  // drop を許可
+                  e.preventDefault();
+                }}
+                onDrop={() => onDrop(s.id)}
               >
                 <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-                  <div className="text-sm font-extrabold">
-                    {s.genreText || "(未入力)"} / {s.timeText || "(未入力)"}
+                  <div className="flex items-center gap-3">
+                    {/* Drag handle */}
+                    <div
+                      title="ドラッグして並び替え"
+                      className={[
+                        "select-none rounded-lg border px-2 py-1 text-sm font-bold",
+                        "border-gray-200 bg-gray-50 text-gray-700",
+                        "dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200",
+                        "cursor-grab active:cursor-grabbing",
+                      ].join(" ")}
+                      draggable
+                      onDragStart={() => onDragStart(s.id)}
+                      onDragEnd={onDragEnd}
+                    >
+                      ≡
+                    </div>
+
+                    <div className="min-w-0">
+                      <div className="text-sm font-extrabold">
+                        {s.genreText || "(未入力)"} / {s.timeText || "(未入力)"}
+                      </div>
+                      <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                        sortOrder: {s.sortOrder}
+                      </div>
+                    </div>
                   </div>
 
                   <div className="flex flex-wrap gap-2">
@@ -664,7 +792,7 @@ export default function ScheduleAdminClient({ initialSchoolId }: Props) {
                       type="button"
                       className={btn}
                       onClick={() => saveSlot(s.id)}
-                      disabled={savingId === s.id}
+                      disabled={savingId === s.id || savingId === "REORDER"}
                     >
                       {savingId === s.id ? "保存中..." : "保存"}
                     </button>
@@ -673,7 +801,7 @@ export default function ScheduleAdminClient({ initialSchoolId }: Props) {
                       type="button"
                       className={btnDanger}
                       onClick={() => deleteSlot(s.id)}
-                      disabled={savingId === s.id}
+                      disabled={savingId === s.id || savingId === "REORDER"}
                     >
                       削除
                     </button>
@@ -684,13 +812,14 @@ export default function ScheduleAdminClient({ initialSchoolId }: Props) {
                   <div>
                     <div className={label}>曜日</div>
                     <select
-                      className={input}
+                      className={select}
                       value={s.weekday}
                       onChange={(e) =>
                         updateSlotLocal(s.id, {
                           weekday: e.target.value as Weekday,
                         })
                       }
+                      disabled={savingId === "REORDER"}
                     >
                       {WEEKDAYS.map((d) => (
                         <option key={d.key} value={d.key}>
@@ -701,7 +830,7 @@ export default function ScheduleAdminClient({ initialSchoolId }: Props) {
                   </div>
 
                   <div>
-                    <div className={label}>表示順（小さいほど上）</div>
+                    <div className={label}>表示順（数値で直接変更）</div>
                     <input
                       className={input}
                       type="number"
@@ -711,6 +840,7 @@ export default function ScheduleAdminClient({ initialSchoolId }: Props) {
                           sortOrder: Number(e.target.value || 0),
                         })
                       }
+                      disabled={savingId === "REORDER"}
                     />
                   </div>
 
@@ -722,6 +852,7 @@ export default function ScheduleAdminClient({ initialSchoolId }: Props) {
                       onChange={(e) =>
                         updateSlotLocal(s.id, { genreText: e.target.value })
                       }
+                      disabled={savingId === "REORDER"}
                     />
                   </div>
 
@@ -733,6 +864,7 @@ export default function ScheduleAdminClient({ initialSchoolId }: Props) {
                       onChange={(e) =>
                         updateSlotLocal(s.id, { timeText: e.target.value })
                       }
+                      disabled={savingId === "REORDER"}
                     />
                   </div>
 
@@ -744,6 +876,7 @@ export default function ScheduleAdminClient({ initialSchoolId }: Props) {
                       onChange={(e) =>
                         updateSlotLocal(s.id, { teacher: e.target.value })
                       }
+                      disabled={savingId === "REORDER"}
                     />
                   </div>
 
@@ -755,6 +888,7 @@ export default function ScheduleAdminClient({ initialSchoolId }: Props) {
                       onChange={(e) =>
                         updateSlotLocal(s.id, { place: e.target.value })
                       }
+                      disabled={savingId === "REORDER"}
                     />
                   </div>
                 </div>
@@ -770,6 +904,7 @@ export default function ScheduleAdminClient({ initialSchoolId }: Props) {
                         onChange={() =>
                           updateSlotLocal(s.id, { isActive: !s.isActive })
                         }
+                        disabled={savingId === "REORDER"}
                       />
                       有効（結果に表示）
                     </label>
@@ -781,7 +916,7 @@ export default function ScheduleAdminClient({ initialSchoolId }: Props) {
                       return (
                         <label
                           key={`${s.id}_${c.id}`}
-                          className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-950"
+                          className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
                         >
                           <input
                             type="checkbox"
@@ -791,6 +926,7 @@ export default function ScheduleAdminClient({ initialSchoolId }: Props) {
                                 courseIds: toggleCourse(s.courseIds, c.id),
                               })
                             }
+                            disabled={savingId === "REORDER"}
                           />
                           <span className="min-w-0 truncate">{c.label}</span>
                         </label>
@@ -799,7 +935,8 @@ export default function ScheduleAdminClient({ initialSchoolId }: Props) {
                   </div>
 
                   <div className="mt-2 text-[11px] text-gray-500 dark:text-gray-400">
-                    ※ 「保存」を押すまでDBには反映されません。
+                    ※
+                    「保存」を押すまでDBには反映されません（並び替えはドロップ時に自動保存）。
                   </div>
                 </div>
               </div>
