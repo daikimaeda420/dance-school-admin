@@ -421,7 +421,6 @@ export default function DiagnosisEmbedClient({
   // ==========================
   useEffect(() => {
     if (!result || !schoolId) return;
-
     fetch(`/api/diagnosis/form?schoolId=${encodeURIComponent(schoolId)}`)
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
@@ -436,8 +435,12 @@ export default function DiagnosisEmbedClient({
   useEffect(() => {
     if (!result || !schoolId) return;
 
-    const courseId = result.bestMatch?.classId;
+    // ✅ 修正ポイントここ
+    const courseId = result.selectedCourse?.id ?? result.bestMatch?.classId;
     if (!courseId) return;
+
+    console.log("[schedule] schoolId:", schoolId);
+    console.log("[schedule] courseId:", courseId);
 
     let cancelled = false;
     const controller = new AbortController();
@@ -457,7 +460,17 @@ export default function DiagnosisEmbedClient({
       })
       .then((data) => {
         if (cancelled) return;
-        setSchedule((data?.schedule ?? null) as PublicSchedule | null);
+
+        const resolved =
+          data?.schedule ??
+          data?.data?.schedule ??
+          data?.result?.schedule ??
+          null;
+
+        console.log("[schedule api raw]", data);
+        console.log("[schedule resolved]", resolved);
+
+        setSchedule(resolved);
       })
       .catch((e) => {
         if (cancelled) return;
