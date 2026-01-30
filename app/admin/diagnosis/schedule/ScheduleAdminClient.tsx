@@ -72,6 +72,45 @@ const badge =
   "ml-2 inline-flex items-center rounded-full px-2 py-0.5 text-xs font-bold " +
   "bg-gray-100 text-gray-700 dark:bg-white/10 dark:text-gray-100";
 
+// -----------------------
+// ✅ Fetch エラーを必ず拾う（JSON/テキスト/HTML どれでも）
+// -----------------------
+async function readBodyText(res: Response) {
+  return await res.text().catch(() => "");
+}
+
+function safeJsonParse(raw: string) {
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
+async function assertOk(res: Response, actionLabel: string) {
+  if (res.ok) return;
+
+  const raw = await readBodyText(res);
+  const j = safeJsonParse(raw);
+
+  const msg =
+    String(j?.message ?? j?.error ?? "") || raw?.slice(0, 300) || "詳細不明";
+
+  throw new Error(`${actionLabel}に失敗しました（${res.status}）: ${msg}`);
+}
+
+async function readJsonFlexible(res: Response) {
+  const raw = await readBodyText(res);
+  const j = safeJsonParse(raw);
+  if (!j) {
+    throw new Error(
+      `レスポンスがJSONではありません: ${raw?.slice(0, 300) || "(空)"}`,
+    );
+  }
+  return j;
+}
+
+// -----------------------
 function arrayMove<T>(arr: T[], from: number, to: number) {
   const a = arr.slice();
   const [item] = a.splice(from, 1);
@@ -147,11 +186,8 @@ export default function ScheduleAdminClient({ initialSchoolId }: Props) {
           `/api/admin/diagnosis/courses?schoolId=${encodeURIComponent(schoolId)}`,
           { signal: controller.signal, cache: "no-store" },
         );
-        if (!courseRes.ok) {
-          const t = await courseRes.text();
-          throw new Error(t || "コースの取得に失敗しました");
-        }
-        const courseJson = await courseRes.json();
+        await assertOk(courseRes, "コース取得");
+        const courseJson = await readJsonFlexible(courseRes);
 
         // schedule slots
         const slotRes = await fetch(
@@ -160,11 +196,8 @@ export default function ScheduleAdminClient({ initialSchoolId }: Props) {
           )}`,
           { signal: controller.signal, cache: "no-store" },
         );
-        if (!slotRes.ok) {
-          const t = await slotRes.text();
-          throw new Error(t || "スケジュールの取得に失敗しました");
-        }
-        const slotJson = await slotRes.json();
+        await assertOk(slotRes, "スケジュール取得");
+        const slotJson = await readJsonFlexible(slotRes);
 
         if (cancelled) return;
 
@@ -215,9 +248,7 @@ export default function ScheduleAdminClient({ initialSchoolId }: Props) {
         if (cancelled) return;
         if ((e as any)?.name === "AbortError") return;
         console.error(e);
-        setError(
-          "読み込みに失敗しました。権限・schoolId・API を確認してください。",
-        );
+        setError((e as any)?.message ?? "読み込みに失敗しました");
       } finally {
         if (cancelled) return;
         setLoading(false);
@@ -303,14 +334,10 @@ export default function ScheduleAdminClient({ initialSchoolId }: Props) {
           }),
         },
       );
+      await assertOk(res, "保存");
 
-      if (!res.ok) {
-        const data = await res.json().catch(() => null);
-        throw new Error(data?.message ?? "保存に失敗しました");
-      }
-
-      const data = await res.json();
-      const saved = data?.slot;
+      const data = await readJsonFlexible(res);
+      const saved = data?.slot ?? data;
       if (saved?.id) {
         updateSlotLocal(id, {
           weekday: saved.weekday,
@@ -318,8 +345,8 @@ export default function ScheduleAdminClient({ initialSchoolId }: Props) {
           timeText: saved.timeText,
           teacher: saved.teacher,
           place: saved.place,
-          sortOrder: saved.sortOrder,
-          isActive: saved.isActive,
+          sortOrder: Number(saved.sortOrder ?? slot.sortOrder),
+          isActive: Boolean(saved.isActive ?? slot.isActive),
           courseIds: Array.isArray(saved.courseIds)
             ? saved.courseIds
             : slot.courseIds,
@@ -344,11 +371,7 @@ export default function ScheduleAdminClient({ initialSchoolId }: Props) {
         `/api/admin/diagnosis/schedule-slots/${encodeURIComponent(id)}`,
         { method: "DELETE" },
       );
-
-      if (!res.ok) {
-        const data = await res.json().catch(() => null);
-        throw new Error(data?.message ?? "削除に失敗しました");
-      }
+      await assertOk(res, "削除");
 
       setSlots((prev) => prev.filter((s) => s.id !== id));
     } catch (e) {
@@ -401,14 +424,18 @@ export default function ScheduleAdminClient({ initialSchoolId }: Props) {
         }),
       });
 
-      if (!res.ok) {
-        const data = await res.json().catch(() => null);
-        throw new Error(data?.message ?? "追加に失敗しました");
-      }
+      await assertOk(res, "追加");
+      const data = await readJsonFlexible(res);
 
-      const data = await res.json();
-      const created = data?.slot;
-      if (!created?.id) throw new Error("追加に失敗しました（IDが返りません）");
+      // { slot: {...} } / {...} どっちでも吸う
+      const created = data?.slot ?? data;
+      if (!created?.id) {
+        throw new Error(
+          `追加に失敗しました（slot.idが返りません）: ${JSON.stringify(
+            data,
+          ).slice(0, 300)}`,
+        );
+      }
 
       setSlots((prev) => [
         ...prev,
@@ -447,13 +474,11 @@ export default function ScheduleAdminClient({ initialSchoolId }: Props) {
 
   // ---- D&D: 並び替え → sortOrderを付け替えて保存 ----
   async function persistOrderForActiveDay(ordered: SlotRow[]) {
-    // sortOrder を 0.. に振り直し
     const withOrder = ordered.map((s, idx) => ({
       ...s,
       sortOrder: idx,
     }));
 
-    // ローカル反映（即時）
     setSlots((prev) =>
       prev.map((x) => {
         const hit = withOrder.find((w) => w.id === x.id);
@@ -461,28 +486,23 @@ export default function ScheduleAdminClient({ initialSchoolId }: Props) {
       }),
     );
 
-    // サーバ保存（PATCHをまとめて）
-    // 失敗してもUIは崩さない。エラー表示だけ。
     setSavingId("REORDER");
     setError(null);
 
     try {
+      // ✅ ここも assertOk で詳細出す
       await Promise.all(
-        withOrder.map((s) =>
-          fetch(
+        withOrder.map(async (s) => {
+          const r = await fetch(
             `/api/admin/diagnosis/schedule-slots/${encodeURIComponent(s.id)}`,
             {
               method: "PATCH",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ sortOrder: s.sortOrder }),
             },
-          ).then(async (r) => {
-            if (!r.ok) {
-              const data = await r.json().catch(() => null);
-              throw new Error(data?.message ?? "並び順の保存に失敗しました");
-            }
-          }),
-        ),
+          );
+          await assertOk(r, "並び順保存");
+        }),
       );
     } catch (e) {
       console.error(e);
@@ -506,7 +526,7 @@ export default function ScheduleAdminClient({ initialSchoolId }: Props) {
     const fromId = dragFromIdRef.current;
     if (!fromId || fromId === toId) return;
 
-    const ordered = activeSlots.slice(); // sortOrder順で並んでいる
+    const ordered = activeSlots.slice();
     const fromIndex = ordered.findIndex((x) => x.id === fromId);
     const toIndex = ordered.findIndex((x) => x.id === toId);
     if (fromIndex < 0 || toIndex < 0) return;
@@ -600,7 +620,7 @@ export default function ScheduleAdminClient({ initialSchoolId }: Props) {
             type="button"
             onClick={createSlot}
             className={btnPrimary}
-            disabled={!schoolId || savingId === "NEW"}
+            disabled={!schoolId || savingId === "NEW" || savingId === "REORDER"}
           >
             {savingId === "NEW" ? "追加中..." : "追加する"}
           </button>
@@ -618,6 +638,7 @@ export default function ScheduleAdminClient({ initialSchoolId }: Props) {
                   weekday: e.target.value as Weekday,
                 }))
               }
+              disabled={savingId === "REORDER"}
             >
               {WEEKDAYS.map((d) => (
                 <option key={d.key} value={d.key}>
@@ -639,6 +660,7 @@ export default function ScheduleAdminClient({ initialSchoolId }: Props) {
                   sortOrder: Number(e.target.value || 0),
                 }))
               }
+              disabled={savingId === "REORDER"}
             />
           </div>
 
@@ -650,6 +672,7 @@ export default function ScheduleAdminClient({ initialSchoolId }: Props) {
               onChange={(e) =>
                 setNewSlot((p) => ({ ...p, genreText: e.target.value }))
               }
+              disabled={savingId === "REORDER"}
             />
           </div>
 
@@ -661,6 +684,7 @@ export default function ScheduleAdminClient({ initialSchoolId }: Props) {
               onChange={(e) =>
                 setNewSlot((p) => ({ ...p, timeText: e.target.value }))
               }
+              disabled={savingId === "REORDER"}
             />
           </div>
 
@@ -672,6 +696,7 @@ export default function ScheduleAdminClient({ initialSchoolId }: Props) {
               onChange={(e) =>
                 setNewSlot((p) => ({ ...p, teacher: e.target.value }))
               }
+              disabled={savingId === "REORDER"}
             />
           </div>
 
@@ -683,6 +708,7 @@ export default function ScheduleAdminClient({ initialSchoolId }: Props) {
               onChange={(e) =>
                 setNewSlot((p) => ({ ...p, place: e.target.value }))
               }
+              disabled={savingId === "REORDER"}
             />
           </div>
         </div>
@@ -711,6 +737,7 @@ export default function ScheduleAdminClient({ initialSchoolId }: Props) {
                           courseIds: toggleCourse(p.courseIds, c.id),
                         }))
                       }
+                      disabled={savingId === "REORDER"}
                     />
                     <span className="min-w-0 truncate">{c.label}</span>
                   </label>
@@ -753,15 +780,11 @@ export default function ScheduleAdminClient({ initialSchoolId }: Props) {
                   "border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-950",
                   draggingId === s.id ? "opacity-60" : "opacity-100",
                 ].join(" ")}
-                onDragOver={(e) => {
-                  // drop を許可
-                  e.preventDefault();
-                }}
+                onDragOver={(e) => e.preventDefault()}
                 onDrop={() => onDrop(s.id)}
               >
                 <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                   <div className="flex items-center gap-3">
-                    {/* Drag handle */}
                     <div
                       title="ドラッグして並び替え"
                       className={[
@@ -935,8 +958,7 @@ export default function ScheduleAdminClient({ initialSchoolId }: Props) {
                   </div>
 
                   <div className="mt-2 text-[11px] text-gray-500 dark:text-gray-400">
-                    ※
-                    「保存」を押すまでDBには反映されません（並び替えはドロップ時に自動保存）。
+                    ※「保存」を押すまでDBには反映されません（並び替えはドロップ時に自動保存）。
                   </div>
                 </div>
               </div>
