@@ -205,6 +205,10 @@ export default function DiagnosisEmbedClient({
     PublicScheduleSlot[]
   >;
 
+  const [scheduleDay, setScheduleDay] = useState<
+    "ALL" | "MON" | "TUE" | "WED" | "THU" | "FRI" | "SAT" | "SUN"
+  >("ALL");
+
   const [schedule, setSchedule] = useState<PublicSchedule | null>(null);
   const [scheduleError, setScheduleError] = useState<string | null>(null);
 
@@ -737,14 +741,22 @@ export default function DiagnosisEmbedClient({
             </div>
           </div>
 
-          {/* ✅ スケジュール */}
-          <div className="mt-4">
-            <div className="text-xs font-semibold text-gray-500">
-              スケジュール
+          {/* ✅ スケジュール（UIをスクショ寄せに） */}
+          <div className="mt-6">
+            {/* 見出し */}
+            <div className="text-center">
+              <div className="text-[26px] font-extrabold tracking-wide text-[#6b4a2b]">
+                スケジュール
+              </div>
+              <div className="mt-1 text-[12px] font-semibold tracking-[0.2em] text-[#6b4a2b]/70">
+                SCHEDULE
+              </div>
+              <div className="mx-auto mt-6 h-px w-full bg-[#6b4a2b]/10" />
             </div>
 
+            {/* エラー */}
             {scheduleError && (
-              <div className="mt-2 rounded-md bg-red-50 px-3 py-2 text-[11px] text-red-600">
+              <div className="mt-3 rounded-xl bg-red-50 px-3 py-2 text-[11px] text-red-600">
                 {scheduleError}
               </div>
             )}
@@ -760,58 +772,148 @@ export default function DiagnosisEmbedClient({
 
               if (!s || total === 0) {
                 return (
-                  <div className="mt-2 text-[11px] text-gray-400">
+                  <div className="mt-4 rounded-2xl bg-white p-5 text-center text-[12px] font-semibold text-[#6b4a2b]/70 ring-1 ring-[#6b4a2b]/10">
                     現在、該当するスケジュールはありません。
                   </div>
                 );
               }
 
-              return (
-                <div className="mt-2 space-y-4">
-                  {(
-                    [
-                      ["MON", "月"],
-                      ["TUE", "火"],
-                      ["WED", "水"],
-                      ["THU", "木"],
-                      ["FRI", "金"],
-                      ["SAT", "土"],
-                      ["SUN", "日"],
-                    ] as const
-                  ).map(([key, label]) => {
-                    const items = s[key] ?? [];
-                    return (
-                      <div key={key}>
-                        <div className="font-semibold text-gray-800">
-                          {label}
-                        </div>
+              // 曜日フィルター
+              const dayKeys = [
+                "ALL",
+                "MON",
+                "TUE",
+                "WED",
+                "THU",
+                "FRI",
+                "SAT",
+                "SUN",
+              ] as const;
+              type DayKey = (typeof dayKeys)[number];
 
-                        <div className="mt-2 space-y-2">
-                          {items.length === 0 ? (
-                            <div className="text-xs text-gray-500">なし</div>
-                          ) : (
-                            items.map((slot) => (
-                              <div
-                                key={slot.id}
-                                className="rounded-2xl border border-gray-200 bg-white p-3 shadow-sm"
-                              >
-                                <div className="font-semibold text-gray-900">
-                                  {slot.genreText} / {slot.timeText}
+              const dayLabel: Record<DayKey, string> = {
+                ALL: "ALL",
+                MON: "月",
+                TUE: "火",
+                WED: "水",
+                THU: "木",
+                FRI: "金",
+                SAT: "土",
+                SUN: "日",
+              };
+
+              // ここだけ state が必要なので、外側に state がない場合は
+              // 1) このスケジュールブロックをコンポーネント化する or
+              // 2) 既に上で useState があるならそれを使う
+              // ✅ いまは "scheduleDay" という state がある前提で書く（無ければ下の追記を見て）
+              // const [scheduleDay, setScheduleDay] = useState<DayKey>("ALL");
+
+              // @ts-expect-error: scheduleDay を親で宣言してね
+              const activeDay: DayKey = scheduleDay;
+              // @ts-expect-error: setScheduleDay を親で宣言してね
+              const setActiveDay: (d: DayKey) => void = setScheduleDay;
+
+              const list =
+                activeDay === "ALL"
+                  ? (
+                      ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"] as const
+                    ).flatMap((k) =>
+                      (s[k] ?? []).map((slot) => ({ ...slot, weekday: k })),
+                    )
+                  : (s[activeDay] ?? []).map((slot) => ({
+                      ...slot,
+                      weekday: activeDay,
+                    }));
+
+              return (
+                <>
+                  {/* 曜日ピル */}
+                  <div className="mt-6 flex flex-wrap gap-3">
+                    {dayKeys.map((k) => (
+                      <button
+                        key={k}
+                        onClick={() => setActiveDay(k)}
+                        className={[
+                          "h-11 min-w-[72px] rounded-full px-5 text-[14px] font-bold",
+                          "transition active:scale-[0.99]",
+                          "shadow-[0_8px_16px_rgba(0,0,0,0.08)]",
+                          k === activeDay
+                            ? "bg-[#f6c400] text-[#6b4a2b]"
+                            : "bg-white text-[#6b4a2b] ring-1 ring-[#6b4a2b]/10",
+                        ].join(" ")}
+                      >
+                        {dayLabel[k]}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* カード一覧 */}
+                  <div className="mt-6 space-y-4">
+                    {list.length === 0 ? (
+                      <div className="rounded-2xl bg-white p-5 text-center text-[12px] font-semibold text-[#6b4a2b]/70 ring-1 ring-[#6b4a2b]/10">
+                        該当するスケジュールがありません
+                      </div>
+                    ) : (
+                      list.map((slot) => (
+                        <div
+                          key={slot.id}
+                          className={[
+                            "rounded-2xl bg-white p-5",
+                            "ring-1 ring-[#6b4a2b]/10",
+                            "shadow-[0_10px_24px_rgba(0,0,0,0.08)]",
+                          ].join(" ")}
+                        >
+                          <div className="flex items-start gap-3">
+                            {/* 左のアクセントバー */}
+                            <div className="mt-1 h-5 w-1.5 rounded-full bg-[#d9d2c7]" />
+
+                            <div className="min-w-0 flex-1">
+                              {/* コース名が無いので一旦 placeholder（必要なら slot.courseName に差し替え） */}
+                              <div className="text-[18px] font-extrabold text-[#6b4a2b]">
+                                XXXXXコース
+                              </div>
+
+                              <div className="mt-3 space-y-2 text-[14px] font-semibold text-[#6b4a2b]/85">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-[#b8a99a]">✦</span>
+                                  <span className="truncate">
+                                    {slot.genreText}
+                                  </span>
                                 </div>
-                                <div className="mt-1 text-xs text-gray-700">
-                                  講師：{slot.teacher}
+
+                                <div className="flex items-center gap-2">
+                                  <span className="text-[#b8a99a]">🕒</span>
+                                  <span className="truncate">
+                                    {slot.timeText}
+                                  </span>
                                 </div>
-                                <div className="text-xs text-gray-700">
-                                  場所：{slot.place}
+
+                                <div className="flex items-center gap-2">
+                                  <span className="text-[#b8a99a]">👤</span>
+                                  <span className="truncate">
+                                    {slot.teacher}
+                                  </span>
+                                </div>
+
+                                <div className="flex items-center gap-2">
+                                  <span className="text-[#b8a99a]">📍</span>
+                                  <span className="truncate">{slot.place}</span>
                                 </div>
                               </div>
-                            ))
-                          )}
+
+                              {/* 曜日表示したいなら（ALL表示時に便利） */}
+                              {activeDay === "ALL" && (
+                                <div className="mt-3 text-[11px] font-bold text-[#6b4a2b]/55">
+                                  {dayLabel[slot.weekday as DayKey]}
+                                </div>
+                              )}
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    );
-                  })}
-                </div>
+                      ))
+                    )}
+                  </div>
+                </>
               );
             })()}
           </div>
