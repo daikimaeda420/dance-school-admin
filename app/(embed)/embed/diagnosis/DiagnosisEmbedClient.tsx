@@ -485,13 +485,13 @@ export default function DiagnosisEmbedClient({
     const hasInstructors = instructors.length > 0;
 
     return (
-      <div className={styles.shell}>
+      <div className={styles.root}>
         <div className={styles.panel}>
           {/* ヘッダー */}
-          <div className={styles.headerRow}>
+          <div className={styles.header}>
             <div>
-              <div className={styles.mutedLabel}>マッチ度</div>
-              <div className={styles.score}>
+              <div className={styles.header__label}>マッチ度</div>
+              <div className={styles.header__score}>
                 {result.score}
                 <span className={styles.scoreSmall}> / 100</span>
               </div>
