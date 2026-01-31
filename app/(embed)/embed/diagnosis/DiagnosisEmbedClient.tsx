@@ -161,6 +161,105 @@ function normalizeEmbedInput(input: unknown): string {
   return s;
 }
 
+/** ===== 「生徒の声」内部コンポーネント（同ファイル内） ===== */
+function ReviewCard(props: {
+  title: string[]; // 2行想定
+  body: string;
+  meta: string;
+  align?: "left" | "right";
+}) {
+  const align = props.align ?? "left";
+  const bubbleBg = "bg-[#f6efe6]";
+  const border = "border border-black/10";
+
+  return (
+    <div
+      className={[
+        "relative rounded-[22px] px-5 pt-6 pb-4",
+        bubbleBg,
+        border,
+        "shadow-[0_8px_20px_rgba(0,0,0,0.06)]",
+      ].join(" ")}
+    >
+      {/* 吹き出しのしっぽ */}
+      <div
+        className={[
+          "absolute -bottom-[10px] h-5 w-5 rotate-45",
+          bubbleBg,
+          border,
+          align === "left" ? "left-7" : "right-7",
+        ].join(" ")}
+      />
+
+      {/* 角の装飾（左上・右下） */}
+      <CornerMarks />
+
+      {/* タイトル */}
+      <div className="text-center text-[#7a4b1f]">
+        <div className="text-[18px] font-extrabold leading-snug">
+          {props.title[0]}
+          <br />
+          {props.title[1]}
+        </div>
+      </div>
+
+      {/* 本文 */}
+      <p className="mt-4 text-[14px] leading-7 text-[#7a4b1f]/90">
+        {props.body}
+      </p>
+
+      <div className="mt-4 h-px w-full bg-black/10" />
+
+      {/* メタ */}
+      <div className="mt-3 flex items-center gap-3">
+        <div className="grid h-10 w-10 place-items-center rounded-full bg-[#f5c400]">
+          {/* 顔アイコン */}
+          <svg
+            width="22"
+            height="22"
+            viewBox="0 0 24 24"
+            fill="none"
+            aria-hidden="true"
+          >
+            <circle cx="12" cy="12" r="10" stroke="rgba(0,0,0,0.35)" />
+            <circle cx="9" cy="10" r="1.2" fill="rgba(0,0,0,0.45)" />
+            <circle cx="15" cy="10" r="1.2" fill="rgba(0,0,0,0.45)" />
+            <path
+              d="M8.5 14.2c1 1.2 2.2 1.8 3.5 1.8s2.5-.6 3.5-1.8"
+              stroke="rgba(0,0,0,0.45)"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+            />
+          </svg>
+        </div>
+        <div className="text-[13px] font-bold text-[#7a4b1f]/80">
+          {props.meta}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CornerMarks() {
+  const c = "rgba(122,75,31,0.35)";
+  return (
+    <>
+      {/* left-top */}
+      <span className="pointer-events-none absolute left-4 top-4">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+          <path d="M16 2H2v14" stroke={c} strokeWidth="3" />
+        </svg>
+      </span>
+      {/* right-bottom */}
+      <span className="pointer-events-none absolute bottom-4 right-4">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+          <path d="M2 16h14V2" stroke={c} strokeWidth="3" />
+        </svg>
+      </span>
+    </>
+  );
+}
+
 /**
  * 結果APIの互換キーも拾って iframe src / link を決定する
  * - googleMapEmbedUrl / mapEmbedUrl を両対応
@@ -1003,6 +1102,47 @@ export default function DiagnosisEmbedClient({
             </section>
             {/* ===== /レッスン料金 ===== */}
           </div>
+
+          {/* ✅ 生徒の声 */}
+          <div className="w-full max-w-md mx-auto px-4">
+            {/* ===== 生徒の声 ===== */}
+            <section className="rounded-[28px] bg-white px-5 pt-6 pb-6 shadow-sm ring-1 ring-black/5">
+              {/* Header */}
+              <div className="text-center">
+                <h2 className="text-[22px] font-extrabold tracking-wide text-[#7a4b1f]">
+                  生徒の声
+                </h2>
+                <div className="mt-1 text-[12px] font-semibold tracking-[0.25em] text-[#7a4b1f]/70">
+                  REVIEWS
+                </div>
+              </div>
+
+              <div className="my-5 h-px w-full bg-black/10" />
+
+              <div className="space-y-4">
+                <ReviewCard
+                  title={["初心者でも安心", "アットホームな雰囲気"]}
+                  body="初心者でしたが、アットホームな雰囲気で、フォーメーションにも挑戦できてとても楽しいです♪"
+                  meta="ダンススクール生徒 20代 女性"
+                  align="left"
+                />
+                <ReviewCard
+                  title={["雰囲気の良さが魅力", "毎回通うのが楽しみ"]}
+                  body="クラスの雰囲気も良く、和気あいあいとした楽しい時間を過ごせるレッスンで、毎レッスン充実しています！"
+                  meta="ダンススクール生徒 30代 女性"
+                  align="right"
+                />
+                <ReviewCard
+                  title={["未経験でも安心", "優しい環境で楽しい"]}
+                  body="全くの初心者なので心配でしたが、先生もクラスの皆さんも優しく、すごくいい環境で最高です。"
+                  meta="ダンススクール生徒 40代 男性"
+                  align="left"
+                />
+              </div>
+            </section>
+            {/* ===== /生徒の声 ===== */}
+          </div>
+
           {/* ✅ 校舎情報 */}
           {(() => {
             const c = result.campus ?? result.selectedCampus;
