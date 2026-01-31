@@ -808,9 +808,7 @@ export default function DiagnosisEmbedClient({
               // ✅ いまは "scheduleDay" という state がある前提で書く（無ければ下の追記を見て）
               // const [scheduleDay, setScheduleDay] = useState<DayKey>("ALL");
 
-              // @ts-expect-error: scheduleDay を親で宣言してね
               const activeDay: DayKey = scheduleDay;
-              // @ts-expect-error: setScheduleDay を親で宣言してね
               const setActiveDay: (d: DayKey) => void = setScheduleDay;
 
               const list =
