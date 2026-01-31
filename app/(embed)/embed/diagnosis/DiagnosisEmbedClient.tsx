@@ -293,13 +293,25 @@ export default function DiagnosisEmbedClient({
   const [openIndex, setOpenIndex] = useState<number | null>(0);
   const faqs = [
     {
-      q: "テキストサンプルテキストサンプル",
-      a: "テキストサンプルテキストサンプル\nテキストサンプルテキストサンプル\nテキストサンプルテキストサンプル\nテキストサンプル",
+      q: "ダンスに興味がありますがダンス初心者でリズム感もありません。レッスンについていけるか心配です。",
+      a: "リンクスはダンス初心者さんの為のダンススクールですのでご安心ください。\nリンクスのクラスはアットホームで、講師が優しくレクチャーいたしますので是非体験レッスンにお越しくださいませ。",
     },
-    { q: "テキストサンプルテキスト", a: "テキストサンプルテキストサンプル" },
-    { q: "テキストサンプルテキスト", a: "テキストサンプルテキストサンプル" },
-    { q: "テキストサンプルテキスト", a: "テキストサンプルテキストサンプル" },
-    { q: "テキストサンプルテキスト", a: "テキストサンプルテキストサンプル" },
+    {
+      q: "40代の主婦です。年齢的に周りの生徒さんについていけるか心配です。年齢層はどのような感じでしょうか。",
+      a: "リンクスでは、クラスによりますが20代〜60代の方まで幅広く、男女比は男性4割、女性6割(目安)の方がレッスンに参加されております。",
+    },
+    {
+      q: "ダンスレッスンに初めて参加します。何が必要ですか？",
+      a: "ダンスレッスンでは特別な道具は必要ございません。①動きやすい服 or 着替え ②汗拭きタオル ③お飲物(蓋の閉まるもの) ④動きやすい室内用シューズ 以上4点をご用意ください。\nまた、クラスやジャンルによってはシューズが不要な場合もございます。",
+    },
+    {
+      q: "入会するのは月初めではないとダメでしょうか。月の途中で入会はできますか？",
+      a: "可能でございます。月の途中で入会される場合は、週割りのお月謝をお支払いただきます。",
+    },
+    {
+      q: "支払い方法は何が利用できますか？",
+      a: "初回金(入会金)はお振込み、お月謝はクレジットカードがご利用いただけます。\n体験料はクレジットカード前払いでお支払いいただきます。(会員登録不要)",
+    },
   ];
 
   type PublicScheduleSlot = {
@@ -632,33 +644,86 @@ export default function DiagnosisEmbedClient({
 
     return (
       <div className={styles.root}>
+        <button
+          type="button"
+          className="text-xs text-gray-500 underline"
+          onClick={handleRestart}
+        >
+          診断をやり直す
+        </button>
         <div className="w-full max-w-4xl rounded-3xl border border-gray-200 bg-white p-6 shadow-xl text-gray-900 md:p-8">
-          {/* ヘッダー */}
-          <div className="mb-4 flex items-start justify-between gap-4">
-            <div>
-              <div className="text-sm font-semibold text-gray-500">
-                マッチ度
-              </div>
-              <div className="text-3xl font-extrabold">
-                {result.score}
-                <span className="text-lg font-semibold"> / 100</span>
-              </div>
-              {result.patternMessage && (
-                <div className="mt-1 text-xs text-gray-500">
-                  {result.patternMessage}
-                </div>
-              )}
-            </div>
-
+          {/* FV */}
+          {/* ===== 画像寄せのマッチング表示 ===== */}
+          <div className="relative overflow-hidden rounded-2xl bg-[#fbf4df] px-4 pb-5 pt-4">
+            {/* 閉じるボタン（必要なら） */}
             {onClose && (
               <button
                 type="button"
-                className="rounded-full border border-gray-200 px-3 py-1 text-xs text-gray-500 hover:bg-gray-100"
+                className="absolute right-3 top-3 grid h-8 w-8 place-items-center rounded-full bg-white/80 text-xs text-gray-500 ring-1 ring-black/5 hover:bg-white"
                 onClick={onClose}
+                aria-label="閉じる"
               >
                 ✕
               </button>
             )}
+
+            {/* 上の吹き出し */}
+            <div className="mx-auto inline-flex rounded-full bg-[#cfc1aa] px-4 py-2 text-xs font-bold text-white">
+              今のあなたに1番おすすめのクラスは…
+            </div>
+
+            {/* 赤いコピー */}
+            <div className="mt-3 text-center text-[18px] font-extrabold text-red-600">
+              相性バツグン！
+            </div>
+
+            {/* 円形メーター */}
+            <div className="mt-3 flex justify-center">
+              <div
+                className="relative grid h-[132px] w-[132px] place-items-center rounded-full shadow-[0_10px_25px_rgba(0,0,0,0.15)]"
+                style={{
+                  background: `conic-gradient(#f3a58c ${Math.max(
+                    0,
+                    Math.min(100, result.score),
+                  )}%, rgba(243,165,140,0.25) 0)`,
+                }}
+                aria-label={`マッチング度 ${result.score}%`}
+              >
+                {/* 白い内側 */}
+                <div className="grid h-[108px] w-[108px] place-items-center rounded-full bg-white">
+                  <div className="text-center">
+                    <div className="text-[12px] font-bold text-gray-500">
+                      マッチング度
+                    </div>
+                    <div className="mt-1 text-[34px] font-extrabold text-[#7a4b1f] leading-none">
+                      {result.score}
+                      <span className="text-[16px] font-extrabold align-top">
+                        %
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* リングの先端を丸く見せるための白いキャップ（任意・雰囲気寄せ） */}
+                <div className="pointer-events-none absolute inset-0 rounded-full ring-8 ring-white/40" />
+              </div>
+            </div>
+
+            {/* 下の白い帯（角丸） */}
+            <div className="mt-4 rounded-2xl bg-white px-4 py-5 text-center shadow-[0_10px_25px_rgba(0,0,0,0.08)]">
+              <div className="text-[16px] font-extrabold text-[#7a4b1f]">
+                運命のクラスかも？
+              </div>
+              <div className="mt-1 text-[30px] font-extrabold leading-tight text-[#f08d6b]">
+                {result.bestMatch?.className ?? "K-POP 初級クラス"}
+              </div>
+
+              {result.patternMessage && (
+                <div className="mt-2 text-xs font-medium text-gray-500">
+                  {result.patternMessage}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* メイン提案エリア */}
@@ -1425,13 +1490,6 @@ export default function DiagnosisEmbedClient({
             >
               このクラスの体験レッスンを予約する
             </a>
-            <button
-              type="button"
-              className="text-xs text-gray-500 underline"
-              onClick={handleRestart}
-            >
-              診断をやり直す
-            </button>
           </div>
 
           {/* 診断結果フォーム */}
