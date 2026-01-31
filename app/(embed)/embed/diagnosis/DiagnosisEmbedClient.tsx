@@ -298,7 +298,6 @@ export default function DiagnosisEmbedClient({
   }, [schoolId]);
 
   // ✅ Q1のみ管理画面連動、Q2〜Q6は固定
-  // ★フラッシュ対策：campusLoaded までは Q1 を空 options にする
   const questions = useMemo(() => {
     return QUESTIONS.map((q) => {
       if (q.id !== "Q1") return q;
@@ -478,7 +477,7 @@ export default function DiagnosisEmbedClient({
   }, [result, schoolId]);
 
   // ==========================
-  // 診断結果画面
+  // ✅ 診断結果画面（Tailwindベース + SCSS微調整）
   // ==========================
   if (result) {
     const instructors = result.instructors ?? [];
@@ -486,24 +485,28 @@ export default function DiagnosisEmbedClient({
 
     return (
       <div className={styles.root}>
-        <div className={styles.panel}>
+        <div className="w-full max-w-4xl rounded-3xl border border-gray-200 bg-white p-6 shadow-xl text-gray-900 md:p-8">
           {/* ヘッダー */}
-          <div className={styles.header}>
+          <div className="mb-4 flex items-start justify-between gap-4">
             <div>
-              <div className={styles.header__label}>マッチ度</div>
-              <div className={styles.header__score}>
+              <div className="text-sm font-semibold text-gray-500">
+                マッチ度
+              </div>
+              <div className="text-3xl font-extrabold">
                 {result.score}
-                <span className={styles.scoreSmall}> / 100</span>
+                <span className="text-lg font-semibold"> / 100</span>
               </div>
               {result.patternMessage && (
-                <div className={styles.helperText}>{result.patternMessage}</div>
+                <div className="mt-1 text-xs text-gray-500">
+                  {result.patternMessage}
+                </div>
               )}
             </div>
 
             {onClose && (
               <button
                 type="button"
-                className={styles.closeBtn}
+                className="rounded-full border border-gray-200 px-3 py-1 text-xs text-gray-500 hover:bg-gray-100"
                 onClick={onClose}
               >
                 ✕
@@ -512,8 +515,8 @@ export default function DiagnosisEmbedClient({
           </div>
 
           {/* メイン提案エリア */}
-          <div className={styles.sectionSoft}>
-            <div className={styles.sectionTitle}>
+          <div className="mb-4 rounded-2xl bg-gray-50 p-4">
+            <div className="text-xs font-semibold text-gray-500">
               あなたにおすすめのクラスは
             </div>
 
@@ -549,25 +552,28 @@ export default function DiagnosisEmbedClient({
               const imgSrc =
                 coursePhotoUrl || fallbackCourseImgSrc || genreImgSrc || null;
 
-              const titleText = className;
-
               return (
-                <div>
-                  <div className={styles.bigTitle}>{titleText}</div>
+                <div className="mt-2">
+                  <div className="text-lg font-bold">{className}</div>
 
                   {imgSrc && (
-                    <div className={styles.mediaImgWrap}>
+                    <div
+                      className={[
+                        "mt-3 overflow-hidden rounded-2xl border border-gray-200 bg-white",
+                        styles.mediaFrame,
+                      ].join(" ")}
+                    >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={imgSrc}
                         alt={
                           coursePhotoUrl || fallbackCourseImgSrc
-                            ? `${titleText}の画像`
+                            ? `${className}の画像`
                             : genreLabel
                               ? `${genreLabel}の画像`
                               : "診断結果画像"
                         }
-                        className={styles.mediaImg}
+                        className="h-40 w-full object-cover"
                         loading="lazy"
                       />
                     </div>
@@ -576,48 +582,50 @@ export default function DiagnosisEmbedClient({
               );
             })()}
 
-            <div className={styles.pill}>{result.headerLabel}</div>
+            <div className="mt-3 inline-flex items-center rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
+              {result.headerLabel}
+            </div>
 
-            {/* ✅ 担当講師の上：診断コピー（resultCopy） */}
+            {/* ✅ 担当講師の上：診断コピー */}
             {result.resultCopy && (
-              <div className={styles.cardStack}>
+              <div className="mt-4 space-y-3">
                 {result.resultCopy.level && (
-                  <div className={styles.card}>
-                    <div className={styles.cardLead}>
+                  <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+                    <div className="text-xs font-semibold text-gray-500">
                       あなたのレベルに合わせた提案
                     </div>
-                    <div className={styles.cardTitle}>
+                    <div className="mt-2 whitespace-pre-wrap text-sm font-semibold text-gray-900">
                       {result.resultCopy.level.title}
                     </div>
-                    <div className={styles.cardBody}>
+                    <div className="mt-1 whitespace-pre-wrap text-sm text-gray-800">
                       {result.resultCopy.level.body}
                     </div>
                   </div>
                 )}
 
                 {result.resultCopy.age && (
-                  <div className={styles.card}>
-                    <div className={styles.cardLead}>
+                  <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+                    <div className="text-xs font-semibold text-gray-500">
                       ライフスタイルに合わせた提案
                     </div>
-                    <div className={styles.cardTitle}>
+                    <div className="mt-2 whitespace-pre-wrap text-sm font-semibold text-gray-900">
                       {result.resultCopy.age.title}
                     </div>
-                    <div className={styles.cardBody}>
+                    <div className="mt-1 whitespace-pre-wrap text-sm text-gray-800">
                       {result.resultCopy.age.body}
                     </div>
                   </div>
                 )}
 
                 {result.resultCopy.teacher && (
-                  <div className={styles.card}>
-                    <div className={styles.cardLead}>
+                  <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+                    <div className="text-xs font-semibold text-gray-500">
                       先生のタイプに合わせた提案
                     </div>
-                    <div className={styles.cardTitle}>
+                    <div className="mt-2 whitespace-pre-wrap text-sm font-semibold text-gray-900">
                       {result.resultCopy.teacher.title}
                     </div>
-                    <div className={styles.cardBody}>
+                    <div className="mt-1 whitespace-pre-wrap text-sm text-gray-800">
                       {result.resultCopy.teacher.body}
                     </div>
                   </div>
@@ -626,8 +634,8 @@ export default function DiagnosisEmbedClient({
             )}
 
             {/* 不安解消メッセージ */}
-            <div className={styles.concern}>
-              <div className={styles.concernTitle}>
+            <div className="mt-4 rounded-xl bg-blue-50 p-3 text-xs text-blue-900">
+              <div className="mb-1 font-semibold">
                 こんな不安はありませんか？
               </div>
               <div className="whitespace-pre-wrap">
@@ -636,36 +644,50 @@ export default function DiagnosisEmbedClient({
             </div>
 
             {/* ✅ 担当講師 */}
-            <div className={styles.instructorWrap}>
-              <div className={styles.sectionTitle}>担当講師</div>
+            <div className="mt-4">
+              <div className="text-xs font-semibold text-gray-500">
+                担当講師
+              </div>
 
               {hasInstructors ? (
-                <div className={styles.cardStack}>
+                <div className="mt-2 space-y-3">
                   {instructors.map((t) => {
                     const tags = splitCharmTags(t.charmTags);
                     const intro = String(t.introduction ?? "").trim();
 
                     return (
-                      <div key={t.id} className={styles.instructorCard}>
-                        <div className={styles.instructorRow}>
-                          <div className={styles.avatar}>
+                      <div
+                        key={t.id}
+                        className="rounded-3xl border border-gray-200 bg-white p-4 shadow-sm"
+                      >
+                        <div className="flex items-start gap-4">
+                          <div className="h-24 w-24 overflow-hidden rounded-2xl bg-gray-200">
                             {t.photoUrl ? (
                               // eslint-disable-next-line @next/next/no-img-element
-                              <img src={t.photoUrl} alt={t.label} />
-                            ) : null}
+                              <img
+                                src={t.photoUrl}
+                                alt={t.label}
+                                className="h-full w-full object-cover"
+                              />
+                            ) : (
+                              <div className="h-full w-full" />
+                            )}
                           </div>
 
-                          <div className="min-w-0">
-                            <div className={styles.instructorName}>
+                          <div className="min-w-0 flex-1">
+                            <div className="text-xl font-extrabold tracking-tight">
                               {t.label}
                             </div>
 
                             {tags.length > 0 && (
-                              <div className={styles.tags}>
+                              <div className="mt-2 flex flex-wrap gap-2">
                                 {tags.map((tag, idx) => (
                                   <span
                                     key={`${t.id}_tag_${idx}`}
-                                    className={styles.tag}
+                                    className={[
+                                      "inline-flex items-center rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700",
+                                      styles.tag,
+                                    ].join(" ")}
                                   >
                                     {tag}
                                   </span>
@@ -676,8 +698,12 @@ export default function DiagnosisEmbedClient({
                         </div>
 
                         {intro && (
-                          <div className={styles.bubble}>
-                            <span className="whitespace-pre-wrap">{intro}</span>
+                          <div className="mt-4">
+                            <div className={styles.bubble}>
+                              <span className="whitespace-pre-wrap">
+                                {intro}
+                              </span>
+                            </div>
                           </div>
                         )}
                       </div>
@@ -711,9 +737,11 @@ export default function DiagnosisEmbedClient({
             </div>
           </div>
 
-          {/* ✅ スケジュール（担当講師の下に表示） */}
-          <div>
-            <div className={styles.blockTitle}>スケジュール</div>
+          {/* ✅ スケジュール */}
+          <div className="mt-4">
+            <div className="text-xs font-semibold text-gray-500">
+              スケジュール
+            </div>
 
             {scheduleError && (
               <div className="mt-2 rounded-md bg-red-50 px-3 py-2 text-[11px] text-red-600">
@@ -739,7 +767,7 @@ export default function DiagnosisEmbedClient({
               }
 
               return (
-                <div className="mt-2">
+                <div className="mt-2 space-y-4">
                   {(
                     [
                       ["MON", "月"],
@@ -754,24 +782,26 @@ export default function DiagnosisEmbedClient({
                     const items = s[key] ?? [];
                     return (
                       <div key={key}>
-                        <div className={styles.scheduleDay}>{label}</div>
+                        <div className="font-semibold text-gray-800">
+                          {label}
+                        </div>
 
-                        <div className="mt-2">
+                        <div className="mt-2 space-y-2">
                           {items.length === 0 ? (
                             <div className="text-xs text-gray-500">なし</div>
                           ) : (
                             items.map((slot) => (
                               <div
                                 key={slot.id}
-                                className={styles.scheduleItem}
+                                className="rounded-2xl border border-gray-200 bg-white p-3 shadow-sm"
                               >
-                                <div className={styles.scheduleMain}>
+                                <div className="font-semibold text-gray-900">
                                   {slot.genreText} / {slot.timeText}
                                 </div>
-                                <div className={styles.scheduleSub}>
+                                <div className="mt-1 text-xs text-gray-700">
                                   講師：{slot.teacher}
                                 </div>
-                                <div className={styles.scheduleSub}>
+                                <div className="text-xs text-gray-700">
                                   場所：{slot.place}
                                 </div>
                               </div>
@@ -794,9 +824,11 @@ export default function DiagnosisEmbedClient({
             const { embedSrc, linkUrl } = pickCampusMapFields(c);
 
             return (
-              <div className={styles.campusBox}>
-                <div className={styles.sectionTitle}>選択した校舎</div>
-                <div className={styles.bigTitle}>{c.label}</div>
+              <div className="mt-6 rounded-2xl bg-gray-50 p-4">
+                <div className="text-xs font-semibold text-gray-500">
+                  選択した校舎
+                </div>
+                <div className="mt-1 text-lg font-bold">{c.label}</div>
 
                 {(c.address || c.access || embedSrc || linkUrl) && (
                   <div className="mt-3 space-y-2 text-xs text-gray-700">
@@ -817,13 +849,21 @@ export default function DiagnosisEmbedClient({
                     ) : null}
 
                     {embedSrc ? (
-                      <div className={styles.mapFrame}>
-                        <iframe
-                          src={embedSrc}
-                          className={styles.mapIframe}
-                          loading="lazy"
-                          referrerPolicy="no-referrer-when-downgrade"
-                        />
+                      <div className="pt-2">
+                        <div
+                          className={[
+                            "overflow-hidden rounded-2xl border border-gray-200 bg-white",
+                            styles.mediaFrame,
+                          ].join(" ")}
+                        >
+                          <iframe
+                            src={embedSrc}
+                            className="h-64 w-full"
+                            style={{ border: 0 }}
+                            loading="lazy"
+                            referrerPolicy="no-referrer-when-downgrade"
+                          />
+                        </div>
                       </div>
                     ) : null}
 
@@ -844,31 +884,37 @@ export default function DiagnosisEmbedClient({
           })()}
 
           {/* マッチング分析 */}
-          <div className={styles.analysisBox}>
-            <div className={styles.blockTitle}>マッチング分析</div>
-
-            <div className="mt-2 grid gap-2">
+          <div className="mt-6">
+            <div className="mb-2 text-xs font-semibold text-gray-500">
+              マッチング分析
+            </div>
+            <div className="space-y-1 text-xs">
               {result.breakdown.length === 0 && (
-                <div className="rounded-md bg-green-50 px-2 py-1 text-xs text-green-700">
+                <div className="rounded-md bg-green-50 px-2 py-1 text-green-700">
                   すべての項目でほぼ理想的なマッチングです。
                 </div>
               )}
               {result.breakdown.map((b, idx) => (
-                <div key={idx} className={styles.analysisRow}>
-                  <div className={styles.analysisKey}>
+                <div
+                  key={idx}
+                  className="flex items-start justify-between gap-2 rounded-md bg-gray-50 px-2 py-1"
+                >
+                  <div className="font-semibold">
                     {b.key === "level" && "レベル"}
                     {b.key === "genre" && "ジャンル"}
                     {b.key === "age" && "年代"}
                     {b.key === "teacher" && "先生のスタイル"}
                   </div>
-                  <div className={styles.analysisNote}>{b.note}</div>
+                  <div className="flex-1 text-right text-[11px] text-gray-600">
+                    {b.note}
+                  </div>
                 </div>
               ))}
             </div>
           </div>
 
           {/* CTA */}
-          <div className={styles.ctaStack}>
+          <div className="mt-6 flex flex-col gap-2">
             <a
               href={
                 result.bestMatch.classId
@@ -877,24 +923,26 @@ export default function DiagnosisEmbedClient({
                     )}`
                   : "/reserve"
               }
-              className={styles.ctaPrimary}
+              className={[
+                "flex items-center justify-center bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700",
+                "rounded-full",
+                styles.ctaPrimary,
+              ].join(" ")}
             >
               このクラスの体験レッスンを予約する
             </a>
             <button
               type="button"
-              className={styles.ctaLink}
+              className="text-xs text-gray-500 underline"
               onClick={handleRestart}
             >
               診断をやり直す
             </button>
           </div>
 
-          {/* ==========================
-              診断結果フォーム
-          ========================== */}
+          {/* 診断結果フォーム */}
           {diagnosisForm && (
-            <div className="mt-4">
+            <div className="mt-6">
               <DiagnosisForm
                 form={diagnosisForm}
                 hiddenValues={{
@@ -920,66 +968,75 @@ export default function DiagnosisEmbedClient({
   }
 
   // ==========================
-  // 質問ステップ画面
+  // ✅ 質問ステップ画面（Tailwindベース）
   // ==========================
   const isQ1 = currentQuestion?.id === "Q1";
 
   return (
-    <div className={styles.shell}>
-      <div className={styles.panel}>
+    <div className={styles.root}>
+      <div className="w-full max-w-4xl rounded-3xl border border-gray-200 bg-white p-6 shadow-xl text-gray-900 md:p-8">
         {/* 上部ヘッダー */}
-        <div className={styles.headerRow}>
+        <div className="mb-3 flex items-start justify-between gap-2">
           <div>
-            <div className={styles.qHeaderKicker}>ダンススクール相性診断</div>
-            <div className={styles.qHeaderTitle}>
+            <div className="text-[11px] font-semibold text-blue-600">
+              ダンススクール相性診断
+            </div>
+            <div className="text-sm font-bold">
               あなたに「運命のクラス」が見つかる！
             </div>
           </div>
-
           {onClose && (
-            <button type="button" className={styles.closeBtn} onClick={onClose}>
+            <button
+              type="button"
+              className="rounded-full border border-gray-200 px-3 py-1 text-xs text-gray-500 hover:bg-gray-100"
+              onClick={onClose}
+            >
               ✕
             </button>
           )}
         </div>
 
         {/* ステップインジケータ */}
-        <div className={styles.stepWrap}>
-          <div className={styles.stepDots}>
+        <div className="mb-8 flex flex-col items-center">
+          <div className="flex gap-3">
             {questions.map((q, idx) => (
               <div
                 key={q.id}
                 className={[
-                  styles.stepDot,
+                  "h-2 w-10 rounded-full transition-all",
                   idx === stepIndex
-                    ? styles.stepDotActive
+                    ? "bg-blue-600"
                     : idx < stepIndex
-                      ? styles.stepDotDone
-                      : "",
+                      ? "bg-blue-200"
+                      : "bg-gray-200",
                 ].join(" ")}
               />
             ))}
           </div>
-          <div className={styles.helperText}>
+          <div className="mt-3 text-center text-[11px] text-gray-500">
             質問 {stepIndex + 1} / {totalSteps}
           </div>
         </div>
 
         {/* 質問タイトル */}
-        <div className={styles.qTitleWrap}>
-          <div className={styles.qTitle}>{currentQuestion.title}</div>
+        <div className="mb-4 text-center">
+          <div className="text-sm font-semibold">{currentQuestion.title}</div>
           {currentQuestion.description && (
-            <div className={styles.qDesc}>{currentQuestion.description}</div>
+            <div className="mt-1 text-xs text-gray-500">
+              {currentQuestion.description}
+            </div>
           )}
 
-          {/* ✅ Q1ローディング表示（フラッシュ対策の見た目） */}
+          {/* ✅ Q1ローディング表示 */}
           {isQ1 && campusLoading && (
-            <div className={styles.helperText}>校舎一覧を読み込み中...</div>
+            <div className="mt-2 text-[11px] text-gray-400">
+              校舎一覧を読み込み中...
+            </div>
           )}
         </div>
 
         {/* 質問項目 */}
-        <div className={styles.optionGrid}>
+        <div className="mb-4 grid gap-3 md:grid-cols-2">
           {(() => {
             const isQ1Local = currentQuestion.id === "Q1";
 
@@ -987,7 +1044,7 @@ export default function DiagnosisEmbedClient({
 
             if (currentQuestion.options.length === 0) {
               return (
-                <div className="text-center text-xs text-gray-400">
+                <div className="md:col-span-2 text-center text-xs text-gray-400">
                   選択肢がありません。
                 </div>
               );
@@ -1001,11 +1058,13 @@ export default function DiagnosisEmbedClient({
                   type="button"
                   onClick={() => handleSelectOption(currentQuestion.id, opt.id)}
                   className={[
-                    styles.optionBtn,
-                    selected ? styles.optionBtnSelected : "",
+                    "flex h-full items-start rounded-2xl border px-3 py-3 text-left text-xs transition",
+                    selected
+                      ? "border-blue-600 bg-blue-50 text-blue-700 shadow-sm"
+                      : "border-gray-200 bg-white text-gray-800 hover:border-blue-300 hover:bg-blue-50/40",
                   ].join(" ")}
                 >
-                  {opt.label}
+                  <div className="flex-1 leading-snug">{opt.label}</div>
                 </button>
               );
             });
@@ -1014,16 +1073,16 @@ export default function DiagnosisEmbedClient({
 
         {/* エラーメッセージ */}
         {error && (
-          <div className="mt-3 rounded-md bg-red-50 px-2 py-1 text-[11px] text-red-600">
+          <div className="mb-2 rounded-md bg-red-50 px-2 py-1 text-[11px] text-red-600">
             {error}
           </div>
         )}
 
         {/* フッター */}
-        <div className={styles.qFooter}>
+        <div className="mt-2 flex items-center justify-between">
           <button
             type="button"
-            className={styles.qBack}
+            className="text-xs text-gray-500 underline disabled:opacity-40"
             onClick={handlePrev}
             disabled={stepIndex === 0 || isSubmitting}
           >
@@ -1033,7 +1092,7 @@ export default function DiagnosisEmbedClient({
           {stepIndex === totalSteps - 1 && (
             <button
               type="button"
-              className={styles.qSubmit}
+              className="rounded-full bg-blue-600 px-4 py-1.5 text-xs font-semibold text-white disabled:opacity-40"
               onClick={() => void handleSubmit()}
               disabled={!canGoNext || isSubmitting}
             >

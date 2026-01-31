@@ -1,66 +1,45 @@
-// app/%28embed%29/embed/diagnosis/DiagnosisEmbedClient.module.scss
+/* ここは「微調整用」。骨格はTailwindに任せる */
 
 .root {
-  width: 100%;
-  max-width: 960px;
-  margin: 0 auto;
-  padding: 24px;
-  color: #fff;
+  /* embed全体のスコープ。必要なら背景やフォント調整など */
 }
 
-.panel {
-  background: #fff;
-  border-radius: 24px;
-  border: 1px solid rgba(0, 0, 0, 0.1);
-  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.1);
-}
+/* 講師紹介の吹き出しをFigma寄りに微調整したい時用 */
+.bubble {
+  position: relative;
+  border-radius: 16px;
+  background: rgba(17, 24, 39, 0.06);
+  padding: 12px 14px;
+  line-height: 1.7;
 
-/* ===== header ===== */
-.header {
-  display: flex;
-  justify-content: space-between;
-  gap: 16px;
-
-  &__label {
-    font-size: 12px;
-    font-weight: 700;
-    color: rgba(0, 0, 0, 0.5);
-  }
-
-  &__score {
-    font-size: 32px;
-    font-weight: 800;
-  }
-
-  &__close {
-    border-radius: 999px;
-    border: 1px solid rgba(0, 0, 0, 0.1);
-    padding: 6px 10px;
-    background: #fff;
-    cursor: pointer;
+  &::before {
+    content: "";
+    position: absolute;
+    top: -6px;
+    left: 40px;
+    width: 14px;
+    height: 14px;
+    background: rgba(17, 24, 39, 0.06);
+    transform: rotate(45deg);
+    border-radius: 2px;
   }
 }
 
-/* ===== CTA ===== */
-.cta {
-  margin-top: 16px;
-  display: grid;
-  gap: 10px;
+/* タグをもう少しだけ締めたい時用 */
+.tag {
+  /* Tailwindの class と両立する。ここで微調整だけ */
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
 
-  &__primary {
-    background: #2563eb;
-    color: #fff;
-    border-radius: 999px;
-    padding: 12px;
-    font-weight: 700;
-    text-align: center;
-  }
+/* CTAの微調整（高さ、影、角丸など）用 */
+.ctaPrimary {
+  /* 例：角丸を微妙に変えたい時など */
+  border-radius: 999px;
+}
 
-  &__secondary {
-    font-size: 12px;
-    color: rgba(0, 0, 0, 0.5);
-    text-decoration: underline;
-    background: none;
-    border: 0;
-  }
+/* 画像の角丸/枠線の統一をしたい時用 */
+.mediaFrame {
+  border-radius: 16px;
+  overflow: hidden;
 }
