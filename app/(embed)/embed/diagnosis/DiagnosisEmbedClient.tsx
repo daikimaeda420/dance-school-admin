@@ -916,6 +916,93 @@ export default function DiagnosisEmbedClient({
             })()}
           </div>
 
+          {/* ✅ レッスン料金 */}
+          <div className="w-full max-w-md mx-auto px-4">
+            {/* ===== レッスン料金 ===== */}
+            <section className="rounded-[28px] bg-white px-5 pt-6 pb-6 shadow-sm ring-1 ring-black/5">
+              {/* Header */}
+              <div className="text-center">
+                <h2 className="text-[22px] font-extrabold tracking-wide text-[#7a4b1f]">
+                  レッスン料金
+                </h2>
+                <div className="mt-1 text-[12px] font-semibold tracking-[0.25em] text-[#7a4b1f]/70">
+                  PRICE
+                </div>
+              </div>
+
+              <div className="my-5 h-px w-full bg-black/10" />
+
+              {/* 体験・入会金 */}
+              <div className="text-center text-[16px] font-bold text-[#7a4b1f]">
+                体験レッスン・入会金
+              </div>
+
+              <div className="mt-4 grid grid-cols-2 gap-3">
+                <div className="rounded-[18px] border border-black/15 bg-white px-4 py-4 text-center">
+                  <div className="text-[13px] font-bold text-[#7a4b1f]">
+                    体験レッスン
+                  </div>
+                  <div className="mt-2 text-[28px] font-extrabold text-[#7a4b1f]">
+                    ¥0
+                  </div>
+                  <div className="mt-1 text-[12px] font-bold text-[#7a4b1f]/80">
+                    /月（税込）
+                  </div>
+                </div>
+
+                <div className="rounded-[18px] border border-black/15 bg-white px-4 py-4 text-center">
+                  <div className="text-[13px] font-bold text-[#7a4b1f]">
+                    入会金
+                  </div>
+                  <div className="mt-2 text-[28px] font-extrabold text-[#7a4b1f]">
+                    ¥8,800
+                  </div>
+                  <div className="mt-1 text-[12px] font-bold text-[#7a4b1f]/80">
+                    /月（税込）
+                  </div>
+                </div>
+              </div>
+
+              {/* コース月謝 */}
+              <div className="mt-7 text-center text-[16px] font-bold text-[#7a4b1f]">
+                コース月謝
+              </div>
+
+              <div className="mt-4 space-y-3">
+                {["XXXXコース", "XXXXコース", "XXXXコース"].map((course, i) => (
+                  <div
+                    key={i}
+                    className="rounded-[18px] border border-black/15 bg-white px-4 py-4 text-center"
+                  >
+                    <div className="text-[13px] font-bold text-[#7a4b1f]">
+                      {course}
+                    </div>
+
+                    <div className="mt-2 flex items-end justify-center gap-1">
+                      <div className="text-[34px] font-extrabold text-[#7a4b1f]">
+                        ¥2,800
+                      </div>
+                      <div className="pb-[6px] text-[12px] font-bold text-[#7a4b1f]/80">
+                        /月（税込）
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* キャンペーン */}
+              <div className="mt-5">
+                <div className="rounded-[26px] bg-[#d9d9d9] px-6 py-10 text-center shadow-[0_12px_24px_rgba(0,0,0,0.12)]">
+                  <div className="text-[22px] font-extrabold leading-tight text-white">
+                    キャンペーン
+                    <br />
+                    実施中！
+                  </div>
+                </div>
+              </div>
+            </section>
+            {/* ===== /レッスン料金 ===== */}
+          </div>
           {/* ✅ 校舎情報 */}
           {(() => {
             const c = result.campus ?? result.selectedCampus;
