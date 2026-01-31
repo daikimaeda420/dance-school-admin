@@ -1,0 +1,66 @@
+// app/%28embed%29/embed/diagnosis/DiagnosisEmbedClient.module.scss
+
+.root {
+  width: 100%;
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 24px;
+  color: #111827;
+}
+
+.panel {
+  background: #fff;
+  border-radius: 24px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.1);
+}
+
+/* ===== header ===== */
+.header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+
+  &__label {
+    font-size: 12px;
+    font-weight: 700;
+    color: rgba(0, 0, 0, 0.5);
+  }
+
+  &__score {
+    font-size: 32px;
+    font-weight: 800;
+  }
+
+  &__close {
+    border-radius: 999px;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    padding: 6px 10px;
+    background: #fff;
+    cursor: pointer;
+  }
+}
+
+/* ===== CTA ===== */
+.cta {
+  margin-top: 16px;
+  display: grid;
+  gap: 10px;
+
+  &__primary {
+    background: #2563eb;
+    color: #fff;
+    border-radius: 999px;
+    padding: 12px;
+    font-weight: 700;
+    text-align: center;
+  }
+
+  &__secondary {
+    font-size: 12px;
+    color: rgba(0, 0, 0, 0.5);
+    text-decoration: underline;
+    background: none;
+    border: 0;
+  }
+}
