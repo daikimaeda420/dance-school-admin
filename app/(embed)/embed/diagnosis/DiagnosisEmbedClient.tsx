@@ -290,6 +290,17 @@ export default function DiagnosisEmbedClient({
   const [result, setResult] = useState<DiagnosisResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [diagnosisForm, setDiagnosisForm] = useState<any | null>(null);
+  const [openIndex, setOpenIndex] = useState<number | null>(0);
+  const faqs = [
+    {
+      q: "テキストサンプルテキストサンプル",
+      a: "テキストサンプルテキストサンプル\nテキストサンプルテキストサンプル\nテキストサンプルテキストサンプル\nテキストサンプル",
+    },
+    { q: "テキストサンプルテキスト", a: "テキストサンプルテキストサンプル" },
+    { q: "テキストサンプルテキスト", a: "テキストサンプルテキストサンプル" },
+    { q: "テキストサンプルテキスト", a: "テキストサンプルテキストサンプル" },
+    { q: "テキストサンプルテキスト", a: "テキストサンプルテキストサンプル" },
+  ];
 
   type PublicScheduleSlot = {
     id: string;
@@ -1316,6 +1327,84 @@ export default function DiagnosisEmbedClient({
               </div>
             </section>
             {/* ===== /体験レッスンの流れ ===== */}
+          </div>
+
+          <div className="w-full max-w-md mx-auto px-4">
+            {/* ===== よくある質問 ===== */}
+            <section className="rounded-[28px] bg-white px-5 pt-6 pb-6 shadow-sm ring-1 ring-black/5">
+              {/* Header */}
+              <div className="text-center">
+                <h2 className="text-[22px] font-extrabold tracking-wide text-[#7a4b1f]">
+                  よくある質問
+                </h2>
+                <div className="mt-1 text-[12px] font-semibold tracking-[0.25em] text-[#7a4b1f]/70">
+                  FAQ
+                </div>
+              </div>
+
+              <div className="my-5 h-px w-full bg-black/10" />
+
+              <div className="space-y-3">
+                {faqs.map((item, i) => {
+                  const isOpen = openIndex === i;
+
+                  return (
+                    <div
+                      key={i}
+                      className={[
+                        "rounded-[16px] bg-white",
+                        "shadow-[0_10px_22px_rgba(0,0,0,0.12)]",
+                        "ring-1 ring-black/10",
+                        "overflow-hidden",
+                      ].join(" ")}
+                    >
+                      {/* Question row */}
+                      <button
+                        type="button"
+                        onClick={() => setOpenIndex(isOpen ? null : i)}
+                        className="w-full px-4 py-4 flex items-center gap-3 text-left"
+                      >
+                        {/* Qアイコン */}
+                        <div className="grid h-9 w-9 place-items-center rounded-full bg-[#f5c400] text-[#7a4b1f] font-extrabold">
+                          Q
+                        </div>
+
+                        <div className="flex-1">
+                          <div className="text-[14px] font-bold text-[#7a4b1f]">
+                            {item.q}
+                          </div>
+                        </div>
+
+                        {/* + / - */}
+                        <div className="ml-2 flex h-9 w-9 items-center justify-center">
+                          <span className="text-[22px] font-extrabold text-[#f5c400] leading-none">
+                            {isOpen ? "−" : "+"}
+                          </span>
+                        </div>
+                      </button>
+
+                      {/* Answer */}
+                      {isOpen && (
+                        <div className="px-4 pb-4">
+                          <div className="h-px w-full bg-black/10" />
+                          <div className="mt-4 flex items-start gap-3">
+                            {/* Aアイコン（枠） */}
+                            <div className="grid h-9 w-9 place-items-center rounded-full border-2 border-[#f5c400] text-[#7a4b1f] font-extrabold">
+                              A
+                            </div>
+
+                            <p className="flex-1 whitespace-pre-line text-[14px] leading-7 text-[#7a4b1f]/90">
+                              {item.a}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+            {/* ===== /よくある質問 ===== */}
           </div>
 
           {/* CTA */}
