@@ -1,7 +1,7 @@
 // app/(embed)/embed/diagnosis/DiagnosisEmbedClient.tsx
 "use client";
 
-import styles from "./DiagnosisEmbedClient.module.css";
+import styles from "./DiagnosisEmbedClient.module.scss";
 import type { ResultCopy } from "@/lib/diagnosis/resultCopy";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
