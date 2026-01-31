@@ -5,6 +5,7 @@ import styles from "./DiagnosisEmbedClient.module.scss";
 import type { ResultCopy } from "@/lib/diagnosis/resultCopy";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+import type { ReactNode } from "react";
 import DiagnosisForm from "./_components/DiagnosisForm";
 import {
   QUESTIONS,
@@ -603,7 +604,7 @@ export default function DiagnosisEmbedClient({
   }, [result, schoolId]);
 
   /** ===== 内部コンポーネント（同ファイル内） ===== */
-  function StepItem(props: { step: number; text: React.ReactNode }) {
+  function StepItem(props: { step: number; text: ReactNode }) {
     return (
       <div className="relative pl-[56px]">
         {/* STEP丸 */}
@@ -641,6 +642,39 @@ export default function DiagnosisEmbedClient({
   if (result) {
     const instructors = result.instructors ?? [];
     const hasInstructors = instructors.length > 0;
+    // ✅ 画像表示用のソースをこのスコープで定義（imgSrc 未定義エラー対策）
+    const className = result.bestMatch?.className ?? "おすすめクラス";
+
+    const genreLabel =
+      result.selectedGenre?.label?.trim() ||
+      (result.bestMatch?.genres?.[0] ?? "").trim();
+
+    const rawCoursePhotoUrl = result.selectedCourse?.photoUrl ?? null;
+
+    const coursePhotoUrl = rawCoursePhotoUrl
+      ? `${rawCoursePhotoUrl}${
+          rawCoursePhotoUrl.includes("?") ? "&" : "?"
+        }v=${encodeURIComponent(String(result.selectedCourse?.id ?? ""))}`
+      : null;
+
+    const fallbackCourseImgSrc =
+      !coursePhotoUrl && result.selectedCourse?.id
+        ? `/api/diagnosis/courses/photo?schoolId=${encodeURIComponent(
+            schoolId,
+          )}&id=${encodeURIComponent(result.selectedCourse.id)}`
+        : null;
+
+    const genreId = result.selectedGenre?.id;
+
+    const genreImgSrc =
+      !coursePhotoUrl && !fallbackCourseImgSrc && genreId
+        ? `/api/diagnosis/genres/image?id=${encodeURIComponent(
+            String(genreId),
+          )}&schoolId=${encodeURIComponent(schoolId)}`
+        : null;
+
+    const imgSrc =
+      coursePhotoUrl || fallbackCourseImgSrc || genreImgSrc || null;
 
     return (
       <div className={styles.root}>
