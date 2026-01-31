@@ -724,229 +724,209 @@ export default function DiagnosisEmbedClient({
                 </div>
               )}
             </div>
+            {imgSrc && (
+              <div
+                className={[
+                  "mt-3 overflow-hidden rounded-2xl border border-gray-200 bg-white",
+                  styles.mediaFrame,
+                ].join(" ")}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={imgSrc}
+                  alt={
+                    coursePhotoUrl || fallbackCourseImgSrc
+                      ? `${className}の画像`
+                      : genreLabel
+                        ? `${genreLabel}の画像`
+                        : "診断結果画像"
+                  }
+                  className="h-40 w-full object-cover"
+                  loading="lazy"
+                />
+              </div>
+            )}
           </div>
 
           {/* メイン提案エリア */}
-          <div className="mb-4 rounded-2xl bg-gray-50 p-4">
-            <div className="text-xs font-semibold text-gray-500">
-              あなたにおすすめのクラスは
+          <div className="rounded-2xl bg-[#fff7dc] px-4 pb-6 pt-6">
+            {/* ===== Header ===== */}
+            <div className="text-center">
+              <div className="text-[22px] font-extrabold text-[#7a4b1f]">
+                あなたに
+                <br />
+                おすすめの理由
+              </div>
+              <div className="mt-1 text-xs font-semibold tracking-[0.25em] text-[#7a4b1f]/70">
+                REASONS TO CHOOSE
+              </div>
             </div>
 
-            {(() => {
-              const className = result.bestMatch.className ?? "おすすめクラス";
-
-              const genreLabel =
-                result.selectedGenre?.label?.trim() ||
-                (result.bestMatch.genres?.[0] ?? "").trim();
-
-              const rawCoursePhotoUrl = result.selectedCourse?.photoUrl ?? null;
-              const coursePhotoUrl = rawCoursePhotoUrl
-                ? `${rawCoursePhotoUrl}${rawCoursePhotoUrl.includes("?") ? "&" : "?"}v=${encodeURIComponent(
-                    String(result.selectedCourse?.id ?? ""),
-                  )}`
-                : null;
-
-              const fallbackCourseImgSrc =
-                !coursePhotoUrl && result.selectedCourse?.id
-                  ? `/api/diagnosis/courses/photo?schoolId=${encodeURIComponent(
-                      schoolId,
-                    )}&id=${encodeURIComponent(result.selectedCourse.id)}`
-                  : null;
-
-              const genreId = result.selectedGenre?.id;
-              const genreImgSrc =
-                !coursePhotoUrl && !fallbackCourseImgSrc && genreId
-                  ? `/api/diagnosis/genres/image?id=${encodeURIComponent(
-                      String(genreId),
-                    )}&schoolId=${encodeURIComponent(schoolId)}`
-                  : null;
-
-              const imgSrc =
-                coursePhotoUrl || fallbackCourseImgSrc || genreImgSrc || null;
-
-              return (
-                <div className="mt-2">
-                  <div className="text-lg font-bold">{className}</div>
-
-                  {imgSrc && (
-                    <div
-                      className={[
-                        "mt-3 overflow-hidden rounded-2xl border border-gray-200 bg-white",
-                        styles.mediaFrame,
-                      ].join(" ")}
-                    >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={imgSrc}
-                        alt={
-                          coursePhotoUrl || fallbackCourseImgSrc
-                            ? `${className}の画像`
-                            : genreLabel
-                              ? `${genreLabel}の画像`
-                              : "診断結果画像"
-                        }
-                        className="h-40 w-full object-cover"
-                        loading="lazy"
-                      />
+            {/* ===== POINT cards ===== */}
+            <div className="mt-6 space-y-4">
+              {/* POINT 1 */}
+              {result.resultCopy?.level && (
+                <div className="overflow-hidden rounded-2xl bg-white shadow-[0_10px_25px_rgba(0,0,0,0.12)]">
+                  <div className="flex items-center gap-3 bg-[#fde4d8] px-4 py-3">
+                    <div className="text-center text-[#7a4b1f]">
+                      <div className="text-[10px] font-extrabold">POINT</div>
+                      <div className="text-[26px] font-extrabold leading-none">
+                        1
+                      </div>
                     </div>
-                  )}
-                </div>
-              );
-            })()}
-
-            <div className="mt-3 inline-flex items-center rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
-              {result.headerLabel}
-            </div>
-
-            {/* ✅ 担当講師の上：診断コピー */}
-            {result.resultCopy && (
-              <div className="mt-4 space-y-3">
-                {result.resultCopy.level && (
-                  <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-                    <div className="text-xs font-semibold text-gray-500">
-                      あなたのレベルに合わせた提案
-                    </div>
-                    <div className="mt-2 whitespace-pre-wrap text-sm font-semibold text-gray-900">
+                    <div className="text-sm font-extrabold text-[#7a4b1f]">
                       {result.resultCopy.level.title}
                     </div>
-                    <div className="mt-1 whitespace-pre-wrap text-sm text-gray-800">
-                      {result.resultCopy.level.body}
-                    </div>
                   </div>
-                )}
+                  <div className="px-4 py-4 text-sm leading-7 text-[#7a4b1f]/90">
+                    {result.resultCopy.level.body}
+                  </div>
+                </div>
+              )}
 
-                {result.resultCopy.age && (
-                  <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-                    <div className="text-xs font-semibold text-gray-500">
-                      ライフスタイルに合わせた提案
+              {/* POINT 2 */}
+              {result.resultCopy?.age && (
+                <div className="overflow-hidden rounded-2xl bg-white shadow-[0_10px_25px_rgba(0,0,0,0.12)]">
+                  <div className="flex items-center gap-3 bg-[#fbd6e6] px-4 py-3">
+                    <div className="text-center text-[#7a4b1f]">
+                      <div className="text-[10px] font-extrabold">POINT</div>
+                      <div className="text-[26px] font-extrabold leading-none">
+                        2
+                      </div>
                     </div>
-                    <div className="mt-2 whitespace-pre-wrap text-sm font-semibold text-gray-900">
+                    <div className="text-sm font-extrabold text-[#7a4b1f]">
                       {result.resultCopy.age.title}
                     </div>
-                    <div className="mt-1 whitespace-pre-wrap text-sm text-gray-800">
-                      {result.resultCopy.age.body}
-                    </div>
                   </div>
-                )}
+                  <div className="px-4 py-4 text-sm leading-7 text-[#7a4b1f]/90">
+                    {result.resultCopy.age.body}
+                  </div>
+                </div>
+              )}
 
-                {result.resultCopy.teacher && (
-                  <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-                    <div className="text-xs font-semibold text-gray-500">
-                      先生のタイプに合わせた提案
+              {/* POINT 3 */}
+              {result.resultCopy?.teacher && (
+                <div className="overflow-hidden rounded-2xl bg-white shadow-[0_10px_25px_rgba(0,0,0,0.12)]">
+                  <div className="flex items-center gap-3 bg-[#d9efb8] px-4 py-3">
+                    <div className="text-center text-[#7a4b1f]">
+                      <div className="text-[10px] font-extrabold">POINT</div>
+                      <div className="text-[26px] font-extrabold leading-none">
+                        3
+                      </div>
                     </div>
-                    <div className="mt-2 whitespace-pre-wrap text-sm font-semibold text-gray-900">
+                    <div className="text-sm font-extrabold text-[#7a4b1f]">
                       {result.resultCopy.teacher.title}
                     </div>
-                    <div className="mt-1 whitespace-pre-wrap text-sm text-gray-800">
-                      {result.resultCopy.teacher.body}
-                    </div>
                   </div>
-                )}
-              </div>
-            )}
-
-            {/* 不安解消メッセージ */}
-            <div className="mt-4 rounded-xl bg-blue-50 p-3 text-xs text-blue-900">
-              <div className="mb-1 font-semibold">
-                こんな不安はありませんか？
-              </div>
-              <div className="whitespace-pre-wrap">
-                {result.resultCopy?.concern ?? result.concernMessage}
-              </div>
-            </div>
-
-            {/* ✅ 担当講師 */}
-            <div className="mt-4">
-              <div className="text-xs font-semibold text-gray-500">
-                担当講師
-              </div>
-
-              {hasInstructors ? (
-                <div className="mt-2 space-y-3">
-                  {instructors.map((t) => {
-                    const tags = splitCharmTags(t.charmTags);
-                    const intro = String(t.introduction ?? "").trim();
-
-                    return (
-                      <div
-                        key={t.id}
-                        className="rounded-3xl border border-gray-200 bg-white p-4 shadow-sm"
-                      >
-                        <div className="flex items-start gap-4">
-                          <div className="h-24 w-24 overflow-hidden rounded-2xl bg-gray-200">
-                            {t.photoUrl ? (
-                              // eslint-disable-next-line @next/next/no-img-element
-                              <img
-                                src={t.photoUrl}
-                                alt={t.label}
-                                className="h-full w-full object-cover"
-                              />
-                            ) : (
-                              <div className="h-full w-full" />
-                            )}
-                          </div>
-
-                          <div className="min-w-0 flex-1">
-                            <div className="text-xl font-extrabold tracking-tight">
-                              {t.label}
-                            </div>
-
-                            {tags.length > 0 && (
-                              <div className="mt-2 flex flex-wrap gap-2">
-                                {tags.map((tag, idx) => (
-                                  <span
-                                    key={`${t.id}_tag_${idx}`}
-                                    className={[
-                                      "inline-flex items-center rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700",
-                                      styles.tag,
-                                    ].join(" ")}
-                                  >
-                                    {tag}
-                                  </span>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-
-                        {intro && (
-                          <div className="mt-4">
-                            <div className={styles.bubble}>
-                              <span className="whitespace-pre-wrap">
-                                {intro}
-                              </span>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="mt-2 flex items-center gap-3">
-                  {result.teacher.photoUrl && (
-                    <div className="h-12 w-12 overflow-hidden rounded-full bg-gray-200">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={result.teacher.photoUrl}
-                        alt={result.teacher.name ?? "講師"}
-                        className="h-full w-full object-cover"
-                      />
-                    </div>
-                  )}
-                  <div>
-                    <div className="text-sm font-semibold">
-                      {result.teacher.name ?? "担当講師"}
-                    </div>
-                    {result.teacher.styles?.length > 0 && (
-                      <div className="mt-1 text-xs text-gray-500">
-                        スタイル：{result.teacher.styles.join(" / ")}
-                      </div>
-                    )}
+                  <div className="px-4 py-4 text-sm leading-7 text-[#7a4b1f]/90">
+                    {result.resultCopy.teacher.body}
                   </div>
                 </div>
               )}
             </div>
+
+            {/* ===== COMMENT ===== */}
+            <div className="mt-6 rounded-2xl bg-[#f7f3ea] px-4 py-5 text-center">
+              <div className="mb-2 flex items-center justify-center gap-2 text-[#7a4b1f]">
+                <span className="text-xl">💬</span>
+                <span className="text-sm font-extrabold tracking-wide">
+                  COMMENT
+                </span>
+              </div>
+
+              <div className="text-sm leading-7 text-[#7a4b1f]/90 whitespace-pre-wrap">
+                {result.resultCopy?.concern ?? result.concernMessage}
+              </div>
+            </div>
+          </div>
+
+          {/* ✅ 担当講師 */}
+          <div className="mt-4">
+            <div className="text-xs font-semibold text-gray-500">担当講師</div>
+
+            {hasInstructors ? (
+              <div className="mt-2 space-y-3">
+                {instructors.map((t) => {
+                  const tags = splitCharmTags(t.charmTags);
+                  const intro = String(t.introduction ?? "").trim();
+
+                  return (
+                    <div
+                      key={t.id}
+                      className="rounded-3xl border border-gray-200 bg-white p-4 shadow-sm"
+                    >
+                      <div className="flex items-start gap-4">
+                        <div className="h-24 w-24 overflow-hidden rounded-2xl bg-gray-200">
+                          {t.photoUrl ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={t.photoUrl}
+                              alt={t.label}
+                              className="h-full w-full object-cover"
+                            />
+                          ) : (
+                            <div className="h-full w-full" />
+                          )}
+                        </div>
+
+                        <div className="min-w-0 flex-1">
+                          <div className="text-xl font-extrabold tracking-tight">
+                            {t.label}
+                          </div>
+
+                          {tags.length > 0 && (
+                            <div className="mt-2 flex flex-wrap gap-2">
+                              {tags.map((tag, idx) => (
+                                <span
+                                  key={`${t.id}_tag_${idx}`}
+                                  className={[
+                                    "inline-flex items-center rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700",
+                                    styles.tag,
+                                  ].join(" ")}
+                                >
+                                  {tag}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {intro && (
+                        <div className="mt-4">
+                          <div className={styles.bubble}>
+                            <span className="whitespace-pre-wrap">{intro}</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="mt-2 flex items-center gap-3">
+                {result.teacher.photoUrl && (
+                  <div className="h-12 w-12 overflow-hidden rounded-full bg-gray-200">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={result.teacher.photoUrl}
+                      alt={result.teacher.name ?? "講師"}
+                      className="h-full w-full object-cover"
+                    />
+                  </div>
+                )}
+                <div>
+                  <div className="text-sm font-semibold">
+                    {result.teacher.name ?? "担当講師"}
+                  </div>
+                  {result.teacher.styles?.length > 0 && (
+                    <div className="mt-1 text-xs text-gray-500">
+                      スタイル：{result.teacher.styles.join(" / ")}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* ✅ スケジュール（UIをスクショ寄せに） */}
