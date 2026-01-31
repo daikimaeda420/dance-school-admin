@@ -579,6 +579,39 @@ export default function DiagnosisEmbedClient({
     };
   }, [result, schoolId]);
 
+  /** ===== 内部コンポーネント（同ファイル内） ===== */
+  function StepItem(props: { step: number; text: React.ReactNode }) {
+    return (
+      <div className="relative pl-[56px]">
+        {/* STEP丸 */}
+        <div className="absolute left-[4px] top-[2px]">
+          <div className="grid h-10 w-10 place-items-center rounded-full bg-[#f5c400] shadow-sm">
+            <div className="text-center leading-none text-[#7a4b1f]">
+              <div className="text-[10px] font-extrabold tracking-wide">
+                STEP
+              </div>
+              <div className="text-[16px] font-extrabold">{props.step}</div>
+            </div>
+          </div>
+        </div>
+
+        {/* 文章 */}
+        <div className="text-[14px] font-semibold leading-7 text-[#7a4b1f]/90">
+          {props.text}
+        </div>
+
+        {/* 画像プレースホルダー */}
+        <div className="mt-4 rounded-[18px] bg-[#d9d9d9] h-[132px]" />
+
+        {/* 下の三角 */}
+        <div className="relative mt-3">
+          <div className="mx-auto h-px w-full bg-black/10" />
+          <div className="mx-auto -mt-[1px] w-0 h-0 border-l-[12px] border-r-[12px] border-t-[10px] border-l-transparent border-r-transparent border-t-[#d9d9d9]" />
+        </div>
+      </div>
+    );
+  }
+
   // ==========================
   // ✅ 診断結果画面（Tailwindベース + SCSS微調整）
   // ==========================
@@ -1210,34 +1243,79 @@ export default function DiagnosisEmbedClient({
             );
           })()}
 
-          {/* マッチング分析 */}
-          <div className="mt-6">
-            <div className="mb-2 text-xs font-semibold text-gray-500">
-              マッチング分析
-            </div>
-            <div className="space-y-1 text-xs">
-              {result.breakdown.length === 0 && (
-                <div className="rounded-md bg-green-50 px-2 py-1 text-green-700">
-                  すべての項目でほぼ理想的なマッチングです。
+          {/* 体験レッスンの流れ */}
+          <div className="w-full max-w-md mx-auto px-4">
+            {/* ===== 体験レッスンの流れ ===== */}
+            <section className="rounded-[28px] bg-white px-5 pt-6 pb-6 shadow-sm ring-1 ring-black/5">
+              {/* Header */}
+              <div className="text-center">
+                <h2 className="text-[22px] font-extrabold tracking-wide text-[#7a4b1f]">
+                  体験レッスンの流れ
+                </h2>
+                <div className="mt-1 text-[12px] font-semibold tracking-[0.25em] text-[#7a4b1f]/70">
+                  TRIAL LESSONS
                 </div>
-              )}
-              {result.breakdown.map((b, idx) => (
-                <div
-                  key={idx}
-                  className="flex items-start justify-between gap-2 rounded-md bg-gray-50 px-2 py-1"
-                >
-                  <div className="font-semibold">
-                    {b.key === "level" && "レベル"}
-                    {b.key === "genre" && "ジャンル"}
-                    {b.key === "age" && "年代"}
-                    {b.key === "teacher" && "先生のスタイル"}
-                  </div>
-                  <div className="flex-1 text-right text-[11px] text-gray-600">
-                    {b.note}
-                  </div>
+              </div>
+
+              <div className="my-5 h-px w-full bg-black/10" />
+
+              <div className="relative">
+                {/* 縦ライン */}
+                <div className="absolute left-[20px] top-[18px] bottom-[18px] w-[3px] rounded-full bg-[#f5c400]" />
+
+                <div className="space-y-6">
+                  <StepItem
+                    step={1}
+                    text={
+                      <>
+                        下記の体験レッスン申込みフォームより
+                        <br />
+                        ご予約ください。
+                        <br />
+                        必要事項を入力するのみとなる為、簡単
+                        <br />
+                        にお申込みいただけます。
+                      </>
+                    }
+                  />
+                  <StepItem
+                    step={2}
+                    text={
+                      <>
+                        お申込み後、スタッフより日程調整のご
+                        <br />
+                        連絡をいたします。
+                        <br />
+                        あわせて、当日の持ち物や服装、レッス
+                        <br />
+                        ンを行うスタジオの住所についてもご案
+                        <br />
+                        内しますので、初めての方でも安心で
+                        <br />
+                        す。
+                      </>
+                    }
+                  />
+                  <StepItem
+                    step={3}
+                    text={
+                      <>
+                        当日は、指定のスタジオへお越しいただ
+                        <br />
+                        き体験レッスンにご参加ください。
+                        <br />
+                        初心者の方にも配慮した内容で進めます
+                        <br />
+                        ので、ダンスが初めての方でも無理なく
+                        <br />
+                        お楽しみいただけます。
+                      </>
+                    }
+                  />
                 </div>
-              ))}
-            </div>
+              </div>
+            </section>
+            {/* ===== /体験レッスンの流れ ===== */}
           </div>
 
           {/* CTA */}
