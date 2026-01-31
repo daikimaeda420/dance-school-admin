@@ -640,41 +640,146 @@ export default function DiagnosisEmbedClient({
   // ✅ 診断結果画面（Tailwindベース + SCSS微調整）
   // ==========================
   if (result) {
-    const instructors = result.instructors ?? [];
-    const hasInstructors = instructors.length > 0;
-    // ✅ 画像表示用のソースをこのスコープで定義（imgSrc 未定義エラー対策）
-    const className = result.bestMatch?.className ?? "おすすめクラス";
+  const instructors = result.instructors ?? [];
+  const hasInstructors = instructors.length > 0;
 
-    const genreLabel =
-      result.selectedGenre?.label?.trim() ||
-      (result.bestMatch?.genres?.[0] ?? "").trim();
+  // ✅ 画像表示用
+  const className = result.bestMatch?.className ?? "おすすめクラス";
 
-    const rawCoursePhotoUrl = result.selectedCourse?.photoUrl ?? null;
+  const genreLabel =
+    result.selectedGenre?.label?.trim() ||
+    (result.bestMatch?.genres?.[0] ?? "").trim();
 
-    const coursePhotoUrl = rawCoursePhotoUrl
-      ? `${rawCoursePhotoUrl}${
-          rawCoursePhotoUrl.includes("?") ? "&" : "?"
-        }v=${encodeURIComponent(String(result.selectedCourse?.id ?? ""))}`
+  const rawCoursePhotoUrl = result.selectedCourse?.photoUrl ?? null;
+
+  const coursePhotoUrl = rawCoursePhotoUrl
+    ? `${rawCoursePhotoUrl}${
+        rawCoursePhotoUrl.includes("?") ? "&" : "?"
+      }v=${encodeURIComponent(String(result.selectedCourse?.id ?? ""))}`
+    : null;
+
+  const fallbackCourseImgSrc =
+    !coursePhotoUrl && result.selectedCourse?.id
+      ? `/api/diagnosis/courses/photo?schoolId=${encodeURIComponent(
+          schoolId,
+        )}&id=${encodeURIComponent(result.selectedCourse.id)}`
       : null;
 
-    const fallbackCourseImgSrc =
-      !coursePhotoUrl && result.selectedCourse?.id
-        ? `/api/diagnosis/courses/photo?schoolId=${encodeURIComponent(
-            schoolId,
-          )}&id=${encodeURIComponent(result.selectedCourse.id)}`
-        : null;
+  const genreId = result.selectedGenre?.id;
 
-    const genreId = result.selectedGenre?.id;
+  const genreImgSrc =
+    !coursePhotoUrl && !fallbackCourseImgSrc && genreId
+      ? `/api/diagnosis/genres/image?id=${encodeURIComponent(
+          String(genreId),
+        )}&schoolId=${encodeURIComponent(schoolId)}`
+      : null;
 
-    const genreImgSrc =
-      !coursePhotoUrl && !fallbackCourseImgSrc && genreId
-        ? `/api/diagnosis/genres/image?id=${encodeURIComponent(
-            String(genreId),
-          )}&schoolId=${encodeURIComponent(schoolId)}`
-        : null;
+  const imgSrc = coursePhotoUrl || fallbackCourseImgSrc || genreImgSrc || null;
 
-    const imgSrc =
-      coursePhotoUrl || fallbackCourseImgSrc || genreImgSrc || null;
+  // =========================
+  // ✅ schedule → form用 options 生成（JSXの外）
+  // =========================
+  const dayOrder = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"] as const;
+  type DayKey = (typeof dayOrder)[number];
+
+  const dayLabel: Record<DayKey, string> = {
+    MON: "月",
+    TUE: "火",
+    WED: "水",
+    THU: "木",
+    FRI: "金",
+    SAT: "土",
+    SUN: "日",
+  };
+
+  const classOptions = (() => {
+    if (!schedule) return [];
+
+    const list =
+      scheduleDay === "ALL"
+        ? dayOrder.flatMap((d) =>
+            (schedule[d] ?? []).map((s) => ({ ...s, weekday: d })),
+          )
+        : (schedule[scheduleDay] ?? []).map((s) => ({
+            ...s,
+            weekday: scheduleDay as DayKey,
+          }));
+
+    return list.map((s) => ({
+      value: s.id,
+      label: `${dayLabel[s.weekday as DayKey]} ${s.timeText} ${s.genreText}`,
+    }));
+  })();
+
+  const dateOptions = (() => {
+    const want = scheduleDay === "ALL" ? 14 : 12;
+
+    const targetDow =
+      scheduleDay === "ALL"
+        ? null
+        : scheduleDay === "MON"
+          ? 1
+          : scheduleDay === "TUE"
+            ? 2
+            : scheduleDay === "WED"
+              ? 3
+              : scheduleDay === "THU"
+                ? 4
+                : scheduleDay === "FRI"
+                  ? 5
+                  : scheduleDay === "SAT"
+                    ? 6
+                    : 0;
+
+    const out: { value: string; label: string }[] = [];
+    const today = new Date();
+
+    for (let i = 0; i < 60 && out.length < want; i++) {
+      const d = new Date(today);
+      d.setDate(today.getDate() + i);
+      if (targetDow !== null && d.getDay() !== targetDow) continue;
+
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, "0");
+      const dd = String(d.getDate()).padStart(2, "0");
+      const jp = ["日", "月", "火", "水", "木", "金", "土"][d.getDay()];
+
+      out.push({
+        value: `${y}-${m}-${dd}`,
+        label: `${y}/${m}/${dd}（${jp}）`,
+      });
+    }
+    return out;
+  })();
+
+  return (
+    <>
+      {/* ここに今のUI（あなたのreturnの中身）をそのまま置く */}
+      {/* ... */}
+      {diagnosisForm && (
+        <div className="mt-6">
+          <DiagnosisForm
+            form={diagnosisForm}
+            hiddenValues={{
+              schoolId,
+              campus: result.campus?.label ?? result.selectedCampus?.label ?? "",
+              campusSlug: result.campus?.slug ?? result.selectedCampus?.slug ?? "",
+              genre: result.selectedGenre?.label ?? "",
+              genreSlug:
+                result.selectedGenre?.answerTag ??
+                result.selectedGenre?.slug ??
+                "",
+              score: String(result.score),
+              pattern: result.pattern,
+            }}
+            classOptions={classOptions}
+            dateOptions={dateOptions}
+          />
+        </div>
+      )}
+    </>
+  );
+}
 
     return (
       <div className={styles.root}>
@@ -1525,6 +1630,8 @@ export default function DiagnosisEmbedClient({
                   score: String(result.score),
                   pattern: result.pattern,
                 }}
+                classOptions={classOptions}
+                dateOptions={dateOptions}
               />
             </div>
           )}
