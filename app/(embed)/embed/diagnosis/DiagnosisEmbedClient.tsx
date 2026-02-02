@@ -1636,146 +1636,173 @@ export default function DiagnosisEmbedClient({
             // ==========================
             // ✅ 質問画面（横幅統一）
             // ==========================
-            <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-xl text-gray-900">
-              {/* 上部ヘッダー */}
-              <div className="mb-3 flex items-start justify-between gap-2">
-                <div>
-                  <div className="text-[11px] font-semibold text-blue-600">
-                    ダンススクール相性診断
-                  </div>
-                  <div className="text-sm font-bold">
-                    あなたに「運命のクラス」が見つかる！
-                  </div>
-                </div>
-                {onClose && (
+            <div className="min-h-[100svh] w-full bg-[#fbf6ef] px-4 py-6">
+              <div className="mx-auto w-full max-w-[420px]">
+                {/* 上部：戻る＋タイトル＋進捗 */}
+                <div className="mb-4 flex items-start justify-between gap-3">
                   <button
                     type="button"
-                    className="rounded-full border border-gray-200 px-3 py-1 text-xs text-gray-500 hover:bg-gray-100"
-                    onClick={onClose}
+                    className="inline-flex items-center gap-1 text-[12px] font-semibold text-[#6b4a2b]/70 hover:text-[#6b4a2b]"
+                    onClick={handlePrev}
+                    disabled={stepIndex === 0 || isSubmitting}
                   >
-                    ✕
+                    <span className="text-[18px] leading-none">‹</span>
+                    前の質問に戻る
                   </button>
-                )}
-              </div>
 
-              {/* ステップインジケータ */}
-              <div className="mb-8 flex flex-col items-center">
-                <div className="flex gap-3">
-                  {questions.map((q, idx) => (
-                    <div
-                      key={q.id}
-                      className={[
-                        "h-2 w-10 rounded-full transition-all",
-                        idx === stepIndex
-                          ? "bg-blue-600"
-                          : idx < stepIndex
-                            ? "bg-blue-200"
-                            : "bg-gray-200",
-                      ].join(" ")}
-                    />
-                  ))}
-                </div>
-                <div className="mt-3 text-center text-[11px] text-gray-500">
-                  質問 {stepIndex + 1} / {totalSteps}
-                </div>
-              </div>
+                  <div className="flex items-center gap-2">
+                    <div className="text-[13px] font-extrabold text-[#6b4a2b]">
+                      ダンススクール相性診断
+                    </div>
 
-              {/* 質問タイトル */}
-              <div className="mb-4 text-center">
-                <div className="text-sm font-semibold">
-                  {currentQuestion.title}
-                </div>
-                {currentQuestion.description && (
-                  <div className="mt-1 text-xs text-gray-500">
-                    {currentQuestion.description}
+                    <div className="rounded-full bg-white px-3 py-1 text-[12px] font-extrabold text-[#6b4a2b] shadow-[0_6px_14px_rgba(0,0,0,0.08)] ring-1 ring-black/5">
+                      {stepIndex + 1}/{totalSteps}
+                    </div>
                   </div>
-                )}
+                </div>
 
-                {isQ1 && campusLoading && (
-                  <div className="mt-2 text-[11px] text-gray-400">
-                    校舎一覧を読み込み中...
+                {/* 進捗バー（黄色＋つまみ） */}
+                <div className="relative mb-5">
+                  <div className="h-[6px] w-full rounded-full bg-[#e6decf]" />
+                  <div
+                    className="absolute left-0 top-0 h-[6px] rounded-full bg-[#f5c400]"
+                    style={{
+                      width: `${Math.max(
+                        0,
+                        Math.min(100, ((stepIndex + 1) / totalSteps) * 100),
+                      )}%`,
+                    }}
+                  />
+                  <div
+                    className="absolute top-1/2 -translate-y-1/2"
+                    style={{
+                      left: `calc(${Math.max(
+                        0,
+                        Math.min(100, ((stepIndex + 1) / totalSteps) * 100),
+                      )}% - 8px)`,
+                    }}
+                  >
+                    <div className="h-4 w-4 rounded-full bg-[#f5c400] shadow-[0_6px_14px_rgba(0,0,0,0.18)] ring-4 ring-[#fbf6ef]" />
                   </div>
-                )}
-              </div>
+                </div>
 
-              {/* 質問項目 */}
-              <div className="mb-4 grid gap-3 md:grid-cols-2">
-                {(() => {
-                  const isQ1Local = currentQuestion.id === "Q1";
-                  if (isQ1Local && !campusLoaded) return null;
-
-                  if (currentQuestion.options.length === 0) {
-                    return (
-                      <div className="md:col-span-2 text-center text-xs text-gray-400">
-                        選択肢がありません。
+                {/* 質問カード */}
+                <div className="rounded-[28px] bg-white px-5 py-6 shadow-[0_14px_32px_rgba(0,0,0,0.08)] ring-1 ring-black/5">
+                  {/* 見出し：Qバッジ＋タイトル */}
+                  <div className="flex items-start gap-4">
+                    <div className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-[#f5c400] text-[#6b4a2b] shadow-sm">
+                      <div className="text-[16px] font-extrabold leading-none">
+                        {String(stepIndex + 1).padStart(2, "0")}
                       </div>
-                    );
-                  }
+                    </div>
 
-                  return currentQuestion.options.map((opt) => {
-                    const selected = answers[currentQuestion.id] === opt.id;
-                    return (
+                    <div className="min-w-0">
+                      <div className="text-[18px] font-extrabold leading-snug text-[#6b4a2b]">
+                        {currentQuestion.title}
+                      </div>
+
+                      {currentQuestion.description && (
+                        <div className="mt-3 whitespace-pre-line text-[13px] font-semibold leading-6 text-[#6b4a2b]/80">
+                          {currentQuestion.description}
+                        </div>
+                      )}
+
+                      {isQ1 && campusLoading && (
+                        <div className="mt-2 text-[11px] font-semibold text-[#6b4a2b]/50">
+                          校舎一覧を読み込み中...
+                        </div>
+                      )}
+
+                      {/* 画像の「（複数選択可）」表記がある時だけ表示したい場合は適宜条件を追加 */}
+                      <div className="mt-2 text-[11px] font-bold text-[#6b4a2b]/60">
+                        （複数選択可）
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 選択肢 */}
+                  <div className="mt-6 space-y-3">
+                    {(() => {
+                      const isQ1Local = currentQuestion.id === "Q1";
+                      if (isQ1Local && !campusLoaded) return null;
+
+                      if (currentQuestion.options.length === 0) {
+                        return (
+                          <div className="rounded-2xl bg-[#fbf6ef] px-4 py-4 text-center text-[12px] font-semibold text-[#6b4a2b]/60">
+                            選択肢がありません。
+                          </div>
+                        );
+                      }
+
+                      return currentQuestion.options.map((opt) => {
+                        const selected = answers[currentQuestion.id] === opt.id;
+
+                        return (
+                          <button
+                            key={opt.id}
+                            type="button"
+                            onClick={() =>
+                              handleSelectOption(currentQuestion.id, opt.id)
+                            }
+                            className={[
+                              "w-full rounded-[18px] px-5 py-5 text-left",
+                              "text-[14px] font-extrabold leading-6",
+                              "transition active:scale-[0.99]",
+                              selected
+                                ? "bg-[#fff2b8] text-[#6b4a2b] ring-2 ring-[#f5c400] shadow-[0_10px_22px_rgba(0,0,0,0.10)]"
+                                : "bg-[#f6f1e9] text-[#6b4a2b]/85 ring-1 ring-black/5 hover:bg-[#f3ede3]",
+                            ].join(" ")}
+                          >
+                            {opt.label}
+                          </button>
+                        );
+                      });
+                    })()}
+                  </div>
+
+                  {/* エラー */}
+                  {error && (
+                    <div className="mt-4 rounded-2xl bg-red-50 px-4 py-3 text-[12px] font-semibold text-red-600">
+                      {error}
+                    </div>
+                  )}
+
+                  {/* フッター（画像は戻るだけに近いので、ボタン類は最小限） */}
+                  <div className="mt-6 flex items-center justify-between">
+                    <button
+                      type="button"
+                      className="text-[12px] font-semibold text-[#6b4a2b]/60 underline disabled:opacity-40"
+                      onClick={handlePrev}
+                      disabled={stepIndex === 0 || isSubmitting}
+                    >
+                      戻る
+                    </button>
+
+                    {stepIndex === totalSteps - 1 && (
                       <button
-                        key={opt.id}
                         type="button"
-                        onClick={() =>
-                          handleSelectOption(currentQuestion.id, opt.id)
-                        }
-                        className={[
-                          "flex h-full items-start rounded-2xl border px-3 py-3 text-left text-xs transition",
-                          selected
-                            ? "border-blue-600 bg-blue-50 text-blue-700 shadow-sm"
-                            : "border-gray-200 bg-white text-gray-800 hover:border-blue-300 hover:bg-blue-50/40",
-                        ].join(" ")}
+                        className="rounded-full bg-[#f5c400] px-5 py-2 text-[12px] font-extrabold text-[#6b4a2b] shadow-[0_10px_22px_rgba(0,0,0,0.12)] disabled:opacity-40"
+                        onClick={() => void handleSubmit()}
+                        disabled={!canGoNext || isSubmitting}
                       >
-                        <div className="flex-1 leading-snug">{opt.label}</div>
+                        {isSubmitting ? "診断中..." : "診断結果を見る"}
                       </button>
-                    );
-                  });
-                })()}
-              </div>
+                    )}
+                  </div>
 
-              {/* エラーメッセージ */}
-              {error && (
-                <div className="mb-2 rounded-md bg-red-50 px-2 py-1 text-[11px] text-red-600">
-                  {error}
+                  {!schoolId && (
+                    <div className="mt-3 text-[10px] font-semibold text-red-500/80">
+                      ※ URLクエリ
+                      param「schoolId」または「school」が指定されていません。
+                      <br />
+                      例：
+                      <code className="rounded bg-white/60 px-1">
+                        ?schoolId=links
+                      </code>
+                    </div>
+                  )}
                 </div>
-              )}
-
-              {/* フッター */}
-              <div className="mt-2 flex items-center justify-between">
-                <button
-                  type="button"
-                  className="text-xs text-gray-500 underline disabled:opacity-40"
-                  onClick={handlePrev}
-                  disabled={stepIndex === 0 || isSubmitting}
-                >
-                  戻る
-                </button>
-
-                {stepIndex === totalSteps - 1 && (
-                  <button
-                    type="button"
-                    className="rounded-full bg-blue-600 px-4 py-1.5 text-xs font-semibold text-white disabled:opacity-40"
-                    onClick={() => void handleSubmit()}
-                    disabled={!canGoNext || isSubmitting}
-                  >
-                    {isSubmitting ? "診断中..." : "診断結果を見る"}
-                  </button>
-                )}
               </div>
-
-              {!schoolId && (
-                <div className="mt-2 text-[10px] text-red-400">
-                  ※ URLクエリ
-                  param「schoolId」または「school」が指定されていません。
-                  <br />
-                  例:{" "}
-                  <code className="rounded bg-gray-100 px-1">
-                    ?schoolId=links
-                  </code>
-                </div>
-              )}
             </div>
           )}
         </div>
