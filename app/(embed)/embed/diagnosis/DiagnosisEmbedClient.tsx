@@ -1376,6 +1376,7 @@ export default function DiagnosisEmbedClient({
             </div>
 
             {/* ✅ 校舎情報 */}
+            {/* ✅ 校舎情報（ACCESS） */}
             {(() => {
               const c = result.campus ?? result.selectedCampus;
               if (!c) return null;
@@ -1383,61 +1384,94 @@ export default function DiagnosisEmbedClient({
               const { embedSrc, linkUrl } = pickCampusMapFields(c);
 
               return (
-                <div className="mt-6 rounded-2xl bg-gray-50 p-4">
-                  <div className="text-xs font-semibold text-gray-500">
-                    選択した校舎
+                <div className="mt-6 rounded-[32px] border border-[#EFE7DB] bg-white px-5 py-6 shadow-sm">
+                  {/* 見出し */}
+                  <div className="text-center">
+                    <div className="text-[22px] font-extrabold tracking-wide text-[#7A4C1F]">
+                      アクセス
+                    </div>
+                    <div className="mt-1 text-[12px] font-bold tracking-[0.22em] text-[#7A4C1F]/80">
+                      ACCESS
+                    </div>
+                    <div className="mx-auto mt-4 h-px w-full bg-[#EFE7DB]" />
                   </div>
-                  <div className="mt-1 text-lg font-bold">{c.label}</div>
 
-                  {(c.address || c.access || embedSrc || linkUrl) && (
-                    <div className="mt-3 space-y-2 text-xs text-gray-700">
-                      {c.address ? (
-                        <div>
-                          <div className="font-semibold text-gray-500">
-                            住所
-                          </div>
-                          <div className="whitespace-pre-wrap">{c.address}</div>
+                  {/* 地図 */}
+                  {embedSrc && (
+                    <div className="mt-5 overflow-hidden rounded-2xl border border-gray-200">
+                      <iframe
+                        src={embedSrc}
+                        className="h-56 w-full"
+                        style={{ border: 0 }}
+                        loading="lazy"
+                        referrerPolicy="no-referrer-when-downgrade"
+                      />
+                    </div>
+                  )}
+
+                  {/* 校舎名 */}
+                  <div className="mt-5 text-[18px] font-extrabold text-[#7A4C1F]">
+                    {c.label}
+                  </div>
+
+                  <div className="mt-3 space-y-3 text-[14px] font-semibold text-[#7A4C1F]/85">
+                    {/* 郵便番号＋住所 */}
+                    {c.address && (
+                      <div className="whitespace-pre-wrap border-t border-[#EFE7DB] pt-3">
+                        {c.address}
+                      </div>
+                    )}
+
+                    {/* TEL */}
+                    {c.tel && (
+                      <div className="border-t border-[#EFE7DB] pt-3">
+                        TEL：{c.tel}
+                      </div>
+                    )}
+
+                    {/* MAIL */}
+                    {c.email && (
+                      <div className="border-t border-[#EFE7DB] pt-3">
+                        MAIL：{c.email}
+                      </div>
+                    )}
+
+                    {/* 電車アクセス */}
+                    {c.access && (
+                      <div className="border-t border-[#EFE7DB] pt-3">
+                        <div className="font-extrabold text-[#7A4C1F]">
+                          【電車でお越しの場合】
                         </div>
-                      ) : null}
-
-                      {c.access ? (
-                        <div>
-                          <div className="font-semibold text-gray-500">
-                            アクセス
-                          </div>
-                          <div className="whitespace-pre-wrap">{c.access}</div>
+                        <div className="mt-1 whitespace-pre-wrap">
+                          {c.access}
                         </div>
-                      ) : null}
+                      </div>
+                    )}
 
-                      {embedSrc ? (
-                        <div className="pt-2">
-                          <div
-                            className={[
-                              "overflow-hidden rounded-2xl border border-gray-200 bg-white",
-                              styles.mediaFrame,
-                            ].join(" ")}
-                          >
-                            <iframe
-                              src={embedSrc}
-                              className="h-64 w-full"
-                              style={{ border: 0 }}
-                              loading="lazy"
-                              referrerPolicy="no-referrer-when-downgrade"
-                            />
-                          </div>
+                    {/* 営業時間 */}
+                    {c.openHours && (
+                      <div className="border-t border-[#EFE7DB] pt-3">
+                        <div className="font-extrabold text-[#7A4C1F]">
+                          【お問合せ時間】
                         </div>
-                      ) : null}
+                        <div className="mt-1 whitespace-pre-wrap">
+                          {c.openHours}
+                        </div>
+                      </div>
+                    )}
+                  </div>
 
-                      {linkUrl ? (
-                        <a
-                          href={linkUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex items-center gap-2 text-blue-600 hover:underline"
-                        >
-                          Googleマップで見る
-                        </a>
-                      ) : null}
+                  {/* Googleマップリンク */}
+                  {linkUrl && (
+                    <div className="mt-4 border-t border-[#EFE7DB] pt-4 text-center">
+                      <a
+                        href={linkUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-[13px] font-bold text-[#7A4C1F] underline"
+                      >
+                        Googleマップで見る
+                      </a>
                     </div>
                   )}
                 </div>
