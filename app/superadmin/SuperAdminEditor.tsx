@@ -2,7 +2,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Shield, Trash2, Plus, Copy } from "lucide-react";
+import { Shield, Trash2, Plus, Copy, Wand2 } from "lucide-react";
 import { useSession } from "next-auth/react";
 
 interface Props {
@@ -22,6 +22,9 @@ export default function SuperAdminEditor(props: Props) {
     text: string;
   }>();
   const [loading, setLoading] = useState(!props.superAdmins);
+
+  // ✅ schoolId を手入力したら、自動上書きを止めるためのフラグ
+  const [schoolIdTouched, setSchoolIdTouched] = useState(false);
 
   // 初期ロード（propsが無ければAPIから）
   useEffect(() => {
@@ -44,28 +47,47 @@ export default function SuperAdminEditor(props: Props) {
     };
   }, [props.superAdmins]);
 
+  // ✅ メール変更時の自動生成は「schoolId未入力」または「未編集」のときだけ
   useEffect(() => {
-    const extracted = newAdminEmail.split("@")[0];
-    setSchoolId(extracted || "");
-  }, [newAdminEmail]);
+    const extracted = newAdminEmail.split("@")[0] || "";
+
+    // まだ触ってない & まだ空 なら自動セット
+    if (!schoolIdTouched && !schoolId) {
+      setSchoolId(extracted);
+    }
+  }, [newAdminEmail, schoolIdTouched, schoolId]);
 
   const toast = (type: "ok" | "err", text: string) => {
     setMessage({ type, text });
     setTimeout(() => setMessage(undefined), 2500);
   };
 
+  const normalizeSchoolId = (v: string) =>
+    v.trim().toLowerCase().replace(/\s+/g, "-");
+
   const handleAddAdmin = async () => {
     if (!newAdminEmail) return;
+
+    const finalSchoolId = normalizeSchoolId(schoolId);
+    if (!finalSchoolId) return toast("err", "schoolId を入力してください");
+
     try {
       const res = await fetch("/api/super-admins", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "add", email: newAdminEmail, schoolId }),
+        body: JSON.stringify({
+          action: "add",
+          email: newAdminEmail,
+          schoolId: finalSchoolId,
+        }),
       });
       const text = await res.text();
       if (!res.ok) return toast("err", `追加に失敗しました: ${text}`);
+
       setAdmins((prev) => [...prev, newAdminEmail]);
       setNewAdminEmail("");
+      setSchoolId("");
+      setSchoolIdTouched(false);
       toast("ok", "✅ 追加しました");
     } catch (e: any) {
       toast("err", `追加に失敗しました: ${e?.message || "通信エラー"}`);
@@ -88,6 +110,12 @@ export default function SuperAdminEditor(props: Props) {
     } catch (e: any) {
       toast("err", `削除に失敗しました: ${e?.message || "通信エラー"}`);
     }
+  };
+
+  const handleGenerateFromEmail = () => {
+    const extracted = newAdminEmail.split("@")[0] || "";
+    setSchoolId(extracted);
+    setSchoolIdTouched(true); // 以降は「ユーザーが決めた」とみなす
   };
 
   return (
@@ -122,22 +150,38 @@ export default function SuperAdminEditor(props: Props) {
 
             <div>
               <label className="mb-1 block text-xs sm:text-sm text-gray-700 dark:text-gray-200">
-                自動生成された schoolId
+                schoolId（任意で入力OK）
               </label>
 
-              {/* ▼ 1カラム（SP）→ 1fr/auto（sm+）。幅に収まらない場合は自然に段落ち */}
-              <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-2 sm:items-start">
+              <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_auto] gap-2 sm:items-start">
                 <input
                   type="text"
                   value={schoolId}
-                  disabled
-                  className="input w-full text-gray-600 dark:text-gray-300 min-w-0"
+                  onChange={(e) => {
+                    setSchoolId(e.target.value);
+                    setSchoolIdTouched(true);
+                  }}
+                  placeholder="例）tokyo-dance-village"
+                  className="input w-full min-w-0"
                 />
+
+                <button
+                  type="button"
+                  className="btn-ghost sm:shrink-0"
+                  onClick={handleGenerateFromEmail}
+                  title="メールから生成"
+                  aria-label="メールから生成"
+                  disabled={!newAdminEmail}
+                >
+                  <Wand2 size={16} />
+                </button>
+
                 <button
                   type="button"
                   className="btn-ghost sm:shrink-0"
                   onClick={() =>
-                    schoolId && navigator.clipboard.writeText(schoolId)
+                    schoolId &&
+                    navigator.clipboard.writeText(normalizeSchoolId(schoolId))
                   }
                   title="schoolId をコピー"
                   aria-label="schoolId をコピー"
@@ -150,12 +194,13 @@ export default function SuperAdminEditor(props: Props) {
 
           <div className="mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <p className="text-[11px] sm:text-xs text-gray-600 dark:text-gray-300">
-              ※ メールの @ の前を schoolId として登録します
+              ※ 右の魔法アイコンで「メールの @ 前」を schoolId
+              に反映できます（手入力もOK）
             </p>
             <button
               onClick={handleAddAdmin}
               className="btn-primary inline-flex items-center justify-center gap-1.5 w-full sm:w-auto min-h-[40px] disabled:opacity-50"
-              disabled={!newAdminEmail}
+              disabled={!newAdminEmail || !normalizeSchoolId(schoolId)}
             >
               <Plus size={16} />
               <span>追加</span>
@@ -194,10 +239,8 @@ export default function SuperAdminEditor(props: Props) {
               {admins.map((email) => (
                 <li
                   key={email}
-                  // ▼ 1カラム（SP）→ 左:情報 / 右:アクション（sm+）
                   className="px-3 sm:px-4 py-3 grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3 sm:gap-4 items-start"
                 >
-                  {/* 左：情報（長文でも収まるよう min-w-0） */}
                   <div className="min-w-0 flex items-start gap-2">
                     <span
                       className="inline-flex max-w-full items-center rounded-full bg-gray-100 dark:bg-gray-800 px-2.5 py-1 text-xs font-medium text-gray-700 dark:text-gray-200 whitespace-nowrap truncate"
@@ -212,7 +255,6 @@ export default function SuperAdminEditor(props: Props) {
                     )}
                   </div>
 
-                  {/* 右：アクション（SPでは下段に落ちて全幅） */}
                   {email !== currentEmail && (
                     <div className="flex sm:justify-end">
                       <button
