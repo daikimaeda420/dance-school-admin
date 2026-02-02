@@ -1375,7 +1375,6 @@ export default function DiagnosisEmbedClient({
               </section>
             </div>
 
-            {/* ✅ 校舎情報 */}
             {/* ✅ 校舎情報（ACCESS） */}
             {(() => {
               const c = result.campus ?? result.selectedCampus;
@@ -1415,24 +1414,10 @@ export default function DiagnosisEmbedClient({
                   </div>
 
                   <div className="mt-3 space-y-3 text-[14px] font-semibold text-[#7A4C1F]/85">
-                    {/* 郵便番号＋住所 */}
+                    {/* 住所 */}
                     {c.address && (
                       <div className="whitespace-pre-wrap border-t border-[#EFE7DB] pt-3">
                         {c.address}
-                      </div>
-                    )}
-
-                    {/* TEL */}
-                    {c.tel && (
-                      <div className="border-t border-[#EFE7DB] pt-3">
-                        TEL：{c.tel}
-                      </div>
-                    )}
-
-                    {/* MAIL */}
-                    {c.email && (
-                      <div className="border-t border-[#EFE7DB] pt-3">
-                        MAIL：{c.email}
                       </div>
                     )}
 
@@ -1444,18 +1429,6 @@ export default function DiagnosisEmbedClient({
                         </div>
                         <div className="mt-1 whitespace-pre-wrap">
                           {c.access}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* 営業時間 */}
-                    {c.openHours && (
-                      <div className="border-t border-[#EFE7DB] pt-3">
-                        <div className="font-extrabold text-[#7A4C1F]">
-                          【お問合せ時間】
-                        </div>
-                        <div className="mt-1 whitespace-pre-wrap">
-                          {c.openHours}
                         </div>
                       </div>
                     )}
