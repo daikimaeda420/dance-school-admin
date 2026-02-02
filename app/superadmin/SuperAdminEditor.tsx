@@ -50,8 +50,6 @@ export default function SuperAdminEditor(props: Props) {
   // ✅ メール変更時の自動生成は「schoolId未入力」または「未編集」のときだけ
   useEffect(() => {
     const extracted = newAdminEmail.split("@")[0] || "";
-
-    // まだ触ってない & まだ空 なら自動セット
     if (!schoolIdTouched && !schoolId) {
       setSchoolId(extracted);
     }
@@ -62,6 +60,7 @@ export default function SuperAdminEditor(props: Props) {
     setTimeout(() => setMessage(undefined), 2500);
   };
 
+  // UI上は「所属スクールID」と呼ぶが、変数名は互換のためそのまま
   const normalizeSchoolId = (v: string) =>
     v.trim().toLowerCase().replace(/\s+/g, "-");
 
@@ -69,7 +68,8 @@ export default function SuperAdminEditor(props: Props) {
     if (!newAdminEmail) return;
 
     const finalSchoolId = normalizeSchoolId(schoolId);
-    if (!finalSchoolId) return toast("err", "schoolId を入力してください");
+    if (!finalSchoolId)
+      return toast("err", "所属スクールID を入力してください");
 
     try {
       const res = await fetch("/api/super-admins", {
@@ -95,7 +95,9 @@ export default function SuperAdminEditor(props: Props) {
   };
 
   const handleRemoveAdmin = async (email: string) => {
-    const confirmed = confirm(`「${email}」を Super Admin から削除しますか？`);
+    const confirmed = confirm(
+      `「${email}」をシステム管理者（運営）から削除しますか？`,
+    );
     if (!confirmed) return;
     try {
       const res = await fetch("/api/super-admins", {
@@ -115,7 +117,7 @@ export default function SuperAdminEditor(props: Props) {
   const handleGenerateFromEmail = () => {
     const extracted = newAdminEmail.split("@")[0] || "";
     setSchoolId(extracted);
-    setSchoolIdTouched(true); // 以降は「ユーザーが決めた」とみなす
+    setSchoolIdTouched(true);
   };
 
   return (
@@ -124,7 +126,7 @@ export default function SuperAdminEditor(props: Props) {
         <div className="flex items-center gap-2">
           <Shield className="text-amber-500 dark:text-amber-300" size={18} />
           <h2 className="font-semibold text-gray-900 dark:text-gray-100 text-sm sm:text-base">
-            Super Admin 管理
+            システム管理者（運営）管理
           </h2>
         </div>
       </div>
@@ -135,7 +137,7 @@ export default function SuperAdminEditor(props: Props) {
           <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
             <div className="sm:col-span-2">
               <label className="mb-1 block text-xs sm:text-sm text-gray-700 dark:text-gray-200">
-                追加するメールアドレス
+                追加するメールアドレス（ログインID）
               </label>
               <input
                 type="email"
@@ -150,7 +152,7 @@ export default function SuperAdminEditor(props: Props) {
 
             <div>
               <label className="mb-1 block text-xs sm:text-sm text-gray-700 dark:text-gray-200">
-                schoolId（任意で入力OK）
+                所属スクールID（任意で入力OK）
               </label>
 
               <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_auto] gap-2 sm:items-start">
@@ -169,8 +171,8 @@ export default function SuperAdminEditor(props: Props) {
                   type="button"
                   className="btn-ghost sm:shrink-0"
                   onClick={handleGenerateFromEmail}
-                  title="メールから生成"
-                  aria-label="メールから生成"
+                  title="メールから提案"
+                  aria-label="メールから提案"
                   disabled={!newAdminEmail}
                 >
                   <Wand2 size={16} />
@@ -183,8 +185,8 @@ export default function SuperAdminEditor(props: Props) {
                     schoolId &&
                     navigator.clipboard.writeText(normalizeSchoolId(schoolId))
                   }
-                  title="schoolId をコピー"
-                  aria-label="schoolId をコピー"
+                  title="コピー"
+                  aria-label="コピー"
                 >
                   <Copy size={16} />
                 </button>
@@ -194,8 +196,8 @@ export default function SuperAdminEditor(props: Props) {
 
           <div className="mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <p className="text-[11px] sm:text-xs text-gray-600 dark:text-gray-300">
-              ※ 右の魔法アイコンで「メールの @ 前」を schoolId
-              に反映できます（手入力もOK）
+              ※ 魔法アイコンで「メールの @
+              前」を所属スクールIDとして提案できます（手入力もOK）
             </p>
             <button
               onClick={handleAddAdmin}
@@ -223,7 +225,7 @@ export default function SuperAdminEditor(props: Props) {
         {/* 一覧 */}
         <div>
           <h3 className="mb-2 text-sm font-semibold text-gray-700 dark:text-gray-200">
-            Super Admin 一覧
+            システム管理者（運営）一覧
           </h3>
 
           {loading ? (
