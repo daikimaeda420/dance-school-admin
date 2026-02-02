@@ -1088,8 +1088,8 @@ export default function DiagnosisEmbedClient({
                 )}
               </div>
 
-              {/* ✅ スケジュール */}
-              <div>
+              {/* ✅ スケジュール（背景を白に） */}
+              <div className="rounded-[28px] bg-white px-5 py-6 shadow-sm ring-1 ring-black/5">
                 <div className="text-center">
                   <div className="text-[26px] font-extrabold tracking-wide text-[#6b4a2b]">
                     スケジュール
