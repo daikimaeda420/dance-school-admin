@@ -163,7 +163,7 @@ export default function SuperAdminEditor(props: Props) {
                     setSchoolId(e.target.value);
                     setSchoolIdTouched(true);
                   }}
-                  placeholder="例）tokyo-dance-village"
+                  placeholder="example-school"
                   className="input w-full min-w-0"
                 />
 

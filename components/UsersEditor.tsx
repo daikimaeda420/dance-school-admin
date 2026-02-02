@@ -334,7 +334,7 @@ export default function UsersEditor() {
                               }))
                             }
                             className="input w-full"
-                            placeholder="例）tokyo-dance-village"
+                            placeholder="example-school"
                           />
                           <button
                             type="button"
@@ -466,7 +466,7 @@ export default function UsersEditor() {
                       setNewSchoolIdTouched(true);
                     }}
                     className="input w-full"
-                    placeholder="例）tokyo-dance-village"
+                    placeholder="example-school"
                   />
                   <button
                     type="button"
