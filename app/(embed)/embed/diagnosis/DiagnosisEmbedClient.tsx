@@ -757,506 +757,510 @@ export default function DiagnosisEmbedClient({
   // ==========================
   return (
     <div className={styles.root}>
-      {result ? (
-        <div>
-          <button
-            type="button"
-            className="text-xs text-gray-500 underline"
-            onClick={handleRestart}
-          >
-            診断をやり直す
-          </button>
-
-          <div className="w-full max-w-4xl rounded-3xl border border-gray-200 bg-white p-6 shadow-xl text-gray-900 md:p-8">
-            {/* FV */}
-            <div className="relative overflow-hidden rounded-2xl bg-[#fbf4df] px-4 pb-5 pt-4">
-              {onClose && (
+      {/* ✅ 画面全体：左右余白 + 縦余白 */}
+      <div className="px-4 sm:px-6 py-4 sm:py-6">
+        {/* ✅ 横幅統一：スマホ100% / PC中央寄せ */}
+        <div className="mx-auto w-full max-w-[560px]">
+          {result ? (
+            // ==========================
+            // ✅ 結果画面
+            // ==========================
+            <div className="space-y-8 sm:space-y-10">
+              {/* 上：やり直し */}
+              <div>
                 <button
                   type="button"
-                  className="absolute right-3 top-3 grid h-8 w-8 place-items-center rounded-full bg-white/80 text-xs text-gray-500 ring-1 ring-black/5 hover:bg-white"
-                  onClick={onClose}
-                  aria-label="閉じる"
+                  className="text-xs text-gray-500 underline"
+                  onClick={handleRestart}
                 >
-                  ✕
+                  診断をやり直す
                 </button>
-              )}
-
-              <div className="mx-auto inline-flex rounded-full bg-[#cfc1aa] px-4 py-2 text-xs font-bold text-white">
-                今のあなたに1番おすすめのクラスは…
               </div>
 
-              <div className="mt-3 text-center text-[18px] font-extrabold text-red-600">
-                相性バツグン！
-              </div>
-
-              {/* 円形メーター */}
-              <div className="mt-3 flex justify-center">
-                <div
-                  className="relative grid h-[132px] w-[132px] place-items-center rounded-full shadow-[0_10px_25px_rgba(0,0,0,0.15)]"
-                  style={{
-                    background: `conic-gradient(#f3a58c ${Math.max(
-                      0,
-                      Math.min(100, result.score),
-                    )}%, rgba(243,165,140,0.25) 0)`,
-                  }}
-                  aria-label={`マッチング度 ${result.score}%`}
-                >
-                  <div className="grid h-[108px] w-[108px] place-items-center rounded-full bg-white">
-                    <div className="text-center">
-                      <div className="text-[12px] font-bold text-gray-500">
-                        マッチング度
-                      </div>
-                      <div className="mt-1 text-[34px] font-extrabold text-[#7a4b1f] leading-none">
-                        {result.score}
-                        <span className="text-[16px] font-extrabold align-top">
-                          %
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="pointer-events-none absolute inset-0 rounded-full ring-8 ring-white/40" />
-                </div>
-              </div>
-
-              {/* 下の白い帯 */}
-              <div className="mt-4 rounded-2xl bg-white px-4 py-5 text-center shadow-[0_10px_25px_rgba(0,0,0,0.08)]">
-                <div className="text-[16px] font-extrabold text-[#7a4b1f]">
-                  運命のクラスかも？
-                </div>
-                <div className="mt-1 text-[30px] font-extrabold leading-tight text-[#f08d6b]">
-                  {result.bestMatch?.className ?? "K-POP 初級クラス"}
-                </div>
-
-                {result.patternMessage && (
-                  <div className="mt-2 text-xs font-medium text-gray-500">
-                    {result.patternMessage}
-                  </div>
-                )}
-              </div>
-
-              {imgSrc && (
-                <div
-                  className={[
-                    "mt-3 overflow-hidden rounded-2xl border border-gray-200 bg-white",
-                    styles.mediaFrame,
-                  ].join(" ")}
-                >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={imgSrc}
-                    alt={
-                      coursePhotoUrl || fallbackCourseImgSrc
-                        ? `${className}の画像`
-                        : genreLabel
-                          ? `${genreLabel}の画像`
-                          : "診断結果画像"
-                    }
-                    className="h-40 w-full object-cover"
-                    loading="lazy"
-                  />
-                </div>
-              )}
-            </div>
-
-            {/* メイン提案エリア */}
-            <div className="rounded-2xl bg-[#fff7dc] px-4 pb-6 pt-6">
-              <div className="text-center">
-                <div className="text-[22px] font-extrabold text-[#7a4b1f]">
-                  あなたに
-                  <br />
-                  おすすめの理由
-                </div>
-                <div className="mt-1 text-xs font-semibold tracking-[0.25em] text-[#7a4b1f]/70">
-                  REASONS TO CHOOSE
-                </div>
-              </div>
-
-              <div className="mt-6 space-y-4">
-                {result.resultCopy?.level && (
-                  <div className="overflow-hidden rounded-2xl bg-white shadow-[0_10px_25px_rgba(0,0,0,0.12)]">
-                    <div className="flex items-center gap-3 bg-[#fde4d8] px-4 py-3">
-                      <div className="text-center text-[#7a4b1f]">
-                        <div className="text-[10px] font-extrabold">POINT</div>
-                        <div className="text-[26px] font-extrabold leading-none">
-                          1
-                        </div>
-                      </div>
-                      <div className="text-sm font-extrabold text-[#7a4b1f]">
-                        {result.resultCopy.level.title}
-                      </div>
-                    </div>
-                    <div className="px-4 py-4 text-sm leading-7 text-[#7a4b1f]/90">
-                      {result.resultCopy.level.body}
-                    </div>
-                  </div>
+              {/* FV */}
+              <div className="relative overflow-hidden rounded-2xl bg-[#fbf4df] px-4 pb-5 pt-4 shadow-sm ring-1 ring-black/5">
+                {onClose && (
+                  <button
+                    type="button"
+                    className="absolute right-3 top-3 grid h-8 w-8 place-items-center rounded-full bg-white/80 text-xs text-gray-500 ring-1 ring-black/5 hover:bg-white"
+                    onClick={onClose}
+                    aria-label="閉じる"
+                  >
+                    ✕
+                  </button>
                 )}
 
-                {result.resultCopy?.age && (
-                  <div className="overflow-hidden rounded-2xl bg-white shadow-[0_10px_25px_rgba(0,0,0,0.12)]">
-                    <div className="flex items-center gap-3 bg-[#fbd6e6] px-4 py-3">
-                      <div className="text-center text-[#7a4b1f]">
-                        <div className="text-[10px] font-extrabold">POINT</div>
-                        <div className="text-[26px] font-extrabold leading-none">
-                          2
+                <div className="mx-auto inline-flex rounded-full bg-[#cfc1aa] px-4 py-2 text-xs font-bold text-white">
+                  今のあなたに1番おすすめのクラスは…
+                </div>
+
+                <div className="mt-3 text-center text-[18px] font-extrabold text-red-600">
+                  相性バツグン！
+                </div>
+
+                {/* 円形メーター */}
+                <div className="mt-3 flex justify-center">
+                  <div
+                    className="relative grid h-[132px] w-[132px] place-items-center rounded-full shadow-[0_10px_25px_rgba(0,0,0,0.15)]"
+                    style={{
+                      background: `conic-gradient(#f3a58c ${Math.max(
+                        0,
+                        Math.min(100, result.score),
+                      )}%, rgba(243,165,140,0.25) 0)`,
+                    }}
+                    aria-label={`マッチング度 ${result.score}%`}
+                  >
+                    <div className="grid h-[108px] w-[108px] place-items-center rounded-full bg-white">
+                      <div className="text-center">
+                        <div className="text-[12px] font-bold text-gray-500">
+                          マッチング度
+                        </div>
+                        <div className="mt-1 text-[34px] font-extrabold text-[#7a4b1f] leading-none">
+                          {result.score}
+                          <span className="text-[16px] font-extrabold align-top">
+                            %
+                          </span>
                         </div>
                       </div>
-                      <div className="text-sm font-extrabold text-[#7a4b1f]">
-                        {result.resultCopy.age.title}
-                      </div>
                     </div>
-                    <div className="px-4 py-4 text-sm leading-7 text-[#7a4b1f]/90">
-                      {result.resultCopy.age.body}
-                    </div>
+                    <div className="pointer-events-none absolute inset-0 rounded-full ring-8 ring-white/40" />
                   </div>
-                )}
+                </div>
 
-                {result.resultCopy?.teacher && (
-                  <div className="overflow-hidden rounded-2xl bg-white shadow-[0_10px_25px_rgba(0,0,0,0.12)]">
-                    <div className="flex items-center gap-3 bg-[#d9efb8] px-4 py-3">
-                      <div className="text-center text-[#7a4b1f]">
-                        <div className="text-[10px] font-extrabold">POINT</div>
-                        <div className="text-[26px] font-extrabold leading-none">
-                          3
-                        </div>
-                      </div>
-                      <div className="text-sm font-extrabold text-[#7a4b1f]">
-                        {result.resultCopy.teacher.title}
-                      </div>
-                    </div>
-                    <div className="px-4 py-4 text-sm leading-7 text-[#7a4b1f]/90">
-                      {result.resultCopy.teacher.body}
-                    </div>
+                {/* 下の白い帯 */}
+                <div className="mt-4 rounded-2xl bg-white px-4 py-5 text-center shadow-[0_10px_25px_rgba(0,0,0,0.08)]">
+                  <div className="text-[16px] font-extrabold text-[#7a4b1f]">
+                    運命のクラスかも？
                   </div>
-                )}
-              </div>
+                  <div className="mt-1 text-[30px] font-extrabold leading-tight text-[#f08d6b]">
+                    {result.bestMatch?.className ?? "K-POP 初級クラス"}
+                  </div>
 
-              <div className="mt-6 rounded-2xl bg-[#f7f3ea] px-4 py-5 text-center">
-                <div className="mb-2 flex items-center justify-center gap-2 text-[#7a4b1f]">
-                  <span className="text-xl">💬</span>
-                  <span className="text-sm font-extrabold tracking-wide">
-                    COMMENT
-                  </span>
-                </div>
-
-                <div className="text-sm leading-7 text-[#7a4b1f]/90 whitespace-pre-wrap">
-                  {result.resultCopy?.concern ?? result.concernMessage}
-                </div>
-              </div>
-            </div>
-
-            {/* ✅ 担当講師 */}
-            <div className="mt-4">
-              <div className="text-xs font-semibold text-gray-500">
-                担当講師
-              </div>
-
-              {hasInstructors ? (
-                <div className="mt-2 space-y-3">
-                  {instructors.map((t) => {
-                    const tags = splitCharmTags(t.charmTags);
-                    const intro = String(t.introduction ?? "").trim();
-
-                    return (
-                      <div
-                        key={t.id}
-                        className="rounded-[32px] border border-[#EFE7DB] bg-white px-5 py-6 shadow-sm"
-                      >
-                        {/* 見出し（画像の「担当講師の紹介 / INSTRUCTOR」） */}
-                        <div className="text-center">
-                          <div className="text-[22px] font-extrabold tracking-wide text-[#7A4C1F]">
-                            担当講師の紹介
-                          </div>
-                          <div className="mt-1 text-[12px] font-bold tracking-[0.22em] text-[#7A4C1F]/80">
-                            INSTRUCTOR
-                          </div>
-                          <div className="mx-auto mt-4 h-px w-full bg-[#EFE7DB]" />
-                        </div>
-
-                        {/* 講師情報（丸写真＋右テキスト） */}
-                        <div className="mt-6 flex items-center gap-4">
-                          <div className="h-20 w-20 overflow-hidden rounded-full bg-gray-200">
-                            {t.photoUrl ? (
-                              // eslint-disable-next-line @next/next/no-img-element
-                              <img
-                                src={t.photoUrl}
-                                alt={t.label}
-                                className="h-full w-full object-cover"
-                              />
-                            ) : (
-                              <div className="h-full w-full" />
-                            )}
-                          </div>
-
-                          <div className="min-w-0">
-                            {/* 上の小さい学校名っぽい行（なければ非表示でOK） */}
-                            {/* 필요なら t.schoolName 等に差し替え */}
-                            <div className="text-[12px] font-semibold text-[#7A4C1F]/70">
-                              {/* 例：XXXXダンススクール */}
-                            </div>
-
-                            <div className="mt-1 flex items-baseline gap-2">
-                              <div className="truncate text-[28px] font-extrabold tracking-tight text-[#7A4C1F]">
-                                {t.label}
-                              </div>
-                              <div className="text-[14px] font-bold text-[#7A4C1F]/80">
-                                先生
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* タグ（グレーの丸薬） */}
-                        {tags.length > 0 && (
-                          <div className="mt-4 flex flex-wrap gap-2">
-                            {tags.map((tag, idx) => (
-                              <span
-                                key={`${t.id}_tag_${idx}`}
-                                className="inline-flex items-center rounded-full bg-[#8E8E8E] px-3 py-1 text-[11px] font-bold text-white"
-                              >
-                                {tag}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-
-                        {/* コメント枠（画像の枠＋アイコン＋中央） */}
-                        {intro && (
-                          <div className="mt-5 rounded-[28px] border-2 border-[#C9B091] bg-white px-5 py-6">
-                            <div className="flex flex-col items-center text-center">
-                              {/* アイコン（吹き出し） */}
-                              <svg
-                                width="34"
-                                height="34"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                aria-hidden="true"
-                                className="mb-3"
-                              >
-                                <path
-                                  d="M7 8h10M7 12h7m-2 7l-3.5-2H6a4 4 0 0 1-4-4V8a4 4 0 0 1 4-4h12a4 4 0 0 1 4 4v5a4 4 0 0 1-4 4h-2.5L12 19z"
-                                  stroke="#7A4C1F"
-                                  strokeWidth="1.8"
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                />
-                              </svg>
-
-                              <div className="text-[18px] font-extrabold text-[#7A4C1F]">
-                                先生からのコメント
-                              </div>
-
-                              <div className="mt-3 whitespace-pre-wrap text-[14px] font-semibold leading-7 text-[#7A4C1F]/85">
-                                {intro}
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                // instructors が無い場合のフォールバック（既存のままでもOK）
-                <div className="mt-2 flex items-center gap-3">
-                  {result.teacher.photoUrl && (
-                    <div className="h-12 w-12 overflow-hidden rounded-full bg-gray-200">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={result.teacher.photoUrl}
-                        alt={result.teacher.name ?? "講師"}
-                        className="h-full w-full object-cover"
-                      />
+                  {result.patternMessage && (
+                    <div className="mt-2 text-xs font-medium text-gray-500">
+                      {result.patternMessage}
                     </div>
                   )}
-                  <div>
-                    <div className="text-sm font-semibold">
-                      {result.teacher.name ?? "担当講師"}
-                    </div>
-                    {result.teacher.styles?.length > 0 && (
-                      <div className="mt-1 text-xs text-gray-500">
-                        スタイル：{result.teacher.styles.join(" / ")}
-                      </div>
-                    )}
-                  </div>
                 </div>
-              )}
-            </div>
 
-            {/* ✅ スケジュール */}
-            <div className="mt-6">
-              <div className="text-center">
-                <div className="text-[26px] font-extrabold tracking-wide text-[#6b4a2b]">
-                  スケジュール
-                </div>
-                <div className="mt-1 text-[12px] font-semibold tracking-[0.2em] text-[#6b4a2b]/70">
-                  SCHEDULE
-                </div>
-                <div className="mx-auto mt-6 h-px w-full bg-[#6b4a2b]/10" />
+                {imgSrc && (
+                  <div
+                    className={[
+                      "mt-3 overflow-hidden rounded-2xl border border-gray-200 bg-white",
+                      styles.mediaFrame,
+                    ].join(" ")}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={imgSrc}
+                      alt={
+                        coursePhotoUrl || fallbackCourseImgSrc
+                          ? `${className}の画像`
+                          : genreLabel
+                            ? `${genreLabel}の画像`
+                            : "診断結果画像"
+                      }
+                      className="h-40 w-full object-cover"
+                      loading="lazy"
+                    />
+                  </div>
+                )}
               </div>
 
-              {scheduleError && (
-                <div className="mt-3 rounded-xl bg-red-50 px-3 py-2 text-[11px] text-red-600">
-                  {scheduleError}
+              {/* メイン提案エリア */}
+              <div className="rounded-2xl bg-[#fff7dc] px-4 pb-6 pt-6 shadow-sm ring-1 ring-black/5">
+                <div className="text-center">
+                  <div className="text-[22px] font-extrabold text-[#7a4b1f]">
+                    あなたに
+                    <br />
+                    おすすめの理由
+                  </div>
+                  <div className="mt-1 text-xs font-semibold tracking-[0.25em] text-[#7a4b1f]/70">
+                    REASONS TO CHOOSE
+                  </div>
                 </div>
-              )}
 
-              {(() => {
-                const s = schedule;
-                const total = s
-                  ? (Object.values(s).reduce(
-                      (sum, arr) => sum + arr.length,
-                      0,
-                    ) as number)
-                  : 0;
-
-                if (!s || total === 0) {
-                  return (
-                    <div className="mt-4 rounded-2xl bg-white p-5 text-center text-[12px] font-semibold text-[#6b4a2b]/70 ring-1 ring-[#6b4a2b]/10">
-                      現在、該当するスケジュールはありません。
-                    </div>
-                  );
-                }
-
-                const dayKeys = [
-                  "ALL",
-                  "MON",
-                  "TUE",
-                  "WED",
-                  "THU",
-                  "FRI",
-                  "SAT",
-                  "SUN",
-                ] as const;
-                type ViewDayKey = (typeof dayKeys)[number];
-
-                const viewDayLabel: Record<ViewDayKey, string> = {
-                  ALL: "ALL",
-                  MON: "月",
-                  TUE: "火",
-                  WED: "水",
-                  THU: "木",
-                  FRI: "金",
-                  SAT: "土",
-                  SUN: "日",
-                };
-
-                const activeDay: ViewDayKey = scheduleDay;
-                const setActiveDay: (d: ViewDayKey) => void = setScheduleDay;
-
-                const list =
-                  activeDay === "ALL"
-                    ? (
-                        [
-                          "MON",
-                          "TUE",
-                          "WED",
-                          "THU",
-                          "FRI",
-                          "SAT",
-                          "SUN",
-                        ] as const
-                      ).flatMap((k) =>
-                        (s[k] ?? []).map((slot) => ({ ...slot, weekday: k })),
-                      )
-                    : (s[activeDay] ?? []).map((slot) => ({
-                        ...slot,
-                        weekday: activeDay,
-                      }));
-
-                return (
-                  <>
-                    <div className="mt-6 flex flex-wrap gap-3">
-                      {dayKeys.map((k) => (
-                        <button
-                          key={k}
-                          onClick={() => setActiveDay(k)}
-                          className={[
-                            "h-11 min-w-[72px] rounded-full px-5 text-[14px] font-bold",
-                            "transition active:scale-[0.99]",
-                            "shadow-[0_8px_16px_rgba(0,0,0,0.08)]",
-                            k === activeDay
-                              ? "bg-[#f6c400] text-[#6b4a2b]"
-                              : "bg-white text-[#6b4a2b] ring-1 ring-[#6b4a2b]/10",
-                          ].join(" ")}
-                        >
-                          {viewDayLabel[k]}
-                        </button>
-                      ))}
-                    </div>
-
-                    <div className="mt-6 space-y-4">
-                      {list.length === 0 ? (
-                        <div className="rounded-2xl bg-white p-5 text-center text-[12px] font-semibold text-[#6b4a2b]/70 ring-1 ring-[#6b4a2b]/10">
-                          該当するスケジュールがありません
+                <div className="mt-6 space-y-4">
+                  {result.resultCopy?.level && (
+                    <div className="overflow-hidden rounded-2xl bg-white shadow-[0_10px_25px_rgba(0,0,0,0.12)]">
+                      <div className="flex items-center gap-3 bg-[#fde4d8] px-4 py-3">
+                        <div className="text-center text-[#7a4b1f]">
+                          <div className="text-[10px] font-extrabold">
+                            POINT
+                          </div>
+                          <div className="text-[26px] font-extrabold leading-none">
+                            1
+                          </div>
                         </div>
-                      ) : (
-                        list.map((slot) => (
-                          <div
-                            key={slot.id}
-                            className={[
-                              "rounded-2xl bg-white p-5",
-                              "ring-1 ring-[#6b4a2b]/10",
-                              "shadow-[0_10px_24px_rgba(0,0,0,0.08)]",
-                            ].join(" ")}
-                          >
-                            <div className="flex items-start gap-3">
-                              <div className="mt-1 h-5 w-1.5 rounded-full bg-[#d9d2c7]" />
+                        <div className="text-sm font-extrabold text-[#7a4b1f]">
+                          {result.resultCopy.level.title}
+                        </div>
+                      </div>
+                      <div className="px-4 py-4 text-sm leading-7 text-[#7a4b1f]/90">
+                        {result.resultCopy.level.body}
+                      </div>
+                    </div>
+                  )}
 
-                              <div className="min-w-0 flex-1">
-                                <div className="text-[18px] font-extrabold text-[#6b4a2b]">
-                                  XXXXXコース
+                  {result.resultCopy?.age && (
+                    <div className="overflow-hidden rounded-2xl bg-white shadow-[0_10px_25px_rgba(0,0,0,0.12)]">
+                      <div className="flex items-center gap-3 bg-[#fbd6e6] px-4 py-3">
+                        <div className="text-center text-[#7a4b1f]">
+                          <div className="text-[10px] font-extrabold">
+                            POINT
+                          </div>
+                          <div className="text-[26px] font-extrabold leading-none">
+                            2
+                          </div>
+                        </div>
+                        <div className="text-sm font-extrabold text-[#7a4b1f]">
+                          {result.resultCopy.age.title}
+                        </div>
+                      </div>
+                      <div className="px-4 py-4 text-sm leading-7 text-[#7a4b1f]/90">
+                        {result.resultCopy.age.body}
+                      </div>
+                    </div>
+                  )}
+
+                  {result.resultCopy?.teacher && (
+                    <div className="overflow-hidden rounded-2xl bg-white shadow-[0_10px_25px_rgba(0,0,0,0.12)]">
+                      <div className="flex items-center gap-3 bg-[#d9efb8] px-4 py-3">
+                        <div className="text-center text-[#7a4b1f]">
+                          <div className="text-[10px] font-extrabold">
+                            POINT
+                          </div>
+                          <div className="text-[26px] font-extrabold leading-none">
+                            3
+                          </div>
+                        </div>
+                        <div className="text-sm font-extrabold text-[#7a4b1f]">
+                          {result.resultCopy.teacher.title}
+                        </div>
+                      </div>
+                      <div className="px-4 py-4 text-sm leading-7 text-[#7a4b1f]/90">
+                        {result.resultCopy.teacher.body}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="mt-6 rounded-2xl bg-[#f7f3ea] px-4 py-5 text-center">
+                  <div className="mb-2 flex items-center justify-center gap-2 text-[#7a4b1f]">
+                    <span className="text-xl">💬</span>
+                    <span className="text-sm font-extrabold tracking-wide">
+                      COMMENT
+                    </span>
+                  </div>
+                  <div className="text-sm leading-7 text-[#7a4b1f]/90 whitespace-pre-wrap">
+                    {result.resultCopy?.concern ?? result.concernMessage}
+                  </div>
+                </div>
+              </div>
+
+              {/* ✅ 担当講師 */}
+              <div className="space-y-2">
+                <div className="text-xs font-semibold text-gray-500">
+                  担当講師
+                </div>
+
+                {hasInstructors ? (
+                  <div className="space-y-3">
+                    {instructors.map((t) => {
+                      const tags = splitCharmTags(t.charmTags);
+                      const intro = String(t.introduction ?? "").trim();
+
+                      return (
+                        <div
+                          key={t.id}
+                          className="rounded-[32px] border border-[#EFE7DB] bg-white px-5 py-6 shadow-sm"
+                        >
+                          {/* 見出し */}
+                          <div className="text-center">
+                            <div className="text-[22px] font-extrabold tracking-wide text-[#7A4C1F]">
+                              担当講師の紹介
+                            </div>
+                            <div className="mt-1 text-[12px] font-bold tracking-[0.22em] text-[#7A4C1F]/80">
+                              INSTRUCTOR
+                            </div>
+                            <div className="mx-auto mt-4 h-px w-full bg-[#EFE7DB]" />
+                          </div>
+
+                          {/* 講師情報 */}
+                          <div className="mt-6 flex items-center gap-4">
+                            <div className="h-20 w-20 overflow-hidden rounded-full bg-gray-200">
+                              {t.photoUrl ? (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img
+                                  src={t.photoUrl}
+                                  alt={t.label}
+                                  className="h-full w-full object-cover"
+                                />
+                              ) : (
+                                <div className="h-full w-full" />
+                              )}
+                            </div>
+
+                            <div className="min-w-0">
+                              <div className="mt-1 flex items-baseline gap-2">
+                                <div className="truncate text-[28px] font-extrabold tracking-tight text-[#7A4C1F]">
+                                  {t.label}
                                 </div>
-
-                                <div className="mt-3 space-y-2 text-[14px] font-semibold text-[#6b4a2b]/85">
-                                  <div className="flex items-center gap-2">
-                                    <span className="text-[#b8a99a]">✦</span>
-                                    <span className="truncate">
-                                      {slot.genreText}
-                                    </span>
-                                  </div>
-
-                                  <div className="flex items-center gap-2">
-                                    <span className="text-[#b8a99a]">🕒</span>
-                                    <span className="truncate">
-                                      {slot.timeText}
-                                    </span>
-                                  </div>
-
-                                  <div className="flex items-center gap-2">
-                                    <span className="text-[#b8a99a]">👤</span>
-                                    <span className="truncate">
-                                      {slot.teacher}
-                                    </span>
-                                  </div>
-
-                                  <div className="flex items-center gap-2">
-                                    <span className="text-[#b8a99a]">📍</span>
-                                    <span className="truncate">
-                                      {slot.place}
-                                    </span>
-                                  </div>
+                                <div className="text-[14px] font-bold text-[#7A4C1F]/80">
+                                  先生
                                 </div>
-
-                                {activeDay === "ALL" && (
-                                  <div className="mt-3 text-[11px] font-bold text-[#6b4a2b]/55">
-                                    {viewDayLabel[slot.weekday as ViewDayKey]}
-                                  </div>
-                                )}
                               </div>
                             </div>
                           </div>
-                        ))
+
+                          {/* タグ */}
+                          {tags.length > 0 && (
+                            <div className="mt-4 flex flex-wrap gap-2">
+                              {tags.map((tag, idx) => (
+                                <span
+                                  key={`${t.id}_tag_${idx}`}
+                                  className="inline-flex items-center rounded-full bg-[#8E8E8E] px-3 py-1 text-[11px] font-bold text-white"
+                                >
+                                  {tag}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* コメント */}
+                          {intro && (
+                            <div className="mt-5 rounded-[28px] border-2 border-[#C9B091] bg-white px-5 py-6">
+                              <div className="flex flex-col items-center text-center">
+                                <svg
+                                  width="34"
+                                  height="34"
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  aria-hidden="true"
+                                  className="mb-3"
+                                >
+                                  <path
+                                    d="M7 8h10M7 12h7m-2 7l-3.5-2H6a4 4 0 0 1-4-4V8a4 4 0 0 1 4-4h12a4 4 0 0 1 4 4v5a4 4 0 0 1-4 4h-2.5L12 19z"
+                                    stroke="#7A4C1F"
+                                    strokeWidth="1.8"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                  />
+                                </svg>
+
+                                <div className="text-[18px] font-extrabold text-[#7A4C1F]">
+                                  先生からのコメント
+                                </div>
+
+                                <div className="mt-3 whitespace-pre-wrap text-[14px] font-semibold leading-7 text-[#7A4C1F]/85">
+                                  {intro}
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-3">
+                    {result.teacher.photoUrl && (
+                      <div className="h-12 w-12 overflow-hidden rounded-full bg-gray-200">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={result.teacher.photoUrl}
+                          alt={result.teacher.name ?? "講師"}
+                          className="h-full w-full object-cover"
+                        />
+                      </div>
+                    )}
+                    <div>
+                      <div className="text-sm font-semibold">
+                        {result.teacher.name ?? "担当講師"}
+                      </div>
+                      {result.teacher.styles?.length > 0 && (
+                        <div className="mt-1 text-xs text-gray-500">
+                          スタイル：{result.teacher.styles.join(" / ")}
+                        </div>
                       )}
                     </div>
-                  </>
-                );
-              })()}
-            </div>
+                  </div>
+                )}
+              </div>
 
-            {/* ✅ レッスン料金 */}
-            <div className="w-full max-w-md mx-auto px-4">
-              <section className="rounded-[28px] bg-white px-5 pt-6 pb-6 shadow-sm ring-1 ring-black/5">
+              {/* ✅ スケジュール */}
+              <div>
+                <div className="text-center">
+                  <div className="text-[26px] font-extrabold tracking-wide text-[#6b4a2b]">
+                    スケジュール
+                  </div>
+                  <div className="mt-1 text-[12px] font-semibold tracking-[0.2em] text-[#6b4a2b]/70">
+                    SCHEDULE
+                  </div>
+                  <div className="mx-auto mt-6 h-px w-full bg-[#6b4a2b]/10" />
+                </div>
+
+                {scheduleError && (
+                  <div className="mt-3 rounded-xl bg-red-50 px-3 py-2 text-[11px] text-red-600">
+                    {scheduleError}
+                  </div>
+                )}
+
+                {(() => {
+                  const s = schedule;
+                  const total = s
+                    ? (Object.values(s).reduce(
+                        (sum, arr) => sum + arr.length,
+                        0,
+                      ) as number)
+                    : 0;
+
+                  if (!s || total === 0) {
+                    return (
+                      <div className="mt-4 rounded-2xl bg-white p-5 text-center text-[12px] font-semibold text-[#6b4a2b]/70 ring-1 ring-[#6b4a2b]/10">
+                        現在、該当するスケジュールはありません。
+                      </div>
+                    );
+                  }
+
+                  const dayKeys = [
+                    "ALL",
+                    "MON",
+                    "TUE",
+                    "WED",
+                    "THU",
+                    "FRI",
+                    "SAT",
+                    "SUN",
+                  ] as const;
+                  type ViewDayKey = (typeof dayKeys)[number];
+
+                  const viewDayLabel: Record<ViewDayKey, string> = {
+                    ALL: "ALL",
+                    MON: "月",
+                    TUE: "火",
+                    WED: "水",
+                    THU: "木",
+                    FRI: "金",
+                    SAT: "土",
+                    SUN: "日",
+                  };
+
+                  const activeDay: ViewDayKey = scheduleDay;
+                  const setActiveDay: (d: ViewDayKey) => void = setScheduleDay;
+
+                  const list =
+                    activeDay === "ALL"
+                      ? (
+                          [
+                            "MON",
+                            "TUE",
+                            "WED",
+                            "THU",
+                            "FRI",
+                            "SAT",
+                            "SUN",
+                          ] as const
+                        ).flatMap((k) =>
+                          (s[k] ?? []).map((slot) => ({ ...slot, weekday: k })),
+                        )
+                      : (s[activeDay] ?? []).map((slot) => ({
+                          ...slot,
+                          weekday: activeDay,
+                        }));
+
+                  return (
+                    <>
+                      <div className="mt-6 flex flex-wrap gap-3">
+                        {dayKeys.map((k) => (
+                          <button
+                            key={k}
+                            onClick={() => setActiveDay(k)}
+                            className={[
+                              "h-11 min-w-[72px] rounded-full px-5 text-[14px] font-bold",
+                              "transition active:scale-[0.99]",
+                              "shadow-[0_8px_16px_rgba(0,0,0,0.08)]",
+                              k === activeDay
+                                ? "bg-[#f6c400] text-[#6b4a2b]"
+                                : "bg-white text-[#6b4a2b] ring-1 ring-[#6b4a2b]/10",
+                            ].join(" ")}
+                          >
+                            {viewDayLabel[k]}
+                          </button>
+                        ))}
+                      </div>
+
+                      <div className="mt-6 space-y-4">
+                        {list.length === 0 ? (
+                          <div className="rounded-2xl bg-white p-5 text-center text-[12px] font-semibold text-[#6b4a2b]/70 ring-1 ring-[#6b4a2b]/10">
+                            該当するスケジュールがありません
+                          </div>
+                        ) : (
+                          list.map((slot) => (
+                            <div
+                              key={slot.id}
+                              className={[
+                                "rounded-2xl bg-white p-5",
+                                "ring-1 ring-[#6b4a2b]/10",
+                                "shadow-[0_10px_24px_rgba(0,0,0,0.08)]",
+                              ].join(" ")}
+                            >
+                              <div className="flex items-start gap-3">
+                                <div className="mt-1 h-5 w-1.5 rounded-full bg-[#d9d2c7]" />
+
+                                <div className="min-w-0 flex-1">
+                                  <div className="text-[18px] font-extrabold text-[#6b4a2b]">
+                                    XXXXXコース
+                                  </div>
+
+                                  <div className="mt-3 space-y-2 text-[14px] font-semibold text-[#6b4a2b]/85">
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-[#b8a99a]">✦</span>
+                                      <span className="truncate">
+                                        {slot.genreText}
+                                      </span>
+                                    </div>
+
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-[#b8a99a]">🕒</span>
+                                      <span className="truncate">
+                                        {slot.timeText}
+                                      </span>
+                                    </div>
+
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-[#b8a99a]">👤</span>
+                                      <span className="truncate">
+                                        {slot.teacher}
+                                      </span>
+                                    </div>
+
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-[#b8a99a]">📍</span>
+                                      <span className="truncate">
+                                        {slot.place}
+                                      </span>
+                                    </div>
+                                  </div>
+
+                                  {activeDay === "ALL" && (
+                                    <div className="mt-3 text-[11px] font-bold text-[#6b4a2b]/55">
+                                      {viewDayLabel[slot.weekday as ViewDayKey]}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </>
+                  );
+                })()}
+              </div>
+
+              {/* ✅ レッスン料金（max-w-md撤廃） */}
+              <section className="rounded-[28px] bg-white px-5 py-6 shadow-sm ring-1 ring-black/5">
                 <div className="text-center">
                   <h2 className="text-[22px] font-extrabold tracking-wide text-[#7a4b1f]">
                     レッスン料金
@@ -1336,11 +1340,9 @@ export default function DiagnosisEmbedClient({
                   </div>
                 </div>
               </section>
-            </div>
 
-            {/* ✅ 生徒の声 */}
-            <div className="w-full max-w-md mx-auto px-4">
-              <section className="rounded-[28px] bg-white px-5 pt-6 pb-6 shadow-sm ring-1 ring-black/5">
+              {/* ✅ 生徒の声（max-w-md撤廃） */}
+              <section className="rounded-[28px] bg-white px-5 py-6 shadow-sm ring-1 ring-black/5">
                 <div className="text-center">
                   <h2 className="text-[22px] font-extrabold tracking-wide text-[#7a4b1f]">
                     生徒の声
@@ -1373,87 +1375,79 @@ export default function DiagnosisEmbedClient({
                   />
                 </div>
               </section>
-            </div>
 
-            {/* ✅ 校舎情報（ACCESS） */}
-            {(() => {
-              const c = result.campus ?? result.selectedCampus;
-              if (!c) return null;
+              {/* ✅ 校舎情報（ACCESS） */}
+              {(() => {
+                const c = result.campus ?? result.selectedCampus;
+                if (!c) return null;
 
-              const { embedSrc, linkUrl } = pickCampusMapFields(c);
+                const { embedSrc, linkUrl } = pickCampusMapFields(c);
 
-              return (
-                <div className="mt-6 rounded-[32px] border border-[#EFE7DB] bg-white px-5 py-6 shadow-sm">
-                  {/* 見出し */}
-                  <div className="text-center">
-                    <div className="text-[22px] font-extrabold tracking-wide text-[#7A4C1F]">
-                      アクセス
+                return (
+                  <div className="rounded-[32px] border border-[#EFE7DB] bg-white px-5 py-6 shadow-sm">
+                    <div className="text-center">
+                      <div className="text-[22px] font-extrabold tracking-wide text-[#7A4C1F]">
+                        アクセス
+                      </div>
+                      <div className="mt-1 text-[12px] font-bold tracking-[0.22em] text-[#7A4C1F]/80">
+                        ACCESS
+                      </div>
+                      <div className="mx-auto mt-4 h-px w-full bg-[#EFE7DB]" />
                     </div>
-                    <div className="mt-1 text-[12px] font-bold tracking-[0.22em] text-[#7A4C1F]/80">
-                      ACCESS
-                    </div>
-                    <div className="mx-auto mt-4 h-px w-full bg-[#EFE7DB]" />
-                  </div>
 
-                  {/* 地図 */}
-                  {embedSrc && (
-                    <div className="mt-5 overflow-hidden rounded-2xl border border-gray-200">
-                      <iframe
-                        src={embedSrc}
-                        className="h-56 w-full"
-                        style={{ border: 0 }}
-                        loading="lazy"
-                        referrerPolicy="no-referrer-when-downgrade"
-                      />
-                    </div>
-                  )}
-
-                  {/* 校舎名 */}
-                  <div className="mt-5 text-[18px] font-extrabold text-[#7A4C1F]">
-                    {c.label}
-                  </div>
-
-                  <div className="mt-3 space-y-3 text-[14px] font-semibold text-[#7A4C1F]/85">
-                    {/* 住所 */}
-                    {c.address && (
-                      <div className="whitespace-pre-wrap border-t border-[#EFE7DB] pt-3">
-                        {c.address}
+                    {embedSrc && (
+                      <div className="mt-5 overflow-hidden rounded-2xl border border-gray-200">
+                        <iframe
+                          src={embedSrc}
+                          className="h-56 w-full"
+                          style={{ border: 0 }}
+                          loading="lazy"
+                          referrerPolicy="no-referrer-when-downgrade"
+                        />
                       </div>
                     )}
 
-                    {/* 電車アクセス */}
-                    {c.access && (
-                      <div className="border-t border-[#EFE7DB] pt-3">
-                        <div className="font-extrabold text-[#7A4C1F]">
-                          【電車でお越しの場合】
+                    <div className="mt-5 text-[18px] font-extrabold text-[#7A4C1F]">
+                      {c.label}
+                    </div>
+
+                    <div className="mt-3 space-y-3 text-[14px] font-semibold text-[#7A4C1F]/85">
+                      {c.address && (
+                        <div className="whitespace-pre-wrap border-t border-[#EFE7DB] pt-3">
+                          {c.address}
                         </div>
-                        <div className="mt-1 whitespace-pre-wrap">
-                          {c.access}
+                      )}
+
+                      {c.access && (
+                        <div className="border-t border-[#EFE7DB] pt-3">
+                          <div className="font-extrabold text-[#7A4C1F]">
+                            【電車でお越しの場合】
+                          </div>
+                          <div className="mt-1 whitespace-pre-wrap">
+                            {c.access}
+                          </div>
                         </div>
+                      )}
+                    </div>
+
+                    {linkUrl && (
+                      <div className="mt-4 border-t border-[#EFE7DB] pt-4 text-center">
+                        <a
+                          href={linkUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-[13px] font-bold text-[#7A4C1F] underline"
+                        >
+                          Googleマップで見る
+                        </a>
                       </div>
                     )}
                   </div>
+                );
+              })()}
 
-                  {/* Googleマップリンク */}
-                  {linkUrl && (
-                    <div className="mt-4 border-t border-[#EFE7DB] pt-4 text-center">
-                      <a
-                        href={linkUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-[13px] font-bold text-[#7A4C1F] underline"
-                      >
-                        Googleマップで見る
-                      </a>
-                    </div>
-                  )}
-                </div>
-              );
-            })()}
-
-            {/* 体験レッスンの流れ */}
-            <div className="w-full max-w-md mx-auto px-4">
-              <section className="rounded-[28px] bg-white px-5 pt-6 pb-6 shadow-sm ring-1 ring-black/5">
+              {/* 体験レッスンの流れ（max-w-md撤廃） */}
+              <section className="rounded-[28px] bg-white px-5 py-6 shadow-sm ring-1 ring-black/5">
                 <div className="text-center">
                   <h2 className="text-[22px] font-extrabold tracking-wide text-[#7a4b1f]">
                     体験レッスンの流れ
@@ -1467,7 +1461,6 @@ export default function DiagnosisEmbedClient({
 
                 <div className="relative">
                   <div className="absolute left-[20px] top-[18px] bottom-[18px] w-[3px] rounded-full bg-[#f5c400]" />
-
                   <div className="space-y-6">
                     <StepItem
                       step={1}
@@ -1520,11 +1513,9 @@ export default function DiagnosisEmbedClient({
                   </div>
                 </div>
               </section>
-            </div>
 
-            {/* FAQ */}
-            <div className="w-full max-w-md mx-auto px-4">
-              <section className="rounded-[28px] bg-white px-5 pt-6 pb-6 shadow-sm ring-1 ring-black/5">
+              {/* FAQ（max-w-md撤廃） */}
+              <section className="rounded-[28px] bg-white px-5 py-6 shadow-sm ring-1 ring-black/5">
                 <div className="text-center">
                   <h2 className="text-[22px] font-extrabold tracking-wide text-[#7a4b1f]">
                     よくある質問
@@ -1591,196 +1582,204 @@ export default function DiagnosisEmbedClient({
                   })}
                 </div>
               </section>
-            </div>
 
-            {/* CTA */}
-            <div className="mt-6 flex flex-col gap-2">
-              <a
-                href={
-                  result.bestMatch.classId
-                    ? `/reserve?classId=${encodeURIComponent(
-                        result.bestMatch.classId,
-                      )}`
-                    : "/reserve"
-                }
-                className={[
-                  "flex items-center justify-center bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700",
-                  "rounded-full",
-                  styles.ctaPrimary,
-                ].join(" ")}
-              >
-                このクラスの体験レッスンを予約する
-              </a>
-            </div>
-
-            {/* ✅ 診断結果フォーム（ここ1回だけ） */}
-            {diagnosisForm && (
-              <div className="mt-6">
-                <DiagnosisForm
-                  form={diagnosisForm}
-                  hiddenValues={{
-                    schoolId,
-                    campus:
-                      result.campus?.label ??
-                      result.selectedCampus?.label ??
-                      "",
-                    campusSlug:
-                      result.campus?.slug ?? result.selectedCampus?.slug ?? "",
-                    genre: result.selectedGenre?.label ?? "",
-                    genreSlug:
-                      result.selectedGenre?.answerTag ??
-                      result.selectedGenre?.slug ??
-                      "",
-                    score: String(result.score),
-                    pattern: result.pattern,
-                  }}
-                  classOptions={classOptions}
-                  dateOptions={dateOptions}
-                />
-              </div>
-            )}
-          </div>
-        </div>
-      ) : (
-        <div className="w-full max-w-4xl rounded-3xl border border-gray-200 bg-white p-6 shadow-xl text-gray-900 md:p-8">
-          {/* 上部ヘッダー */}
-          <div className="mb-3 flex items-start justify-between gap-2">
-            <div>
-              <div className="text-[11px] font-semibold text-blue-600">
-                ダンススクール相性診断
-              </div>
-              <div className="text-sm font-bold">
-                あなたに「運命のクラス」が見つかる！
-              </div>
-            </div>
-            {onClose && (
-              <button
-                type="button"
-                className="rounded-full border border-gray-200 px-3 py-1 text-xs text-gray-500 hover:bg-gray-100"
-                onClick={onClose}
-              >
-                ✕
-              </button>
-            )}
-          </div>
-
-          {/* ステップインジケータ */}
-          <div className="mb-8 flex flex-col items-center">
-            <div className="flex gap-3">
-              {questions.map((q, idx) => (
-                <div
-                  key={q.id}
+              {/* CTA */}
+              <div className="flex flex-col gap-2">
+                <a
+                  href={
+                    result.bestMatch.classId
+                      ? `/reserve?classId=${encodeURIComponent(
+                          result.bestMatch.classId,
+                        )}`
+                      : "/reserve"
+                  }
                   className={[
-                    "h-2 w-10 rounded-full transition-all",
-                    idx === stepIndex
-                      ? "bg-blue-600"
-                      : idx < stepIndex
-                        ? "bg-blue-200"
-                        : "bg-gray-200",
+                    "flex items-center justify-center bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700",
+                    "rounded-full",
+                    styles.ctaPrimary,
                   ].join(" ")}
-                />
-              ))}
-            </div>
-            <div className="mt-3 text-center text-[11px] text-gray-500">
-              質問 {stepIndex + 1} / {totalSteps}
-            </div>
-          </div>
-
-          {/* 質問タイトル */}
-          <div className="mb-4 text-center">
-            <div className="text-sm font-semibold">{currentQuestion.title}</div>
-            {currentQuestion.description && (
-              <div className="mt-1 text-xs text-gray-500">
-                {currentQuestion.description}
+                >
+                  このクラスの体験レッスンを予約する
+                </a>
               </div>
-            )}
 
-            {isQ1 && campusLoading && (
-              <div className="mt-2 text-[11px] text-gray-400">
-                校舎一覧を読み込み中...
-              </div>
-            )}
-          </div>
-
-          {/* 質問項目 */}
-          <div className="mb-4 grid gap-3 md:grid-cols-2">
-            {(() => {
-              const isQ1Local = currentQuestion.id === "Q1";
-
-              if (isQ1Local && !campusLoaded) return null;
-
-              if (currentQuestion.options.length === 0) {
-                return (
-                  <div className="md:col-span-2 text-center text-xs text-gray-400">
-                    選択肢がありません。
+              {/* ✅ 診断結果フォーム（ここ1回だけ） */}
+              {diagnosisForm && (
+                <div>
+                  <DiagnosisForm
+                    form={diagnosisForm}
+                    hiddenValues={{
+                      schoolId,
+                      campus:
+                        result.campus?.label ??
+                        result.selectedCampus?.label ??
+                        "",
+                      campusSlug:
+                        result.campus?.slug ??
+                        result.selectedCampus?.slug ??
+                        "",
+                      genre: result.selectedGenre?.label ?? "",
+                      genreSlug:
+                        result.selectedGenre?.answerTag ??
+                        result.selectedGenre?.slug ??
+                        "",
+                      score: String(result.score),
+                      pattern: result.pattern,
+                    }}
+                    classOptions={classOptions}
+                    dateOptions={dateOptions}
+                  />
+                </div>
+              )}
+            </div>
+          ) : (
+            // ==========================
+            // ✅ 質問画面（横幅統一）
+            // ==========================
+            <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-xl text-gray-900">
+              {/* 上部ヘッダー */}
+              <div className="mb-3 flex items-start justify-between gap-2">
+                <div>
+                  <div className="text-[11px] font-semibold text-blue-600">
+                    ダンススクール相性診断
                   </div>
-                );
-              }
-
-              return currentQuestion.options.map((opt) => {
-                const selected = answers[currentQuestion.id] === opt.id;
-                return (
+                  <div className="text-sm font-bold">
+                    あなたに「運命のクラス」が見つかる！
+                  </div>
+                </div>
+                {onClose && (
                   <button
-                    key={opt.id}
                     type="button"
-                    onClick={() =>
-                      handleSelectOption(currentQuestion.id, opt.id)
-                    }
-                    className={[
-                      "flex h-full items-start rounded-2xl border px-3 py-3 text-left text-xs transition",
-                      selected
-                        ? "border-blue-600 bg-blue-50 text-blue-700 shadow-sm"
-                        : "border-gray-200 bg-white text-gray-800 hover:border-blue-300 hover:bg-blue-50/40",
-                    ].join(" ")}
+                    className="rounded-full border border-gray-200 px-3 py-1 text-xs text-gray-500 hover:bg-gray-100"
+                    onClick={onClose}
                   >
-                    <div className="flex-1 leading-snug">{opt.label}</div>
+                    ✕
                   </button>
-                );
-              });
-            })()}
-          </div>
+                )}
+              </div>
 
-          {/* エラーメッセージ */}
-          {error && (
-            <div className="mb-2 rounded-md bg-red-50 px-2 py-1 text-[11px] text-red-600">
-              {error}
-            </div>
-          )}
+              {/* ステップインジケータ */}
+              <div className="mb-8 flex flex-col items-center">
+                <div className="flex gap-3">
+                  {questions.map((q, idx) => (
+                    <div
+                      key={q.id}
+                      className={[
+                        "h-2 w-10 rounded-full transition-all",
+                        idx === stepIndex
+                          ? "bg-blue-600"
+                          : idx < stepIndex
+                            ? "bg-blue-200"
+                            : "bg-gray-200",
+                      ].join(" ")}
+                    />
+                  ))}
+                </div>
+                <div className="mt-3 text-center text-[11px] text-gray-500">
+                  質問 {stepIndex + 1} / {totalSteps}
+                </div>
+              </div>
 
-          {/* フッター */}
-          <div className="mt-2 flex items-center justify-between">
-            <button
-              type="button"
-              className="text-xs text-gray-500 underline disabled:opacity-40"
-              onClick={handlePrev}
-              disabled={stepIndex === 0 || isSubmitting}
-            >
-              戻る
-            </button>
+              {/* 質問タイトル */}
+              <div className="mb-4 text-center">
+                <div className="text-sm font-semibold">
+                  {currentQuestion.title}
+                </div>
+                {currentQuestion.description && (
+                  <div className="mt-1 text-xs text-gray-500">
+                    {currentQuestion.description}
+                  </div>
+                )}
 
-            {stepIndex === totalSteps - 1 && (
-              <button
-                type="button"
-                className="rounded-full bg-blue-600 px-4 py-1.5 text-xs font-semibold text-white disabled:opacity-40"
-                onClick={() => void handleSubmit()}
-                disabled={!canGoNext || isSubmitting}
-              >
-                {isSubmitting ? "診断中..." : "診断結果を見る"}
-              </button>
-            )}
-          </div>
+                {isQ1 && campusLoading && (
+                  <div className="mt-2 text-[11px] text-gray-400">
+                    校舎一覧を読み込み中...
+                  </div>
+                )}
+              </div>
 
-          {!schoolId && (
-            <div className="mt-2 text-[10px] text-red-400">
-              ※ URLクエリ
-              param「schoolId」または「school」が指定されていません。
-              <br />
-              例:{" "}
-              <code className="rounded bg-gray-100 px-1">?schoolId=links</code>
+              {/* 質問項目 */}
+              <div className="mb-4 grid gap-3 md:grid-cols-2">
+                {(() => {
+                  const isQ1Local = currentQuestion.id === "Q1";
+                  if (isQ1Local && !campusLoaded) return null;
+
+                  if (currentQuestion.options.length === 0) {
+                    return (
+                      <div className="md:col-span-2 text-center text-xs text-gray-400">
+                        選択肢がありません。
+                      </div>
+                    );
+                  }
+
+                  return currentQuestion.options.map((opt) => {
+                    const selected = answers[currentQuestion.id] === opt.id;
+                    return (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() =>
+                          handleSelectOption(currentQuestion.id, opt.id)
+                        }
+                        className={[
+                          "flex h-full items-start rounded-2xl border px-3 py-3 text-left text-xs transition",
+                          selected
+                            ? "border-blue-600 bg-blue-50 text-blue-700 shadow-sm"
+                            : "border-gray-200 bg-white text-gray-800 hover:border-blue-300 hover:bg-blue-50/40",
+                        ].join(" ")}
+                      >
+                        <div className="flex-1 leading-snug">{opt.label}</div>
+                      </button>
+                    );
+                  });
+                })()}
+              </div>
+
+              {/* エラーメッセージ */}
+              {error && (
+                <div className="mb-2 rounded-md bg-red-50 px-2 py-1 text-[11px] text-red-600">
+                  {error}
+                </div>
+              )}
+
+              {/* フッター */}
+              <div className="mt-2 flex items-center justify-between">
+                <button
+                  type="button"
+                  className="text-xs text-gray-500 underline disabled:opacity-40"
+                  onClick={handlePrev}
+                  disabled={stepIndex === 0 || isSubmitting}
+                >
+                  戻る
+                </button>
+
+                {stepIndex === totalSteps - 1 && (
+                  <button
+                    type="button"
+                    className="rounded-full bg-blue-600 px-4 py-1.5 text-xs font-semibold text-white disabled:opacity-40"
+                    onClick={() => void handleSubmit()}
+                    disabled={!canGoNext || isSubmitting}
+                  >
+                    {isSubmitting ? "診断中..." : "診断結果を見る"}
+                  </button>
+                )}
+              </div>
+
+              {!schoolId && (
+                <div className="mt-2 text-[10px] text-red-400">
+                  ※ URLクエリ
+                  param「schoolId」または「school」が指定されていません。
+                  <br />
+                  例:{" "}
+                  <code className="rounded bg-gray-100 px-1">
+                    ?schoolId=links
+                  </code>
+                </div>
+              )}
             </div>
           )}
         </div>
-      )}
+      </div>
     </div>
   );
 }
