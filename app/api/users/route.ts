@@ -1,11 +1,21 @@
 // app/api/users/route.ts
-
 import { NextRequest } from "next/server";
 import { hash } from "bcryptjs";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
 import { prisma } from "@/lib/prisma";
 import { UserRole } from "@prisma/client";
+
+function normalizeSchoolId(input: string) {
+  const s = (input ?? "").trim().toLowerCase();
+  if (!s) return "";
+  const cleaned = s
+    .replace(/\s+/g, "-")
+    .replace(/[^a-z0-9\-_]/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^[-_]+|[-_]+$/g, "");
+  return cleaned;
+}
 
 // 共通: SuperAdmin かどうかチェック
 async function ensureSuperAdmin() {
@@ -52,7 +62,7 @@ export async function GET() {
     if (!isSuperAdmin) {
       return new Response(
         JSON.stringify({ error: "アクセス権限がありません" }),
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -60,7 +70,6 @@ export async function GET() {
       orderBy: { createdAt: "asc" },
     });
 
-    // パスワードハッシュは返さず、role は元の文字列形式に変換
     const users = dbUsers.map((u) => ({
       email: u.email,
       name: u.name,
@@ -86,22 +95,39 @@ export async function POST(req: NextRequest) {
     if (!isSuperAdmin) {
       return new Response(
         JSON.stringify({ error: "アクセス権限がありません" }),
-        { status: 403 }
+        { status: 403 },
       );
     }
 
     const body = await req.json();
-    const { email, name, password, role } = body ?? {};
+    const { email, name, password, role, schoolId: schoolIdRaw } = body ?? {};
 
     if (!email || !name || !password || !role) {
       return new Response(
         JSON.stringify({ error: "全ての項目を入力してください" }),
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     const emailLower = String(email).trim().toLowerCase();
-    const schoolId = emailLower.split("@")[0];
+
+    // ✅ ここが変更点：body.schoolId を優先。無ければ従来互換で @前
+    const fallback = emailLower.split("@")[0] || "";
+    const schoolId = normalizeSchoolId(
+      schoolIdRaw ? String(schoolIdRaw) : fallback,
+    );
+
+    if (!schoolId) {
+      return new Response(JSON.stringify({ error: "School ID が不正です" }), {
+        status: 400,
+      });
+    }
+    if (schoolId.length > 40) {
+      return new Response(
+        JSON.stringify({ error: "School ID が長すぎます（最大40文字）" }),
+        { status: 400 },
+      );
+    }
 
     const dbRole =
       role === "superadmin" || role === "SUPERADMIN"
@@ -124,12 +150,12 @@ export async function POST(req: NextRequest) {
         email: emailLower,
         name: String(name),
         role: dbRole,
-        schoolId,
+        schoolId, // ✅ 手動指定が保存される
         passwordHash,
       },
     });
 
-    // SUPERADMIN の場合は SuperAdmin テーブルにも同期
+    // SUPERADMIN の場合は SuperAdmin テーブルにも同期（✅指定schoolIdで）
     if (dbRole === UserRole.SUPERADMIN) {
       await prisma.superAdmin.upsert({
         where: { email: emailLower },
@@ -159,7 +185,7 @@ export async function DELETE(req: NextRequest) {
     if (!isSuperAdmin) {
       return new Response(
         JSON.stringify({ error: "アクセス権限がありません" }),
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -168,7 +194,7 @@ export async function DELETE(req: NextRequest) {
     if (!emailParam) {
       return new Response(
         JSON.stringify({ error: "メールアドレスが必要です" }),
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -177,7 +203,7 @@ export async function DELETE(req: NextRequest) {
     if (currentEmail === targetEmail) {
       return new Response(
         JSON.stringify({ error: "自分自身のアカウントは削除できません" }),
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -187,7 +213,7 @@ export async function DELETE(req: NextRequest) {
     if (!existing) {
       return new Response(
         JSON.stringify({ error: "ユーザーが見つかりません" }),
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -215,22 +241,21 @@ export async function PUT(req: NextRequest) {
     if (!isSuperAdmin) {
       return new Response(
         JSON.stringify({ error: "アクセス権限がありません" }),
-        { status: 403 }
+        { status: 403 },
       );
     }
 
     const body = await req.json();
-    const { email, name, password, role } = body ?? {};
+    const { email, name, password, role, schoolId: schoolIdRaw } = body ?? {};
 
     if (!email || !name || !role) {
       return new Response(
         JSON.stringify({ error: "必須項目が不足しています" }),
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     const emailLower = String(email).trim().toLowerCase();
-    const schoolId = emailLower.split("@")[0];
 
     const existing = await prisma.user.findUnique({
       where: { email: emailLower },
@@ -238,7 +263,25 @@ export async function PUT(req: NextRequest) {
     if (!existing) {
       return new Response(
         JSON.stringify({ error: "ユーザーが見つかりません" }),
-        { status: 404 }
+        { status: 404 },
+      );
+    }
+
+    // ✅ ここが変更点：body.schoolId を優先。無ければ従来互換で @前
+    const fallback = emailLower.split("@")[0] || "";
+    const schoolId = normalizeSchoolId(
+      schoolIdRaw ? String(schoolIdRaw) : fallback,
+    );
+
+    if (!schoolId) {
+      return new Response(JSON.stringify({ error: "School ID が不正です" }), {
+        status: 400,
+      });
+    }
+    if (schoolId.length > 40) {
+      return new Response(
+        JSON.stringify({ error: "School ID が長すぎます（最大40文字）" }),
+        { status: 400 },
       );
     }
 
@@ -250,7 +293,7 @@ export async function PUT(req: NextRequest) {
     const updateData: any = {
       name: String(name),
       role: dbRole,
-      schoolId,
+      schoolId, // ✅ 手動指定が保存される
     };
 
     if (password) {
@@ -262,6 +305,7 @@ export async function PUT(req: NextRequest) {
       data: updateData,
     });
 
+    // SUPERADMIN は SuperAdmin テーブルにも同期（✅指定schoolIdで）
     if (dbRole === UserRole.SUPERADMIN) {
       await prisma.superAdmin.upsert({
         where: { email: emailLower },

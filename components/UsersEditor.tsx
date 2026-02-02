@@ -3,7 +3,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
-import { Check, Edit3, Plus, Trash2, X } from "lucide-react";
+import { Check, Edit3, Plus, Trash2, X, Wand2, Copy } from "lucide-react";
 
 type User = {
   email: string;
@@ -24,12 +24,19 @@ export default function UsersEditor() {
     Partial<User & { password?: string }>
   >({});
   const [newUser, setNewUser] = useState<Partial<User & { password?: string }>>(
-    {}
+    {},
   );
   const [message, setMessage] = useState<{
     type: "ok" | "err";
     text: string;
   }>();
+
+  // ✅ 入力整形（フロントでも軽く揃える）
+  const normalizeSchoolId = (v: string) =>
+    (v ?? "").trim().toLowerCase().replace(/\s+/g, "-");
+
+  // ✅ 「手入力したら自動提案で上書きしない」用
+  const [newSchoolIdTouched, setNewSchoolIdTouched] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -47,6 +54,17 @@ export default function UsersEditor() {
     };
   }, []);
 
+  // ✅ 新規追加：Email入力から School ID を提案（未入力 & 未編集のときだけ）
+  useEffect(() => {
+    const email = String(newUser.email ?? "");
+    const extracted = email.includes("@") ? email.split("@")[0] : email;
+    const current = String(newUser.schoolId ?? "");
+    if (!newSchoolIdTouched && !current) {
+      setNewUser((u) => ({ ...u, schoolId: extracted || "" }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [newUser.email, newSchoolIdTouched]);
+
   const toast = (type: "ok" | "err", text: string) => {
     setMessage({ type, text });
     setTimeout(() => setMessage(undefined), 2500);
@@ -54,8 +72,15 @@ export default function UsersEditor() {
 
   const startEditing = (user: User) => {
     setEditingEmail(user.email);
-    setEditData({ name: user.name, role: user.role, password: "" });
+    // ✅ schoolId も編集対象に入れる
+    setEditData({
+      name: user.name,
+      role: user.role,
+      schoolId: user.schoolId,
+      password: "",
+    });
   };
+
   const cancelEditing = () => {
     setEditingEmail(null);
     setEditData({});
@@ -63,11 +88,16 @@ export default function UsersEditor() {
 
   const saveEdit = async (email: string) => {
     const original = users.find((u) => u.email === email);
+
+    const schoolIdCandidate = normalizeSchoolId(
+      String(editData.schoolId ?? original?.schoolId ?? currentSchoolId),
+    );
+
     const payload: any = {
       email,
-      name: editData.name ?? original?.name,
-      role: editData.role ?? original?.role,
-      schoolId: original?.schoolId || currentSchoolId,
+      name: String(editData.name ?? original?.name ?? ""),
+      role: String(editData.role ?? original?.role ?? "school-admin"),
+      schoolId: schoolIdCandidate,
     };
 
     // 空文字の password は送らない（API バリデーション回避）
@@ -75,8 +105,16 @@ export default function UsersEditor() {
       payload.password = editData.password.trim();
     }
 
+    if (!payload.name) {
+      toast("err", "名前が未設定です");
+      return;
+    }
+    if (!payload.role) {
+      toast("err", "ロールが未設定です");
+      return;
+    }
     if (!payload.schoolId) {
-      toast("err", "schoolId が未設定です");
+      toast("err", "School ID が未設定です");
       return;
     }
 
@@ -88,7 +126,7 @@ export default function UsersEditor() {
 
     if (res.ok) {
       const updatedUsers = users.map((u) =>
-        u.email === email ? ({ ...u, ...payload } as User) : u
+        u.email === email ? ({ ...u, ...payload } as User) : u,
       );
       setUsers(updatedUsers);
       cancelEditing();
@@ -115,12 +153,22 @@ export default function UsersEditor() {
 
   const addUser = async () => {
     const { email, name, role, password } = newUser;
+
+    const emailStr = String(email ?? "").trim();
+    const nameStr = String(name ?? "").trim();
+    const roleStr = String(role ?? "").trim();
+    const passStr = String(password ?? "").trim();
+
+    const schoolIdCandidate = normalizeSchoolId(
+      String(newUser.schoolId ?? currentSchoolId),
+    );
+
     const payload: any = {
-      email,
-      name,
-      role,
-      password,
-      schoolId: newUser.schoolId || currentSchoolId,
+      email: emailStr,
+      name: nameStr,
+      role: roleStr,
+      password: passStr,
+      schoolId: schoolIdCandidate, // ✅ 手入力OK
     };
 
     if (!payload.email || !payload.name || !payload.role || !payload.password) {
@@ -128,7 +176,7 @@ export default function UsersEditor() {
       return;
     }
     if (!payload.schoolId) {
-      toast("err", "schoolId が未設定です");
+      toast("err", "School ID が未設定です");
       return;
     }
 
@@ -137,10 +185,14 @@ export default function UsersEditor() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
+
     if (res.ok) {
-      const refreshed = await fetch("/api/users").then((r) => r.json());
+      const refreshed = await fetch("/api/users", { cache: "no-store" }).then(
+        (r) => r.json(),
+      );
       setUsers(refreshed.users || []);
       setNewUser({});
+      setNewSchoolIdTouched(false);
       toast("ok", "✅ 追加しました");
     } else {
       const err = await res.json().catch(() => ({}));
@@ -164,7 +216,7 @@ export default function UsersEditor() {
   const total = users.length;
   const superCount = useMemo(
     () => users.filter((u) => u.role === "superadmin").length,
-    [users]
+    [users],
   );
 
   return (
@@ -206,6 +258,7 @@ export default function UsersEditor() {
               <th className="px-3 py-2 text-left">操作</th>
             </tr>
           </thead>
+
           <tbody className="divide-y divide-gray-100 dark:divide-gray-800 bg-white dark:bg-gray-900">
             {loading ? (
               <tr>
@@ -235,9 +288,12 @@ export default function UsersEditor() {
                     <td className="px-3 py-2">
                       {isEditing ? (
                         <input
-                          value={editData.name ?? u.name ?? ""}
+                          value={String(editData.name ?? u.name ?? "")}
                           onChange={(e) =>
-                            setEditData((d) => ({ ...d, name: e.target.value }))
+                            setEditData((d) => ({
+                              ...d,
+                              name: e.target.value,
+                            }))
                           }
                           className="input w-full"
                         />
@@ -249,7 +305,7 @@ export default function UsersEditor() {
                     <td className="px-3 py-2">
                       {isEditing ? (
                         <select
-                          value={editData.role ?? u.role ?? ""}
+                          value={String(editData.role ?? u.role ?? "")}
                           onChange={(e) =>
                             setEditData((d) => ({ ...d, role: e.target.value }))
                           }
@@ -263,7 +319,42 @@ export default function UsersEditor() {
                       )}
                     </td>
 
-                    <td className="px-3 py-2">{u.schoolId}</td>
+                    {/* ✅ School ID を編集可能に */}
+                    <td className="px-3 py-2">
+                      {isEditing ? (
+                        <div className="flex items-start gap-2">
+                          <input
+                            value={String(
+                              editData.schoolId ?? u.schoolId ?? "",
+                            )}
+                            onChange={(e) =>
+                              setEditData((d) => ({
+                                ...d,
+                                schoolId: e.target.value,
+                              }))
+                            }
+                            className="input w-full"
+                            placeholder="例）tokyo-dance-village"
+                          />
+                          <button
+                            type="button"
+                            className="btn-ghost"
+                            onClick={() =>
+                              editData.schoolId &&
+                              navigator.clipboard.writeText(
+                                normalizeSchoolId(String(editData.schoolId)),
+                              )
+                            }
+                            title="コピー"
+                            aria-label="コピー"
+                          >
+                            <Copy size={16} />
+                          </button>
+                        </div>
+                      ) : (
+                        u.schoolId
+                      )}
+                    </td>
 
                     <td className="px-3 py-2">
                       {isEditing ? (
@@ -329,17 +420,20 @@ export default function UsersEditor() {
               <td className="px-3 py-2">
                 <input
                   type="email"
-                  value={newUser.email || ""}
-                  onChange={(e) =>
-                    setNewUser((u) => ({ ...u, email: e.target.value }))
-                  }
+                  value={String(newUser.email ?? "")}
+                  onChange={(e) => {
+                    setNewUser((u) => ({ ...u, email: e.target.value }));
+                    // email を変えたら「未編集扱い」に戻しても良い（好み）
+                    // setNewSchoolIdTouched(false);
+                  }}
                   className="input w-full"
                   placeholder="email@example.com"
                 />
               </td>
+
               <td className="px-3 py-2">
                 <input
-                  value={newUser.name || ""}
+                  value={String(newUser.name ?? "")}
                   onChange={(e) =>
                     setNewUser((u) => ({ ...u, name: e.target.value }))
                   }
@@ -347,9 +441,10 @@ export default function UsersEditor() {
                   placeholder="氏名"
                 />
               </td>
+
               <td className="px-3 py-2">
                 <select
-                  value={newUser.role || ""}
+                  value={String(newUser.role ?? "")}
                   onChange={(e) =>
                     setNewUser((u) => ({ ...u, role: e.target.value }))
                   }
@@ -360,13 +455,43 @@ export default function UsersEditor() {
                   <option value="school-admin">school-admin</option>
                 </select>
               </td>
-              <td className="px-3 py-2 text-center text-gray-500 dark:text-gray-400">
-                自動生成
+
+              {/* ✅ 「自動生成」→ 入力欄 + メールから提案 */}
+              <td className="px-3 py-2">
+                <div className="flex items-start gap-2">
+                  <input
+                    value={String(newUser.schoolId ?? "")}
+                    onChange={(e) => {
+                      setNewUser((u) => ({ ...u, schoolId: e.target.value }));
+                      setNewSchoolIdTouched(true);
+                    }}
+                    className="input w-full"
+                    placeholder="例）tokyo-dance-village"
+                  />
+                  <button
+                    type="button"
+                    className="btn-ghost"
+                    onClick={() => {
+                      const email = String(newUser.email ?? "");
+                      const extracted = email.includes("@")
+                        ? email.split("@")[0]
+                        : email;
+                      setNewUser((u) => ({ ...u, schoolId: extracted || "" }));
+                      setNewSchoolIdTouched(true);
+                    }}
+                    title="メールから提案"
+                    aria-label="メールから提案"
+                    disabled={!newUser.email}
+                  >
+                    <Wand2 size={16} />
+                  </button>
+                </div>
               </td>
+
               <td className="px-3 py-2">
                 <input
                   type="password"
-                  value={newUser.password || ""}
+                  value={String(newUser.password ?? "")}
                   onChange={(e) =>
                     setNewUser((u) => ({ ...u, password: e.target.value }))
                   }
@@ -374,6 +499,7 @@ export default function UsersEditor() {
                   placeholder="初期パスワード"
                 />
               </td>
+
               <td className="px-3 py-2">
                 <button
                   onClick={addUser}

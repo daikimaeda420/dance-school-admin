@@ -31,7 +31,7 @@ export default function SuperadminPage() {
       <section className="card">
         <div className="card-header">
           <h2 className="font-semibold text-gray-900 dark:text-gray-100 text-sm sm:text-base">
-            ユーザー管理
+            スクールユーザー管理
           </h2>
         </div>
         <div className="card-body p-3 sm:p-6">
