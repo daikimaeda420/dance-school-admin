@@ -138,6 +138,7 @@ async function resolveConnectIds(params: {
 
 /**
  * ✅ 明示中間（DiagnosisInstructorCourse/Campus）からまとめて返す
+ * ✅ 過去の不整合（schoolId=null など）も拾えるように OR を追加
  */
 async function fetchLinks(schoolId: string, instructorIds: string[]) {
   if (instructorIds.length === 0) {
@@ -149,11 +150,17 @@ async function fetchLinks(schoolId: string, instructorIds: string[]) {
 
   const [courseLinks, campusLinks] = await Promise.all([
     prisma.diagnosisInstructorCourse.findMany({
-      where: { schoolId, instructorId: { in: instructorIds } },
+      where: {
+        instructorId: { in: instructorIds },
+        OR: [{ schoolId }, { schoolId: null }],
+      },
       select: { instructorId: true, courseId: true },
     }),
     prisma.diagnosisInstructorCampus.findMany({
-      where: { schoolId, instructorId: { in: instructorIds } },
+      where: {
+        instructorId: { in: instructorIds },
+        OR: [{ schoolId }, { schoolId: null }],
+      },
       select: { instructorId: true, campusId: true },
     }),
   ]);
@@ -518,21 +525,29 @@ export async function PUT(req: NextRequest) {
         }
       }
 
-      // ✅ schoolIdも含めて安全に更新
+      // ✅ schoolIdも含めて安全に更新（複合一致）
       const u = await tx.diagnosisInstructor.updateMany({
         where: { id, schoolId },
         data,
       });
-      if (u.count === 0) {
-        throw new Error("更新対象が見つかりません");
-      }
+      if (u.count === 0) throw new Error("更新対象が見つかりません");
 
-      // 既存リンクを全置換（コース/校舎のみ）
+      /**
+       * ✅ ここが重要
+       * 既存リンクを全置換したいが、過去データで中間の schoolId が null/不一致の可能性がある
+       * → OR で (schoolId一致 OR schoolId=null) を消してから作り直す
+       */
       await tx.diagnosisInstructorCourse.deleteMany({
-        where: { instructorId: id, schoolId },
+        where: {
+          instructorId: id,
+          OR: [{ schoolId }, { schoolId: null }],
+        },
       });
       await tx.diagnosisInstructorCampus.deleteMany({
-        where: { instructorId: id, schoolId },
+        where: {
+          instructorId: id,
+          OR: [{ schoolId }, { schoolId: null }],
+        },
       });
 
       if (courseR.ids.length > 0) {
