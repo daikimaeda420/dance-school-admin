@@ -1,4 +1,3 @@
-// app/(app)/admin/diagnosis/instructors/InstructorAdminClient.tsx
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
@@ -22,15 +21,14 @@ type InstructorRow = {
   isActive: boolean;
   photoMime?: string | null;
 
-  // ✅ 編集中は textarea の値になるので string を許容
   charmTags?: string | null;
   introduction?: string | null;
 
   courses?: OptionRow[];
   campuses?: OptionRow[];
 
-  courseIds?: string[] | string | null;
-  campusIds?: string[] | string | null;
+  courseIds?: string[] | any;
+  campusIds?: string[] | any;
 };
 
 function slugifyJa(input: string) {
@@ -79,44 +77,10 @@ function uniqStrings(xs: string[]) {
   );
 }
 
-/**
- * ✅ ここが重要：courseIds/campusIds を “どんな形でも” string[] にする
- * - string[] の場合 → そのまま
- * - '["a","b"]' の場合 → JSON parse
- * - "a,b" の場合 → CSV split
- * - "a" の場合 → [a]
- */
 function safeJsonArray(v: any): string[] {
   if (Array.isArray(v)) return uniqStrings(v);
-
-  if (v == null) return [];
-
-  const raw = String(v ?? "").trim();
-  if (!raw) return [];
-
-  // JSON配列文字列
-  if (raw.startsWith("[")) {
-    try {
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed))
-        return uniqStrings(parsed.map((x) => String(x ?? "")));
-    } catch {
-      // noop
-    }
-  }
-
-  // CSV
-  if (raw.includes(",")) {
-    return uniqStrings(
-      raw
-        .split(",")
-        .map((s) => s.trim())
-        .filter(Boolean),
-    );
-  }
-
-  // 単体
-  return uniqStrings([raw]);
+  // たまに "['a','b']" ではなく string が来る事故対策（空にする）
+  return [];
 }
 
 function joinLabels(opts?: OptionRow[]) {
@@ -215,9 +179,9 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
   const canLoad = schoolId.trim().length > 0;
 
   const photoUrl = (id: string) =>
-    `/api/diagnosis/instructors/photo?id=${encodeURIComponent(id)}&schoolId=${encodeURIComponent(
-      schoolId,
-    )}`;
+    `/api/diagnosis/instructors/photo?id=${encodeURIComponent(
+      id,
+    )}&schoolId=${encodeURIComponent(schoolId)}`;
 
   const fetchOptions = async () => {
     if (!canLoad) return;
@@ -260,7 +224,7 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
       setCourses(normalize(cJson));
       setCampuses(normalize(pJson));
     } catch {
-      // noop
+      // options は致命ではないので握る
     }
   };
 
@@ -291,8 +255,6 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
 
         courses: Array.isArray(d.courses) ? d.courses : [],
         campuses: Array.isArray(d.campuses) ? d.campuses : [],
-
-        // ✅ ここで string/array どちらでも受けて正規化
         courseIds: safeJsonArray(d.courseIds),
         campusIds: safeJsonArray(d.campusIds),
       }));
@@ -363,6 +325,7 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
 
       fd.append("courseIds", JSON.stringify(uniqStrings(newCourseIds)));
       fd.append("campusIds", JSON.stringify(uniqStrings(newCampusIds)));
+
       fd.append("charmTags", newCharmTags);
       fd.append("introduction", newIntroduction);
 
@@ -394,15 +357,22 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
   };
 
   const startEdit = (r: InstructorRow) => {
+    // ✅ 一覧編集で “必ずプロフィールを出す” ため、ここで string を入れておく
     setEditMap((prev) => ({
       ...prev,
       [r.id]: {
-        ...r,
-        // ✅ ここも必ず正規化して編集開始
+        id: r.id,
+        schoolId: r.schoolId,
+        label: r.label ?? "",
+        slug: r.slug ?? "",
+        sortOrder: r.sortOrder ?? 1,
+        isActive: Boolean(r.isActive),
+
         courseIds: safeJsonArray(r.courseIds),
         campusIds: safeJsonArray(r.campusIds),
-        charmTags: r.charmTags ?? "",
-        introduction: r.introduction ?? "",
+
+        charmTags: String(r.charmTags ?? ""),
+        introduction: String(r.introduction ?? ""),
       },
     }));
     setEditFileMap((prev) => ({ ...prev, [r.id]: null }));
@@ -451,7 +421,7 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
     const e = editMap[id];
     if (!e) return;
 
-    if (!e.slug?.trim() || !e.label?.trim()) {
+    if (!String(e.slug ?? "").trim() || !String(e.label ?? "").trim()) {
       setError("label / slug は必須です");
       return;
     }
@@ -462,16 +432,16 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
       const fd = new FormData();
       fd.append("id", id);
       fd.append("schoolId", schoolId);
-      fd.append("label", String(e.label));
-      fd.append("slug", String(e.slug));
+      fd.append("label", String(e.label ?? ""));
+      fd.append("slug", String(e.slug ?? ""));
       fd.append("sortOrder", String((e as any).sortOrder ?? 1));
-      fd.append("isActive", String(e.isActive ?? true));
+
+      fd.append("isActive", String(Boolean(e.isActive)));
       fd.append("clearPhoto", String(clearPhotoMap[id] ?? false));
 
       const file = editFileMap[id];
       if (file) fd.append("file", file);
 
-      // ✅ 送る前に必ず正規化
       fd.append(
         "courseIds",
         JSON.stringify(uniqStrings(safeJsonArray(e.courseIds))),
@@ -481,8 +451,9 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
         JSON.stringify(uniqStrings(safeJsonArray(e.campusIds))),
       );
 
-      fd.append("charmTags", String((e as any).charmTags ?? ""));
-      fd.append("introduction", String((e as any).introduction ?? ""));
+      // ✅ ここが重要：textareaの値を必ず送る
+      fd.append("charmTags", String(e.charmTags ?? ""));
+      fd.append("introduction", String(e.introduction ?? ""));
 
       const res = await fetch("/api/diagnosis/instructors", {
         method: "PUT",
@@ -760,32 +731,33 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
           <div className="space-y-2">
             {rows.map((r) => {
               const editing = editMap[r.id] !== undefined;
-              const e = editMap[r.id] as Partial<InstructorRow> | undefined;
+              const e = editMap[r.id] ?? {};
 
-              // ✅ “編集時の表示値” は editMap を最優先してマージしたものにする
+              // ✅ ここが重要：編集時は r と e をマージして “欠け” を無くす
               const current: InstructorRow = editing
                 ? ({
                     ...r,
                     ...e,
-                    charmTags: (e?.charmTags ?? r.charmTags ?? "") as any,
-                    introduction: (e?.introduction ??
-                      r.introduction ??
-                      "") as any,
-                    courseIds: safeJsonArray(e?.courseIds ?? r.courseIds),
-                    campusIds: safeJsonArray(e?.campusIds ?? r.campusIds),
+                    charmTags: String(
+                      (e as any).charmTags ?? r.charmTags ?? "",
+                    ),
+                    introduction: String(
+                      (e as any).introduction ?? r.introduction ?? "",
+                    ),
+                    courseIds: safeJsonArray(
+                      (e as any).courseIds ?? r.courseIds,
+                    ),
+                    campusIds: safeJsonArray(
+                      (e as any).campusIds ?? r.campusIds,
+                    ),
                   } as InstructorRow)
                 : r;
 
               const localPreview = editPreviewMap[r.id] || "";
               const hasDbPhoto = Boolean(r.photoMime);
 
-              // ✅ 表示/チェック判定は必ず safeJsonArray を通す（ここが効く）
-              const selectedCourseIds = safeJsonArray(
-                editing ? (e?.courseIds ?? r.courseIds) : r.courseIds,
-              );
-              const selectedCampusIds = safeJsonArray(
-                editing ? (e?.campusIds ?? r.campusIds) : r.campusIds,
-              );
+              const selectedCourseIds = safeJsonArray(current.courseIds);
+              const selectedCampusIds = safeJsonArray(current.campusIds);
 
               return (
                 <div
@@ -870,11 +842,10 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
                                           URL.revokeObjectURL(prevUrl);
                                         } catch {}
                                       }
-                                      const next = { ...p };
-                                      next[r.id] = f
-                                        ? URL.createObjectURL(f)
-                                        : "";
-                                      return next;
+                                      return {
+                                        ...p,
+                                        [r.id]: f ? URL.createObjectURL(f) : "",
+                                      };
                                     });
 
                                     setEditFileMap((p) => ({
@@ -981,7 +952,7 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
                           )}
                         </div>
 
-                        {/* プロフィール */}
+                        {/* ✅ プロフィール（ここが消えてた/出ないのを確実に直す） */}
                         <div className="md:col-span-3">
                           <div className="text-[11px] font-semibold text-gray-600 dark:text-gray-300">
                             プロフィール（チャームポイント / 自己紹介）
