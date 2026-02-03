@@ -1,4 +1,3 @@
-// app/(app)/admin/diagnosis/instructors/InstructorAdminClient.tsx
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
@@ -18,12 +17,11 @@ type InstructorRow = {
   schoolId: string;
   label: string;
   slug: string;
-  // sortOrder はDB互換のため型としては保持（UI/機能としては使わない）
   sortOrder: number;
   isActive: boolean;
   photoMime?: string | null;
 
-  charmTags?: string | null; // 改行区切り
+  charmTags?: string | null;
   introduction?: string | null;
 
   courses?: OptionRow[];
@@ -91,6 +89,24 @@ function joinLabels(opts?: OptionRow[]) {
     .join(" / ");
 }
 
+/** ✅ values(id/slug/label混在) -> option.id に寄せる */
+function normalizeSelectedToIds(options: OptionRow[], values: string[]) {
+  const vs = uniqStrings(values);
+  if (vs.length === 0) return [];
+  const byId = new Map(options.map((o) => [String(o.id), o.id]));
+  const bySlug = new Map(
+    options.filter((o) => o.slug).map((o) => [String(o.slug), o.id]),
+  );
+  const byLabel = new Map(options.map((o) => [String(o.label), o.id]));
+
+  const out: string[] = [];
+  for (const v of vs) {
+    const id = byId.get(v) ?? bySlug.get(v) ?? byLabel.get(v);
+    if (id) out.push(id);
+  }
+  return uniqStrings(out);
+}
+
 function CheckboxList({
   options,
   selected,
@@ -102,7 +118,8 @@ function CheckboxList({
   onChange: (next: string[]) => void;
   columns?: 1 | 2 | 3;
 }) {
-  const set = new Set(selected);
+  // ✅ selected に id/slug/label が混ざっていてもチェック表示できる
+  const rawSet = new Set(uniqStrings(selected));
   const gridCols =
     columns === 1
       ? "grid-cols-1"
@@ -110,11 +127,16 @@ function CheckboxList({
         ? "grid-cols-3"
         : "grid-cols-2";
 
+  const isChecked = (o: OptionRow) =>
+    rawSet.has(String(o.id)) ||
+    (o.slug ? rawSet.has(String(o.slug)) : false) ||
+    rawSet.has(String(o.label));
+
   return (
     <div className="rounded-xl border border-gray-200 bg-white p-3 dark:border-gray-800 dark:bg-gray-950">
       <div className={`grid gap-2 ${gridCols}`}>
         {options.map((o) => {
-          const checked = set.has(o.id);
+          const checked = isChecked(o);
           return (
             <label
               key={o.id}
@@ -125,9 +147,15 @@ function CheckboxList({
                 type="checkbox"
                 checked={checked}
                 onChange={(e) => {
+                  // ✅ クリック後は必ず id で保持（次回以降ズレない）
                   const next = e.target.checked
-                    ? uniqStrings([...selected, o.id])
-                    : selected.filter((x) => x !== o.id);
+                    ? uniqStrings([...selected, String(o.id)])
+                    : selected.filter(
+                        (x) =>
+                          x !== String(o.id) &&
+                          x !== String(o.slug ?? "") &&
+                          x !== String(o.label ?? ""),
+                      );
                   onChange(next);
                 }}
                 className="rounded border-gray-300 dark:border-gray-700"
@@ -161,7 +189,6 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
   const [newCourseIds, setNewCourseIds] = useState<string[]>([]);
   const [newCampusIds, setNewCampusIds] = useState<string[]>([]);
 
-  // ✅ 追加：新規プロフィール
   const [newCharmTags, setNewCharmTags] = useState("");
   const [newIntroduction, setNewIntroduction] = useState("");
 
@@ -175,7 +202,6 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
     {},
   );
 
-  // ✅ 編集画像プレビュー（URL leak対策）
   const [editPreviewMap, setEditPreviewMap] = useState<Record<string, string>>(
     {},
   );
@@ -224,7 +250,7 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
       setCourses(normalize(cJson));
       setCampuses(normalize(pJson));
     } catch {
-      // options は致命ではないので握る
+      // noop
     }
   };
 
@@ -245,7 +271,7 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
         schoolId: String(d.schoolId ?? schoolId),
         label: String(d.label ?? ""),
         slug: String(d.slug ?? ""),
-        sortOrder: Number(d.sortOrder ?? 1), // 互換保持
+        sortOrder: Number(d.sortOrder ?? 1),
         isActive: Boolean(d.isActive ?? true),
         photoMime: typeof d.photoMime === "string" ? d.photoMime : null,
 
@@ -253,13 +279,26 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
         introduction:
           typeof d.introduction === "string" ? d.introduction : null,
 
-        courses: Array.isArray(d.courses) ? d.courses : [],
-        campuses: Array.isArray(d.campuses) ? d.campuses : [],
+        // ✅ courses/campuses の id も必ず文字列化しておく
+        courses: Array.isArray(d.courses)
+          ? d.courses.map((x: any) => ({
+              id: String(x.id ?? ""),
+              label: String(x.label ?? ""),
+              slug: x.slug ? String(x.slug) : undefined,
+            }))
+          : [],
+        campuses: Array.isArray(d.campuses)
+          ? d.campuses.map((x: any) => ({
+              id: String(x.id ?? ""),
+              label: String(x.label ?? ""),
+              slug: x.slug ? String(x.slug) : undefined,
+            }))
+          : [],
+
         courseIds: safeJsonArray(d.courseIds),
         campusIds: safeJsonArray(d.campusIds),
       }));
 
-      // ✅ sortOrder機能は廃止：見やすさ重視で label 昇順に
       setRows(
         normalized.sort((a, b) =>
           (a.label ?? "").localeCompare(b.label ?? "", "ja"),
@@ -279,7 +318,6 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [schoolId]);
 
-  // ✅ create preview URL leak対策
   const previewForNew = useMemo(() => {
     if (!newFile) return "";
     return URL.createObjectURL(newFile);
@@ -290,7 +328,6 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
     };
   }, [previewForNew]);
 
-  // ✅ edit preview URL leak対策（アンマウント時に全revoke）
   useEffect(() => {
     return () => {
       Object.values(editPreviewMap).forEach((u) => {
@@ -321,13 +358,11 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
       fd.append("schoolId", schoolId);
       fd.append("label", label);
       fd.append("slug", slug);
-
-      // ✅ sortOrder機能廃止：互換用に固定値を送る
       fd.append("sortOrder", "1");
-
       fd.append("isActive", String(newIsActive));
       if (newFile) fd.append("file", newFile);
 
+      // ✅ 新規は必ず id で送る
       fd.append("courseIds", JSON.stringify(uniqStrings(newCourseIds)));
       fd.append("campusIds", JSON.stringify(uniqStrings(newCampusIds)));
 
@@ -361,20 +396,23 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
     }
   };
 
-  // ✅ 編集開始：courseIds/campusIds が無いときは courses/campuses から復元して初期チェックを作る
   const startEdit = (r: InstructorRow) => {
-    const fromCourseIds = safeJsonArray(r.courseIds);
-    const fromCampusIds = safeJsonArray(r.campusIds);
+    // ✅ courseIds/campusIds が slug/label 混在でも options から id に正規化
+    const rawCourseVals = uniqStrings([
+      ...safeJsonArray(r.courseIds),
+      ...(r.courses ?? []).map((c) => String(c.id ?? "")),
+      ...(r.courses ?? []).map((c) => String(c.slug ?? "")),
+      ...(r.courses ?? []).map((c) => String(c.label ?? "")),
+    ]);
+    const rawCampusVals = uniqStrings([
+      ...safeJsonArray(r.campusIds),
+      ...(r.campuses ?? []).map((c) => String(c.id ?? "")),
+      ...(r.campuses ?? []).map((c) => String(c.slug ?? "")),
+      ...(r.campuses ?? []).map((c) => String(c.label ?? "")),
+    ]);
 
-    const initialCourseIds =
-      fromCourseIds.length > 0
-        ? fromCourseIds
-        : uniqStrings((r.courses ?? []).map((c) => c.id));
-
-    const initialCampusIds =
-      fromCampusIds.length > 0
-        ? fromCampusIds
-        : uniqStrings((r.campuses ?? []).map((c) => c.id));
+    const initialCourseIds = normalizeSelectedToIds(courses, rawCourseVals);
+    const initialCampusIds = normalizeSelectedToIds(campuses, rawCampusVals);
 
     setEditMap((prev) => ({
       ...prev,
@@ -392,7 +430,6 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
   };
 
   const cancelEdit = (id: string) => {
-    // ✅ revoke preview
     setEditPreviewMap((prev) => {
       const u = prev[id];
       if (u) {
@@ -446,19 +483,22 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
       fd.append("schoolId", schoolId);
       fd.append("label", String(e.label));
       fd.append("slug", String(e.slug));
-
-      // ✅ sortOrder機能廃止：互換値だけ送る（編集UIは出さない）
       fd.append("sortOrder", String((e as any).sortOrder ?? 1));
-
       fd.append("isActive", String(e.isActive ?? true));
       fd.append("clearPhoto", String(clearPhotoMap[id] ?? false));
 
       const file = editFileMap[id];
       if (file) fd.append("file", file);
 
-      // ✅ e.courseIds/e.campusIds が undefined の事故を防ぐ
-      const courseIds = uniqStrings(safeJsonArray(e.courseIds));
-      const campusIds = uniqStrings(safeJsonArray(e.campusIds));
+      // ✅ 保存時は options と突き合わせて「id」に確定させて送る（slug/label混在でもOK）
+      const courseIds = normalizeSelectedToIds(
+        courses,
+        safeJsonArray(e.courseIds),
+      );
+      const campusIds = normalizeSelectedToIds(
+        campuses,
+        safeJsonArray(e.campusIds),
+      );
 
       fd.append("courseIds", JSON.stringify(courseIds));
       fd.append("campusIds", JSON.stringify(campusIds));
@@ -484,7 +524,6 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
     }
   };
 
-  // ✅ 「無効化」ではなく「休止/再開」（isActiveのトグル）
   const toggleActive = async (r: InstructorRow, nextActive: boolean) => {
     setSaving(true);
     setError(null);
@@ -494,7 +533,7 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
       fd.append("schoolId", schoolId);
       fd.append("label", String(r.label ?? ""));
       fd.append("slug", String(r.slug ?? ""));
-      fd.append("sortOrder", String(r.sortOrder ?? 1)); // 互換
+      fd.append("sortOrder", String(r.sortOrder ?? 1));
       fd.append("isActive", String(nextActive));
       fd.append("clearPhoto", "false");
 
@@ -678,10 +717,6 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
                 />
               </div>
             </div>
-
-            <div className="mt-2 text-[11px] text-gray-500 dark:text-gray-400">
-              ✅ コース/校舎はチェックボックスで複数選択できます。
-            </div>
           </div>
 
           <div className="flex items-end gap-2 md:col-span-2">
@@ -735,426 +770,324 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
           </div>
         </div>
 
-        {rows.length === 0 && !loading ? (
-          <div className="rounded-xl border border-yellow-200 bg-yellow-50 p-3 text-xs text-yellow-800 dark:border-yellow-900/40 dark:bg-yellow-950/30 dark:text-yellow-200">
-            まだ講師がありません。上のフォームから追加してください。
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {rows.map((r) => {
-              const editing = editMap[r.id] !== undefined;
-              const e = editMap[r.id] as Partial<InstructorRow> | undefined;
+        <div className="space-y-2">
+          {rows.map((r) => {
+            const editing = editMap[r.id] !== undefined;
+            const e = editMap[r.id] as Partial<InstructorRow> | undefined;
 
-              // ✅ Partialの穴をなくすために r + e をマージして current を作る
-              const current: InstructorRow = editing
-                ? ({
-                    ...r,
-                    ...e,
-                    // arraysはeがundefinedの時にrを維持
-                    courses: Array.isArray(e?.courses) ? e?.courses : r.courses,
-                    campuses: Array.isArray(e?.campuses)
-                      ? e?.campuses
-                      : r.campuses,
-                    courseIds:
-                      e?.courseIds !== undefined ? e?.courseIds : r.courseIds,
-                    campusIds:
-                      e?.campusIds !== undefined ? e?.campusIds : r.campusIds,
-                  } as InstructorRow)
-                : r;
+            const current: InstructorRow = editing
+              ? ({
+                  ...r,
+                  ...e,
+                  courses: Array.isArray(e?.courses) ? e?.courses : r.courses,
+                  campuses: Array.isArray(e?.campuses)
+                    ? e?.campuses
+                    : r.campuses,
+                } as InstructorRow)
+              : r;
 
-              const localPreview = editPreviewMap[r.id] || "";
-              const hasDbPhoto = Boolean(r.photoMime);
+            const localPreview = editPreviewMap[r.id] || "";
+            const hasDbPhoto = Boolean(r.photoMime);
 
-              // ✅ idsが空のときは courses/campuses から復元（表示のズレ防止）
-              const selectedCourseIds =
-                safeJsonArray(current.courseIds).length > 0
-                  ? safeJsonArray(current.courseIds)
-                  : uniqStrings((current.courses ?? []).map((c) => c.id));
+            const selectedCourseIds = safeJsonArray((current as any).courseIds);
+            const selectedCampusIds = safeJsonArray((current as any).campusIds);
 
-              const selectedCampusIds =
-                safeJsonArray(current.campusIds).length > 0
-                  ? safeJsonArray(current.campusIds)
-                  : uniqStrings((current.campuses ?? []).map((c) => c.id));
+            return (
+              <div
+                key={r.id}
+                className="rounded-2xl border border-gray-200 p-3 hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-gray-800/40"
+              >
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="flex-1">
+                    <div className="text-sm font-semibold">
+                      {editing ? (
+                        <input
+                          value={current.label ?? ""}
+                          onChange={(ev) =>
+                            updateEditField(r.id, { label: ev.target.value })
+                          }
+                          className={input}
+                        />
+                      ) : (
+                        r.label
+                      )}
+                    </div>
 
-              return (
-                <div
-                  key={r.id}
-                  className="rounded-2xl border border-gray-200 p-3 hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-gray-800/40"
-                >
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div className="flex-1">
-                      <div className="text-sm font-semibold">
+                    <div className="mt-2 grid gap-2 md:grid-cols-3">
+                      <div>
+                        <div className="text-[11px] font-semibold text-gray-600 dark:text-gray-300">
+                          id
+                        </div>
+                        <div className="font-mono text-[12px] text-gray-700 dark:text-gray-200">
+                          {r.id}
+                        </div>
+                      </div>
+
+                      <div>
+                        <div className="text-[11px] font-semibold text-gray-600 dark:text-gray-300">
+                          slug
+                        </div>
                         {editing ? (
                           <input
-                            value={current.label ?? ""}
+                            value={current.slug ?? ""}
                             onChange={(ev) =>
-                              updateEditField(r.id, { label: ev.target.value })
+                              updateEditField(r.id, { slug: ev.target.value })
                             }
-                            className={input}
+                            className={monoInput}
                           />
                         ) : (
-                          r.label
+                          <div className="font-mono text-[12px] text-gray-700 dark:text-gray-200">
+                            {r.slug}
+                          </div>
                         )}
                       </div>
 
-                      <div className="mt-2 grid gap-2 md:grid-cols-3">
-                        <div>
-                          <div className="text-[11px] font-semibold text-gray-600 dark:text-gray-300">
-                            id
-                          </div>
-                          <div className="font-mono text-[12px] text-gray-700 dark:text-gray-200">
-                            {r.id}
-                          </div>
+                      <div>
+                        <div className="text-[11px] font-semibold text-gray-600 dark:text-gray-300">
+                          画像
+                          <span className="ml-2 text-[11px] font-normal text-gray-500 dark:text-gray-400">
+                            推奨：500×500
+                          </span>
                         </div>
 
-                        <div>
-                          <div className="text-[11px] font-semibold text-gray-600 dark:text-gray-300">
-                            slug
-                          </div>
-                          {editing ? (
-                            <input
-                              value={current.slug ?? ""}
-                              onChange={(ev) =>
-                                updateEditField(r.id, { slug: ev.target.value })
-                              }
-                              className={monoInput}
-                            />
-                          ) : (
-                            <div className="font-mono text-[12px] text-gray-700 dark:text-gray-200">
-                              {r.slug}
-                            </div>
-                          )}
-                        </div>
-
-                        <div>
-                          <div className="text-[11px] font-semibold text-gray-600 dark:text-gray-300">
-                            画像
-                            <span className="ml-2 text-[11px] font-normal text-gray-500 dark:text-gray-400">
-                              推奨：500×500
-                            </span>
-                          </div>
-
-                          <div className="mt-1 flex items-center gap-3">
-                            <img
-                              src={
-                                localPreview ||
-                                (hasDbPhoto ? photoUrl(r.id) : EMPTY_IMG)
-                              }
-                              className={thumb}
-                              alt=""
-                            />
-
-                            {editing ? (
-                              <div className="flex w-full flex-col gap-2">
-                                <input
-                                  type="file"
-                                  accept="image/*"
-                                  onChange={(ev) => {
-                                    const f = ev.target.files?.[0] ?? null;
-
-                                    // preview URLを作る（古いのはrevoke）
-                                    setEditPreviewMap((p) => {
-                                      const prevUrl = p[r.id];
-                                      if (prevUrl) {
-                                        try {
-                                          URL.revokeObjectURL(prevUrl);
-                                        } catch {}
-                                      }
-                                      const next = { ...p };
-                                      next[r.id] = f
-                                        ? URL.createObjectURL(f)
-                                        : "";
-                                      return next;
-                                    });
-
-                                    setEditFileMap((p) => ({
-                                      ...p,
-                                      [r.id]: f,
-                                    }));
-                                    if (f)
-                                      setClearPhotoMap((p) => ({
-                                        ...p,
-                                        [r.id]: false,
-                                      }));
-                                  }}
-                                  className={input}
-                                />
-
-                                <label className="flex items-center gap-2 text-xs text-gray-700 dark:text-gray-200">
-                                  <input
-                                    type="checkbox"
-                                    checked={Boolean(
-                                      clearPhotoMap[r.id] ?? false,
-                                    )}
-                                    onChange={(ev) => {
-                                      const checked = ev.target.checked;
-                                      setClearPhotoMap((p) => ({
-                                        ...p,
-                                        [r.id]: checked,
-                                      }));
-
-                                      if (checked) {
-                                        setEditFileMap((p) => ({
-                                          ...p,
-                                          [r.id]: null,
-                                        }));
-                                        setEditPreviewMap((p) => {
-                                          const prevUrl = p[r.id];
-                                          if (prevUrl) {
-                                            try {
-                                              URL.revokeObjectURL(prevUrl);
-                                            } catch {}
-                                          }
-                                          return { ...p, [r.id]: "" };
-                                        });
-                                      }
-                                    }}
-                                  />
-                                  画像を削除（DBからnullにする）
-                                </label>
-                              </div>
-                            ) : (
-                              <div className="text-xs text-gray-500 dark:text-gray-400">
-                                {hasDbPhoto ? "DB保存済み" : "未設定"}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* 対応コース/校舎 */}
-                        <div className="md:col-span-3">
-                          <div className="text-[11px] font-semibold text-gray-600 dark:text-gray-300">
-                            対応（コース / 校舎）
-                          </div>
+                        <div className="mt-1 flex items-center gap-3">
+                          <img
+                            src={
+                              localPreview ||
+                              (hasDbPhoto ? photoUrl(r.id) : EMPTY_IMG)
+                            }
+                            className={thumb}
+                            alt=""
+                          />
 
                           {editing ? (
-                            <div className="mt-2 grid gap-2 md:grid-cols-2">
-                              <div>
-                                <div className="mb-1 text-[11px] text-gray-600 dark:text-gray-300">
-                                  コース（チェック）
-                                </div>
-                                <CheckboxList
-                                  options={courses}
-                                  selected={selectedCourseIds}
-                                  onChange={(next) =>
-                                    updateEditField(r.id, { courseIds: next })
-                                  }
-                                  columns={2}
-                                />
-                              </div>
-
-                              <div>
-                                <div className="mb-1 text-[11px] text-gray-600 dark:text-gray-300">
-                                  校舎（チェック）
-                                </div>
-                                <CheckboxList
-                                  options={campuses}
-                                  selected={selectedCampusIds}
-                                  onChange={(next) =>
-                                    updateEditField(r.id, { campusIds: next })
-                                  }
-                                  columns={2}
-                                />
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="mt-1 text-[12px] text-gray-700 dark:text-gray-200">
-                              <div className="mb-1">
-                                <span className="font-semibold">コース：</span>
-                                {joinLabels(r.courses) || "—"}
-                              </div>
-                              <div>
-                                <span className="font-semibold">校舎：</span>
-                                {joinLabels(r.campuses) || "—"}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* プロフィール */}
-                        <div className="md:col-span-3">
-                          <div className="text-[11px] font-semibold text-gray-600 dark:text-gray-300">
-                            プロフィール（チャームポイント / 自己紹介）
-                          </div>
-
-                          {editing ? (
-                            <div className="mt-2 grid gap-2 md:grid-cols-2">
-                              <div>
-                                <div className="mb-1 text-[11px] text-gray-600 dark:text-gray-300">
-                                  チャームポイントタグ（改行で追加）
-                                </div>
-                                <textarea
-                                  value={(current as any).charmTags ?? ""}
-                                  onChange={(ev) =>
-                                    updateEditField(r.id, {
-                                      charmTags: ev.target.value,
-                                    })
-                                  }
-                                  rows={4}
-                                  className={input}
-                                />
-                              </div>
-
-                              <div>
-                                <div className="mb-1 text-[11px] text-gray-600 dark:text-gray-300">
-                                  自己紹介文
-                                </div>
-                                <textarea
-                                  value={(current as any).introduction ?? ""}
-                                  onChange={(ev) =>
-                                    updateEditField(r.id, {
-                                      introduction: ev.target.value,
-                                    })
-                                  }
-                                  rows={4}
-                                  className={input}
-                                />
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="mt-2 text-[12px] text-gray-700 dark:text-gray-200">
-                              <div className="mb-2">
-                                <div className="font-semibold">
-                                  チャームポイント
-                                </div>
-                                <div className="mt-1 flex flex-wrap gap-1">
-                                  {String(r.charmTags ?? "")
-                                    .split("\n")
-                                    .map((s) => s.trim())
-                                    .filter(Boolean)
-                                    .map((tag) => (
-                                      <span
-                                        key={tag}
-                                        className="rounded-full border border-gray-200 px-2 py-0.5 text-[11px] dark:border-gray-700"
-                                      >
-                                        {tag}
-                                      </span>
-                                    ))}
-                                  {(!r.charmTags ||
-                                    r.charmTags.trim() === "") && (
-                                    <span className="text-gray-500 dark:text-gray-400">
-                                      —
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-
-                              <div>
-                                <div className="font-semibold">自己紹介</div>
-                                <div className="whitespace-pre-wrap leading-relaxed">
-                                  {r.introduction?.trim()
-                                    ? r.introduction
-                                    : "—"}
-                                </div>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Active表示（無効化→休止ボタンへ） */}
-                        <div className="md:col-span-3">
-                          {editing ? (
-                            <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-200">
+                            <div className="flex w-full flex-col gap-2">
                               <input
-                                type="checkbox"
-                                checked={Boolean(current.isActive)}
-                                onChange={(ev) =>
-                                  updateEditField(r.id, {
-                                    isActive: ev.target.checked,
-                                  })
-                                }
-                                className="rounded border-gray-300 dark:border-gray-700"
+                                type="file"
+                                accept="image/*"
+                                onChange={(ev) => {
+                                  const f = ev.target.files?.[0] ?? null;
+
+                                  setEditPreviewMap((p) => {
+                                    const prevUrl = p[r.id];
+                                    if (prevUrl) {
+                                      try {
+                                        URL.revokeObjectURL(prevUrl);
+                                      } catch {}
+                                    }
+                                    const next = { ...p };
+                                    next[r.id] = f
+                                      ? URL.createObjectURL(f)
+                                      : "";
+                                    return next;
+                                  });
+
+                                  setEditFileMap((p) => ({
+                                    ...p,
+                                    [r.id]: f,
+                                  }));
+                                  if (f)
+                                    setClearPhotoMap((p) => ({
+                                      ...p,
+                                      [r.id]: false,
+                                    }));
+                                }}
+                                className={input}
                               />
-                              active
-                            </label>
+
+                              <label className="flex items-center gap-2 text-xs text-gray-700 dark:text-gray-200">
+                                <input
+                                  type="checkbox"
+                                  checked={Boolean(
+                                    clearPhotoMap[r.id] ?? false,
+                                  )}
+                                  onChange={(ev) => {
+                                    const checked = ev.target.checked;
+                                    setClearPhotoMap((p) => ({
+                                      ...p,
+                                      [r.id]: checked,
+                                    }));
+
+                                    if (checked) {
+                                      setEditFileMap((p) => ({
+                                        ...p,
+                                        [r.id]: null,
+                                      }));
+                                      setEditPreviewMap((p) => {
+                                        const prevUrl = p[r.id];
+                                        if (prevUrl) {
+                                          try {
+                                            URL.revokeObjectURL(prevUrl);
+                                          } catch {}
+                                        }
+                                        return { ...p, [r.id]: "" };
+                                      });
+                                    }
+                                  }}
+                                />
+                                画像を削除（DBからnullにする）
+                              </label>
+                            </div>
                           ) : (
-                            <div
-                              className={[
-                                "inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold",
-                                r.isActive
-                                  ? "bg-green-50 text-green-700 dark:bg-green-950/40 dark:text-green-200"
-                                  : "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300",
-                              ].join(" ")}
-                            >
-                              {r.isActive ? "active" : "paused"}
+                            <div className="text-xs text-gray-500 dark:text-gray-400">
+                              {hasDbPhoto ? "DB保存済み" : "未設定"}
                             </div>
                           )}
                         </div>
                       </div>
-                    </div>
 
-                    <div className="flex flex-wrap items-center gap-2">
-                      {!editing ? (
-                        <>
-                          <button
-                            type="button"
-                            onClick={() => startEdit(r)}
-                            disabled={saving}
-                            className={btnOutline.replace(
-                              "px-4 py-2 text-sm",
-                              "px-3 py-1.5 text-xs",
-                            )}
-                          >
-                            編集
-                          </button>
+                      {/* 対応コース/校舎 */}
+                      <div className="md:col-span-3">
+                        <div className="text-[11px] font-semibold text-gray-600 dark:text-gray-300">
+                          対応（コース / 校舎）
+                        </div>
 
-                          {/* ✅ 無効化 → 休止/再開 */}
-                          {r.isActive ? (
-                            <button
-                              type="button"
-                              onClick={() => toggleActive(r, false)}
-                              disabled={saving}
-                              className={btnDanger}
-                            >
-                              休止
-                            </button>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={() => toggleActive(r, true)}
-                              disabled={saving}
-                              className={btnOutline.replace(
-                                "px-4 py-2 text-sm",
-                                "px-3 py-1.5 text-xs",
-                              )}
-                            >
-                              再開
-                            </button>
-                          )}
-                        </>
-                      ) : (
-                        <>
-                          <button
-                            type="button"
-                            onClick={() => saveEdit(r.id)}
-                            disabled={saving}
-                            className={btnPrimary.replace(
-                              "px-4 py-2 text-sm",
-                              "px-3 py-1.5 text-xs",
-                            )}
+                        {editing ? (
+                          <div className="mt-2 grid gap-2 md:grid-cols-2">
+                            <div>
+                              <div className="mb-1 text-[11px] text-gray-600 dark:text-gray-300">
+                                コース（チェック）
+                              </div>
+                              <CheckboxList
+                                options={courses}
+                                selected={selectedCourseIds}
+                                onChange={(next) =>
+                                  updateEditField(r.id, { courseIds: next })
+                                }
+                                columns={2}
+                              />
+                            </div>
+
+                            <div>
+                              <div className="mb-1 text-[11px] text-gray-600 dark:text-gray-300">
+                                校舎（チェック）
+                              </div>
+                              <CheckboxList
+                                options={campuses}
+                                selected={selectedCampusIds}
+                                onChange={(next) =>
+                                  updateEditField(r.id, { campusIds: next })
+                                }
+                                columns={2}
+                              />
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="mt-1 text-[12px] text-gray-700 dark:text-gray-200">
+                            <div className="mb-1">
+                              <span className="font-semibold">コース：</span>
+                              {joinLabels(r.courses) || "—"}
+                            </div>
+                            <div>
+                              <span className="font-semibold">校舎：</span>
+                              {joinLabels(r.campuses) || "—"}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Active */}
+                      <div className="md:col-span-3">
+                        {editing ? (
+                          <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-200">
+                            <input
+                              type="checkbox"
+                              checked={Boolean(current.isActive)}
+                              onChange={(ev) =>
+                                updateEditField(r.id, {
+                                  isActive: ev.target.checked,
+                                })
+                              }
+                              className="rounded border-gray-300 dark:border-gray-700"
+                            />
+                            active
+                          </label>
+                        ) : (
+                          <div
+                            className={[
+                              "inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold",
+                              r.isActive
+                                ? "bg-green-50 text-green-700 dark:bg-green-950/40 dark:text-green-200"
+                                : "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300",
+                            ].join(" ")}
                           >
-                            保存
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => cancelEdit(r.id)}
-                            disabled={saving}
-                            className={btnOutline.replace(
-                              "px-4 py-2 text-sm",
-                              "px-3 py-1.5 text-xs",
-                            )}
-                          >
-                            キャンセル
-                          </button>
-                        </>
-                      )}
+                            {r.isActive ? "active" : "paused"}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
+
+                  <div className="flex flex-wrap items-center gap-2">
+                    {!editing ? (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => startEdit(r)}
+                          disabled={saving}
+                          className={btnOutline.replace(
+                            "px-4 py-2 text-sm",
+                            "px-3 py-1.5 text-xs",
+                          )}
+                        >
+                          編集
+                        </button>
+
+                        {r.isActive ? (
+                          <button
+                            type="button"
+                            onClick={() => toggleActive(r, false)}
+                            disabled={saving}
+                            className={btnDanger}
+                          >
+                            休止
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => toggleActive(r, true)}
+                            disabled={saving}
+                            className={btnOutline.replace(
+                              "px-4 py-2 text-sm",
+                              "px-3 py-1.5 text-xs",
+                            )}
+                          >
+                            再開
+                          </button>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => saveEdit(r.id)}
+                          disabled={saving}
+                          className={btnPrimary.replace(
+                            "px-4 py-2 text-sm",
+                            "px-3 py-1.5 text-xs",
+                          )}
+                        >
+                          保存
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => cancelEdit(r.id)}
+                          disabled={saving}
+                          className={btnOutline.replace(
+                            "px-4 py-2 text-sm",
+                            "px-3 py-1.5 text-xs",
+                          )}
+                        >
+                          キャンセル
+                        </button>
+                      </>
+                    )}
+                  </div>
                 </div>
-              );
-            })}
-          </div>
-        )}
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       <div className="mt-4 text-xs text-gray-500 dark:text-gray-400">
