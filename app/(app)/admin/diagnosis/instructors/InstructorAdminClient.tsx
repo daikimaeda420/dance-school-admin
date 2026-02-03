@@ -101,7 +101,10 @@ function CheckboxList({
   onChange: (next: string[]) => void;
   columns?: 1 | 2 | 3;
 }) {
-  const set = new Set(selected);
+  // ✅ “比較用” は必ず string 化して正規化
+  const selectedNorm = useMemo(() => uniqStrings(selected ?? []), [selected]);
+  const set = useMemo(() => new Set(selectedNorm), [selectedNorm]);
+
   const gridCols =
     columns === 1
       ? "grid-cols-1"
@@ -113,10 +116,12 @@ function CheckboxList({
     <div className="rounded-xl border border-gray-200 bg-white p-3 dark:border-gray-800 dark:bg-gray-950">
       <div className={`grid gap-2 ${gridCols}`}>
         {options.map((o) => {
-          const checked = set.has(o.id);
+          const oid = String(o.id ?? "").trim(); // ✅ 常にstring
+          const checked = set.has(oid);
+
           return (
             <label
-              key={o.id}
+              key={oid}
               className="flex items-center gap-2 text-xs text-gray-800 dark:text-gray-200"
               title={o.label}
             >
@@ -125,11 +130,11 @@ function CheckboxList({
                 checked={checked}
                 onChange={(e) => {
                   const next = e.target.checked
-                    ? uniqStrings([...selected, o.id])
-                    : selected.filter((x) => x !== o.id);
+                    ? uniqStrings([...selectedNorm, oid])
+                    : selectedNorm.filter((x) => x !== oid);
                   onChange(next);
                 }}
-                className="rounded border-gray-300 dark:border-gray-700"
+                className="h-4 w-4 rounded border-gray-300 dark:border-gray-700"
               />
               <span className="truncate">{o.label}</span>
             </label>
@@ -777,11 +782,15 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
               const hasDbPhoto = Boolean(r.photoMime);
 
               const selectedCourseIds = editing
-                ? safeJsonArray(editMap[r.id]?.courseIds)
+                ? uniqStrings(
+                    ((editMap[r.id]?.courseIds ?? []) as string[]).map(String),
+                  )
                 : safeJsonArray(r.courseIds);
 
               const selectedCampusIds = editing
-                ? safeJsonArray(editMap[r.id]?.campusIds)
+                ? uniqStrings(
+                    ((editMap[r.id]?.campusIds ?? []) as string[]).map(String),
+                  )
                 : safeJsonArray(r.campusIds);
 
               return (
