@@ -741,8 +741,13 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
               const localPreview = editPreviewMap[r.id] || "";
               const hasDbPhoto = Boolean(r.photoMime);
 
-              const currentCourseIds = safeJsonArray(current.courseIds);
-              const currentCampusIds = safeJsonArray(current.campusIds);
+              const selectedCourseIds = safeJsonArray(
+                (editing ? (e?.courseIds ?? r.courseIds) : r.courseIds) as any,
+              );
+
+              const selectedCampusIds = safeJsonArray(
+                (editing ? (e?.campusIds ?? r.campusIds) : r.campusIds) as any,
+              );
 
               return (
                 <div
@@ -903,7 +908,7 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
                                 </div>
                                 <CheckboxList
                                   options={courses}
-                                  selected={currentCourseIds}
+                                  selected={selectedCourseIds}
                                   onChange={(next) =>
                                     updateEditField(r.id, { courseIds: next })
                                   }
@@ -917,7 +922,7 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
                                 </div>
                                 <CheckboxList
                                   options={campuses}
-                                  selected={currentCampusIds}
+                                  selected={selectedCampusIds}
                                   onChange={(next) =>
                                     updateEditField(r.id, { campusIds: next })
                                   }
