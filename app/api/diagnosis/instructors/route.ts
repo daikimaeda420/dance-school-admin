@@ -29,7 +29,7 @@ function json(message: string, status = 400) {
 }
 
 /**
- * courseIds / genreIds / campusIds を柔軟に受け取る
+ * courseIds / campusIds を柔軟に受け取る
  * - fd.getAll("courseIds") のように同名キー複数
  * - fd.get("courseIds") が '["id1","id2"]' のJSON配列
  * - fd.get("courseIds") が "id1,id2" のCSV
@@ -50,7 +50,7 @@ function readIdList(fd: FormData, key: string): string[] {
       const arr = JSON.parse(raw);
       if (Array.isArray(arr)) {
         return Array.from(
-          new Set(arr.map((x) => String(x ?? "").trim()).filter(Boolean))
+          new Set(arr.map((x) => String(x ?? "").trim()).filter(Boolean)),
         );
       }
     } catch {
@@ -64,8 +64,8 @@ function readIdList(fd: FormData, key: string): string[] {
         raw
           .split(",")
           .map((s) => s.trim())
-          .filter(Boolean)
-      )
+          .filter(Boolean),
+      ),
     );
   }
 
@@ -74,14 +74,14 @@ function readIdList(fd: FormData, key: string): string[] {
 
 function uniq(arr: string[]) {
   return Array.from(
-    new Set(arr.map((s) => String(s ?? "").trim()).filter(Boolean))
+    new Set(arr.map((s) => String(s ?? "").trim()).filter(Boolean)),
   );
 }
 
-type ResolveKind = "campus" | "course" | "genre";
+type ResolveKind = "campus" | "course";
 
 /**
- * ✅ id/slug/answerTag/label が混在していても「存在する実ID」に解決する
+ * ✅ id/slug/label が混在していても「存在する実ID」に解決する
  */
 async function resolveConnectIds(params: {
   schoolId: string;
@@ -108,80 +108,49 @@ async function resolveConnectIds(params: {
 
     const ids = uniq(found.map((r) => r.id));
     const foundKeys = new Set(
-      found.flatMap((r) => [r.id, r.slug, r.label].filter(Boolean) as string[])
+      found.flatMap((r) => [r.id, r.slug, r.label].filter(Boolean) as string[]),
     );
     const missing = values.filter((v) => !foundKeys.has(v));
     return { ids, missing };
   }
 
-  if (params.kind === "course") {
-    const found = await prisma.diagnosisCourse.findMany({
-      where: {
-        schoolId,
-        isActive: true,
-        OR: [
-          { id: { in: values } },
-          { slug: { in: values } },
-          { label: { in: values } },
-        ],
-      },
-      select: { id: true, slug: true, label: true },
-    });
-
-    const ids = uniq(found.map((r) => r.id));
-    const foundKeys = new Set(
-      found.flatMap((r) => [r.id, r.slug, r.label].filter(Boolean) as string[])
-    );
-    const missing = values.filter((v) => !foundKeys.has(v));
-    return { ids, missing };
-  }
-
-  // genre
-  const found = await prisma.diagnosisGenre.findMany({
+  // course
+  const found = await prisma.diagnosisCourse.findMany({
     where: {
       schoolId,
       isActive: true,
       OR: [
         { id: { in: values } },
         { slug: { in: values } },
-        { answerTag: { in: values } },
         { label: { in: values } },
       ],
     },
-    select: { id: true, slug: true, answerTag: true, label: true },
+    select: { id: true, slug: true, label: true },
   });
 
   const ids = uniq(found.map((r) => r.id));
   const foundKeys = new Set(
-    found.flatMap(
-      (r) => [r.id, r.slug, r.answerTag, r.label].filter(Boolean) as string[]
-    )
+    found.flatMap((r) => [r.id, r.slug, r.label].filter(Boolean) as string[]),
   );
   const missing = values.filter((v) => !foundKeys.has(v));
   return { ids, missing };
 }
 
 /**
- * ✅ 明示中間（DiagnosisInstructorCourse/Genre/Campus）からまとめて返す
- * ※ Prismaの relation フィールド名に依存しない（= buildが安定）
+ * ✅ 明示中間（DiagnosisInstructorCourse/Campus）からまとめて返す
  */
 async function fetchLinks(schoolId: string, instructorIds: string[]) {
   if (instructorIds.length === 0) {
     return {
       coursesByInstructor: new Map<string, any[]>(),
-      genresByInstructor: new Map<string, any[]>(),
       campusesByInstructor: new Map<string, any[]>(),
     };
   }
 
-  const [courseLinks, genreLinks, campusLinks] = await Promise.all([
+  const [courseLinks, campusLinks] = await Promise.all([
     prisma.diagnosisInstructorCourse.findMany({
       where: { schoolId, instructorId: { in: instructorIds } },
       select: { instructorId: true, courseId: true },
-    }),
-    prisma.diagnosisInstructorGenre.findMany({
-      where: { schoolId, instructorId: { in: instructorIds } },
-      select: { instructorId: true, genreId: true },
     }),
     prisma.diagnosisInstructorCampus.findMany({
       where: { schoolId, instructorId: { in: instructorIds } },
@@ -190,37 +159,24 @@ async function fetchLinks(schoolId: string, instructorIds: string[]) {
   ]);
 
   const courseIds = Array.from(new Set(courseLinks.map((x) => x.courseId)));
-  const genreIds = Array.from(new Set(genreLinks.map((x) => x.genreId)));
   const campusIds = Array.from(new Set(campusLinks.map((x) => x.campusId)));
 
-  const [courses, genres, campuses] = await Promise.all([
+  const [courses, campuses] = await Promise.all([
     courseIds.length
       ? prisma.diagnosisCourse.findMany({
           where: { id: { in: courseIds } },
           select: { id: true, label: true, slug: true },
         })
       : Promise.resolve([]),
-    genreIds.length
-      ? prisma.diagnosisGenre.findMany({
-          where: { id: { in: genreIds } },
-          select: { id: true, label: true, slug: true, answerTag: true },
-        })
-      : Promise.resolve([]),
     campusIds.length
       ? prisma.diagnosisCampus.findMany({
           where: { id: { in: campusIds } },
-          select: {
-            id: true,
-            label: true,
-            slug: true,
-            isActive: true,
-          },
+          select: { id: true, label: true, slug: true, isActive: true },
         })
       : Promise.resolve([]),
   ]);
 
   const courseMap = new Map(courses.map((c) => [c.id, c]));
-  const genreMap = new Map(genres.map((g) => [g.id, g]));
   const campusMap = new Map(campuses.map((c) => [c.id, c]));
 
   const coursesByInstructor = new Map<string, any[]>();
@@ -232,15 +188,6 @@ async function fetchLinks(schoolId: string, instructorIds: string[]) {
     coursesByInstructor.set(row.instructorId, cur);
   }
 
-  const genresByInstructor = new Map<string, any[]>();
-  for (const row of genreLinks) {
-    const g = genreMap.get(row.genreId);
-    if (!g) continue;
-    const cur = genresByInstructor.get(row.instructorId) ?? [];
-    cur.push(g);
-    genresByInstructor.set(row.instructorId, cur);
-  }
-
   const campusesByInstructor = new Map<string, any[]>();
   for (const row of campusLinks) {
     const c = campusMap.get(row.campusId);
@@ -250,7 +197,7 @@ async function fetchLinks(schoolId: string, instructorIds: string[]) {
     campusesByInstructor.set(row.instructorId, cur);
   }
 
-  return { coursesByInstructor, genresByInstructor, campusesByInstructor };
+  return { coursesByInstructor, campusesByInstructor };
 }
 
 function readOptionalText(fd: FormData, key: string): string | null {
@@ -292,13 +239,14 @@ export async function GET(req: NextRequest) {
     });
 
     const instructorIds = rows.map((r) => r.id);
-    const { coursesByInstructor, genresByInstructor, campusesByInstructor } =
-      await fetchLinks(schoolId, instructorIds);
+    const { coursesByInstructor, campusesByInstructor } = await fetchLinks(
+      schoolId,
+      instructorIds,
+    );
 
     return NextResponse.json(
       rows.map((r) => {
         const courses = coursesByInstructor.get(r.id) ?? [];
-        const genres = genresByInstructor.get(r.id) ?? [];
         const campuses = campusesByInstructor.get(r.id) ?? [];
         return {
           ...r,
@@ -306,13 +254,11 @@ export async function GET(req: NextRequest) {
           charmTags: r.charmTags ?? null,
           introduction: r.introduction ?? null,
           courses,
-          genres,
           campuses,
           courseIds: courses.map((c: any) => c.id),
-          genreIds: genres.map((g: any) => g.id),
           campusIds: campuses.map((c: any) => c.id),
         };
-      })
+      }),
     );
   } catch (e: any) {
     console.error(e);
@@ -345,7 +291,6 @@ export async function POST(req: NextRequest) {
     const introduction = readOptionalText(fd, "introduction");
 
     const courseVals = readIdList(fd, "courseIds");
-    const genreVals = readIdList(fd, "genreIds");
     const campusVals = readIdList(fd, "campusIds");
 
     if (!id || !schoolId || !label || !slug) {
@@ -360,7 +305,7 @@ export async function POST(req: NextRequest) {
       if (file.size > MAX_IMAGE_BYTES) {
         return json(
           `画像サイズが大きすぎます（上限 ${MAX_IMAGE_BYTES} bytes）`,
-          400
+          400,
         );
       }
       photoMime = file.type || "application/octet-stream";
@@ -368,10 +313,9 @@ export async function POST(req: NextRequest) {
       photoData = new Uint8Array(ab);
     }
 
-    const [campusR, courseR, genreR] = await Promise.all([
+    const [campusR, courseR] = await Promise.all([
       resolveConnectIds({ schoolId, kind: "campus", values: campusVals }),
       resolveConnectIds({ schoolId, kind: "course", values: courseVals }),
-      resolveConnectIds({ schoolId, kind: "genre", values: genreVals }),
     ]);
 
     if (campusVals.length > 0 && campusR.ids.length === 0) {
@@ -381,7 +325,7 @@ export async function POST(req: NextRequest) {
             "紐づけようとした校舎が見つかりません（id/slug/label・schoolId・isActive を確認）",
           debug: { campusVals, missing: campusR.missing },
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
     if (courseVals.length > 0 && courseR.ids.length === 0) {
@@ -391,17 +335,7 @@ export async function POST(req: NextRequest) {
             "紐づけようとしたコースが見つかりません（id/slug/label・schoolId・isActive を確認）",
           debug: { courseVals, missing: courseR.missing },
         },
-        { status: 400 }
-      );
-    }
-    if (genreVals.length > 0 && genreR.ids.length === 0) {
-      return NextResponse.json(
-        {
-          message:
-            "紐づけようとしたジャンルが見つかりません（id/slug/answerTag/label・schoolId・isActive を確認）",
-          debug: { genreVals, missing: genreR.missing },
-        },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -443,17 +377,6 @@ export async function POST(req: NextRequest) {
         });
       }
 
-      if (genreR.ids.length > 0) {
-        await tx.diagnosisInstructorGenre.createMany({
-          data: genreR.ids.map((genreId) => ({
-            instructorId: created.id,
-            genreId,
-            schoolId,
-          })),
-          skipDuplicates: true,
-        });
-      }
-
       if (campusR.ids.length > 0) {
         await tx.diagnosisInstructorCampus.createMany({
           data: campusR.ids.map((campusId) => ({
@@ -468,11 +391,12 @@ export async function POST(req: NextRequest) {
       return created;
     });
 
-    const { coursesByInstructor, genresByInstructor, campusesByInstructor } =
-      await fetchLinks(schoolId, [instructor.id]);
+    const { coursesByInstructor, campusesByInstructor } = await fetchLinks(
+      schoolId,
+      [instructor.id],
+    );
 
     const courses = coursesByInstructor.get(instructor.id) ?? [];
-    const genres = genresByInstructor.get(instructor.id) ?? [];
     const campuses = campusesByInstructor.get(instructor.id) ?? [];
 
     return NextResponse.json(
@@ -482,13 +406,11 @@ export async function POST(req: NextRequest) {
         charmTags: instructor.charmTags ?? null,
         introduction: instructor.introduction ?? null,
         courses,
-        genres,
         campuses,
         courseIds: courses.map((c: any) => c.id),
-        genreIds: genres.map((g: any) => g.id),
         campusIds: campuses.map((c: any) => c.id),
       },
-      { status: 201 }
+      { status: 201 },
     );
   } catch (e: any) {
     console.error(e);
@@ -527,7 +449,6 @@ export async function PUT(req: NextRequest) {
       : undefined;
 
     const courseVals = readIdList(fd, "courseIds");
-    const genreVals = readIdList(fd, "genreIds");
     const campusVals = readIdList(fd, "campusIds");
 
     if (!id || !schoolId || !label || !slug) {
@@ -540,10 +461,9 @@ export async function PUT(req: NextRequest) {
     });
     if (!existing) return json("対象が見つかりません", 404);
 
-    const [campusR, courseR, genreR] = await Promise.all([
+    const [campusR, courseR] = await Promise.all([
       resolveConnectIds({ schoolId, kind: "campus", values: campusVals }),
       resolveConnectIds({ schoolId, kind: "course", values: courseVals }),
-      resolveConnectIds({ schoolId, kind: "genre", values: genreVals }),
     ]);
 
     if (campusVals.length > 0 && campusR.ids.length === 0) {
@@ -553,7 +473,7 @@ export async function PUT(req: NextRequest) {
             "紐づけようとした校舎が見つかりません（id/slug/label・schoolId・isActive を確認）",
           debug: { campusVals, missing: campusR.missing },
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
     if (courseVals.length > 0 && courseR.ids.length === 0) {
@@ -563,17 +483,7 @@ export async function PUT(req: NextRequest) {
             "紐づけようとしたコースが見つかりません（id/slug/label・schoolId・isActive を確認）",
           debug: { courseVals, missing: courseR.missing },
         },
-        { status: 400 }
-      );
-    }
-    if (genreVals.length > 0 && genreR.ids.length === 0) {
-      return NextResponse.json(
-        {
-          message:
-            "紐づけようとしたジャンルが見つかりません（id/slug/answerTag/label・schoolId・isActive を確認）",
-          debug: { genreVals, missing: genreR.missing },
-        },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -599,7 +509,7 @@ export async function PUT(req: NextRequest) {
         if (file && file instanceof File && file.size > 0) {
           if (file.size > MAX_IMAGE_BYTES) {
             throw new Error(
-              `画像サイズが大きすぎます（上限 ${MAX_IMAGE_BYTES} bytes）`
+              `画像サイズが大きすぎます（上限 ${MAX_IMAGE_BYTES} bytes）`,
             );
           }
           data.photoMime = file.type || "application/octet-stream";
@@ -608,38 +518,28 @@ export async function PUT(req: NextRequest) {
         }
       }
 
-      await tx.diagnosisInstructor.update({
-        where: { id: existing.id },
+      // ✅ schoolIdも含めて安全に更新
+      const u = await tx.diagnosisInstructor.updateMany({
+        where: { id, schoolId },
         data,
       });
+      if (u.count === 0) {
+        throw new Error("更新対象が見つかりません");
+      }
 
-      // 既存リンクを全置換
+      // 既存リンクを全置換（コース/校舎のみ）
       await tx.diagnosisInstructorCourse.deleteMany({
-        where: { instructorId: existing.id, schoolId },
-      });
-      await tx.diagnosisInstructorGenre.deleteMany({
-        where: { instructorId: existing.id, schoolId },
+        where: { instructorId: id, schoolId },
       });
       await tx.diagnosisInstructorCampus.deleteMany({
-        where: { instructorId: existing.id, schoolId },
+        where: { instructorId: id, schoolId },
       });
 
       if (courseR.ids.length > 0) {
         await tx.diagnosisInstructorCourse.createMany({
           data: courseR.ids.map((courseId) => ({
-            instructorId: existing.id,
+            instructorId: id,
             courseId,
-            schoolId,
-          })),
-          skipDuplicates: true,
-        });
-      }
-
-      if (genreR.ids.length > 0) {
-        await tx.diagnosisInstructorGenre.createMany({
-          data: genreR.ids.map((genreId) => ({
-            instructorId: existing.id,
-            genreId,
             schoolId,
           })),
           skipDuplicates: true,
@@ -649,7 +549,7 @@ export async function PUT(req: NextRequest) {
       if (campusR.ids.length > 0) {
         await tx.diagnosisInstructorCampus.createMany({
           data: campusR.ids.map((campusId) => ({
-            instructorId: existing.id,
+            instructorId: id,
             campusId,
             schoolId,
           })),
@@ -658,8 +558,8 @@ export async function PUT(req: NextRequest) {
       }
     });
 
-    const updated = await prisma.diagnosisInstructor.findUnique({
-      where: { id: existing.id },
+    const updated = await prisma.diagnosisInstructor.findFirst({
+      where: { id, schoolId },
       select: {
         id: true,
         schoolId: true,
@@ -673,12 +573,13 @@ export async function PUT(req: NextRequest) {
       },
     });
 
-    const { coursesByInstructor, genresByInstructor, campusesByInstructor } =
-      await fetchLinks(schoolId, [existing.id]);
+    const { coursesByInstructor, campusesByInstructor } = await fetchLinks(
+      schoolId,
+      [id],
+    );
 
-    const courses = coursesByInstructor.get(existing.id) ?? [];
-    const genres = genresByInstructor.get(existing.id) ?? [];
-    const campuses = campusesByInstructor.get(existing.id) ?? [];
+    const courses = coursesByInstructor.get(id) ?? [];
+    const campuses = campusesByInstructor.get(id) ?? [];
 
     return NextResponse.json({
       ...updated,
@@ -686,10 +587,8 @@ export async function PUT(req: NextRequest) {
       charmTags: updated?.charmTags ?? null,
       introduction: updated?.introduction ?? null,
       courses,
-      genres,
       campuses,
       courseIds: courses.map((c: any) => c.id),
-      genreIds: genres.map((g: any) => g.id),
       campusIds: campuses.map((c: any) => c.id),
     });
   } catch (e: any) {
@@ -717,13 +616,13 @@ export async function DELETE(req: NextRequest) {
     });
     if (!existing) return json("対象が見つかりません", 404);
 
-    const updated = await prisma.diagnosisInstructor.update({
-      where: { id: existing.id },
+    const u = await prisma.diagnosisInstructor.updateMany({
+      where: { id, schoolId },
       data: { isActive: false },
-      select: { id: true },
     });
+    if (u.count === 0) return json("対象が見つかりません", 404);
 
-    return NextResponse.json({ ok: true, id: updated.id });
+    return NextResponse.json({ ok: true, id });
   } catch (e: any) {
     console.error(e);
     return json(e?.message ?? "無効化に失敗しました", 500);

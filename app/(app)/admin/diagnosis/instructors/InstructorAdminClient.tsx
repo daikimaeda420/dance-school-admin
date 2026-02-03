@@ -1,4 +1,4 @@
-// app/admin/diagnosis/instructors/InstructorAdminClient.tsx
+// app/(app)/admin/diagnosis/instructors/InstructorAdminClient.tsx
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
@@ -27,11 +27,9 @@ type InstructorRow = {
   introduction?: string | null;
 
   courses?: OptionRow[];
-  genres?: OptionRow[];
   campuses?: OptionRow[];
 
   courseIds?: string[];
-  genreIds?: string[];
   campusIds?: string[];
 };
 
@@ -77,7 +75,7 @@ const EMPTY_IMG =
 
 function uniqStrings(xs: string[]) {
   return Array.from(
-    new Set(xs.map((s) => String(s ?? "").trim()).filter(Boolean))
+    new Set(xs.map((s) => String(s ?? "").trim()).filter(Boolean)),
   );
 }
 
@@ -109,8 +107,8 @@ function CheckboxList({
     columns === 1
       ? "grid-cols-1"
       : columns === 3
-      ? "grid-cols-3"
-      : "grid-cols-2";
+        ? "grid-cols-3"
+        : "grid-cols-2";
 
   return (
     <div className="rounded-xl border border-gray-200 bg-white p-3 dark:border-gray-800 dark:bg-gray-950">
@@ -152,7 +150,6 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
   const [error, setError] = useState<string | null>(null);
 
   const [courses, setCourses] = useState<OptionRow[]>([]);
-  const [genres, setGenres] = useState<OptionRow[]>([]);
   const [campuses, setCampuses] = useState<OptionRow[]>([]);
 
   const [newId, setNewId] = useState("");
@@ -162,7 +159,6 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
   const [newFile, setNewFile] = useState<File | null>(null);
 
   const [newCourseIds, setNewCourseIds] = useState<string[]>([]);
-  const [newGenreIds, setNewGenreIds] = useState<string[]>([]);
   const [newCampusIds, setNewCampusIds] = useState<string[]>([]);
 
   // ✅ 追加：新規プロフィール
@@ -173,56 +169,51 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
     Record<string, Partial<InstructorRow>>
   >({});
   const [editFileMap, setEditFileMap] = useState<Record<string, File | null>>(
-    {}
+    {},
   );
   const [clearPhotoMap, setClearPhotoMap] = useState<Record<string, boolean>>(
-    {}
+    {},
   );
 
   // ✅ 編集画像プレビュー（URL leak対策）
   const [editPreviewMap, setEditPreviewMap] = useState<Record<string, string>>(
-    {}
+    {},
   );
 
   const canLoad = schoolId.trim().length > 0;
 
   const photoUrl = (id: string) =>
-    `/api/diagnosis/instructors/photo?id=${encodeURIComponent(
-      id
-    )}&schoolId=${encodeURIComponent(schoolId)}`;
+    `/api/diagnosis/instructors/photo?id=${encodeURIComponent(id)}&schoolId=${encodeURIComponent(
+      schoolId,
+    )}`;
 
   const fetchOptions = async () => {
     if (!canLoad) return;
     try {
-      const [cRes, gRes, pRes] = await Promise.all([
+      const [cRes, pRes] = await Promise.all([
         fetch(
           `/api/diagnosis/courses?schoolId=${encodeURIComponent(schoolId)}`,
           {
             cache: "no-store",
-          }
-        ),
-        fetch(
-          `/api/diagnosis/genres?schoolId=${encodeURIComponent(schoolId)}`,
-          {
-            cache: "no-store",
-          }
+          },
         ),
         fetch(
           `/api/diagnosis/campuses?schoolId=${encodeURIComponent(schoolId)}`,
-          { cache: "no-store" }
+          {
+            cache: "no-store",
+          },
         ),
       ]);
 
       const cJson = cRes.ok ? await cRes.json().catch(() => []) : [];
-      const gJson = gRes.ok ? await gRes.json().catch(() => []) : [];
       const pJson = pRes.ok ? await pRes.json().catch(() => []) : [];
 
       const normalize = (x: any): OptionRow[] => {
         const arr = Array.isArray(x?.items)
           ? x.items
           : Array.isArray(x)
-          ? x
-          : [];
+            ? x
+            : [];
         return arr
           .map((d: any) => ({
             id: String(d.id ?? ""),
@@ -235,7 +226,6 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
       };
 
       setCourses(normalize(cJson));
-      setGenres(normalize(gJson));
       setCampuses(normalize(pJson));
     } catch {
       // options は致命ではないので握る
@@ -249,7 +239,7 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
     try {
       const res = await fetch(
         `/api/diagnosis/instructors?schoolId=${encodeURIComponent(schoolId)}`,
-        { cache: "no-store" }
+        { cache: "no-store" },
       );
       if (!res.ok) throw new Error("DiagnosisInstructor の取得に失敗しました");
       const data = (await res.json()) as any[];
@@ -268,18 +258,16 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
           typeof d.introduction === "string" ? d.introduction : null,
 
         courses: Array.isArray(d.courses) ? d.courses : [],
-        genres: Array.isArray(d.genres) ? d.genres : [],
         campuses: Array.isArray(d.campuses) ? d.campuses : [],
         courseIds: safeJsonArray(d.courseIds),
-        genreIds: safeJsonArray(d.genreIds),
         campusIds: safeJsonArray(d.campusIds),
       }));
 
       // ✅ sortOrder機能は廃止：見やすさ重視で label 昇順に
       setRows(
         normalized.sort((a, b) =>
-          (a.label ?? "").localeCompare(b.label ?? "", "ja")
-        )
+          (a.label ?? "").localeCompare(b.label ?? "", "ja"),
+        ),
       );
     } catch (e: any) {
       setError(e?.message ?? "読み込みに失敗しました");
@@ -345,7 +333,6 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
       if (newFile) fd.append("file", newFile);
 
       fd.append("courseIds", JSON.stringify(uniqStrings(newCourseIds)));
-      fd.append("genreIds", JSON.stringify(uniqStrings(newGenreIds)));
       fd.append("campusIds", JSON.stringify(uniqStrings(newCampusIds)));
 
       fd.append("charmTags", newCharmTags);
@@ -366,7 +353,6 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
       setNewIsActive(true);
       setNewFile(null);
       setNewCourseIds([]);
-      setNewGenreIds([]);
       setNewCampusIds([]);
       setNewCharmTags("");
       setNewIntroduction("");
@@ -385,7 +371,6 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
       [r.id]: {
         ...r,
         courseIds: safeJsonArray(r.courseIds),
-        genreIds: safeJsonArray(r.genreIds),
         campusIds: safeJsonArray(r.campusIds),
         charmTags: r.charmTags ?? "",
         introduction: r.introduction ?? "",
@@ -463,15 +448,11 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
 
       fd.append(
         "courseIds",
-        JSON.stringify(uniqStrings(safeJsonArray(e.courseIds)))
-      );
-      fd.append(
-        "genreIds",
-        JSON.stringify(uniqStrings(safeJsonArray(e.genreIds)))
+        JSON.stringify(uniqStrings(safeJsonArray(e.courseIds))),
       );
       fd.append(
         "campusIds",
-        JSON.stringify(uniqStrings(safeJsonArray(e.campusIds)))
+        JSON.stringify(uniqStrings(safeJsonArray(e.campusIds))),
       );
 
       fd.append("charmTags", String((e as any).charmTags ?? ""));
@@ -508,17 +489,14 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
       fd.append("sortOrder", String(r.sortOrder ?? 1)); // 互換
       fd.append("isActive", String(nextActive));
       fd.append("clearPhoto", "false");
+
       fd.append(
         "courseIds",
-        JSON.stringify(uniqStrings(safeJsonArray(r.courseIds)))
-      );
-      fd.append(
-        "genreIds",
-        JSON.stringify(uniqStrings(safeJsonArray(r.genreIds)))
+        JSON.stringify(uniqStrings(safeJsonArray(r.courseIds))),
       );
       fd.append(
         "campusIds",
-        JSON.stringify(uniqStrings(safeJsonArray(r.campusIds)))
+        JSON.stringify(uniqStrings(safeJsonArray(r.campusIds))),
       );
       fd.append("charmTags", String(r.charmTags ?? ""));
       fd.append("introduction", String(r.introduction ?? ""));
@@ -541,7 +519,7 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
 
   const hintId = useMemo(
     () => `instructor_${slugifyJa(newLabel) || "new"}`,
-    [newLabel]
+    [newLabel],
   );
   const hintSlug = useMemo(() => slugifyJa(newLabel), [newLabel]);
 
@@ -661,13 +639,13 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
             </div>
           </div>
 
-          {/* 対応コース/ジャンル/校舎 */}
+          {/* 対応コース/校舎 */}
           <div className="md:col-span-2">
             <div className="mb-2 text-xs font-semibold text-gray-600 dark:text-gray-300">
               対応（複数選択）
             </div>
 
-            <div className="grid gap-3 md:grid-cols-3">
+            <div className="grid gap-3 md:grid-cols-2">
               <div>
                 <div className="mb-1 text-[11px] font-semibold text-gray-600 dark:text-gray-300">
                   対応コース（チェック）
@@ -676,18 +654,6 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
                   options={courses}
                   selected={newCourseIds}
                   onChange={setNewCourseIds}
-                  columns={2}
-                />
-              </div>
-
-              <div>
-                <div className="mb-1 text-[11px] font-semibold text-gray-600 dark:text-gray-300">
-                  対応ジャンル（チェック）
-                </div>
-                <CheckboxList
-                  options={genres}
-                  selected={newGenreIds}
-                  onChange={setNewGenreIds}
                   columns={2}
                 />
               </div>
@@ -706,7 +672,7 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
             </div>
 
             <div className="mt-2 text-[11px] text-gray-500 dark:text-gray-400">
-              ✅ コース/ジャンル/校舎はチェックボックスで複数選択できます。
+              ✅ コース/校舎はチェックボックスで複数選択できます。
             </div>
           </div>
 
@@ -776,7 +742,6 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
               const hasDbPhoto = Boolean(r.photoMime);
 
               const currentCourseIds = safeJsonArray(current.courseIds);
-              const currentGenreIds = safeJsonArray(current.genreIds);
               const currentCampusIds = safeJsonArray(current.campusIds);
 
               return (
@@ -887,7 +852,7 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
                                   <input
                                     type="checkbox"
                                     checked={Boolean(
-                                      clearPhotoMap[r.id] ?? false
+                                      clearPhotoMap[r.id] ?? false,
                                     )}
                                     onChange={(ev) => {
                                       const checked = ev.target.checked;
@@ -924,14 +889,14 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
                           </div>
                         </div>
 
-                        {/* 対応コース/ジャンル/校舎 */}
+                        {/* 対応コース/校舎 */}
                         <div className="md:col-span-3">
                           <div className="text-[11px] font-semibold text-gray-600 dark:text-gray-300">
-                            対応（コース / ジャンル / 校舎）
+                            対応（コース / 校舎）
                           </div>
 
                           {editing ? (
-                            <div className="mt-2 grid gap-2 md:grid-cols-3">
+                            <div className="mt-2 grid gap-2 md:grid-cols-2">
                               <div>
                                 <div className="mb-1 text-[11px] text-gray-600 dark:text-gray-300">
                                   コース（チェック）
@@ -941,20 +906,6 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
                                   selected={currentCourseIds}
                                   onChange={(next) =>
                                     updateEditField(r.id, { courseIds: next })
-                                  }
-                                  columns={2}
-                                />
-                              </div>
-
-                              <div>
-                                <div className="mb-1 text-[11px] text-gray-600 dark:text-gray-300">
-                                  ジャンル（チェック）
-                                </div>
-                                <CheckboxList
-                                  options={genres}
-                                  selected={currentGenreIds}
-                                  onChange={(next) =>
-                                    updateEditField(r.id, { genreIds: next })
                                   }
                                   columns={2}
                                 />
@@ -979,12 +930,6 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
                               <div className="mb-1">
                                 <span className="font-semibold">コース：</span>
                                 {joinLabels(r.courses) || "—"}
-                              </div>
-                              <div className="mb-1">
-                                <span className="font-semibold">
-                                  ジャンル：
-                                </span>
-                                {joinLabels(r.genres) || "—"}
                               </div>
                               <div>
                                 <span className="font-semibold">校舎：</span>
@@ -1115,7 +1060,7 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
                             disabled={saving}
                             className={btnOutline.replace(
                               "px-4 py-2 text-sm",
-                              "px-3 py-1.5 text-xs"
+                              "px-3 py-1.5 text-xs",
                             )}
                           >
                             編集
@@ -1138,7 +1083,7 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
                               disabled={saving}
                               className={btnOutline.replace(
                                 "px-4 py-2 text-sm",
-                                "px-3 py-1.5 text-xs"
+                                "px-3 py-1.5 text-xs",
                               )}
                             >
                               再開
@@ -1153,7 +1098,7 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
                             disabled={saving}
                             className={btnPrimary.replace(
                               "px-4 py-2 text-sm",
-                              "px-3 py-1.5 text-xs"
+                              "px-3 py-1.5 text-xs",
                             )}
                           >
                             保存
@@ -1164,7 +1109,7 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
                             disabled={saving}
                             className={btnOutline.replace(
                               "px-4 py-2 text-sm",
-                              "px-3 py-1.5 text-xs"
+                              "px-3 py-1.5 text-xs",
                             )}
                           >
                             キャンセル
