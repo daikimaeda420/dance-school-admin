@@ -183,9 +183,9 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
   const canLoad = schoolId.trim().length > 0;
 
   const photoUrl = (id: string) =>
-    `/api/diagnosis/instructors/photo?id=${encodeURIComponent(id)}&schoolId=${encodeURIComponent(
-      schoolId,
-    )}`;
+    `/api/diagnosis/instructors/photo?id=${encodeURIComponent(
+      id,
+    )}&schoolId=${encodeURIComponent(schoolId)}`;
 
   const fetchOptions = async () => {
     if (!canLoad) return;
@@ -193,15 +193,11 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
       const [cRes, pRes] = await Promise.all([
         fetch(
           `/api/diagnosis/courses?schoolId=${encodeURIComponent(schoolId)}`,
-          {
-            cache: "no-store",
-          },
+          { cache: "no-store" },
         ),
         fetch(
           `/api/diagnosis/campuses?schoolId=${encodeURIComponent(schoolId)}`,
-          {
-            cache: "no-store",
-          },
+          { cache: "no-store" },
         ),
       ]);
 
@@ -365,13 +361,27 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
     }
   };
 
+  // ✅ 編集開始：courseIds/campusIds が無いときは courses/campuses から復元して初期チェックを作る
   const startEdit = (r: InstructorRow) => {
+    const fromCourseIds = safeJsonArray(r.courseIds);
+    const fromCampusIds = safeJsonArray(r.campusIds);
+
+    const initialCourseIds =
+      fromCourseIds.length > 0
+        ? fromCourseIds
+        : uniqStrings((r.courses ?? []).map((c) => c.id));
+
+    const initialCampusIds =
+      fromCampusIds.length > 0
+        ? fromCampusIds
+        : uniqStrings((r.campuses ?? []).map((c) => c.id));
+
     setEditMap((prev) => ({
       ...prev,
       [r.id]: {
         ...r,
-        courseIds: safeJsonArray(r.courseIds),
-        campusIds: safeJsonArray(r.campusIds),
+        courseIds: initialCourseIds,
+        campusIds: initialCampusIds,
         charmTags: r.charmTags ?? "",
         introduction: r.introduction ?? "",
       },
@@ -446,14 +456,12 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
       const file = editFileMap[id];
       if (file) fd.append("file", file);
 
-      fd.append(
-        "courseIds",
-        JSON.stringify(uniqStrings(safeJsonArray(e.courseIds))),
-      );
-      fd.append(
-        "campusIds",
-        JSON.stringify(uniqStrings(safeJsonArray(e.campusIds))),
-      );
+      // ✅ e.courseIds/e.campusIds が undefined の事故を防ぐ
+      const courseIds = uniqStrings(safeJsonArray(e.courseIds));
+      const campusIds = uniqStrings(safeJsonArray(e.campusIds));
+
+      fd.append("courseIds", JSON.stringify(courseIds));
+      fd.append("campusIds", JSON.stringify(campusIds));
 
       fd.append("charmTags", String((e as any).charmTags ?? ""));
       fd.append("introduction", String((e as any).introduction ?? ""));
@@ -736,18 +744,37 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
             {rows.map((r) => {
               const editing = editMap[r.id] !== undefined;
               const e = editMap[r.id] as Partial<InstructorRow> | undefined;
-              const current = editing ? (e as InstructorRow) : r;
+
+              // ✅ Partialの穴をなくすために r + e をマージして current を作る
+              const current: InstructorRow = editing
+                ? ({
+                    ...r,
+                    ...e,
+                    // arraysはeがundefinedの時にrを維持
+                    courses: Array.isArray(e?.courses) ? e?.courses : r.courses,
+                    campuses: Array.isArray(e?.campuses)
+                      ? e?.campuses
+                      : r.campuses,
+                    courseIds:
+                      e?.courseIds !== undefined ? e?.courseIds : r.courseIds,
+                    campusIds:
+                      e?.campusIds !== undefined ? e?.campusIds : r.campusIds,
+                  } as InstructorRow)
+                : r;
 
               const localPreview = editPreviewMap[r.id] || "";
               const hasDbPhoto = Boolean(r.photoMime);
 
-              const selectedCourseIds = safeJsonArray(
-                (editing ? (e?.courseIds ?? r.courseIds) : r.courseIds) as any,
-              );
+              // ✅ idsが空のときは courses/campuses から復元（表示のズレ防止）
+              const selectedCourseIds =
+                safeJsonArray(current.courseIds).length > 0
+                  ? safeJsonArray(current.courseIds)
+                  : uniqStrings((current.courses ?? []).map((c) => c.id));
 
-              const selectedCampusIds = safeJsonArray(
-                (editing ? (e?.campusIds ?? r.campusIds) : r.campusIds) as any,
-              );
+              const selectedCampusIds =
+                safeJsonArray(current.campusIds).length > 0
+                  ? safeJsonArray(current.campusIds)
+                  : uniqStrings((current.campuses ?? []).map((c) => c.id));
 
               return (
                 <div
