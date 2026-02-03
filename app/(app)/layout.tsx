@@ -1,6 +1,11 @@
 // app/(app)/layout.tsx
-import RootShell from "../RootShell";
+import AuthProvider from "@/components/AuthProvider";
+import LayoutShell from "@/components/LayoutShell";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
-  return <RootShell>{children}</RootShell>;
+  return (
+    <AuthProvider>
+      <LayoutShell>{children}</LayoutShell>
+    </AuthProvider>
+  );
 }
