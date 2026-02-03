@@ -5,7 +5,7 @@ import { useSession } from "next-auth/react";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { produce } from "immer";
 import { MessagesSquare, CodeXml, BadgeCheck, Palette } from "lucide-react";
-import { FAQEditor } from "../../components/FAQEditor";
+import { FAQEditor } from "../../../components/FAQEditor";
 
 // schoolId を含む型
 type UserWithSchool = {
@@ -224,23 +224,23 @@ export default function FAQPage() {
           let current = draft;
           for (let i = 0; i < path.length - 1; i++) current = current[path[i]];
           current[path[path.length - 1]] = updated;
-        })
+        }),
       );
       setDirty(true); // ← 内容をいじったら dirty
     },
-    []
+    [],
   );
 
   // 入力検証と統計
   const { errors } = useMemo(() => validateFAQ(faq), [faq]);
   const makeKey = useCallback(
     (path: (number | string)[], field: string) => [...path, field].join("."),
-    []
+    [],
   );
   const hasError = useCallback(
     (path: (number | string)[], field: string) =>
       errors.has(makeKey(path, field)),
-    [errors, makeKey]
+    [errors, makeKey],
   );
 
   // 検索（最初の一致へスクロール）
@@ -248,7 +248,7 @@ export default function FAQPage() {
     const q = query.trim().toLowerCase();
     if (!q) return;
     const hitIndex = faq.findIndex((it) =>
-      JSON.stringify(it).toLowerCase().includes(q)
+      JSON.stringify(it).toLowerCase().includes(q),
     );
     if (hitIndex >= 0) {
       const el = document.getElementById(`node-${hitIndex}`);

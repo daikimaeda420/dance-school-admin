@@ -2,7 +2,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import type { FAQItem } from "@/app/faq/page";
+import type { FAQItem } from "@/app/(app)/faq/page";
 import { ChevronDown, Copy, Trash2, ArrowUp, ArrowDown } from "lucide-react";
 
 type Props = {
@@ -245,7 +245,7 @@ export function FAQEditor({
 }: Props) {
   const update = useCallback(
     (updated: FAQItem) => onChange(path, updated),
-    [onChange, path]
+    [onChange, path],
   );
   const invalid = (fieldPath: (number | string)[], field: string) =>
     hasError ? hasError(fieldPath, field) : false;
@@ -426,7 +426,7 @@ export function FAQEditor({
                     update({
                       ...item,
                       options: item.options.map((o, j) =>
-                        j === idx ? { ...o, label: v } : o
+                        j === idx ? { ...o, label: v } : o,
                       ),
                     })
                   }

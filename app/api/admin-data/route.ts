@@ -1,4 +1,6 @@
 // app/admin-data/route.ts
+export const dynamic = "force-dynamic";
+
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
@@ -115,7 +117,7 @@ export async function GET(req: NextRequest) {
             ok: true,
             data: null,
           },
-          { status: 200 }
+          { status: 200 },
         );
       }
 
@@ -130,7 +132,7 @@ export async function GET(req: NextRequest) {
             updatedBy: rec.updatedBy,
           },
         },
-        { status: 200 }
+        { status: 200 },
       );
     }
 
@@ -160,13 +162,13 @@ export async function GET(req: NextRequest) {
         count: data.length,
         data,
       },
-      { status: 200 }
+      { status: 200 },
     );
   } catch (err) {
     console.error("GET /admin-data error:", err);
     return withNoCache(
       { ok: false, error: "Internal Server Error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
