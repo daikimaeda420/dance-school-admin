@@ -18,10 +18,11 @@ type InstructorRow = {
   schoolId: string;
   label: string;
   slug: string;
-  sortOrder: number; // 互換保持（UIでは使わない）
+  sortOrder: number;
   isActive: boolean;
   photoMime?: string | null;
 
+  // ✅ 編集中は textarea の値になるので string を許容
   charmTags?: string | null;
   introduction?: string | null;
 
@@ -760,7 +761,20 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
             {rows.map((r) => {
               const editing = editMap[r.id] !== undefined;
               const e = editMap[r.id] as Partial<InstructorRow> | undefined;
-              const current = editing ? (e as InstructorRow) : r;
+
+              // ✅ “編集時の表示値” は editMap を最優先してマージしたものにする
+              const current: InstructorRow = editing
+                ? ({
+                    ...r,
+                    ...e,
+                    charmTags: (e?.charmTags ?? r.charmTags ?? "") as any,
+                    introduction: (e?.introduction ??
+                      r.introduction ??
+                      "") as any,
+                    courseIds: safeJsonArray(e?.courseIds ?? r.courseIds),
+                    campusIds: safeJsonArray(e?.campusIds ?? r.campusIds),
+                  } as InstructorRow)
+                : r;
 
               const localPreview = editPreviewMap[r.id] || "";
               const hasDbPhoto = Boolean(r.photoMime);
@@ -980,7 +994,7 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
                                   チャームポイントタグ（改行で追加）
                                 </div>
                                 <textarea
-                                  value={(current as any).charmTags ?? ""}
+                                  value={String(current.charmTags ?? "")}
                                   onChange={(ev) =>
                                     updateEditField(r.id, {
                                       charmTags: ev.target.value,
@@ -996,7 +1010,7 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
                                   自己紹介文
                                 </div>
                                 <textarea
-                                  value={(current as any).introduction ?? ""}
+                                  value={String(current.introduction ?? "")}
                                   onChange={(ev) =>
                                     updateEditField(r.id, {
                                       introduction: ev.target.value,
