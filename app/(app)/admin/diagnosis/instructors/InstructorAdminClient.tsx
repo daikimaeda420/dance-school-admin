@@ -357,7 +357,9 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
   };
 
   const startEdit = (r: InstructorRow) => {
-    // ✅ 一覧編集で “必ずプロフィールを出す” ため、ここで string を入れておく
+    const seedCourseIds = safeJsonArray(r.courseIds);
+    const seedCampusIds = safeJsonArray(r.campusIds);
+
     setEditMap((prev) => ({
       ...prev,
       [r.id]: {
@@ -368,13 +370,31 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
         sortOrder: r.sortOrder ?? 1,
         isActive: Boolean(r.isActive),
 
-        courseIds: safeJsonArray(r.courseIds),
-        campusIds: safeJsonArray(r.campusIds),
+        // ✅ courseIds が無ければ courses から作る
+        courseIds:
+          seedCourseIds.length > 0
+            ? seedCourseIds
+            : uniqStrings(
+                (r.courses ?? [])
+                  .map((c) => String(c.id ?? ""))
+                  .filter(Boolean),
+              ),
+
+        // ✅ campusIds が無ければ campuses から作る
+        campusIds:
+          seedCampusIds.length > 0
+            ? seedCampusIds
+            : uniqStrings(
+                (r.campuses ?? [])
+                  .map((c) => String(c.id ?? ""))
+                  .filter(Boolean),
+              ),
 
         charmTags: String(r.charmTags ?? ""),
         introduction: String(r.introduction ?? ""),
       },
     }));
+
     setEditFileMap((prev) => ({ ...prev, [r.id]: null }));
     setClearPhotoMap((prev) => ({ ...prev, [r.id]: false }));
     setEditPreviewMap((prev) => ({ ...prev, [r.id]: "" }));
@@ -756,8 +776,13 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
               const localPreview = editPreviewMap[r.id] || "";
               const hasDbPhoto = Boolean(r.photoMime);
 
-              const selectedCourseIds = safeJsonArray(current.courseIds);
-              const selectedCampusIds = safeJsonArray(current.campusIds);
+              const selectedCourseIds = editing
+                ? safeJsonArray(editMap[r.id]?.courseIds)
+                : safeJsonArray(r.courseIds);
+
+              const selectedCampusIds = editing
+                ? safeJsonArray(editMap[r.id]?.campusIds)
+                : safeJsonArray(r.campusIds);
 
               return (
                 <div
