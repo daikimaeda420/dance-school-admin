@@ -545,6 +545,18 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
   );
   const hintSlug = useMemo(() => slugifyJa(newLabel), [newLabel]);
 
+  const normalizeIdsByOptions = (ids: string[], options: { id: string }[]) => {
+    const allow = new Set(options.map((o) => o.id));
+    return Array.from(
+      new Set(
+        (ids ?? [])
+          .map(String)
+          .map((s) => s.trim())
+          .filter(Boolean),
+      ),
+    ).filter((id) => allow.has(id));
+  };
+
   return (
     <div className="mx-auto w-full p-6 text-gray-900 dark:text-gray-100">
       <div className="mb-4">
@@ -928,7 +940,12 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
                                   options={courses}
                                   selected={selectedCourseIds}
                                   onChange={(next) =>
-                                    updateEditField(r.id, { courseIds: next })
+                                    updateEditField(r.id, {
+                                      courseIds: normalizeIdsByOptions(
+                                        next,
+                                        courses,
+                                      ),
+                                    })
                                   }
                                   columns={2}
                                 />
@@ -942,7 +959,12 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
                                   options={campuses}
                                   selected={selectedCampusIds}
                                   onChange={(next) =>
-                                    updateEditField(r.id, { campusIds: next })
+                                    updateEditField(r.id, {
+                                      campusIds: normalizeIdsByOptions(
+                                        next,
+                                        campuses,
+                                      ),
+                                    })
                                   }
                                   columns={2}
                                 />
