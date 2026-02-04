@@ -91,6 +91,48 @@ function joinLabels(opts?: OptionRow[]) {
 }
 
 /**
+ * ✅ id/slug/label が混在していても、options の id に解決して返す
+ * - これが「selected: 6 なのにチェック0」の根本対策
+ */
+function resolveToOptionIds(vals: string[], options: OptionRow[]) {
+  const map = new Map<string, string>(); // key -> id
+  for (const o of options) {
+    const id = String(o.id ?? "").trim();
+    const slug = String(o.slug ?? "").trim();
+    const label = String(o.label ?? "").trim();
+    if (!id) continue;
+    map.set(id, id);
+    if (slug) map.set(slug, id);
+    if (label) map.set(label, id);
+  }
+
+  return Array.from(
+    new Set(
+      (vals ?? [])
+        .map((v) => String(v ?? "").trim())
+        .filter(Boolean)
+        .map((v) => map.get(v) ?? "")
+        .filter(Boolean),
+    ),
+  );
+}
+
+/**
+ * ✅ optionsに存在するものだけ残す（未存在IDの除去）
+ */
+function normalizeIdsByOptions(ids: string[], options: { id: string }[]) {
+  const allow = new Set(options.map((o) => String(o.id ?? "").trim()));
+  return Array.from(
+    new Set(
+      (ids ?? [])
+        .map(String)
+        .map((s) => s.trim())
+        .filter(Boolean),
+    ),
+  ).filter((id) => allow.has(id));
+}
+
+/**
  * ✅ 見た目を自前で描画するチェック（状態が変われば必ず表示が変わる）
  *    「チェックが付いてるのに見えない」問題を確実に潰す
  */
@@ -346,8 +388,18 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
       fd.append("isActive", String(newIsActive));
       if (newFile) fd.append("file", newFile);
 
-      fd.append("courseIds", JSON.stringify(uniqStrings(newCourseIds)));
-      fd.append("campusIds", JSON.stringify(uniqStrings(newCampusIds)));
+      // ✅ 念のため options 基準でid化（DBにslug/labelが入る事故防止）
+      const sendCourseIds = normalizeIdsByOptions(
+        resolveToOptionIds(uniqStrings(newCourseIds), courses),
+        courses,
+      );
+      const sendCampusIds = normalizeIdsByOptions(
+        resolveToOptionIds(uniqStrings(newCampusIds), campuses),
+        campuses,
+      );
+
+      fd.append("courseIds", JSON.stringify(sendCourseIds));
+      fd.append("campusIds", JSON.stringify(sendCampusIds));
       fd.append("charmTags", newCharmTags);
       fd.append("introduction", newIntroduction);
 
@@ -380,15 +432,25 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
 
   const startEdit = (r: InstructorRow) => {
     // ✅ courseIds/campusIds が空でも courses/campuses から seed
-    const seedCourseIds =
+    const rawCourseIds =
       safeArray(r.courseIds).length > 0
         ? safeArray(r.courseIds)
         : uniqStrings((r.courses ?? []).map((c) => c.id));
 
-    const seedCampusIds =
+    const rawCampusIds =
       safeArray(r.campusIds).length > 0
         ? safeArray(r.campusIds)
         : uniqStrings((r.campuses ?? []).map((c) => c.id));
+
+    // ✅ ここが肝：id/slug/label混在でも options の id に寄せる
+    const seedCourseIds = normalizeIdsByOptions(
+      resolveToOptionIds(rawCourseIds, courses),
+      courses,
+    );
+    const seedCampusIds = normalizeIdsByOptions(
+      resolveToOptionIds(rawCampusIds, campuses),
+      campuses,
+    );
 
     setEditMap((prev) => ({
       ...prev,
@@ -471,8 +533,18 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
       const file = editFileMap[id];
       if (file) fd.append("file", file);
 
-      fd.append("courseIds", JSON.stringify(uniqStrings(e.courseIds ?? [])));
-      fd.append("campusIds", JSON.stringify(uniqStrings(e.campusIds ?? [])));
+      // ✅ 保存時も options 基準でid化（DBにslug/labelが入る事故防止）
+      const sendCourseIds = normalizeIdsByOptions(
+        resolveToOptionIds(uniqStrings(e.courseIds ?? []), courses),
+        courses,
+      );
+      const sendCampusIds = normalizeIdsByOptions(
+        resolveToOptionIds(uniqStrings(e.campusIds ?? []), campuses),
+        campuses,
+      );
+
+      fd.append("courseIds", JSON.stringify(sendCourseIds));
+      fd.append("campusIds", JSON.stringify(sendCampusIds));
 
       fd.append("charmTags", String((e as any).charmTags ?? ""));
       fd.append("introduction", String((e as any).introduction ?? ""));
@@ -509,14 +581,23 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
       fd.append("clearPhoto", "false");
 
       // ✅ 既存を維持（無ければcourses/campusesから作る）
-      const keepCourseIds =
+      const keepCourseRaw =
         safeArray(r.courseIds).length > 0
           ? safeArray(r.courseIds)
           : uniqStrings((r.courses ?? []).map((c) => c.id));
-      const keepCampusIds =
+      const keepCampusRaw =
         safeArray(r.campusIds).length > 0
           ? safeArray(r.campusIds)
           : uniqStrings((r.campuses ?? []).map((c) => c.id));
+
+      const keepCourseIds = normalizeIdsByOptions(
+        resolveToOptionIds(keepCourseRaw, courses),
+        courses,
+      );
+      const keepCampusIds = normalizeIdsByOptions(
+        resolveToOptionIds(keepCampusRaw, campuses),
+        campuses,
+      );
 
       fd.append("courseIds", JSON.stringify(keepCourseIds));
       fd.append("campusIds", JSON.stringify(keepCampusIds));
@@ -544,18 +625,6 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
     [newLabel],
   );
   const hintSlug = useMemo(() => slugifyJa(newLabel), [newLabel]);
-
-  const normalizeIdsByOptions = (ids: string[], options: { id: string }[]) => {
-    const allow = new Set(options.map((o) => o.id));
-    return Array.from(
-      new Set(
-        (ids ?? [])
-          .map(String)
-          .map((s) => s.trim())
-          .filter(Boolean),
-      ),
-    ).filter((id) => allow.has(id));
-  };
 
   return (
     <div className="mx-auto w-full p-6 text-gray-900 dark:text-gray-100">
@@ -683,7 +752,9 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
                 <CheckboxList
                   options={courses}
                   selected={newCourseIds}
-                  onChange={setNewCourseIds}
+                  onChange={(next) =>
+                    setNewCourseIds(normalizeIdsByOptions(next, courses))
+                  }
                   columns={2}
                 />
               </div>
@@ -695,7 +766,9 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
                 <CheckboxList
                   options={campuses}
                   selected={newCampusIds}
-                  onChange={setNewCampusIds}
+                  onChange={(next) =>
+                    setNewCampusIds(normalizeIdsByOptions(next, campuses))
+                  }
                   columns={2}
                 />
               </div>
@@ -771,14 +844,32 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
               const localPreview = editPreviewMap[r.id] || "";
               const hasDbPhoto = Boolean(r.photoMime);
 
-              // ✅ 編集中は editMap だけを見る（ここで潰さない）
+              // ✅ ここが超重要：表示に使う selected は必ず options の id に寄せる
               const selectedCourseIds = editing
-                ? uniqStrings((e?.courseIds ?? []) as any[])
-                : safeArray(r.courseIds);
+                ? normalizeIdsByOptions(
+                    resolveToOptionIds(
+                      uniqStrings((e?.courseIds ?? []) as any[]),
+                      courses,
+                    ),
+                    courses,
+                  )
+                : normalizeIdsByOptions(
+                    resolveToOptionIds(safeArray(r.courseIds), courses),
+                    courses,
+                  );
 
               const selectedCampusIds = editing
-                ? uniqStrings((e?.campusIds ?? []) as any[])
-                : safeArray(r.campusIds);
+                ? normalizeIdsByOptions(
+                    resolveToOptionIds(
+                      uniqStrings((e?.campusIds ?? []) as any[]),
+                      campuses,
+                    ),
+                    campuses,
+                  )
+                : normalizeIdsByOptions(
+                    resolveToOptionIds(safeArray(r.campusIds), campuses),
+                    campuses,
+                  );
 
               return (
                 <div
