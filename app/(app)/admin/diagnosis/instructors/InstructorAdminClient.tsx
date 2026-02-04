@@ -95,7 +95,14 @@ function joinLabels(opts?: OptionRow[]) {
  * - これが「selected: 6 なのにチェック0」の根本対策
  */
 function resolveToOptionIds(vals: string[], options: OptionRow[]) {
-  const map = new Map<string, string>(); // key -> id
+  const cleaned = uniqStrings(vals ?? []);
+
+  // ✅ options 未ロード時は変換しない
+  if (!options || options.length === 0) {
+    return cleaned;
+  }
+
+  const map = new Map<string, string>();
   for (const o of options) {
     const id = String(o.id ?? "").trim();
     const slug = String(o.slug ?? "").trim();
@@ -107,13 +114,7 @@ function resolveToOptionIds(vals: string[], options: OptionRow[]) {
   }
 
   return Array.from(
-    new Set(
-      (vals ?? [])
-        .map((v) => String(v ?? "").trim())
-        .filter(Boolean)
-        .map((v) => map.get(v) ?? "")
-        .filter(Boolean),
-    ),
+    new Set(cleaned.map((v) => map.get(v) ?? "").filter(Boolean)),
   );
 }
 
@@ -121,15 +122,22 @@ function resolveToOptionIds(vals: string[], options: OptionRow[]) {
  * ✅ optionsに存在するものだけ残す（未存在IDの除去）
  */
 function normalizeIdsByOptions(ids: string[], options: { id: string }[]) {
-  const allow = new Set(options.map((o) => String(o.id ?? "").trim()));
-  return Array.from(
+  const cleaned = Array.from(
     new Set(
       (ids ?? [])
         .map(String)
         .map((s) => s.trim())
         .filter(Boolean),
     ),
-  ).filter((id) => allow.has(id));
+  );
+
+  // ✅ options が未ロードなら「絶対に削らない」
+  if (!options || options.length === 0) {
+    return cleaned;
+  }
+
+  const allow = new Set(options.map((o) => String(o.id ?? "").trim()));
+  return cleaned.filter((id) => allow.has(id));
 }
 
 /**
