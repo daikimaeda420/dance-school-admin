@@ -219,7 +219,12 @@ export async function GET(req: NextRequest) {
     if (!session) return json("Unauthorized", 401);
 
     const { searchParams } = new URL(req.url);
-    const schoolId = searchParams.get("schoolId")?.trim();
+
+    // ✅ ここだけ変更：queryが無ければ session.user.schoolId を使う
+    const schoolId =
+      searchParams.get("schoolId")?.trim() ||
+      String((session.user as any)?.schoolId ?? "").trim();
+
     if (!schoolId) return json("schoolId が必要です", 400);
 
     const rows = await prisma.diagnosisInstructor.findMany({
@@ -607,7 +612,12 @@ export async function DELETE(req: NextRequest) {
 
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id")?.trim();
-    const schoolId = searchParams.get("schoolId")?.trim();
+
+    // ✅ ここだけ変更：queryが無ければ session.user.schoolId を使う
+    const schoolId =
+      searchParams.get("schoolId")?.trim() ||
+      String((session.user as any)?.schoolId ?? "").trim();
+
     if (!id || !schoolId) return json("id / schoolId が必要です", 400);
 
     const existing = await prisma.diagnosisInstructor.findFirst({
