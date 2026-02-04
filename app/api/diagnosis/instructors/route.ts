@@ -1,7 +1,7 @@
 // app/api/diagnosis/instructors/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getServerSession } from "next-auth";
+import { getServerSession } from "next-auth/next"; // ✅ App Router 安定
 import { authOptions } from "@/lib/authOptions";
 
 export const runtime = "nodejs";
@@ -217,6 +217,14 @@ function hasField(fd: FormData, key: string): boolean {
   return fd.has(key);
 }
 
+/** ✅ schoolId を query → session の順で解決（今回の肝） */
+function resolveSchoolId(reqUrl: string, session: any) {
+  const { searchParams } = new URL(reqUrl);
+  const fromQuery = searchParams.get("schoolId")?.trim();
+  const fromSession = String((session?.user as any)?.schoolId ?? "").trim();
+  return fromQuery || fromSession;
+}
+
 // =========================
 // GET /api/diagnosis/instructors?schoolId=xxx
 // =========================
@@ -225,8 +233,7 @@ export async function GET(req: NextRequest) {
     const session = await ensureLoggedIn();
     if (!session) return json("Unauthorized", 401);
 
-    const { searchParams } = new URL(req.url);
-    const schoolId = searchParams.get("schoolId")?.trim();
+    const schoolId = resolveSchoolId(req.url, session);
     if (!schoolId) return json("schoolId が必要です", 400);
 
     const rows = await prisma.diagnosisInstructor.findMany({
@@ -251,6 +258,7 @@ export async function GET(req: NextRequest) {
       instructorIds,
     );
 
+    // ✅ 0件でも 200 + [] で返す（res.ok になる）
     return NextResponse.json(
       rows.map((r) => {
         const courses = coursesByInstructor.get(r.id) ?? [];
@@ -266,6 +274,7 @@ export async function GET(req: NextRequest) {
           campusIds: campuses.map((c: any) => c.id),
         };
       }),
+      { status: 200 },
     );
   } catch (e: any) {
     console.error(e);
@@ -288,7 +297,12 @@ export async function POST(req: NextRequest) {
 
     const fd = await req.formData();
     const id = String(fd.get("id") ?? "").trim();
-    const schoolId = String(fd.get("schoolId") ?? "").trim();
+
+    // ✅ formDataの schoolId が空なら session から補完
+    const schoolId =
+      String(fd.get("schoolId") ?? "").trim() ||
+      String((session.user as any)?.schoolId ?? "").trim();
+
     const label = String(fd.get("label") ?? "").trim();
     const slug = String(fd.get("slug") ?? "").trim();
     const sortOrder = toNum(fd.get("sortOrder"), 0);
@@ -440,7 +454,12 @@ export async function PUT(req: NextRequest) {
 
     const fd = await req.formData();
     const id = String(fd.get("id") ?? "").trim();
-    const schoolId = String(fd.get("schoolId") ?? "").trim();
+
+    // ✅ formDataの schoolId が空なら session から補完
+    const schoolId =
+      String(fd.get("schoolId") ?? "").trim() ||
+      String((session.user as any)?.schoolId ?? "").trim();
+
     const label = String(fd.get("label") ?? "").trim();
     const slug = String(fd.get("slug") ?? "").trim();
     const sortOrder = toNum(fd.get("sortOrder"), 0);
@@ -533,8 +552,8 @@ export async function PUT(req: NextRequest) {
       if (u.count === 0) throw new Error("更新対象が見つかりません");
 
       /**
-       * ✅ ここが重要
-       * 既存リンクを全置換したいが、過去データで中間の schoolId が null/不一致の可能性がある
+       * ✅ 既存リンクを全置換
+       * 過去データで中間の schoolId が null/不一致の可能性がある
        * → OR で (schoolId一致 OR schoolId=null) を消してから作り直す
        */
       await tx.diagnosisInstructorCourse.deleteMany({
@@ -622,7 +641,12 @@ export async function DELETE(req: NextRequest) {
 
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id")?.trim();
-    const schoolId = searchParams.get("schoolId")?.trim();
+
+    // ✅ query の schoolId が無い場合は session から補完
+    const schoolId =
+      searchParams.get("schoolId")?.trim() ||
+      String((session.user as any)?.schoolId ?? "").trim();
+
     if (!id || !schoolId) return json("id / schoolId が必要です", 400);
 
     const existing = await prisma.diagnosisInstructor.findFirst({
