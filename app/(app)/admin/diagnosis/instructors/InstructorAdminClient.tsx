@@ -6,7 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 type Props = { initialSchoolId?: string };
 
 type OptionRow = {
-  id: string;
+  id: string; // ✅ ここは「DBのID（cml...）」に揃える
   label: string;
   slug?: string;
   answerTag?: string | null;
@@ -141,8 +141,7 @@ function normalizeIdsByOptions(ids: string[], options: { id: string }[]) {
 }
 
 /**
- * ✅ 見た目を自前で描画するチェック（状態が変われば必ず表示が変わる）
- *    「チェックが付いてるのに見えない」問題を確実に潰す
+ * ✅ 見た目を自前で描画するチェック
  */
 function CheckboxList({
   options,
@@ -169,7 +168,7 @@ function CheckboxList({
     <div className="rounded-xl border border-gray-200 bg-white p-3 dark:border-gray-800 dark:bg-gray-950">
       <div className={`grid gap-2 ${gridCols}`}>
         {options.map((o) => {
-          const oid = String(o.id ?? "").trim();
+          const oid = String(o.id ?? "").trim(); // ✅ ここがDB IDになっている必要がある
           const checked = set.has(oid);
 
           return (
@@ -185,7 +184,6 @@ function CheckboxList({
               className="flex items-center gap-2 text-left text-xs text-gray-800 dark:text-gray-200"
               title={o.label}
             >
-              {/* □部分（checkedなら必ず見える） */}
               <span
                 className={[
                   "grid h-4 w-4 place-items-center rounded border",
@@ -206,7 +204,6 @@ function CheckboxList({
         })}
       </div>
 
-      {/* デバッグ用（邪魔なら消してOK） */}
       <div className="mt-2 text-[10px] text-gray-400">
         selected: {selectedNorm.length}
       </div>
@@ -263,21 +260,19 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
       const [cRes, pRes] = await Promise.all([
         fetch(
           `/api/diagnosis/courses?schoolId=${encodeURIComponent(schoolId)}`,
-          {
-            cache: "no-store",
-          },
+          { cache: "no-store" },
         ),
         fetch(
           `/api/diagnosis/campuses?schoolId=${encodeURIComponent(schoolId)}`,
-          {
-            cache: "no-store",
-          },
+          { cache: "no-store" },
         ),
       ]);
 
       const cJson = cRes.ok ? await cRes.json().catch(() => []) : [];
       const pJson = pRes.ok ? await pRes.json().catch(() => []) : [];
 
+      // ✅ 超重要：courses の "id" が slug の場合があるので、dbId を優先して OptionRow.id に入れる
+      // 例) { id:"kpop", dbId:"cml6...", slug:"kpop" } → OptionRow.id="cml6..."
       const normalize = (x: any): OptionRow[] => {
         const arr = Array.isArray(x?.items)
           ? x.items
@@ -285,13 +280,24 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
             ? x
             : [];
         return arr
-          .map((d: any) => ({
-            id: String(d.id ?? "").trim(),
-            label: String(d.label ?? "").trim(),
-            slug: d.slug ? String(d.slug) : undefined,
-            answerTag: d.answerTag ? String(d.answerTag) : null,
-            isActive: typeof d.isActive === "boolean" ? d.isActive : undefined,
-          }))
+          .map((d: any) => {
+            const dbId = String(d.dbId ?? "").trim();
+            const id = String(d.id ?? "").trim();
+            const label = String(d.label ?? "").trim();
+            const slug = d.slug ? String(d.slug).trim() : undefined;
+
+            // ✅ id は必ず「DBのID」に寄せる（無い場合だけ fallback）
+            const resolvedId = dbId || id;
+
+            return {
+              id: resolvedId,
+              label,
+              slug, // slug は別で保持（resolveToOptionIds 用）
+              answerTag: d.answerTag ? String(d.answerTag) : null,
+              isActive:
+                typeof d.isActive === "boolean" ? d.isActive : undefined,
+            } as OptionRow;
+          })
           .filter((o: OptionRow) => o.id && o.label);
       };
 
@@ -396,7 +402,6 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
       fd.append("isActive", String(newIsActive));
       if (newFile) fd.append("file", newFile);
 
-      // ✅ 念のため options 基準でid化（DBにslug/labelが入る事故防止）
       const sendCourseIds = normalizeIdsByOptions(
         resolveToOptionIds(uniqStrings(newCourseIds), courses),
         courses,
@@ -439,7 +444,6 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
   };
 
   const startEdit = (r: InstructorRow) => {
-    // ✅ courseIds/campusIds が空でも courses/campuses から seed
     const rawCourseIds =
       safeArray(r.courseIds).length > 0
         ? safeArray(r.courseIds)
@@ -450,7 +454,6 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
         ? safeArray(r.campusIds)
         : uniqStrings((r.campuses ?? []).map((c) => c.id));
 
-    // ✅ ここが肝：id/slug/label混在でも options の id に寄せる
     const seedCourseIds = normalizeIdsByOptions(
       resolveToOptionIds(rawCourseIds, courses),
       courses,
@@ -541,7 +544,6 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
       const file = editFileMap[id];
       if (file) fd.append("file", file);
 
-      // ✅ 保存時も options 基準でid化（DBにslug/labelが入る事故防止）
       const sendCourseIds = normalizeIdsByOptions(
         resolveToOptionIds(uniqStrings(e.courseIds ?? []), courses),
         courses,
@@ -588,7 +590,6 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
       fd.append("isActive", String(nextActive));
       fd.append("clearPhoto", "false");
 
-      // ✅ 既存を維持（無ければcourses/campusesから作る）
       const keepCourseRaw =
         safeArray(r.courseIds).length > 0
           ? safeArray(r.courseIds)
@@ -852,7 +853,6 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
               const localPreview = editPreviewMap[r.id] || "";
               const hasDbPhoto = Boolean(r.photoMime);
 
-              // ✅ ここが超重要：表示に使う selected は必ず options の id に寄せる
               const selectedCourseIds = editing
                 ? normalizeIdsByOptions(
                     resolveToOptionIds(
