@@ -29,10 +29,10 @@ function json(message: string, status = 400) {
 }
 
 /**
- * courseIds / campusIds を柔軟に受け取る
- * - fd.getAll("courseIds") のように同名キー複数
- * - fd.get("courseIds") が '["id1","id2"]' のJSON配列
- * - fd.get("courseIds") が "id1,id2" のCSV
+ * courseIds / campusIds / genreIds を柔軟に受け取る
+ * - fd.getAll("xxxIds") のように同名キー複数
+ * - fd.get("xxxIds") が '["id1","id2"]' のJSON配列
+ * - fd.get("xxxIds") が "id1,id2" のCSV
  */
 function readIdList(fd: FormData, key: string): string[] {
   const all = fd
@@ -78,10 +78,11 @@ function uniq(arr: string[]) {
   );
 }
 
-type ResolveKind = "campus" | "course";
+type ResolveKind = "campus" | "course" | "genre";
 
 /**
  * ✅ id/slug/label が混在していても「存在する実ID」に解決する
+ * ※ isActive=true も条件に入れているので、休止中の項目は紐づけ不可
  */
 async function resolveConnectIds(params: {
   schoolId: string;
@@ -114,8 +115,32 @@ async function resolveConnectIds(params: {
     return { ids, missing };
   }
 
-  // course
-  const found = await prisma.diagnosisCourse.findMany({
+  if (params.kind === "course") {
+    const found = await prisma.diagnosisCourse.findMany({
+      where: {
+        schoolId,
+        isActive: true,
+        OR: [
+          { id: { in: values } },
+          { slug: { in: values } },
+          { label: { in: values } },
+        ],
+      },
+      select: { id: true, slug: true, label: true },
+    });
+
+    const ids = uniq(found.map((r) => r.id));
+    const foundKeys = new Set(
+      found.flatMap((r) => [r.id, r.slug, r.label].filter(Boolean) as string[]),
+    );
+    const missing = values.filter((v) => !foundKeys.has(v));
+    return { ids, missing };
+  }
+
+  // genre
+  // ※ モデル名が DiagnosisGenre / 中間が DiagnosisInstructorGenre である前提
+  //   違う場合はここをあなたのschemaに合わせて置換してください
+  const found = await prisma.diagnosisGenre.findMany({
     where: {
       schoolId,
       isActive: true,
@@ -137,17 +162,18 @@ async function resolveConnectIds(params: {
 }
 
 /**
- * ✅ 明示中間（DiagnosisInstructorCourse/Campus）からまとめて返す
+ * ✅ 明示中間（DiagnosisInstructorCourse/Campus/Genre）からまとめて返す
  */
 async function fetchLinks(schoolId: string, instructorIds: string[]) {
   if (instructorIds.length === 0) {
     return {
       coursesByInstructor: new Map<string, any[]>(),
       campusesByInstructor: new Map<string, any[]>(),
+      genresByInstructor: new Map<string, any[]>(),
     };
   }
 
-  const [courseLinks, campusLinks] = await Promise.all([
+  const [courseLinks, campusLinks, genreLinks] = await Promise.all([
     prisma.diagnosisInstructorCourse.findMany({
       where: { schoolId, instructorId: { in: instructorIds } },
       select: { instructorId: true, courseId: true },
@@ -156,12 +182,19 @@ async function fetchLinks(schoolId: string, instructorIds: string[]) {
       where: { schoolId, instructorId: { in: instructorIds } },
       select: { instructorId: true, campusId: true },
     }),
+    // ✅ 追加：講師×ジャンル
+    // ※ モデル名が DiagnosisInstructorGenre の前提
+    prisma.diagnosisInstructorGenre.findMany({
+      where: { schoolId, instructorId: { in: instructorIds } },
+      select: { instructorId: true, genreId: true },
+    }),
   ]);
 
   const courseIds = Array.from(new Set(courseLinks.map((x) => x.courseId)));
   const campusIds = Array.from(new Set(campusLinks.map((x) => x.campusId)));
+  const genreIds = Array.from(new Set(genreLinks.map((x) => x.genreId)));
 
-  const [courses, campuses] = await Promise.all([
+  const [courses, campuses, genres] = await Promise.all([
     courseIds.length
       ? prisma.diagnosisCourse.findMany({
           where: { id: { in: courseIds } },
@@ -174,10 +207,17 @@ async function fetchLinks(schoolId: string, instructorIds: string[]) {
           select: { id: true, label: true, slug: true, isActive: true },
         })
       : Promise.resolve([]),
+    genreIds.length
+      ? prisma.diagnosisGenre.findMany({
+          where: { id: { in: genreIds } },
+          select: { id: true, label: true, slug: true, isActive: true },
+        })
+      : Promise.resolve([]),
   ]);
 
   const courseMap = new Map(courses.map((c) => [c.id, c]));
   const campusMap = new Map(campuses.map((c) => [c.id, c]));
+  const genreMap = new Map(genres.map((g) => [g.id, g]));
 
   const coursesByInstructor = new Map<string, any[]>();
   for (const row of courseLinks) {
@@ -197,7 +237,16 @@ async function fetchLinks(schoolId: string, instructorIds: string[]) {
     campusesByInstructor.set(row.instructorId, cur);
   }
 
-  return { coursesByInstructor, campusesByInstructor };
+  const genresByInstructor = new Map<string, any[]>();
+  for (const row of genreLinks) {
+    const g = genreMap.get(row.genreId);
+    if (!g) continue;
+    const cur = genresByInstructor.get(row.instructorId) ?? [];
+    cur.push(g);
+    genresByInstructor.set(row.instructorId, cur);
+  }
+
+  return { coursesByInstructor, campusesByInstructor, genresByInstructor };
 }
 
 function readOptionalText(fd: FormData, key: string): string | null {
@@ -220,7 +269,7 @@ export async function GET(req: NextRequest) {
 
     const { searchParams } = new URL(req.url);
 
-    // ✅ ここだけ変更：queryが無ければ session.user.schoolId を使う
+    // ✅ queryが無ければ session.user.schoolId を使う
     const schoolId =
       searchParams.get("schoolId")?.trim() ||
       String((session.user as any)?.schoolId ?? "").trim();
@@ -244,15 +293,14 @@ export async function GET(req: NextRequest) {
     });
 
     const instructorIds = rows.map((r) => r.id);
-    const { coursesByInstructor, campusesByInstructor } = await fetchLinks(
-      schoolId,
-      instructorIds,
-    );
+    const { coursesByInstructor, campusesByInstructor, genresByInstructor } =
+      await fetchLinks(schoolId, instructorIds);
 
     return NextResponse.json(
       rows.map((r) => {
         const courses = coursesByInstructor.get(r.id) ?? [];
         const campuses = campusesByInstructor.get(r.id) ?? [];
+        const genres = genresByInstructor.get(r.id) ?? [];
         return {
           ...r,
           photoMime: r.photoMime ?? null,
@@ -260,8 +308,10 @@ export async function GET(req: NextRequest) {
           introduction: r.introduction ?? null,
           courses,
           campuses,
+          genres,
           courseIds: courses.map((c: any) => c.id),
           campusIds: campuses.map((c: any) => c.id),
+          genreIds: genres.map((g: any) => g.id),
         };
       }),
     );
@@ -297,6 +347,7 @@ export async function POST(req: NextRequest) {
 
     const courseVals = readIdList(fd, "courseIds");
     const campusVals = readIdList(fd, "campusIds");
+    const genreVals = readIdList(fd, "genreIds"); // ✅ 追加
 
     if (!id || !schoolId || !label || !slug) {
       return json("id / schoolId / label / slug は必須です", 400);
@@ -318,9 +369,10 @@ export async function POST(req: NextRequest) {
       photoData = new Uint8Array(ab);
     }
 
-    const [campusR, courseR] = await Promise.all([
+    const [campusR, courseR, genreR] = await Promise.all([
       resolveConnectIds({ schoolId, kind: "campus", values: campusVals }),
       resolveConnectIds({ schoolId, kind: "course", values: courseVals }),
+      resolveConnectIds({ schoolId, kind: "genre", values: genreVals }), // ✅
     ]);
 
     if (campusVals.length > 0 && campusR.ids.length === 0) {
@@ -339,6 +391,16 @@ export async function POST(req: NextRequest) {
           message:
             "紐づけようとしたコースが見つかりません（id/slug/label・schoolId・isActive を確認）",
           debug: { courseVals, missing: courseR.missing },
+        },
+        { status: 400 },
+      );
+    }
+    if (genreVals.length > 0 && genreR.ids.length === 0) {
+      return NextResponse.json(
+        {
+          message:
+            "紐づけようとしたジャンルが見つかりません（id/slug/label・schoolId・isActive を確認）",
+          debug: { genreVals, missing: genreR.missing },
         },
         { status: 400 },
       );
@@ -393,16 +455,27 @@ export async function POST(req: NextRequest) {
         });
       }
 
+      // ✅ 追加：ジャンル
+      if (genreR.ids.length > 0) {
+        await tx.diagnosisInstructorGenre.createMany({
+          data: genreR.ids.map((genreId) => ({
+            instructorId: created.id,
+            genreId,
+            schoolId,
+          })),
+          skipDuplicates: true,
+        });
+      }
+
       return created;
     });
 
-    const { coursesByInstructor, campusesByInstructor } = await fetchLinks(
-      schoolId,
-      [instructor.id],
-    );
+    const { coursesByInstructor, campusesByInstructor, genresByInstructor } =
+      await fetchLinks(schoolId, [instructor.id]);
 
     const courses = coursesByInstructor.get(instructor.id) ?? [];
     const campuses = campusesByInstructor.get(instructor.id) ?? [];
+    const genres = genresByInstructor.get(instructor.id) ?? [];
 
     return NextResponse.json(
       {
@@ -412,8 +485,10 @@ export async function POST(req: NextRequest) {
         introduction: instructor.introduction ?? null,
         courses,
         campuses,
+        genres,
         courseIds: courses.map((c: any) => c.id),
         campusIds: campuses.map((c: any) => c.id),
+        genreIds: genres.map((g: any) => g.id),
       },
       { status: 201 },
     );
@@ -455,6 +530,7 @@ export async function PUT(req: NextRequest) {
 
     const courseVals = readIdList(fd, "courseIds");
     const campusVals = readIdList(fd, "campusIds");
+    const genreVals = readIdList(fd, "genreIds"); // ✅ 追加
 
     if (!id || !schoolId || !label || !slug) {
       return json("id / schoolId / label / slug は必須です", 400);
@@ -466,9 +542,10 @@ export async function PUT(req: NextRequest) {
     });
     if (!existing) return json("対象が見つかりません", 404);
 
-    const [campusR, courseR] = await Promise.all([
+    const [campusR, courseR, genreR] = await Promise.all([
       resolveConnectIds({ schoolId, kind: "campus", values: campusVals }),
       resolveConnectIds({ schoolId, kind: "course", values: courseVals }),
+      resolveConnectIds({ schoolId, kind: "genre", values: genreVals }),
     ]);
 
     if (campusVals.length > 0 && campusR.ids.length === 0) {
@@ -487,6 +564,16 @@ export async function PUT(req: NextRequest) {
           message:
             "紐づけようとしたコースが見つかりません（id/slug/label・schoolId・isActive を確認）",
           debug: { courseVals, missing: courseR.missing },
+        },
+        { status: 400 },
+      );
+    }
+    if (genreVals.length > 0 && genreR.ids.length === 0) {
+      return NextResponse.json(
+        {
+          message:
+            "紐づけようとしたジャンルが見つかりません（id/slug/label・schoolId・isActive を確認）",
+          debug: { genreVals, missing: genreR.missing },
         },
         { status: 400 },
       );
@@ -532,11 +619,14 @@ export async function PUT(req: NextRequest) {
         throw new Error("更新対象が見つかりません");
       }
 
-      // 既存リンクを全置換（コース/校舎のみ）
+      // 既存リンクを全置換（コース/校舎/ジャンル）
       await tx.diagnosisInstructorCourse.deleteMany({
         where: { instructorId: id, schoolId },
       });
       await tx.diagnosisInstructorCampus.deleteMany({
+        where: { instructorId: id, schoolId },
+      });
+      await tx.diagnosisInstructorGenre.deleteMany({
         where: { instructorId: id, schoolId },
       });
 
@@ -561,6 +651,17 @@ export async function PUT(req: NextRequest) {
           skipDuplicates: true,
         });
       }
+
+      if (genreR.ids.length > 0) {
+        await tx.diagnosisInstructorGenre.createMany({
+          data: genreR.ids.map((genreId) => ({
+            instructorId: id,
+            genreId,
+            schoolId,
+          })),
+          skipDuplicates: true,
+        });
+      }
     });
 
     const updated = await prisma.diagnosisInstructor.findFirst({
@@ -578,13 +679,12 @@ export async function PUT(req: NextRequest) {
       },
     });
 
-    const { coursesByInstructor, campusesByInstructor } = await fetchLinks(
-      schoolId,
-      [id],
-    );
+    const { coursesByInstructor, campusesByInstructor, genresByInstructor } =
+      await fetchLinks(schoolId, [id]);
 
     const courses = coursesByInstructor.get(id) ?? [];
     const campuses = campusesByInstructor.get(id) ?? [];
+    const genres = genresByInstructor.get(id) ?? [];
 
     return NextResponse.json({
       ...updated,
@@ -593,8 +693,10 @@ export async function PUT(req: NextRequest) {
       introduction: updated?.introduction ?? null,
       courses,
       campuses,
+      genres,
       courseIds: courses.map((c: any) => c.id),
       campusIds: campuses.map((c: any) => c.id),
+      genreIds: genres.map((g: any) => g.id),
     });
   } catch (e: any) {
     console.error(e);
@@ -613,7 +715,7 @@ export async function DELETE(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id")?.trim();
 
-    // ✅ ここだけ変更：queryが無ければ session.user.schoolId を使う
+    // ✅ queryが無ければ session.user.schoolId を使う
     const schoolId =
       searchParams.get("schoolId")?.trim() ||
       String((session.user as any)?.schoolId ?? "").trim();
