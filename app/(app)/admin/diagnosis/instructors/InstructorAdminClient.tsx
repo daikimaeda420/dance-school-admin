@@ -81,7 +81,21 @@ function uniqStrings(xs: any[]) {
 }
 
 function safeArray(v: any): string[] {
-  return Array.isArray(v) ? uniqStrings(v) : [];
+  if (Array.isArray(v)) return uniqStrings(v);
+  if (typeof v === "string") {
+    const s = v.trim();
+    if (!s) return [];
+    // JSON配列文字列に対応
+    if (s.startsWith("[") && s.endsWith("]")) {
+      try {
+        const arr = JSON.parse(s);
+        return Array.isArray(arr) ? uniqStrings(arr) : [];
+      } catch {}
+    }
+    // "a,b,c" にも対応
+    return uniqStrings(s.split(","));
+  }
+  return [];
 }
 
 function joinLabels(opts?: OptionRow[]) {
@@ -354,9 +368,18 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
         campuses: Array.isArray(d.campuses) ? d.campuses : [],
         genres: Array.isArray(d.genres) ? d.genres : [],
 
-        courseIds: safeArray(d.courseIds),
-        campusIds: safeArray(d.campusIds),
-        genreIds: safeArray(d.genreIds),
+        courseIds: normalizeIdsByOptions(
+          resolveToOptionIds(safeArray(d.courseIds), courses),
+          courses,
+        ),
+        campusIds: normalizeIdsByOptions(
+          resolveToOptionIds(safeArray(d.campusIds), campuses),
+          campuses,
+        ),
+        genreIds: normalizeIdsByOptions(
+          resolveToOptionIds(safeArray(d.genreIds), genres),
+          genres,
+        ),
       }));
 
       setRows(
@@ -373,8 +396,17 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
 
   useEffect(() => {
     if (!canLoad) return;
-    void fetchOptions();
-    void fetchList();
+
+    // ✅ options（courses/campuses/genres）を先に読み込んでから list を読む
+    (async () => {
+      try {
+        await fetchOptions();
+        await fetchList();
+      } catch {
+        // noop
+      }
+    })();
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [schoolId]);
 
@@ -382,6 +414,7 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
     if (!newFile) return "";
     return URL.createObjectURL(newFile);
   }, [newFile]);
+
   useEffect(() => {
     return () => {
       if (previewForNew) URL.revokeObjectURL(previewForNew);
