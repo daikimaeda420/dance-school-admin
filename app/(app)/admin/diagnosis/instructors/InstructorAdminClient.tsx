@@ -6,7 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 type Props = { initialSchoolId?: string };
 
 type OptionRow = {
-  id: string; // ✅ ここは「DBのID（cml...）」に揃える（normalizeでdbId優先）
+  id: string; // ✅ DBのID（cml...）に揃える
   label: string;
   slug?: string;
   answerTag?: string | null;
@@ -80,7 +80,6 @@ function uniqStrings(xs: any[]) {
   );
 }
 
-// GETで配列で返ってくる前提だが、壊れてても落ちない
 function safeArray(v: any): string[] {
   return Array.isArray(v) ? uniqStrings(v) : [];
 }
@@ -93,8 +92,7 @@ function joinLabels(opts?: OptionRow[]) {
 }
 
 /**
- * ✅ id/slug/label が混在していても、options の id に解決して返す
- * - これが「selected: 6 なのにチェック0」の根本対策
+ * ✅ id/slug/label が混在していても options の id に解決して返す
  */
 function resolveToOptionIds(vals: string[], options: OptionRow[]) {
   const cleaned = uniqStrings(vals ?? []);
@@ -122,6 +120,7 @@ function resolveToOptionIds(vals: string[], options: OptionRow[]) {
 
 /**
  * ✅ optionsに存在するものだけ残す（未存在IDの除去）
+ * - options未ロード時は絶対に削らない
  */
 function normalizeIdsByOptions(ids: string[], options: { id: string }[]) {
   const cleaned = Array.from(
@@ -133,7 +132,6 @@ function normalizeIdsByOptions(ids: string[], options: { id: string }[]) {
     ),
   );
 
-  // ✅ options が未ロードなら「絶対に削らない」
   if (!options || options.length === 0) {
     return cleaned;
   }
@@ -142,9 +140,6 @@ function normalizeIdsByOptions(ids: string[], options: { id: string }[]) {
   return cleaned.filter((id) => allow.has(id));
 }
 
-/**
- * ✅ 見た目を自前で描画するチェック
- */
 function CheckboxList({
   options,
   selected,
@@ -223,7 +218,7 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
 
   const [courses, setCourses] = useState<OptionRow[]>([]);
   const [campuses, setCampuses] = useState<OptionRow[]>([]);
-  const [genres, setGenres] = useState<OptionRow[]>([]); // ✅ Q4(雰囲気)
+  const [genres, setGenres] = useState<OptionRow[]>([]);
 
   const [newId, setNewId] = useState("");
   const [newLabel, setNewLabel] = useState("");
@@ -233,7 +228,7 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
 
   const [newCourseIds, setNewCourseIds] = useState<string[]>([]);
   const [newCampusIds, setNewCampusIds] = useState<string[]>([]);
-  const [newGenreIds, setNewGenreIds] = useState<string[]>([]); // ✅ 追加
+  const [newGenreIds, setNewGenreIds] = useState<string[]>([]);
 
   const [newCharmTags, setNewCharmTags] = useState("");
   const [newIntroduction, setNewIntroduction] = useState("");
@@ -254,9 +249,31 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
   const canLoad = schoolId.trim().length > 0;
 
   const photoUrl = (id: string) =>
-    `/api/diagnosis/instructors/photo?id=${encodeURIComponent(id)}&schoolId=${encodeURIComponent(
-      schoolId,
-    )}`;
+    `/api/diagnosis/instructors/photo?id=${encodeURIComponent(
+      id,
+    )}&schoolId=${encodeURIComponent(schoolId)}`;
+
+  const normalize = (x: any): OptionRow[] => {
+    const arr = Array.isArray(x?.items) ? x.items : Array.isArray(x) ? x : [];
+    return arr
+      .map((d: any) => {
+        const dbId = String(d.dbId ?? "").trim();
+        const id = String(d.id ?? "").trim();
+        const label = String(d.label ?? "").trim();
+        const slug = d.slug ? String(d.slug).trim() : undefined;
+
+        const resolvedId = dbId || id;
+
+        return {
+          id: resolvedId,
+          label,
+          slug,
+          answerTag: d.answerTag ? String(d.answerTag) : null,
+          isActive: typeof d.isActive === "boolean" ? d.isActive : undefined,
+        } as OptionRow;
+      })
+      .filter((o: OptionRow) => o.id && o.label);
+  };
 
   const fetchOptions = async () => {
     if (!canLoad) return;
@@ -272,43 +289,13 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
         ),
         fetch(
           `/api/diagnosis/genres?schoolId=${encodeURIComponent(schoolId)}`,
-          {
-            cache: "no-store",
-          },
+          { cache: "no-store" },
         ),
       ]);
 
       const cJson = cRes.ok ? await cRes.json().catch(() => []) : [];
       const pJson = pRes.ok ? await pRes.json().catch(() => []) : [];
-      const gJson = gRes.ok ? await gRes.json().catch(() => []) : []; // ✅ ここが抜けてると genres が死ぬ
-
-      // ✅ id は必ず「DBのID」に寄せる（dbId優先）
-      const normalize = (x: any): OptionRow[] => {
-        const arr = Array.isArray(x?.items)
-          ? x.items
-          : Array.isArray(x)
-            ? x
-            : [];
-        return arr
-          .map((d: any) => {
-            const dbId = String(d.dbId ?? "").trim();
-            const id = String(d.id ?? "").trim();
-            const label = String(d.label ?? "").trim();
-            const slug = d.slug ? String(d.slug).trim() : undefined;
-
-            const resolvedId = dbId || id;
-
-            return {
-              id: resolvedId,
-              label,
-              slug,
-              answerTag: d.answerTag ? String(d.answerTag) : null,
-              isActive:
-                typeof d.isActive === "boolean" ? d.isActive : undefined,
-            } as OptionRow;
-          })
-          .filter((o: OptionRow) => o.id && o.label);
-      };
+      const gJson = gRes.ok ? await gRes.json().catch(() => []) : [];
 
       setCourses(normalize(cJson));
       setCampuses(normalize(pJson));
@@ -330,7 +317,7 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
       if (!res.ok) throw new Error("DiagnosisInstructor の取得に失敗しました");
       const data = (await res.json()) as any[];
 
-      const normalized: InstructorRow[] = data.map((d) => ({
+      const normalizedRows: InstructorRow[] = data.map((d) => ({
         id: String(d.id),
         schoolId: String(d.schoolId ?? schoolId),
         label: String(d.label ?? ""),
@@ -346,13 +333,14 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
         courses: Array.isArray(d.courses) ? d.courses : [],
         campuses: Array.isArray(d.campuses) ? d.campuses : [],
         genres: Array.isArray(d.genres) ? d.genres : [],
+
         courseIds: safeArray(d.courseIds),
         campusIds: safeArray(d.campusIds),
         genreIds: safeArray(d.genreIds),
       }));
 
       setRows(
-        normalized.sort((a, b) =>
+        normalizedRows.sort((a, b) =>
           (a.label ?? "").localeCompare(b.label ?? "", "ja"),
         ),
       );
@@ -429,7 +417,7 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
 
       fd.append("courseIds", JSON.stringify(sendCourseIds));
       fd.append("campusIds", JSON.stringify(sendCampusIds));
-      fd.append("genreIds", JSON.stringify(sendGenreIds)); // ✅ 追加（これが無いと保存されない）
+      fd.append("genreIds", JSON.stringify(sendGenreIds));
 
       fd.append("charmTags", newCharmTags);
       fd.append("introduction", newIntroduction);
@@ -450,7 +438,7 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
       setNewFile(null);
       setNewCourseIds([]);
       setNewCampusIds([]);
-      setNewGenreIds([]); // ✅
+      setNewGenreIds([]);
       setNewCharmTags("");
       setNewIntroduction("");
 
@@ -500,9 +488,11 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
         slug: r.slug ?? "",
         sortOrder: r.sortOrder ?? 1,
         isActive: Boolean(r.isActive),
+
         courseIds: seedCourseIds,
         campusIds: seedCampusIds,
-        genreIds: seedGenreIds, // ✅
+        genreIds: seedGenreIds,
+
         charmTags: String(r.charmTags ?? ""),
         introduction: String(r.introduction ?? ""),
       },
@@ -573,7 +563,6 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
       const file = editFileMap[id];
       if (file) fd.append("file", file);
 
-      // ✅ ここが同期の肝：PUTが全置換なので、campus/genre を毎回送る必要あり
       const sendCourseIds = normalizeIdsByOptions(
         resolveToOptionIds(uniqStrings(e.courseIds ?? []), courses),
         courses,
@@ -589,7 +578,7 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
 
       fd.append("courseIds", JSON.stringify(sendCourseIds));
       fd.append("campusIds", JSON.stringify(sendCampusIds));
-      fd.append("genreIds", JSON.stringify(sendGenreIds)); // ✅ 追加（これが無いとジャンルが消える）
+      fd.append("genreIds", JSON.stringify(sendGenreIds));
 
       fd.append("charmTags", String((e as any).charmTags ?? ""));
       fd.append("introduction", String((e as any).introduction ?? ""));
@@ -625,7 +614,6 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
       fd.append("isActive", String(nextActive));
       fd.append("clearPhoto", "false");
 
-      // ✅ toggleActive でも PUT が全置換されるので、今の紐付けを必ず送る
       const keepCourseRaw =
         safeArray(r.courseIds).length > 0
           ? safeArray(r.courseIds)
@@ -654,7 +642,7 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
 
       fd.append("courseIds", JSON.stringify(keepCourseIds));
       fd.append("campusIds", JSON.stringify(keepCampusIds));
-      fd.append("genreIds", JSON.stringify(keepGenreIds)); // ✅ 追加（これが無いとジャンルが落ちる）
+      fd.append("genreIds", JSON.stringify(keepGenreIds));
 
       fd.append("charmTags", String(r.charmTags ?? ""));
       fd.append("introduction", String(r.introduction ?? ""));
@@ -838,7 +826,7 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
                   onChange={(next) =>
                     setNewGenreIds(normalizeIdsByOptions(next, genres))
                   }
-                  columns={2}
+                  columns={1}
                 />
               </div>
             </div>
@@ -1157,7 +1145,7 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
                                       ),
                                     })
                                   }
-                                  columns={2}
+                                  columns={1}
                                 />
                               </div>
                             </div>
