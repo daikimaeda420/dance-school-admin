@@ -257,29 +257,19 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
     const arr = Array.isArray(x?.items) ? x.items : Array.isArray(x) ? x : [];
     return arr
       .map((d: any) => {
-        const dbId = String(d.dbId ?? "").trim(); // 期待：cml....
-        const id = String(d.id ?? "").trim(); // 今：shibuya
-        const label = String(d.label ?? "").trim();
+        const id = String(d.id ?? "").trim(); // ← ここを採用（ikoma / genre_kpop など）
+        const label = String(d.label ?? d.name ?? d.title ?? "").trim();
         const slug = d.slug ? String(d.slug).trim() : undefined;
 
-        // ✅ campuses APIが id=slug を返している場合に備え、
-        // dbId が無いなら「id」は採用しない（＝保存で事故らない）
-        const looksLikeDbId = (s: string) => /^cm/i.test(s) || s.length >= 20; // 雑でOK
-        const resolvedId = looksLikeDbId(dbId)
-          ? dbId
-          : looksLikeDbId(id)
-            ? id
-            : ""; // ← slugしかないなら空にして弾く（後でAPI直す）
-
         return {
-          id: resolvedId,
+          id,
           label,
           slug,
           answerTag: d.answerTag ? String(d.answerTag) : null,
           isActive: typeof d.isActive === "boolean" ? d.isActive : undefined,
         } as OptionRow;
       })
-      .filter((o: OptionRow) => o.id && o.label);
+      .filter((o) => o.id && o.label);
   };
 
   const fetchOptions = async () => {
