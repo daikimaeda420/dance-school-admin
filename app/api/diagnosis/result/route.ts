@@ -148,6 +148,36 @@ async function instructorIdsByCourse(params: {
   return rows.map((r) => r.instructorId);
 }
 
+/**
+ * ✅ Q4 tag(Genre_KPOP等) -> DiagnosisGenre(answerTag) -> DiagnosisInstructorGenre で講師IDを取る
+ * - Genre_All のときは「絞り込まない」ので空配列で返す（呼び出し側で分岐）
+ */
+async function instructorIdsByGenreTag(params: {
+  schoolId: string;
+  genreTag: string;
+}): Promise<{ genreId: string | null; ids: string[] }> {
+  const { schoolId, genreTag } = params;
+  if (!genreTag || genreTag === "Genre_All") {
+    return { genreId: null, ids: [] };
+  }
+
+  const genre = await prisma.diagnosisGenre.findFirst({
+    where: { schoolId, isActive: true, answerTag: genreTag },
+    select: { id: true, label: true, slug: true, answerTag: true },
+  });
+
+  if (!genre) {
+    return { genreId: null, ids: [] };
+  }
+
+  const links = await prisma.diagnosisInstructorGenre.findMany({
+    where: { schoolId, genreId: genre.id },
+    select: { instructorId: true },
+  });
+
+  return { genreId: genre.id, ids: links.map((r) => r.instructorId) };
+}
+
 // =========================
 // ✅ スケジュール表示用VM
 // =========================
@@ -215,7 +245,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Q4: DBのDiagnosisGenreは使わない
+    // Q4: tag（Genre_KPOP等）
     const q4Meta = getQ4Meta(answers);
     const genreTag = q4Meta.tag;
 
@@ -279,11 +309,21 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 講師取得（campus+course → campus）
+    // -------------------------
+    // 講師取得：campus/course/genre の優先順位で絞る
+    // -------------------------
     const campusInstructorIds = await instructorIdsByCampus({
       schoolId,
       campusId: campus.id,
     });
+
+    const { genreId, ids: genreInstructorIdsRaw } =
+      await instructorIdsByGenreTag({ schoolId, genreTag });
+
+    // genreTag が Genre_All なら「絞らない」
+    const useGenreFilter = Boolean(
+      genreTag && genreTag !== "Genre_All" && genreId,
+    );
 
     const selectInstructor = {
       id: true,
@@ -296,32 +336,73 @@ export async function POST(req: NextRequest) {
     } as const;
 
     let instructors: any[] = [];
-    let instructorMatchedBy: "campus+course" | "campus" | "none" = "none";
+    let instructorMatchedBy:
+      | "campus+course+genre"
+      | "campus+genre"
+      | "campus+course"
+      | "campus"
+      | "none" = "none";
 
-    if (recommendedCourse?.id) {
-      const courseIds = await instructorIdsByCourse({
-        schoolId,
-        courseId: recommendedCourse.id,
-      });
-      const ids = intersectIds(campusInstructorIds, courseIds);
-
-      if (ids.length > 0) {
-        instructors = await prisma.diagnosisInstructor.findMany({
-          where: { schoolId, isActive: true, id: { in: ids } },
-          orderBy: { sortOrder: "asc" },
-          select: selectInstructor,
-        });
-        if (instructors.length > 0) instructorMatchedBy = "campus+course";
-      }
-    }
-
-    if (instructors.length === 0 && campusInstructorIds.length > 0) {
-      instructors = await prisma.diagnosisInstructor.findMany({
-        where: { schoolId, isActive: true, id: { in: campusInstructorIds } },
+    const loadInstructorsByIds = async (ids: string[]) => {
+      if (ids.length === 0) return [];
+      return prisma.diagnosisInstructor.findMany({
+        where: { schoolId, isActive: true, id: { in: ids } },
         orderBy: { sortOrder: "asc" },
         select: selectInstructor,
       });
-      if (instructors.length > 0) instructorMatchedBy = "campus";
+    };
+
+    // course ids
+    let courseInstructorIds: string[] = [];
+    if (recommendedCourse?.id) {
+      courseInstructorIds = await instructorIdsByCourse({
+        schoolId,
+        courseId: recommendedCourse.id,
+      });
+    }
+
+    if (campusInstructorIds.length > 0) {
+      // 1) campus + course + genre
+      if (recommendedCourse?.id && useGenreFilter) {
+        const ids = intersectIds(
+          intersectIds(campusInstructorIds, courseInstructorIds),
+          genreInstructorIdsRaw,
+        );
+        const got = await loadInstructorsByIds(ids);
+        if (got.length > 0) {
+          instructors = got;
+          instructorMatchedBy = "campus+course+genre";
+        }
+      }
+
+      // 2) campus + genre
+      if (instructors.length === 0 && useGenreFilter) {
+        const ids = intersectIds(campusInstructorIds, genreInstructorIdsRaw);
+        const got = await loadInstructorsByIds(ids);
+        if (got.length > 0) {
+          instructors = got;
+          instructorMatchedBy = "campus+genre";
+        }
+      }
+
+      // 3) campus + course
+      if (instructors.length === 0 && recommendedCourse?.id) {
+        const ids = intersectIds(campusInstructorIds, courseInstructorIds);
+        const got = await loadInstructorsByIds(ids);
+        if (got.length > 0) {
+          instructors = got;
+          instructorMatchedBy = "campus+course";
+        }
+      }
+
+      // 4) campus
+      if (instructors.length === 0) {
+        const got = await loadInstructorsByIds(campusInstructorIds);
+        if (got.length > 0) {
+          instructors = got;
+          instructorMatchedBy = "campus";
+        }
+      }
     }
 
     if (instructors.length === 0) instructorMatchedBy = "none";
@@ -371,8 +452,6 @@ export async function POST(req: NextRequest) {
           courses: {
             some: { courseId: recommendedCourse.id },
           },
-          // 校舎で絞りたい場合は place が運用で一致している前提で↓をON
-          // ...(campus?.label ? { place: campus.label } : {}),
         },
         orderBy: [
           { weekday: "asc" },
@@ -392,6 +471,29 @@ export async function POST(req: NextRequest) {
       }));
     }
 
+    // ✅ selectedGenre はDBが見つかればそれを優先して返す（見つからなければ従来互換）
+    let selectedGenreOut = {
+      id: q4Meta.id,
+      label: q4Meta.label,
+      slug: q4Meta.tag,
+      answerTag: q4Meta.tag,
+    } as any;
+
+    if (genreId) {
+      const g = await prisma.diagnosisGenre.findFirst({
+        where: { id: genreId, schoolId },
+        select: { id: true, label: true, slug: true, answerTag: true },
+      });
+      if (g) {
+        selectedGenreOut = {
+          id: g.id,
+          label: g.label,
+          slug: g.slug,
+          answerTag: g.answerTag,
+        };
+      }
+    }
+
     return NextResponse.json({
       pattern: "A",
       patternMessage: null,
@@ -401,24 +503,21 @@ export async function POST(req: NextRequest) {
       bestMatch: {
         classId: best.id,
         className: recommendedCourse?.label ?? best.title,
-        // genresは互換でQ4ラベル（空でもOK）
         genres: q4Meta.label ? [q4Meta.label] : [],
         levels: [],
         targets: [],
       },
 
-      // ✅ ここが今回の本丸：Embedが参照する
       selectedCourse: recommendedCourse
         ? {
-            id: recommendedCourse.id, // ← cuid
+            id: recommendedCourse.id,
             label: recommendedCourse.label,
             slug: recommendedCourse.slug,
             answerTag: recommendedCourse.answerTag ?? null,
-            photoUrl: coursePhotoUrl, // ← 直接使えるURLも返す
+            photoUrl: coursePhotoUrl,
           }
         : null,
 
-      // ✅ 診断結果側にスケジュールを返す
       scheduleSlots,
 
       teacher: {
@@ -471,18 +570,14 @@ export async function POST(req: NextRequest) {
         googleMapEmbedUrl: campus.googleMapEmbedUrl ?? null,
       },
 
-      // ✅ Embed互換の形に寄せる（DiagnosisEmbedClientの型に合わせる）
-      selectedGenre: {
-        id: q4Meta.id,
-        label: q4Meta.label,
-        slug: q4Meta.tag, // slug相当としてtagを入れる
-        answerTag: q4Meta.tag,
-      },
+      // ✅ 互換：Embedが参照する
+      selectedGenre: selectedGenreOut,
 
       debug: {
         ctx,
         campusId: campus.id,
         genreTag,
+        genreId: genreId ?? null,
         recommendedCourseId: recommendedCourse?.id ?? null,
         instructorMatchedBy,
         instructorsCount: instructors.length,
