@@ -257,12 +257,18 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
     const arr = Array.isArray(x?.items) ? x.items : Array.isArray(x) ? x : [];
     return arr
       .map((d: any) => {
-        const dbId = String(d.dbId ?? "").trim();
-        const id = String(d.id ?? "").trim();
+        const dbId = String(d.dbId ?? "").trim(); // 例: "cmlxxxx"
+        const id = String(d.id ?? "").trim(); // 例: "shibuya" or "cmlxxxx"
         const label = String(d.label ?? "").trim();
         const slug = d.slug ? String(d.slug).trim() : undefined;
 
-        const resolvedId = dbId || id;
+        // ✅ slugっぽいIDなら dbId を使う（cml... のようなDB IDを優先）
+        const looksLikeSlug =
+          id &&
+          !id.startsWith("cm") &&
+          !id.startsWith("cuid") &&
+          id.length < 30;
+        const resolvedId = looksLikeSlug && dbId ? dbId : dbId || id;
 
         return {
           id: resolvedId,
