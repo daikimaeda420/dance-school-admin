@@ -6,7 +6,8 @@ import { useEffect, useMemo, useState } from "react";
 type Props = { initialSchoolId?: string };
 
 type OptionRow = {
-  id: string; // ✅ DBのID（cml...）に揃える
+  id: string; // 画面で使うID（beginner / ikoma / genre_kpop）
+  dbId?: string; // ✅ 追加（cm...）
   label: string;
   slug?: string;
   answerTag?: string | null;
@@ -85,14 +86,12 @@ function safeArray(v: any): string[] {
   if (typeof v === "string") {
     const s = v.trim();
     if (!s) return [];
-    // JSON配列文字列に対応
     if (s.startsWith("[") && s.endsWith("]")) {
       try {
         const arr = JSON.parse(s);
         return Array.isArray(arr) ? uniqStrings(arr) : [];
       } catch {}
     }
-    // "a,b,c" にも対応
     return uniqStrings(s.split(","));
   }
   return [];
@@ -119,10 +118,12 @@ function resolveToOptionIds(vals: string[], options: OptionRow[]) {
   const map = new Map<string, string>();
   for (const o of options) {
     const id = String(o.id ?? "").trim();
+    const dbId = String(o.dbId ?? "").trim();
     const slug = String(o.slug ?? "").trim();
     const label = String(o.label ?? "").trim();
     if (!id) continue;
     map.set(id, id);
+    if (dbId) map.set(dbId, id);
     if (slug) map.set(slug, id);
     if (label) map.set(label, id);
   }
@@ -271,12 +272,14 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
     const arr = Array.isArray(x?.items) ? x.items : Array.isArray(x) ? x : [];
     return arr
       .map((d: any) => {
-        const id = String(d.id ?? "").trim(); // ← ここを採用（ikoma / genre_kpop など）
+        const id = String(d.id ?? "").trim();
+        const dbId = String(d.dbId ?? "").trim(); // ✅ 追加
         const label = String(d.label ?? d.name ?? d.title ?? "").trim();
         const slug = d.slug ? String(d.slug).trim() : undefined;
 
         return {
           id,
+          dbId: dbId || undefined, // ✅ 追加
           label,
           slug,
           answerTag: d.answerTag ? String(d.answerTag) : null,
