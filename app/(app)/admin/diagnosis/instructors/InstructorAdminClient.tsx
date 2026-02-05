@@ -304,9 +304,22 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
       const pJson = pRes.ok ? await pRes.json().catch(() => []) : [];
       const gJson = gRes.ok ? await gRes.json().catch(() => []) : [];
 
-      setCourses(normalize(cJson));
-      setCampuses(normalize(pJson));
-      setGenres(normalize(gJson));
+      const c = normalize(cJson);
+      const p = normalize(pJson);
+      const g = normalize(gJson);
+
+      console.log("[fetchOptions]", {
+        schoolId,
+        courses: c.length,
+        campuses: p.length,
+        genres: g.length,
+        sampleCampus: p[0],
+        sampleGenre: g[0],
+      });
+
+      setCourses(c);
+      setCampuses(p);
+      setGenres(g);
     } catch {
       // noop
     }
