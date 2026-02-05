@@ -304,6 +304,16 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
       const pJson = pRes.ok ? await pRes.json().catch(() => []) : [];
       const gJson = gRes.ok ? await gRes.json().catch(() => []) : [];
 
+      console.log("[rawOptions]", {
+        schoolId,
+        pResOk: pRes.ok,
+        gResOk: gRes.ok,
+        pType: Array.isArray(pJson) ? "array" : typeof pJson,
+        gType: Array.isArray(gJson) ? "array" : typeof gJson,
+        pJson,
+        gJson,
+      });
+
       const c = normalize(cJson);
       const p = normalize(pJson);
       const g = normalize(gJson);
