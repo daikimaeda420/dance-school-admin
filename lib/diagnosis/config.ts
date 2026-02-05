@@ -127,10 +127,11 @@ export const QUESTIONS: DiagnosisQuestion[] = [
     key: "genre",
     options: [
       { id: "4-1", label: "K-POP・流行りの曲", tag: "Genre_KPOP" },
-      { id: "4-2", label: "重低音の効いたカッコいい洋楽", tag: "Genre_HIPHOP" },
-      { id: "4-3", label: "オシャレでゆったりした曲", tag: "Genre_JAZZ" },
-      { id: "4-4", label: "とにかく明るく楽しい曲", tag: "Genre_ThemePark" },
-      { id: "4-5", label: "まだ迷っている・色々見てみたい", tag: "Genre_All" },
+      { id: "4-2", label: "アイドル・完コピ", tag: "Genre_idol" },
+      { id: "4-3", label: "重低音の効いたカッコいい洋楽", tag: "Genre_HIPHOP" },
+      { id: "4-4", label: "オシャレでゆったりした曲", tag: "Genre_JAZZ" },
+      { id: "4-5", label: "とにかく明るく楽しい曲", tag: "Genre_ThemePark" },
+      { id: "4-6", label: "まだ迷っている・色々見てみたい", tag: "Genre_All" },
     ],
   },
 
