@@ -257,18 +257,19 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
     const arr = Array.isArray(x?.items) ? x.items : Array.isArray(x) ? x : [];
     return arr
       .map((d: any) => {
-        const dbId = String(d.dbId ?? "").trim(); // 例: "cmlxxxx"
-        const id = String(d.id ?? "").trim(); // 例: "shibuya" or "cmlxxxx"
+        const dbId = String(d.dbId ?? "").trim(); // 期待：cml....
+        const id = String(d.id ?? "").trim(); // 今：shibuya
         const label = String(d.label ?? "").trim();
         const slug = d.slug ? String(d.slug).trim() : undefined;
 
-        // ✅ slugっぽいIDなら dbId を使う（cml... のようなDB IDを優先）
-        const looksLikeSlug =
-          id &&
-          !id.startsWith("cm") &&
-          !id.startsWith("cuid") &&
-          id.length < 30;
-        const resolvedId = looksLikeSlug && dbId ? dbId : dbId || id;
+        // ✅ campuses APIが id=slug を返している場合に備え、
+        // dbId が無いなら「id」は採用しない（＝保存で事故らない）
+        const looksLikeDbId = (s: string) => /^cm/i.test(s) || s.length >= 20; // 雑でOK
+        const resolvedId = looksLikeDbId(dbId)
+          ? dbId
+          : looksLikeDbId(id)
+            ? id
+            : ""; // ← slugしかないなら空にして弾く（後でAPI直す）
 
         return {
           id: resolvedId,
