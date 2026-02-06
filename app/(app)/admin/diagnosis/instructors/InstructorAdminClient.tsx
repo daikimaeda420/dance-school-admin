@@ -121,11 +121,13 @@ function resolveToOptionIds(vals: string[], options: OptionRow[]) {
     const dbId = String(o.dbId ?? "").trim();
     const slug = String(o.slug ?? "").trim();
     const label = String(o.label ?? "").trim();
+    const answerTag = String(o.answerTag ?? "").trim();
     if (!id) continue;
     map.set(id, id);
     if (dbId) map.set(dbId, id);
     if (slug) map.set(slug, id);
     if (label) map.set(label, id);
+    if (answerTag) map.set(answerTag, id);
   }
 
   return Array.from(
@@ -268,21 +270,30 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
       id,
     )}&schoolId=${encodeURIComponent(schoolId)}`;
 
-  const normalize = (x: any): OptionRow[] => {
+  type OptionKind = "course" | "campus" | "genre";
+
+  const normalizeOptions = (kind: OptionKind, x: any): OptionRow[] => {
     const arr = Array.isArray(x?.items) ? x.items : Array.isArray(x) ? x : [];
+
     return arr
       .map((d: any) => {
-        const id = String(d.id ?? "").trim();
-        const dbId = String(d.dbId ?? "").trim(); // ✅ 追加
-        const label = String(d.label ?? d.name ?? d.title ?? "").trim();
+        const dbId = String(d.dbId ?? d.id ?? "").trim();
         const slug = d.slug ? String(d.slug).trim() : undefined;
+        const label = String(d.label ?? d.name ?? d.title ?? "").trim();
+        const answerTag = d.answerTag ? String(d.answerTag).trim() : null;
+
+        // ✅ UIで使う id を kind ごとに統一
+        // course/campus: slug（beginner / ikoma）
+        // genre(Q4): answerTag（Genre_KPOP）
+        const uiId =
+          kind === "genre" ? answerTag || slug || dbId : slug || dbId;
 
         return {
-          id,
-          dbId: dbId || undefined, // ✅ 追加
+          id: uiId, // ✅ UIキー
+          dbId: dbId || undefined, // DB実ID（cm...）
           label,
           slug,
-          answerTag: d.answerTag ? String(d.answerTag) : null,
+          answerTag,
           isActive: typeof d.isActive === "boolean" ? d.isActive : undefined,
         } as OptionRow;
       })
@@ -321,18 +332,9 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
         gJson,
       });
 
-      const c = normalize(cJson);
-      const p = normalize(pJson);
-      const g = normalize(gJson);
-
-      console.log("[fetchOptions]", {
-        schoolId,
-        courses: c.length,
-        campuses: p.length,
-        genres: g.length,
-        sampleCampus: p[0],
-        sampleGenre: g[0],
-      });
+      const c = normalizeOptions("course", cJson);
+      const p = normalizeOptions("campus", pJson);
+      const g = normalizeOptions("genre", gJson);
 
       setCourses(c);
       setCampuses(p);
@@ -371,18 +373,9 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
         campuses: Array.isArray(d.campuses) ? d.campuses : [],
         genres: Array.isArray(d.genres) ? d.genres : [],
 
-        courseIds: normalizeIdsByOptions(
-          resolveToOptionIds(safeArray(d.courseIds), courses),
-          courses,
-        ),
-        campusIds: normalizeIdsByOptions(
-          resolveToOptionIds(safeArray(d.campusIds), campuses),
-          campuses,
-        ),
-        genreIds: normalizeIdsByOptions(
-          resolveToOptionIds(safeArray(d.genreIds), genres),
-          genres,
-        ),
+        courseIds: safeArray(d.courseIds),
+        campusIds: safeArray(d.campusIds),
+        genreIds: safeArray(d.genreIds),
       }));
 
       setRows(
