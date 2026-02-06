@@ -957,44 +957,47 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
               const localPreview = editPreviewMap[r.id] || "";
               const hasDbPhoto = Boolean(r.photoMime);
 
-              const selectedCourseIds = editing
-                ? normalizeIdsByOptions(
-                    resolveToOptionIds(
-                      uniqStrings((e?.courseIds ?? []) as any[]),
-                      courses,
-                    ),
-                    courses,
-                  )
-                : normalizeIdsByOptions(
-                    resolveToOptionIds(safeArray(r.courseIds), courses),
-                    courses,
-                  );
+              // ✅ コース：IDsが無い場合は courses 配列から拾う（後方互換）
+              const rawCourseIds = editing
+                ? uniqStrings((e?.courseIds ?? []) as any[])
+                : safeArray(r.courseIds).length > 0
+                  ? safeArray(r.courseIds)
+                  : uniqStrings(
+                      (r.courses ?? []).map((c) => (c as any).dbId ?? c.id),
+                    );
 
-              const selectedCampusIds = editing
-                ? normalizeIdsByOptions(
-                    resolveToOptionIds(
-                      uniqStrings((e?.campusIds ?? []) as any[]),
-                      campuses,
-                    ),
-                    campuses,
-                  )
-                : normalizeIdsByOptions(
-                    resolveToOptionIds(safeArray(r.campusIds), campuses),
-                    campuses,
-                  );
+              // ✅ 校舎：IDsが無い場合は campuses 配列から拾う（ここが肝）
+              const rawCampusIds = editing
+                ? uniqStrings((e?.campusIds ?? []) as any[])
+                : safeArray(r.campusIds).length > 0
+                  ? safeArray(r.campusIds)
+                  : uniqStrings(
+                      (r.campuses ?? []).map((c) => (c as any).dbId ?? c.id),
+                    );
 
-              const selectedGenreIds = editing
-                ? normalizeIdsByOptions(
-                    resolveToOptionIds(
-                      uniqStrings((e?.genreIds ?? []) as any[]),
-                      genres,
-                    ),
-                    genres,
-                  )
-                : normalizeIdsByOptions(
-                    resolveToOptionIds(safeArray(r.genreIds), genres),
-                    genres,
-                  );
+              // ✅ ジャンル：IDsが無い場合は genres 配列から拾う（後方互換）
+              const rawGenreIds = editing
+                ? uniqStrings((e?.genreIds ?? []) as any[])
+                : safeArray(r.genreIds).length > 0
+                  ? safeArray(r.genreIds)
+                  : uniqStrings(
+                      (r.genres ?? []).map((g) => (g as any).dbId ?? g.id),
+                    );
+
+              const selectedCourseIds = normalizeIdsByOptions(
+                resolveToOptionIds(rawCourseIds, courses),
+                courses,
+              );
+
+              const selectedCampusIds = normalizeIdsByOptions(
+                resolveToOptionIds(rawCampusIds, campuses),
+                campuses,
+              );
+
+              const selectedGenreIds = normalizeIdsByOptions(
+                resolveToOptionIds(rawGenreIds, genres),
+                genres,
+              );
 
               return (
                 <div
