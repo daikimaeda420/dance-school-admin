@@ -29,7 +29,7 @@ function json(message: string, status = 400) {
 }
 
 /**
- * courseIds / campusIds / genreIds を柔軟に受け取る
+ * courseIds / campusIds / genreIds / q4OptionIds などを柔軟に受け取る
  */
 function readIdList(fd: FormData, key: string): string[] {
   const all = fd
@@ -75,7 +75,7 @@ function uniq(arr: string[]) {
   );
 }
 
-type ResolveKind = "campus" | "course" | "genre";
+type ResolveKind = "campus" | "course";
 
 /**
  * ✅ id/slug/label が混在していても「存在する実ID」に解決する
@@ -111,46 +111,22 @@ async function resolveConnectIds(params: {
     return { ids, missing };
   }
 
-  if (params.kind === "course") {
-    const found = await prisma.diagnosisCourse.findMany({
-      where: {
-        schoolId,
-        OR: [
-          { id: { in: values } },
-          { slug: { in: values } },
-          { label: { in: values } },
-        ],
-      },
-      select: { id: true, slug: true, label: true },
-    });
-
-    const ids = uniq(found.map((r) => r.id));
-    const foundKeys = new Set(
-      found.flatMap((r) => [r.id, r.slug, r.label].filter(Boolean) as string[]),
-    );
-    const missing = values.filter((v) => !foundKeys.has(v));
-    return { ids, missing };
-  }
-
-  // genre
-  const found = await prisma.diagnosisGenre.findMany({
+  // course
+  const found = await prisma.diagnosisCourse.findMany({
     where: {
       schoolId,
       OR: [
         { id: { in: values } },
         { slug: { in: values } },
         { label: { in: values } },
-        { answerTag: { in: values } },
       ],
     },
-    select: { id: true, slug: true, label: true, answerTag: true },
+    select: { id: true, slug: true, label: true },
   });
 
   const ids = uniq(found.map((r) => r.id));
   const foundKeys = new Set(
-    found.flatMap((r) =>
-      [r.id, r.slug, r.label, r.answerTag].filter(Boolean),
-    ) as string[],
+    found.flatMap((r) => [r.id, r.slug, r.label].filter(Boolean) as string[]),
   );
   const missing = values.filter((v) => !foundKeys.has(v));
   return { ids, missing };
@@ -158,17 +134,23 @@ async function resolveConnectIds(params: {
 
 /**
  * ✅ 明示中間（Course/Campus/Genre）からまとめて返す
+ * + ✅ Q4（雰囲気）の選択肢ID紐づけも返す
  */
 async function fetchLinks(schoolId: string, instructorIds: string[]) {
   if (instructorIds.length === 0) {
     return {
       coursesByInstructor: new Map<string, any[]>(),
       campusesByInstructor: new Map<string, any[]>(),
+
+      // 既存: DBジャンル（残す：将来用/互換）
       genresByInstructor: new Map<string, any[]>(),
+
+      // 新規: Q4選択肢ID
+      q4ByInstructor: new Map<string, string[]>(),
     };
   }
 
-  const [courseLinks, campusLinks, genreLinks] = await Promise.all([
+  const [courseLinks, campusLinks, genreLinks, q4Links] = await Promise.all([
     prisma.diagnosisInstructorCourse.findMany({
       where: { schoolId, instructorId: { in: instructorIds } },
       select: { instructorId: true, courseId: true },
@@ -177,9 +159,17 @@ async function fetchLinks(schoolId: string, instructorIds: string[]) {
       where: { schoolId, instructorId: { in: instructorIds } },
       select: { instructorId: true, campusId: true },
     }),
+
+    // 既存（DBジャンル）：触らず読み取りだけ
     prisma.diagnosisInstructorGenre.findMany({
       where: { schoolId, instructorId: { in: instructorIds } },
       select: { instructorId: true, genreId: true },
+    }),
+
+    // ✅ Q4選択肢（新規）
+    prisma.diagnosisInstructorQ4Option.findMany({
+      where: { schoolId, instructorId: { in: instructorIds } },
+      select: { instructorId: true, optionId: true },
     }),
   ]);
 
@@ -239,7 +229,20 @@ async function fetchLinks(schoolId: string, instructorIds: string[]) {
     genresByInstructor.set(row.instructorId, cur);
   }
 
-  return { coursesByInstructor, campusesByInstructor, genresByInstructor };
+  // ✅ Q4 option ids
+  const q4ByInstructor = new Map<string, string[]>();
+  for (const row of q4Links) {
+    const cur = q4ByInstructor.get(row.instructorId) ?? [];
+    cur.push(String(row.optionId));
+    q4ByInstructor.set(row.instructorId, Array.from(new Set(cur)));
+  }
+
+  return {
+    coursesByInstructor,
+    campusesByInstructor,
+    genresByInstructor,
+    q4ByInstructor,
+  };
 }
 
 function readOptionalText(fd: FormData, key: string): string | null {
@@ -284,25 +287,43 @@ export async function GET(req: NextRequest) {
     });
 
     const instructorIds = rows.map((r) => r.id);
-    const { coursesByInstructor, campusesByInstructor, genresByInstructor } =
-      await fetchLinks(schoolId, instructorIds);
+    const {
+      coursesByInstructor,
+      campusesByInstructor,
+      genresByInstructor,
+      q4ByInstructor,
+    } = await fetchLinks(schoolId, instructorIds);
 
     return NextResponse.json(
       rows.map((r) => {
         const courses = coursesByInstructor.get(r.id) ?? [];
         const campuses = campusesByInstructor.get(r.id) ?? [];
+
+        // 既存（DBジャンル）
         const genres = genresByInstructor.get(r.id) ?? [];
+
+        // ✅ Q4選択肢
+        const q4OptionIds = q4ByInstructor.get(r.id) ?? [];
+
         return {
           ...r,
           photoMime: r.photoMime ?? null,
           charmTags: r.charmTags ?? null,
           introduction: r.introduction ?? null,
+
           courses,
           campuses,
-          genres,
+          genres, // 残す（互換）
+
           courseIds: courses.map((c: any) => c.id),
           campusIds: campuses.map((c: any) => c.id),
-          genreIds: genres.map((g: any) => g.answerTag ?? g.id),
+
+          // ✅ フロント互換：genreIds を Q4の値として返す
+          // （フロントが genreIds をそのまま使っていてもチェックが保持される）
+          genreIds: q4OptionIds,
+
+          // ✅ 正式キー（今後フロントもこちらに寄せられる）
+          q4OptionIds,
         };
       }),
     );
@@ -338,7 +359,13 @@ export async function POST(req: NextRequest) {
 
     const courseVals = readIdList(fd, "courseIds");
     const campusVals = readIdList(fd, "campusIds");
-    const genreVals = readIdList(fd, "genreIds");
+
+    // ✅ Q4（雰囲気）
+    // 互換：フロントが genreIds で送ってきても受ける
+    const q4Vals = uniq([
+      ...readIdList(fd, "q4OptionIds"),
+      ...readIdList(fd, "genreIds"),
+    ]);
 
     if (!id || !schoolId || !label || !slug) {
       return json("id / schoolId / label / slug は必須です", 400);
@@ -360,10 +387,9 @@ export async function POST(req: NextRequest) {
       photoData = new Uint8Array(ab);
     }
 
-    const [campusR, courseR, genreR] = await Promise.all([
+    const [campusR, courseR] = await Promise.all([
       resolveConnectIds({ schoolId, kind: "campus", values: campusVals }),
       resolveConnectIds({ schoolId, kind: "course", values: courseVals }),
-      resolveConnectIds({ schoolId, kind: "genre", values: genreVals }),
     ]);
 
     const instructor = await prisma.$transaction(async (tx) => {
@@ -415,12 +441,13 @@ export async function POST(req: NextRequest) {
         });
       }
 
-      if (genreR.ids.length > 0) {
-        await tx.diagnosisInstructorGenre.createMany({
-          data: genreR.ids.map((genreId) => ({
+      // ✅ Q4（雰囲気）保存
+      if (q4Vals.length > 0) {
+        await tx.diagnosisInstructorQ4Option.createMany({
+          data: q4Vals.map((optionId) => ({
             instructorId: created.id,
-            genreId,
             schoolId,
+            optionId,
           })),
           skipDuplicates: true,
         });
@@ -429,12 +456,17 @@ export async function POST(req: NextRequest) {
       return created;
     });
 
-    const { coursesByInstructor, campusesByInstructor, genresByInstructor } =
-      await fetchLinks(schoolId, [instructor.id]);
+    const {
+      coursesByInstructor,
+      campusesByInstructor,
+      genresByInstructor,
+      q4ByInstructor,
+    } = await fetchLinks(schoolId, [instructor.id]);
 
     const courses = coursesByInstructor.get(instructor.id) ?? [];
     const campuses = campusesByInstructor.get(instructor.id) ?? [];
     const genres = genresByInstructor.get(instructor.id) ?? [];
+    const q4OptionIds = q4ByInstructor.get(instructor.id) ?? [];
 
     return NextResponse.json(
       {
@@ -447,7 +479,10 @@ export async function POST(req: NextRequest) {
         genres,
         courseIds: courses.map((c: any) => c.id),
         campusIds: campuses.map((c: any) => c.id),
-        genreIds: genres.map((g: any) => g.answerTag ?? g.id),
+
+        // 互換
+        genreIds: q4OptionIds,
+        q4OptionIds,
       },
       { status: 201 },
     );
@@ -488,7 +523,12 @@ export async function PUT(req: NextRequest) {
 
     const courseVals = readIdList(fd, "courseIds");
     const campusVals = readIdList(fd, "campusIds");
-    const genreVals = readIdList(fd, "genreIds");
+
+    // ✅ Q4（雰囲気）
+    const q4Vals = uniq([
+      ...readIdList(fd, "q4OptionIds"),
+      ...readIdList(fd, "genreIds"),
+    ]);
 
     if (!id || !schoolId || !label || !slug) {
       return json("id / schoolId / label / slug は必須です", 400);
@@ -500,10 +540,9 @@ export async function PUT(req: NextRequest) {
     });
     if (!existing) return json("対象が見つかりません", 404);
 
-    const [campusR, courseR, genreR] = await Promise.all([
+    const [campusR, courseR] = await Promise.all([
       resolveConnectIds({ schoolId, kind: "campus", values: campusVals }),
       resolveConnectIds({ schoolId, kind: "course", values: courseVals }),
-      resolveConnectIds({ schoolId, kind: "genre", values: genreVals }),
     ]);
 
     await prisma.$transaction(async (tx) => {
@@ -534,14 +573,11 @@ export async function PUT(req: NextRequest) {
       });
       if (u.count === 0) throw new Error("更新対象が見つかりません");
 
-      // ✅ 既存リンクを全置換（course/campus/genre）
+      // ✅ 既存リンクを全置換（course/campus）
       await tx.diagnosisInstructorCourse.deleteMany({
         where: { instructorId: id, schoolId },
       });
       await tx.diagnosisInstructorCampus.deleteMany({
-        where: { instructorId: id, schoolId },
-      });
-      await tx.diagnosisInstructorGenre.deleteMany({
         where: { instructorId: id, schoolId },
       });
 
@@ -567,16 +603,24 @@ export async function PUT(req: NextRequest) {
         });
       }
 
-      if (genreR.ids.length > 0) {
-        await tx.diagnosisInstructorGenre.createMany({
-          data: genreR.ids.map((genreId) => ({
+      // ✅ Q4（雰囲気）は全置換
+      await tx.diagnosisInstructorQ4Option.deleteMany({
+        where: { instructorId: id, schoolId },
+      });
+      if (q4Vals.length > 0) {
+        await tx.diagnosisInstructorQ4Option.createMany({
+          data: q4Vals.map((optionId) => ({
             instructorId: id,
-            genreId,
             schoolId,
+            optionId,
           })),
           skipDuplicates: true,
         });
       }
+
+      // ⚠️ 重要：
+      // diagnosisInstructorGenre（DBジャンル）はここでは触らない
+      // （Q4用途と別物なので、勝手に消える事故を防ぐ）
     });
 
     const updated = await prisma.diagnosisInstructor.findFirst({
@@ -594,12 +638,17 @@ export async function PUT(req: NextRequest) {
       },
     });
 
-    const { coursesByInstructor, campusesByInstructor, genresByInstructor } =
-      await fetchLinks(schoolId, [id]);
+    const {
+      coursesByInstructor,
+      campusesByInstructor,
+      genresByInstructor,
+      q4ByInstructor,
+    } = await fetchLinks(schoolId, [id]);
 
     const courses = coursesByInstructor.get(id) ?? [];
     const campuses = campusesByInstructor.get(id) ?? [];
     const genres = genresByInstructor.get(id) ?? [];
+    const q4OptionIds = q4ByInstructor.get(id) ?? [];
 
     return NextResponse.json({
       ...updated,
@@ -611,7 +660,10 @@ export async function PUT(req: NextRequest) {
       genres,
       courseIds: courses.map((c: any) => c.id),
       campusIds: campuses.map((c: any) => c.id),
-      genreIds: genres.map((g: any) => g.answerTag ?? g.id),
+
+      // 互換
+      genreIds: q4OptionIds,
+      q4OptionIds,
     });
   } catch (e: any) {
     console.error(e);

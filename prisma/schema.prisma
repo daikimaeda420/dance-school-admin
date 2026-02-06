@@ -408,6 +408,19 @@ model DiagnosisFormEmailSetting {
   @@index([schoolId])
 }
 
+model DiagnosisInstructorQ4Option {
+  id           String @id @default(cuid())
+  schoolId     String
+  instructorId String
+  optionId     String
+
+  instructor DiagnosisInstructor @relation(fields: [instructorId, schoolId], references: [id, schoolId], onDelete: Cascade)
+
+  @@unique([schoolId, instructorId, optionId])
+  @@index([schoolId, optionId])
+}
+
+
 enum UserRole {
   SUPERADMIN
   SCHOOL_ADMIN
