@@ -1,6 +1,7 @@
 // app/(app)/admin/diagnosis/instructors/InstructorAdminClient.tsx
 "use client";
 
+import { QUESTIONS } from "@/lib/diagnosis/config";
 import { useEffect, useMemo, useState } from "react";
 
 type Props = { initialSchoolId?: string };
