@@ -172,7 +172,11 @@ model DiagnosisInstructor {
 
   results DiagnosisResult[] @relation("ResultInstructors")
 
+  // ✅ 追加：Q4 option 紐づけの逆側
+  q4Options DiagnosisInstructorQ4Option[] @relation("InstructorQ4Options")
+
   @@unique([schoolId, slug])
+  @@unique([id, schoolId]) // ✅ 追加：references: [id, schoolId] を成立させる
   @@index([schoolId, isActive])
   @@index([schoolId, sortOrder])
 }
@@ -297,7 +301,6 @@ enum Weekday {
   @@map("Weekday")
 }
 
-
 model DiagnosisScheduleSlot {
   id       String @id @default(cuid())
   schoolId String
@@ -414,12 +417,11 @@ model DiagnosisInstructorQ4Option {
   instructorId String
   optionId     String
 
-  instructor DiagnosisInstructor @relation(fields: [instructorId, schoolId], references: [id, schoolId], onDelete: Cascade)
+  instructor DiagnosisInstructor @relation("InstructorQ4Options", fields: [instructorId, schoolId], references: [id, schoolId], onDelete: Cascade)
 
   @@unique([schoolId, instructorId, optionId])
   @@index([schoolId, optionId])
 }
-
 
 enum UserRole {
   SUPERADMIN
