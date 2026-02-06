@@ -31,7 +31,7 @@ async function ensureLoggedIn() {
  * - 旧キー: mapEmbedUrl / mapLinkUrl が欲しい場合も返す（保存はしない）
  */
 function addAliases<
-  T extends { googleMapEmbedUrl?: string | null; googleMapUrl?: string | null }
+  T extends { googleMapEmbedUrl?: string | null; googleMapUrl?: string | null },
 >(row: T) {
   return {
     ...row,
@@ -51,14 +51,14 @@ export async function GET(req: NextRequest) {
 
   // 後方互換：schoolId / school
   const schoolId = norm(
-    searchParams.get("schoolId") ?? searchParams.get("school")
+    searchParams.get("schoolId") ?? searchParams.get("school"),
   );
   const full = searchParams.get("full") === "1";
 
   if (!schoolId) {
     return NextResponse.json(
       { message: "schoolId が必要です" },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
@@ -81,6 +81,7 @@ export async function GET(req: NextRequest) {
           googleMapEmbedUrl: true,
         }
       : {
+          id: true, // ✅ 追加：dbId として返すために必要
           label: true,
           slug: true,
         },
@@ -88,9 +89,11 @@ export async function GET(req: NextRequest) {
 
   // フロント診断用（fullじゃない）は options 形式で返す運用
   if (!full) {
-    const options: DiagnosisQuestionOption[] = (campuses as any[]).map((c) => ({
-      id: c.slug,
+    const options = (campuses as any[]).map((c) => ({
+      id: c.slug, // UIで使う値
       label: c.label,
+      dbId: c.id, // ✅ 追加：cm...（講師の campusIds と一致する）
+      slug: c.slug, // 任意（UI側の変換にも使える）
     }));
     return NextResponse.json(options);
   }
@@ -106,7 +109,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
 
-  const body = await req.json().catch(() => ({} as any));
+  const body = await req.json().catch(() => ({}) as any);
 
   // 後方互換：schoolId / school
   const schoolId = norm(body.schoolId ?? body.school);
@@ -128,13 +131,13 @@ export async function POST(req: NextRequest) {
     body.googleMapEmbedUrl !== undefined
       ? norm(body.googleMapEmbedUrl) || null
       : body.mapEmbedUrl !== undefined
-      ? norm(body.mapEmbedUrl) || null
-      : null;
+        ? norm(body.mapEmbedUrl) || null
+        : null;
 
   if (!schoolId) {
     return NextResponse.json(
       { message: "schoolId が必要です" },
-      { status: 400 }
+      { status: 400 },
     );
   }
   if (!label) {
@@ -151,7 +154,7 @@ export async function POST(req: NextRequest) {
   if (dup) {
     return NextResponse.json(
       { message: "この slug は既に使用されています" },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
