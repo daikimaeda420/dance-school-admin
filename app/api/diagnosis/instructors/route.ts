@@ -302,7 +302,7 @@ export async function GET(req: NextRequest) {
           genres,
           courseIds: courses.map((c: any) => c.id),
           campusIds: campuses.map((c: any) => c.id),
-          genreIds: genres.map((g: any) => g.id),
+          genreIds: genres.map((g: any) => g.answerTag ?? g.id),
         };
       }),
     );
@@ -447,7 +447,7 @@ export async function POST(req: NextRequest) {
         genres,
         courseIds: courses.map((c: any) => c.id),
         campusIds: campuses.map((c: any) => c.id),
-        genreIds: genres.map((g: any) => g.id),
+        genreIds: genres.map((g: any) => g.answerTag ?? g.id),
       },
       { status: 201 },
     );
@@ -611,7 +611,7 @@ export async function PUT(req: NextRequest) {
       genres,
       courseIds: courses.map((c: any) => c.id),
       campusIds: campuses.map((c: any) => c.id),
-      genreIds: genres.map((g: any) => g.id),
+      genreIds: genres.map((g: any) => g.answerTag ?? g.id),
     });
   } catch (e: any) {
     console.error(e);
