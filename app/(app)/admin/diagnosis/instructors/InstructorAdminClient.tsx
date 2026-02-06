@@ -302,39 +302,49 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
 
   const fetchOptions = async () => {
     if (!canLoad) return;
+
     try {
-      const [cRes, pRes, gRes] = await Promise.all([
+      // ✅ genres はDBから取らないので gRes は消す
+      const [cRes, pRes] = await Promise.all([
         fetch(
           `/api/diagnosis/courses?schoolId=${encodeURIComponent(schoolId)}`,
-          { cache: "no-store" },
+          {
+            cache: "no-store",
+          },
         ),
         fetch(
           `/api/diagnosis/campuses?schoolId=${encodeURIComponent(schoolId)}`,
-          { cache: "no-store" },
-        ),
-        fetch(
-          `/api/diagnosis/genres?schoolId=${encodeURIComponent(schoolId)}`,
-          { cache: "no-store" },
+          {
+            cache: "no-store",
+          },
         ),
       ]);
 
       const cJson = cRes.ok ? await cRes.json().catch(() => []) : [];
       const pJson = pRes.ok ? await pRes.json().catch(() => []) : [];
-      const gJson = gRes.ok ? await gRes.json().catch(() => []) : [];
-
-      console.log("[rawOptions]", {
-        schoolId,
-        pResOk: pRes.ok,
-        gResOk: gRes.ok,
-        pType: Array.isArray(pJson) ? "array" : typeof pJson,
-        gType: Array.isArray(gJson) ? "array" : typeof gJson,
-        pJson,
-        gJson,
-      });
 
       const c = normalizeOptions("course", cJson);
       const p = normalizeOptions("campus", pJson);
-      const g = normalizeOptions("genre", gJson);
+
+      // ✅ Q4の選択肢を options に変換して genres として扱う
+      const q4 = QUESTIONS.find((q) => q.id === "Q4");
+      const g: OptionRow[] = (q4?.options ?? []).map((o: any) => ({
+        id: String(o.id), // ← checkbox の値になる
+        label: String(o.label), // ← 表示
+        slug: undefined,
+        dbId: undefined,
+        answerTag: String(o.id), // ← API側で解決に使える
+        isActive: true,
+      }));
+
+      console.log("[fetchOptions]", {
+        schoolId,
+        courses: c.length,
+        campuses: p.length,
+        genres: g.length,
+        sampleCampus: p[0],
+        sampleGenre: g[0],
+      });
 
       setCourses(c);
       setCampuses(p);
