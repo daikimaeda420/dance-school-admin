@@ -1224,7 +1224,7 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
                               </div>
                               <div>
                                 <span className="font-semibold">
-                                  ジャンル：
+                                  好みの音楽・雰囲気：
                                 </span>
                                 {joinLabels(r.genres) || "—"}
                               </div>
