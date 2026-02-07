@@ -417,9 +417,7 @@ model DiagnosisInstructorQ4Option {
   instructorId String
   optionId     String
 
-  // ✅ relation名を揃える（Instructor 側と同じ）
-  instructor DiagnosisInstructor
-    @relation("InstructorQ4Options", fields: [instructorId], references: [id], onDelete: Cascade)
+  instructor DiagnosisInstructor @relation("InstructorQ4Options", fields: [instructorId], references: [id], onDelete: Cascade)
 
   @@unique([schoolId, instructorId, optionId])
   @@index([schoolId, optionId])
