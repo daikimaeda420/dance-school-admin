@@ -878,7 +878,7 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
 
               <div>
                 <div className="mb-1 text-[11px] font-semibold text-gray-600 dark:text-gray-300">
-                  ジャンル（Q4 / 雰囲気）
+                  好みの音楽・雰囲気（チェック）
                 </div>
                 <CheckboxList
                   options={genres}
@@ -1195,7 +1195,7 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
 
                               <div>
                                 <div className="mb-1 text-[11px] text-gray-600 dark:text-gray-300">
-                                  ジャンル（Q4 / 雰囲気）
+                                  好みの音楽・雰囲気（チェック）
                                 </div>
                                 <CheckboxList
                                   options={genres}

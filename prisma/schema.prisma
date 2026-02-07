@@ -417,7 +417,7 @@ model DiagnosisInstructorQ4Option {
   instructorId String
   optionId     String
 
-  instructor DiagnosisInstructor @relation("InstructorQ4Options", fields: [instructorId, schoolId], references: [id, schoolId], onDelete: Cascade)
+  instructor DiagnosisInstructor @relation(fields: [instructorId], references: [id], onDelete: Cascade)
 
   @@unique([schoolId, instructorId, optionId])
   @@index([schoolId, optionId])

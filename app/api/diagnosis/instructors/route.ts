@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
+import { QUESTIONS } from "@/lib/diagnosis/config";
 
 export const runtime = "nodejs";
 
@@ -77,6 +78,23 @@ function uniq(arr: string[]) {
 
 type ResolveKind = "campus" | "course";
 
+function q4LabelMap() {
+  const q4 = QUESTIONS.find((q) => q.id === "Q4");
+  const map = new Map<string, string>();
+  for (const o of q4?.options ?? []) {
+    map.set(String(o.id), String(o.label));
+  }
+  return map;
+}
+
+/** ✅ Q4の選択肢として「許可された optionId」だけに正規化 */
+function normalizeQ4OptionIds(input: string[]) {
+  const map = q4LabelMap();
+  const allow = new Set(Array.from(map.keys()));
+  const cleaned = uniq(input);
+  return cleaned.filter((v) => allow.has(v));
+}
+
 /**
  * ✅ id/slug/label が混在していても「存在する実ID」に解決する
  * ※ 管理画面の紐づけが勝手に消えないように isActive はここでは見ない（結果側で絞る）
@@ -133,24 +151,18 @@ async function resolveConnectIds(params: {
 }
 
 /**
- * ✅ 明示中間（Course/Campus/Genre）からまとめて返す
- * + ✅ Q4（雰囲気）の選択肢ID紐づけも返す
+ * ✅ 明示中間（Course/Campus） + ✅ Q4 option の紐づけを返す
  */
 async function fetchLinks(schoolId: string, instructorIds: string[]) {
   if (instructorIds.length === 0) {
     return {
       coursesByInstructor: new Map<string, any[]>(),
       campusesByInstructor: new Map<string, any[]>(),
-
-      // 既存: DBジャンル（残す：将来用/互換）
-      genresByInstructor: new Map<string, any[]>(),
-
-      // 新規: Q4選択肢ID
       q4ByInstructor: new Map<string, string[]>(),
     };
   }
 
-  const [courseLinks, campusLinks, genreLinks, q4Links] = await Promise.all([
+  const [courseLinks, campusLinks, q4Links] = await Promise.all([
     prisma.diagnosisInstructorCourse.findMany({
       where: { schoolId, instructorId: { in: instructorIds } },
       select: { instructorId: true, courseId: true },
@@ -159,14 +171,6 @@ async function fetchLinks(schoolId: string, instructorIds: string[]) {
       where: { schoolId, instructorId: { in: instructorIds } },
       select: { instructorId: true, campusId: true },
     }),
-
-    // 既存（DBジャンル）：触らず読み取りだけ
-    prisma.diagnosisInstructorGenre.findMany({
-      where: { schoolId, instructorId: { in: instructorIds } },
-      select: { instructorId: true, genreId: true },
-    }),
-
-    // ✅ Q4選択肢（新規）
     prisma.diagnosisInstructorQ4Option.findMany({
       where: { schoolId, instructorId: { in: instructorIds } },
       select: { instructorId: true, optionId: true },
@@ -175,9 +179,8 @@ async function fetchLinks(schoolId: string, instructorIds: string[]) {
 
   const courseIds = Array.from(new Set(courseLinks.map((x) => x.courseId)));
   const campusIds = Array.from(new Set(campusLinks.map((x) => x.campusId)));
-  const genreIds = Array.from(new Set(genreLinks.map((x) => x.genreId)));
 
-  const [courses, campuses, genres] = await Promise.all([
+  const [courses, campuses] = await Promise.all([
     courseIds.length
       ? prisma.diagnosisCourse.findMany({
           where: { id: { in: courseIds } },
@@ -190,17 +193,10 @@ async function fetchLinks(schoolId: string, instructorIds: string[]) {
           select: { id: true, label: true, slug: true, isActive: true },
         })
       : Promise.resolve([]),
-    genreIds.length
-      ? prisma.diagnosisGenre.findMany({
-          where: { id: { in: genreIds } },
-          select: { id: true, label: true, slug: true, answerTag: true },
-        })
-      : Promise.resolve([]),
   ]);
 
   const courseMap = new Map(courses.map((c) => [c.id, c]));
   const campusMap = new Map(campuses.map((c) => [c.id, c]));
-  const genreMap = new Map(genres.map((g) => [g.id, g]));
 
   const coursesByInstructor = new Map<string, any[]>();
   for (const row of courseLinks) {
@@ -220,16 +216,6 @@ async function fetchLinks(schoolId: string, instructorIds: string[]) {
     campusesByInstructor.set(row.instructorId, cur);
   }
 
-  const genresByInstructor = new Map<string, any[]>();
-  for (const row of genreLinks) {
-    const g = genreMap.get(row.genreId);
-    if (!g) continue;
-    const cur = genresByInstructor.get(row.instructorId) ?? [];
-    cur.push(g);
-    genresByInstructor.set(row.instructorId, cur);
-  }
-
-  // ✅ Q4 option ids
   const q4ByInstructor = new Map<string, string[]>();
   for (const row of q4Links) {
     const cur = q4ByInstructor.get(row.instructorId) ?? [];
@@ -237,12 +223,7 @@ async function fetchLinks(schoolId: string, instructorIds: string[]) {
     q4ByInstructor.set(row.instructorId, Array.from(new Set(cur)));
   }
 
-  return {
-    coursesByInstructor,
-    campusesByInstructor,
-    genresByInstructor,
-    q4ByInstructor,
-  };
+  return { coursesByInstructor, campusesByInstructor, q4ByInstructor };
 }
 
 function readOptionalText(fd: FormData, key: string): string | null {
@@ -287,23 +268,25 @@ export async function GET(req: NextRequest) {
     });
 
     const instructorIds = rows.map((r) => r.id);
-    const {
-      coursesByInstructor,
-      campusesByInstructor,
-      genresByInstructor,
-      q4ByInstructor,
-    } = await fetchLinks(schoolId, instructorIds);
+    const { coursesByInstructor, campusesByInstructor, q4ByInstructor } =
+      await fetchLinks(schoolId, instructorIds);
+
+    const q4Map = q4LabelMap();
 
     return NextResponse.json(
       rows.map((r) => {
         const courses = coursesByInstructor.get(r.id) ?? [];
         const campuses = campusesByInstructor.get(r.id) ?? [];
 
-        // 既存（DBジャンル）
-        const genres = genresByInstructor.get(r.id) ?? [];
-
-        // ✅ Q4選択肢
+        // ✅ Q4 option ids
         const q4OptionIds = q4ByInstructor.get(r.id) ?? [];
+
+        // ✅ フロント表示用：genres に「Q4選択肢」を入れる（ここが表示されない原因の修正）
+        const q4Options = q4OptionIds.map((oid) => ({
+          id: oid,
+          label: q4Map.get(oid) ?? oid,
+          slug: oid,
+        }));
 
         return {
           ...r,
@@ -313,16 +296,17 @@ export async function GET(req: NextRequest) {
 
           courses,
           campuses,
-          genres, // 残す（互換）
+
+          // ✅ 重要：genres は Q4選択肢にする
+          genres: q4Options,
 
           courseIds: courses.map((c: any) => c.id),
           campusIds: campuses.map((c: any) => c.id),
 
-          // ✅ フロント互換：genreIds を Q4の値として返す
-          // （フロントが genreIds をそのまま使っていてもチェックが保持される）
+          // ✅ 互換：フロントが genreIds を見ててもOK
           genreIds: q4OptionIds,
 
-          // ✅ 正式キー（今後フロントもこちらに寄せられる）
+          // ✅ 将来用：正式キー
           q4OptionIds,
         };
       }),
@@ -360,12 +344,12 @@ export async function POST(req: NextRequest) {
     const courseVals = readIdList(fd, "courseIds");
     const campusVals = readIdList(fd, "campusIds");
 
-    // ✅ Q4（雰囲気）
-    // 互換：フロントが genreIds で送ってきても受ける
-    const q4Vals = uniq([
+    // ✅ Q4（雰囲気）互換：genreIdsでも来る
+    const q4ValsRaw = uniq([
       ...readIdList(fd, "q4OptionIds"),
       ...readIdList(fd, "genreIds"),
     ]);
+    const q4Vals = normalizeQ4OptionIds(q4ValsRaw);
 
     if (!id || !schoolId || !label || !slug) {
       return json("id / schoolId / label / slug は必須です", 400);
@@ -441,7 +425,7 @@ export async function POST(req: NextRequest) {
         });
       }
 
-      // ✅ Q4（雰囲気）保存
+      // ✅ Q4保存
       if (q4Vals.length > 0) {
         await tx.diagnosisInstructorQ4Option.createMany({
           data: q4Vals.map((optionId) => ({
@@ -456,17 +440,19 @@ export async function POST(req: NextRequest) {
       return created;
     });
 
-    const {
-      coursesByInstructor,
-      campusesByInstructor,
-      genresByInstructor,
-      q4ByInstructor,
-    } = await fetchLinks(schoolId, [instructor.id]);
+    // 返却整形（GETと同じ形式）
+    const { coursesByInstructor, campusesByInstructor, q4ByInstructor } =
+      await fetchLinks(schoolId, [instructor.id]);
 
     const courses = coursesByInstructor.get(instructor.id) ?? [];
     const campuses = campusesByInstructor.get(instructor.id) ?? [];
-    const genres = genresByInstructor.get(instructor.id) ?? [];
     const q4OptionIds = q4ByInstructor.get(instructor.id) ?? [];
+    const q4Map = q4LabelMap();
+    const q4Options = q4OptionIds.map((oid) => ({
+      id: oid,
+      label: q4Map.get(oid) ?? oid,
+      slug: oid,
+    }));
 
     return NextResponse.json(
       {
@@ -476,11 +462,9 @@ export async function POST(req: NextRequest) {
         introduction: instructor.introduction ?? null,
         courses,
         campuses,
-        genres,
+        genres: q4Options,
         courseIds: courses.map((c: any) => c.id),
         campusIds: campuses.map((c: any) => c.id),
-
-        // 互換
         genreIds: q4OptionIds,
         q4OptionIds,
       },
@@ -524,11 +508,11 @@ export async function PUT(req: NextRequest) {
     const courseVals = readIdList(fd, "courseIds");
     const campusVals = readIdList(fd, "campusIds");
 
-    // ✅ Q4（雰囲気）
-    const q4Vals = uniq([
+    const q4ValsRaw = uniq([
       ...readIdList(fd, "q4OptionIds"),
       ...readIdList(fd, "genreIds"),
     ]);
+    const q4Vals = normalizeQ4OptionIds(q4ValsRaw);
 
     if (!id || !schoolId || !label || !slug) {
       return json("id / schoolId / label / slug は必須です", 400);
@@ -573,7 +557,7 @@ export async function PUT(req: NextRequest) {
       });
       if (u.count === 0) throw new Error("更新対象が見つかりません");
 
-      // ✅ 既存リンクを全置換（course/campus）
+      // ✅ course/campus は全置換
       await tx.diagnosisInstructorCourse.deleteMany({
         where: { instructorId: id, schoolId },
       });
@@ -603,7 +587,7 @@ export async function PUT(req: NextRequest) {
         });
       }
 
-      // ✅ Q4（雰囲気）は全置換
+      // ✅ Q4は全置換
       await tx.diagnosisInstructorQ4Option.deleteMany({
         where: { instructorId: id, schoolId },
       });
@@ -617,10 +601,6 @@ export async function PUT(req: NextRequest) {
           skipDuplicates: true,
         });
       }
-
-      // ⚠️ 重要：
-      // diagnosisInstructorGenre（DBジャンル）はここでは触らない
-      // （Q4用途と別物なので、勝手に消える事故を防ぐ）
     });
 
     const updated = await prisma.diagnosisInstructor.findFirst({
@@ -638,17 +618,19 @@ export async function PUT(req: NextRequest) {
       },
     });
 
-    const {
-      coursesByInstructor,
-      campusesByInstructor,
-      genresByInstructor,
-      q4ByInstructor,
-    } = await fetchLinks(schoolId, [id]);
+    const { coursesByInstructor, campusesByInstructor, q4ByInstructor } =
+      await fetchLinks(schoolId, [id]);
 
     const courses = coursesByInstructor.get(id) ?? [];
     const campuses = campusesByInstructor.get(id) ?? [];
-    const genres = genresByInstructor.get(id) ?? [];
     const q4OptionIds = q4ByInstructor.get(id) ?? [];
+
+    const q4Map = q4LabelMap();
+    const q4Options = q4OptionIds.map((oid) => ({
+      id: oid,
+      label: q4Map.get(oid) ?? oid,
+      slug: oid,
+    }));
 
     return NextResponse.json({
       ...updated,
@@ -657,11 +639,9 @@ export async function PUT(req: NextRequest) {
       introduction: updated?.introduction ?? null,
       courses,
       campuses,
-      genres,
+      genres: q4Options,
       courseIds: courses.map((c: any) => c.id),
       campusIds: campuses.map((c: any) => c.id),
-
-      // 互換
       genreIds: q4OptionIds,
       q4OptionIds,
     });
