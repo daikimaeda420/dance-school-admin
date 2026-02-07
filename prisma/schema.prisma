@@ -172,14 +172,14 @@ model DiagnosisInstructor {
 
   results DiagnosisResult[] @relation("ResultInstructors")
 
-  // ✅ 追加：Q4 option 紐づけの逆側
+  // ✅ 追加：Q4 option 紐づけ（逆側）
   q4Options DiagnosisInstructorQ4Option[] @relation("InstructorQ4Options")
 
   @@unique([schoolId, slug])
-  @@unique([id, schoolId]) // ✅ 追加：references: [id, schoolId] を成立させる
   @@index([schoolId, isActive])
   @@index([schoolId, sortOrder])
 }
+
 
 model DiagnosisInstructorCourse {
   instructorId String
@@ -417,11 +417,15 @@ model DiagnosisInstructorQ4Option {
   instructorId String
   optionId     String
 
-  instructor DiagnosisInstructor @relation(fields: [instructorId], references: [id], onDelete: Cascade)
+  // ✅ relation名を揃える（Instructor 側と同じ）
+  instructor DiagnosisInstructor
+    @relation("InstructorQ4Options", fields: [instructorId], references: [id], onDelete: Cascade)
 
   @@unique([schoolId, instructorId, optionId])
   @@index([schoolId, optionId])
+  @@index([instructorId])
 }
+
 
 enum UserRole {
   SUPERADMIN
