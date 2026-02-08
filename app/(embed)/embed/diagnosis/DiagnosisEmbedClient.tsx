@@ -1712,11 +1712,6 @@ export default function DiagnosisEmbedClient({
                           校舎一覧を読み込み中...
                         </div>
                       )}
-
-                      {/* 画像の「（複数選択可）」表記がある時だけ表示したい場合は適宜条件を追加 */}
-                      <div className="mt-2 text-[11px] font-bold text-[#6b4a2b]/60">
-                        （複数選択可）
-                      </div>
                     </div>
                   </div>
 
