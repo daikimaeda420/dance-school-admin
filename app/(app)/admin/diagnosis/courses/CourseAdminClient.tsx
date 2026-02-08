@@ -685,21 +685,26 @@ export default function CourseAdminClient({ schoolId }: Props) {
                 <div className="space-y-2">
                   {courses.map((c) => {
                     const setRowSelected = (v: SetStateAction<string[]>) => {
+                      // ✅ 先に next を確定させる（setState の中で確定させない）
+                      const base = c.q2AnswerTags ?? [];
+                      const nextValue =
+                        typeof v === "function"
+                          ? (v as (prev: string[]) => string[])(base)
+                          : v;
+
+                      const normalized = uniqStrings(nextValue ?? []);
+
+                      // ✅ UI反映
                       setCourses((prev) =>
-                        prev.map((p) => {
-                          if (p.id !== c.id) return p;
-                          const nextValue =
-                            typeof v === "function"
-                              ? (v as (prev: string[]) => string[])(
-                                  p.q2AnswerTags ?? [],
-                                )
-                              : v;
-                          return {
-                            ...p,
-                            q2AnswerTags: uniqStrings(nextValue ?? []),
-                          };
-                        }),
+                        prev.map((p) =>
+                          p.id === c.id
+                            ? { ...p, q2AnswerTags: normalized }
+                            : p,
+                        ),
                       );
+
+                      // ✅ DB保存（確定済みの normalized を送る）
+                      void handleUpdateField(c.id, "q2AnswerTags", normalized);
                     };
 
                     const rowSaving = savingRowId === c.id;
