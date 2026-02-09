@@ -1299,67 +1299,85 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
                               </div>
                             </div>
                           ) : (
-                            <div className="mt-2 grid gap-2 rounded-xl border border-gray-200 bg-white p-3 text-[12px] text-gray-800 dark:border-gray-800 dark:bg-gray-950 dark:text-gray-200">
-                              <div className="grid gap-2 md:grid-cols-2">
-                                <div>
-                                  <div className="text-[11px] font-semibold text-gray-500 dark:text-gray-400">
-                                    コース
+                            <div className="mt-2 rounded-2xl border border-gray-200 bg-gray-50 p-3 dark:border-gray-800 dark:bg-gray-950/40">
+                              <div className="grid gap-3 md:grid-cols-2">
+                                {/* 左 */}
+                                <div className="space-y-3">
+                                  <div>
+                                    <div className="text-[11px] font-semibold text-gray-600 dark:text-gray-300">
+                                      コース
+                                    </div>
+                                    <div className="mt-1">
+                                      <TagPills
+                                        labels={labelsBySelectedIds(
+                                          selectedCourseIds,
+                                          courses,
+                                        )}
+                                      />
+                                    </div>
                                   </div>
-                                  <div className="mt-1">
-                                    {joinLabels(r.courses) || (
-                                      <span className="text-gray-500">—</span>
-                                    )}
+
+                                  <div>
+                                    <div className="text-[11px] font-semibold text-gray-600 dark:text-gray-300">
+                                      好みの音楽・雰囲気（Q4）
+                                    </div>
+                                    <div className="mt-1">
+                                      <TagPills
+                                        labels={labelsBySelectedIds(
+                                          selectedGenreIds,
+                                          genres,
+                                        )}
+                                      />
+                                    </div>
                                   </div>
                                 </div>
 
-                                <div>
-                                  <div className="text-[11px] font-semibold text-gray-500 dark:text-gray-400">
-                                    校舎
-                                  </div>
-                                  <div className="mt-1">
-                                    {joinLabels(r.campuses) || (
-                                      <span className="text-gray-500">—</span>
-                                    )}
-                                  </div>
-                                </div>
-
-                                <div>
-                                  <div className="text-[11px] font-semibold text-gray-500 dark:text-gray-400">
-                                    好みの音楽・雰囲気
-                                  </div>
-                                  <div className="mt-1">
-                                    {joinLabels(r.genres) || (
-                                      <span className="text-gray-500">—</span>
-                                    )}
-                                  </div>
-                                </div>
-
-                                <div>
-                                  <div className="text-[11px] font-semibold text-gray-500 dark:text-gray-400">
-                                    一番の不安（Q6）
+                                {/* 右 */}
+                                <div className="space-y-3">
+                                  <div>
+                                    <div className="text-[11px] font-semibold text-gray-600 dark:text-gray-300">
+                                      校舎
+                                    </div>
+                                    <div className="mt-1">
+                                      <TagPills
+                                        labels={labelsBySelectedIds(
+                                          selectedCampusIds,
+                                          campuses,
+                                        )}
+                                      />
+                                    </div>
                                   </div>
 
-                                  <div className="mt-1 flex flex-wrap gap-1">
-                                    {selectedConcernIds.length > 0 ? (
-                                      selectedConcernIds.map((id) => {
-                                        const opt = concerns.find(
-                                          (c) => String(c.id) === String(id),
-                                        );
-                                        const label = opt?.label ?? id;
-                                        return (
-                                          <span
-                                            key={id}
-                                            className="rounded-full border border-gray-200 bg-gray-50 px-2 py-0.5 text-[11px] font-semibold text-gray-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200"
-                                          >
-                                            {label}
-                                          </span>
-                                        );
-                                      })
-                                    ) : (
-                                      <span className="text-gray-500">—</span>
-                                    )}
+                                  <div>
+                                    <div className="text-[11px] font-semibold text-gray-600 dark:text-gray-300">
+                                      一番の不安（Q6）
+                                    </div>
+                                    <div className="mt-1">
+                                      <TagPills
+                                        labels={labelsBySelectedIds(
+                                          selectedConcernIds,
+                                          concerns,
+                                        )}
+                                        empty="—"
+                                      />
+                                    </div>
                                   </div>
                                 </div>
+                              </div>
+
+                              <div className="mt-3 flex flex-wrap items-center gap-2 text-[10px] text-gray-500 dark:text-gray-400">
+                                <span className="rounded-full border border-gray-200 bg-white px-2 py-0.5 dark:border-gray-800 dark:bg-gray-900">
+                                  course: {selectedCourseIds.length}
+                                </span>
+                                <span className="rounded-full border border-gray-200 bg-white px-2 py-0.5 dark:border-gray-800 dark:bg-gray-900">
+                                  campus: {selectedCampusIds.length}
+                                </span>
+                                <span className="rounded-full border border-gray-200 bg-white px-2 py-0.5 dark:border-gray-800 dark:bg-gray-900">
+                                  genre: {selectedGenreIds.length}
+                                </span>
+                                <span className="rounded-full border border-gray-200 bg-white px-2 py-0.5 dark:border-gray-800 dark:bg-gray-900">
+                                  q6: {selectedConcernIds.length}
+                                </span>
                               </div>
                             </div>
                           )}
