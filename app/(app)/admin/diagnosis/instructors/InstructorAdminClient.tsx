@@ -633,12 +633,12 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
         campuses,
       );
       const sendGenreIds = normalizeIdsByOptions(
-        resolveToOptionIds(uniqStrings(newGenreIds), genres),
+        resolveToOptionIds(uniqStrings(e.genreIds ?? []), genres),
         genres,
       );
 
       const sendConcernIds = normalizeIdsByOptions(
-        resolveToOptionIds(uniqStrings(newConcernIds), concerns),
+        resolveToOptionIds(uniqStrings(e.concernIds ?? []), concerns),
         concerns,
       );
 
