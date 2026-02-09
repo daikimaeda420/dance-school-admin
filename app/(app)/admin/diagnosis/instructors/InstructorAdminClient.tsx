@@ -381,6 +381,7 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
         courseIds: safeArray(d.courseIds),
         campusIds: safeArray(d.campusIds),
         genreIds: safeArray(d.genreIds),
+        concernIds: safeArray(d.q6OptionIds ?? d.concernIds),
       }));
 
       setRows(
@@ -527,6 +528,16 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
         ? safeArray(r.genreIds)
         : uniqStrings((r.genres ?? []).map((g) => g.id));
 
+    const rawConcernIds =
+      safeArray(r.concernIds).length > 0
+        ? safeArray(r.concernIds)
+        : safeArray((r as any).q6OptionIds);
+
+    const seedConcernIds = normalizeIdsByOptions(
+      resolveToOptionIds(rawConcernIds, concerns),
+      concerns,
+    );
+
     const seedCourseIds = normalizeIdsByOptions(
       resolveToOptionIds(rawCourseIds, courses),
       courses,
@@ -553,6 +564,7 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
         courseIds: seedCourseIds,
         campusIds: seedCampusIds,
         genreIds: seedGenreIds,
+        concernIds: seedConcernIds,
 
         charmTags: String(r.charmTags ?? ""),
         introduction: String(r.introduction ?? ""),
@@ -611,6 +623,7 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
 
     setSaving(true);
     setError(null);
+
     try {
       const fd = new FormData();
       fd.append("id", id);
@@ -624,6 +637,7 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
       const file = editFileMap[id];
       if (file) fd.append("file", file);
 
+      // ✅ コース/校舎/ジャンル：編集値(e.xxx)を送る
       const sendCourseIds = normalizeIdsByOptions(
         resolveToOptionIds(uniqStrings(e.courseIds ?? []), courses),
         courses,
@@ -637,11 +651,19 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
         genres,
       );
 
+      // ✅ Q6（不安）：e.concernIds が無い/空のときのフォールバックも見る
+      const rawConcernIds = uniqStrings(
+        (e.concernIds && e.concernIds.length > 0
+          ? e.concernIds
+          : ((e as any).q6OptionIds ?? [])) as any[],
+      );
+
       const sendConcernIds = normalizeIdsByOptions(
-        resolveToOptionIds(uniqStrings(e.concernIds ?? []), concerns),
+        resolveToOptionIds(rawConcernIds, concerns),
         concerns,
       );
 
+      // ✅ 送信
       fd.append("courseIds", JSON.stringify(sendCourseIds));
       fd.append("campusIds", JSON.stringify(sendCampusIds));
       fd.append("genreIds", JSON.stringify(sendGenreIds));
@@ -654,6 +676,7 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
         method: "PUT",
         body: fd,
       });
+
       if (!res.ok) {
         const data = await res.json().catch(() => null);
         throw new Error(data?.message ?? "更新に失敗しました");
@@ -661,8 +684,8 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
 
       cancelEdit(id);
       await fetchList();
-    } catch (e: any) {
-      setError(e?.message ?? "更新に失敗しました");
+    } catch (err: any) {
+      setError(err?.message ?? "更新に失敗しました");
     } finally {
       setSaving(false);
     }
