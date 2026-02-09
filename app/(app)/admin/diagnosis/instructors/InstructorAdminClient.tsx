@@ -1260,11 +1260,14 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
                                 </div>
                                 <CheckboxList
                                   options={concerns}
-                                  selected={newConcernIds}
+                                  selected={selectedConcernIds}
                                   onChange={(next) =>
-                                    setNewConcernIds(
-                                      normalizeIdsByOptions(next, concerns),
-                                    )
+                                    updateEditField(r.id, {
+                                      concernIds: normalizeIdsByOptions(
+                                        next,
+                                        concerns,
+                                      ),
+                                    })
                                   }
                                   columns={1}
                                 />
