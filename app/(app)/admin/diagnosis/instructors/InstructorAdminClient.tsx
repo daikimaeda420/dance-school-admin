@@ -1297,20 +1297,67 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
                               </div>
                             </div>
                           ) : (
-                            <div className="mt-1 text-[12px] text-gray-700 dark:text-gray-200">
-                              <div className="mb-1">
-                                <span className="font-semibold">コース：</span>
-                                {joinLabels(r.courses) || "—"}
-                              </div>
-                              <div className="mb-1">
-                                <span className="font-semibold">校舎：</span>
-                                {joinLabels(r.campuses) || "—"}
-                              </div>
-                              <div>
-                                <span className="font-semibold">
-                                  好みの音楽・雰囲気：
-                                </span>
-                                {joinLabels(r.genres) || "—"}
+                            <div className="mt-2 grid gap-2 rounded-xl border border-gray-200 bg-white p-3 text-[12px] text-gray-800 dark:border-gray-800 dark:bg-gray-950 dark:text-gray-200">
+                              <div className="grid gap-2 md:grid-cols-2">
+                                <div>
+                                  <div className="text-[11px] font-semibold text-gray-500 dark:text-gray-400">
+                                    コース
+                                  </div>
+                                  <div className="mt-1">
+                                    {joinLabels(r.courses) || (
+                                      <span className="text-gray-500">—</span>
+                                    )}
+                                  </div>
+                                </div>
+
+                                <div>
+                                  <div className="text-[11px] font-semibold text-gray-500 dark:text-gray-400">
+                                    校舎
+                                  </div>
+                                  <div className="mt-1">
+                                    {joinLabels(r.campuses) || (
+                                      <span className="text-gray-500">—</span>
+                                    )}
+                                  </div>
+                                </div>
+
+                                <div>
+                                  <div className="text-[11px] font-semibold text-gray-500 dark:text-gray-400">
+                                    好みの音楽・雰囲気
+                                  </div>
+                                  <div className="mt-1">
+                                    {joinLabels(r.genres) || (
+                                      <span className="text-gray-500">—</span>
+                                    )}
+                                  </div>
+                                </div>
+
+                                <div>
+                                  <div className="text-[11px] font-semibold text-gray-500 dark:text-gray-400">
+                                    一番の不安（Q6）
+                                  </div>
+
+                                  <div className="mt-1 flex flex-wrap gap-1">
+                                    {selectedConcernIds.length > 0 ? (
+                                      selectedConcernIds.map((id) => {
+                                        const opt = concerns.find(
+                                          (c) => String(c.id) === String(id),
+                                        );
+                                        const label = opt?.label ?? id;
+                                        return (
+                                          <span
+                                            key={id}
+                                            className="rounded-full border border-gray-200 bg-gray-50 px-2 py-0.5 text-[11px] font-semibold text-gray-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200"
+                                          >
+                                            {label}
+                                          </span>
+                                        );
+                                      })
+                                    ) : (
+                                      <span className="text-gray-500">—</span>
+                                    )}
+                                  </div>
+                                </div>
                               </div>
                             </div>
                           )}
