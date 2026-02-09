@@ -909,6 +909,20 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
               </div>
             </div>
 
+            <div>
+              <div className="mb-1 text-[11px] font-semibold text-gray-600 dark:text-gray-300">
+                一番の不安（チェック）
+              </div>
+              <CheckboxList
+                options={concerns}
+                selected={newConcernIds}
+                onChange={(next) =>
+                  setNewConcernIds(normalizeIdsByOptions(next, concerns))
+                }
+                columns={1}
+              />
+            </div>
+
             <div className="mt-2 text-[11px] text-gray-500 dark:text-gray-400">
               ✅ コース/校舎/ジャンルは複数選択できます。
             </div>
@@ -1019,6 +1033,16 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
               const selectedGenreIds = normalizeIdsByOptions(
                 resolveToOptionIds(rawGenreIds, genres),
                 genres,
+              );
+
+              const selectedConcernIds = normalizeIdsByOptions(
+                resolveToOptionIds(
+                  editing
+                    ? uniqStrings((e?.concernIds ?? []) as any[])
+                    : safeArray((r as any).q6OptionIds),
+                  concerns,
+                ),
+                concerns,
               );
 
               return (
@@ -1216,15 +1240,31 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
                                   好みの音楽・雰囲気（チェック）
                                 </div>
                                 <CheckboxList
-                                  options={genres}
-                                  selected={selectedGenreIds}
+                                  options={concerns}
+                                  selected={selectedConcernIds}
                                   onChange={(next) =>
                                     updateEditField(r.id, {
-                                      genreIds: normalizeIdsByOptions(
+                                      concernIds: normalizeIdsByOptions(
                                         next,
-                                        genres,
+                                        concerns,
                                       ),
                                     })
+                                  }
+                                  columns={1}
+                                />
+                              </div>
+
+                              <div>
+                                <div className="mb-1 text-[11px] font-semibold text-gray-600 dark:text-gray-300">
+                                  一番の不安（チェック）
+                                </div>
+                                <CheckboxList
+                                  options={concerns}
+                                  selected={newConcernIds}
+                                  onChange={(next) =>
+                                    setNewConcernIds(
+                                      normalizeIdsByOptions(next, concerns),
+                                    )
                                   }
                                   columns={1}
                                 />
