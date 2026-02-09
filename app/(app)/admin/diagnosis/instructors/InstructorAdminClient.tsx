@@ -106,6 +106,27 @@ function joinLabels(opts?: OptionRow[]) {
     .join(" / ");
 }
 
+function labelsBySelectedIds(ids: string[], options: OptionRow[]) {
+  const cleaned = uniqStrings(ids ?? []);
+  if (cleaned.length === 0) return [];
+
+  // options未ロードなら、とりあえずIDを表示（空にしない）
+  if (!options || options.length === 0) return cleaned;
+
+  const map = new Map<string, string>();
+  for (const o of options) {
+    const id = String(o.id ?? "").trim();
+    if (!id) continue;
+    map.set(id, String(o.label ?? "").trim());
+  }
+
+  // ✅ joinしない！必ず string[] を返す
+  return cleaned
+    .map((id) => map.get(id) ?? id) // 見つからない時もIDで表示
+    .map((s) => String(s ?? "").trim())
+    .filter(Boolean);
+}
+
 /**
  * ✅ id/slug/label が混在していても options の id に解決して返す
  */
@@ -223,6 +244,45 @@ function CheckboxList({
       <div className="mt-2 text-[10px] text-gray-400">
         selected: {selectedNorm.length}
       </div>
+    </div>
+  );
+}
+
+function labelsBySelectedIds(selectedIds: string[], options: OptionRow[]) {
+  const set = new Set(
+    (selectedIds ?? []).map((s) => String(s).trim()).filter(Boolean),
+  );
+  return (options ?? [])
+    .filter((o) => set.has(String(o.id).trim()))
+    .map((o) => o.label)
+    .filter(Boolean);
+}
+
+function TagPills({
+  labels,
+  empty = "—",
+}: {
+  labels: string[];
+  empty?: string;
+}) {
+  const items = (labels ?? []).map((s) => String(s).trim()).filter(Boolean);
+
+  if (items.length === 0) {
+    return (
+      <span className="text-xs text-gray-500 dark:text-gray-400">{empty}</span>
+    );
+  }
+
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {items.map((t) => (
+        <span
+          key={t}
+          className="inline-flex items-center rounded-full border border-gray-200 bg-white px-2 py-0.5 text-[11px] font-semibold text-gray-800 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-100"
+        >
+          {t}
+        </span>
+      ))}
     </div>
   );
 }
