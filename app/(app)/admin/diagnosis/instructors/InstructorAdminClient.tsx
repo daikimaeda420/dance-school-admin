@@ -120,7 +120,6 @@ function labelsBySelectedIds(ids: string[], options: OptionRow[]) {
     map.set(id, String(o.label ?? "").trim());
   }
 
-  // ✅ joinしない！必ず string[] を返す
   return cleaned
     .map((id) => map.get(id) ?? id) // 見つからない時もIDで表示
     .map((s) => String(s ?? "").trim())
@@ -246,16 +245,6 @@ function CheckboxList({
       </div>
     </div>
   );
-}
-
-function labelsBySelectedIds(selectedIds: string[], options: OptionRow[]) {
-  const set = new Set(
-    (selectedIds ?? []).map((s) => String(s).trim()).filter(Boolean),
-  );
-  return (options ?? [])
-    .filter((o) => set.has(String(o.id).trim()))
-    .map((o) => o.label)
-    .filter(Boolean);
 }
 
 function TagPills({
