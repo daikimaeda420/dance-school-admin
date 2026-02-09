@@ -1240,13 +1240,13 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
                                   好みの音楽・雰囲気（チェック）
                                 </div>
                                 <CheckboxList
-                                  options={concerns}
-                                  selected={selectedConcernIds}
+                                  options={genres}
+                                  selected={selectedGenreIds}
                                   onChange={(next) =>
                                     updateEditField(r.id, {
-                                      concernIds: normalizeIdsByOptions(
+                                      genreIds: normalizeIdsByOptions(
                                         next,
-                                        concerns,
+                                        genres,
                                       ),
                                     })
                                   }
