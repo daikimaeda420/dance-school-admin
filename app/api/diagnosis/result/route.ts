@@ -20,6 +20,9 @@ type DiagnosisRequestBody = {
 
 const REQUIRED_QUESTION_IDS = ["Q1", "Q2", "Q3", "Q4", "Q5", "Q6"] as const;
 
+// =========================
+// Q6 helpers
+// =========================
 function getConcernKey(answers: Record<string, string>): ConcernMessageKey {
   const q6 = QUESTIONS.find((q) => q.id === "Q6");
   const optionId = answers["Q6"];
@@ -28,6 +31,16 @@ function getConcernKey(answers: Record<string, string>): ConcernMessageKey {
   return key as ConcernMessageKey;
 }
 
+function getConcernOptionId(answers: Record<string, string>): string | null {
+  const optionId = answers["Q6"];
+  return typeof optionId === "string" && optionId.trim()
+    ? optionId.trim()
+    : null;
+}
+
+// =========================
+// 共通 helpers
+// =========================
 function getOptionTagFromAnswers(
   questionId: string,
   answers: Record<string, string>,
@@ -39,11 +52,7 @@ function getOptionTagFromAnswers(
   return typeof tag === "string" && tag.trim() ? tag.trim() : null;
 }
 
-function getQ4Meta(answers: Record<string, string>): {
-  id: string;
-  label: string | null;
-  tag: string;
-} {
+function getQ4Meta(answers: Record<string, string>) {
   const q4 = QUESTIONS.find((q) => q.id === "Q4");
   const optionId = answers["Q4"];
   const opt: any = q4?.options.find((o: any) => o.id === optionId);
@@ -65,61 +74,8 @@ function getQ2ValueForCourse(answers: Record<string, string>): string {
   return norm(opt?.label ?? opt?.value ?? opt?.tag ?? raw);
 }
 
-type ResultConditions = {
-  campus?: string[];
-  genre?: string[]; // tag（Genre_KPOPなど）
-  q2Tags?: string[];
-  courseSlug?: string[];
-};
-
-function asArray(v: unknown): string[] {
-  if (Array.isArray(v)) return v.map((x) => norm(x)).filter(Boolean);
-  return [];
-}
-
-function parseConditions(raw: unknown): ResultConditions {
-  if (!raw || typeof raw !== "object") return {};
-  const o = raw as any;
-  return {
-    campus: asArray(o.campus),
-    genre: asArray(o.genre),
-    q2Tags: asArray(o.q2Tags),
-    courseSlug: asArray(o.courseSlug),
-  };
-}
-
-function includesOrEmpty(list: string[] | undefined, value: string | null) {
-  if (!list || list.length === 0) return true;
-  if (!value) return false;
-  return list.includes(value);
-}
-
-function matchesConditions(
-  cond: ResultConditions,
-  ctx: {
-    campusSlug: string;
-    genreTag: string;
-    q2ForCourse: string;
-    recommendedCourseSlug: string | null;
-  },
-): boolean {
-  if (!includesOrEmpty(cond.campus, ctx.campusSlug)) return false;
-  if (!includesOrEmpty(cond.genre, ctx.genreTag)) return false;
-
-  if (cond.q2Tags && cond.q2Tags.length > 0) {
-    if (!cond.q2Tags.includes(ctx.q2ForCourse)) return false;
-  }
-
-  if (cond.courseSlug && cond.courseSlug.length > 0) {
-    if (!ctx.recommendedCourseSlug) return false;
-    if (!cond.courseSlug.includes(ctx.recommendedCourseSlug)) return false;
-  }
-
-  return true;
-}
-
 // =========================
-// 中間テーブルで instructorIds を絞る
+// instructor filtering helpers
 // =========================
 function intersectIds(a: string[], b: string[]): string[] {
   const bSet = new Set(b);
@@ -129,7 +85,7 @@ function intersectIds(a: string[], b: string[]): string[] {
 async function instructorIdsByCampus(params: {
   schoolId: string;
   campusId: string;
-}): Promise<string[]> {
+}) {
   const rows = await prisma.diagnosisInstructorCampus.findMany({
     where: { schoolId: params.schoolId, campusId: params.campusId },
     select: { instructorId: true },
@@ -140,7 +96,7 @@ async function instructorIdsByCampus(params: {
 async function instructorIdsByCourse(params: {
   schoolId: string;
   courseId: string;
-}): Promise<string[]> {
+}) {
   const rows = await prisma.diagnosisInstructorCourse.findMany({
     where: { schoolId: params.schoolId, courseId: params.courseId },
     select: { instructorId: true },
@@ -148,27 +104,35 @@ async function instructorIdsByCourse(params: {
   return rows.map((r) => r.instructorId);
 }
 
-/**
- * ✅ Q4 tag(Genre_KPOP等) -> DiagnosisGenre(answerTag) -> DiagnosisInstructorGenre で講師IDを取る
- * - Genre_All のときは「絞り込まない」ので空配列で返す（呼び出し側で分岐）
- */
+async function instructorIdsByConcernOption(params: {
+  schoolId: string;
+  optionId: string;
+}) {
+  const rows = await prisma.diagnosisInstructorQ6Option.findMany({
+    where: {
+      schoolId: params.schoolId,
+      optionId: params.optionId,
+    },
+    select: { instructorId: true },
+  });
+  return rows.map((r) => r.instructorId);
+}
+
 async function instructorIdsByGenreTag(params: {
   schoolId: string;
   genreTag: string;
-}): Promise<{ genreId: string | null; ids: string[] }> {
+}) {
   const { schoolId, genreTag } = params;
   if (!genreTag || genreTag === "Genre_All") {
-    return { genreId: null, ids: [] };
+    return { genreId: null, ids: [] as string[] };
   }
 
   const genre = await prisma.diagnosisGenre.findFirst({
     where: { schoolId, isActive: true, answerTag: genreTag },
-    select: { id: true, label: true, slug: true, answerTag: true },
+    select: { id: true },
   });
 
-  if (!genre) {
-    return { genreId: null, ids: [] };
-  }
+  if (!genre) return { genreId: null, ids: [] };
 
   const links = await prisma.diagnosisInstructorGenre.findMany({
     where: { schoolId, genreId: genre.id },
@@ -179,20 +143,7 @@ async function instructorIdsByGenreTag(params: {
 }
 
 // =========================
-// ✅ スケジュール表示用VM
-// =========================
-type ScheduleSlotVM = {
-  id: string;
-  weekday: "MON" | "TUE" | "WED" | "THU" | "FRI" | "SAT" | "SUN";
-  genreText: string;
-  timeText: string;
-  teacher: string;
-  place: string;
-  sortOrder: number;
-};
-
-// =========================
-// POST /api/diagnosis/result
+// POST
 // =========================
 export async function POST(req: NextRequest) {
   try {
@@ -200,130 +151,57 @@ export async function POST(req: NextRequest) {
     const schoolId = body.schoolId ?? "";
     const answers = body.answers ?? {};
 
-    if (!schoolId) {
-      return NextResponse.json(
-        { error: "NO_SCHOOL_ID", message: "schoolId が指定されていません。" },
-        { status: 400 },
-      );
-    }
-
     const missing = REQUIRED_QUESTION_IDS.filter((id) => !answers[id]);
     if (missing.length > 0) {
       return NextResponse.json(
-        {
-          error: "MISSING_ANSWERS",
-          message: `未回答の質問があります: ${missing.join(", ")}`,
-        },
+        { error: "MISSING_ANSWERS", missing },
         { status: 400 },
       );
     }
 
-    // Q1: campus slug
     const campusSlug = norm(answers["Q1"]);
     const campus = await prisma.diagnosisCampus.findFirst({
       where: { schoolId, slug: campusSlug, isActive: true },
-      select: {
-        id: true,
-        label: true,
-        slug: true,
-        address: true,
-        access: true,
-        googleMapUrl: true,
-        googleMapEmbedUrl: true,
-      },
+      select: { id: true, label: true, slug: true },
     });
+    if (!campus)
+      return NextResponse.json({ error: "NO_CAMPUS" }, { status: 400 });
 
-    if (!campus) {
-      return NextResponse.json(
-        {
-          error: "NO_CAMPUS",
-          message:
-            "選択した校舎が見つかりません（管理画面の登録/有効化を確認してください）。",
-          debug: { campusSlug },
-        },
-        { status: 400 },
-      );
-    }
-
-    // Q4: tag（Genre_KPOP等）
     const q4Meta = getQ4Meta(answers);
     const genreTag = q4Meta.tag;
-
-    // Q2→おすすめコース
     const q2ForCourse = getQ2ValueForCourse(answers);
 
     const recommendedCourse = await prisma.diagnosisCourse.findFirst({
-      where: {
-        schoolId,
-        isActive: true,
-        q2AnswerTags: { has: q2ForCourse },
-      },
+      where: { schoolId, isActive: true, q2AnswerTags: { has: q2ForCourse } },
       orderBy: { sortOrder: "asc" },
-      select: {
-        id: true,
-        label: true,
-        slug: true,
-        answerTag: true,
-        photoMime: true,
-        photoData: true,
-      },
+      select: { id: true, label: true, slug: true },
     });
 
-    // 診断結果候補
-    const candidates = await prisma.diagnosisResult.findMany({
-      where: { schoolId, isActive: true },
-      orderBy: [{ priority: "desc" }, { sortOrder: "asc" }],
-      select: {
-        id: true,
-        title: true,
-        body: true,
-        ctaLabel: true,
-        ctaUrl: true,
-        priority: true,
-        isFallback: true,
-        conditions: true,
-      },
-    });
-
-    const ctx = {
-      campusSlug: campus.slug,
-      genreTag,
-      q2ForCourse,
-      recommendedCourseSlug: recommendedCourse?.slug ?? null,
-    };
-
-    let best = candidates.find((r) =>
-      matchesConditions(parseConditions(r.conditions), ctx),
-    );
-    if (!best) best = candidates.find((r) => r.isFallback) ?? null;
-    if (!best) best = candidates[0] ?? null;
-
-    if (!best) {
-      return NextResponse.json(
-        {
-          error: "NO_MATCHED_RESULT",
-          message:
-            "診断結果が1件も登録されていません（管理画面で診断結果を作成してください）。",
-        },
-        { status: 400 },
-      );
-    }
-
-    // -------------------------
-    // 講師取得：campus/course/genre の優先順位で絞る
-    // -------------------------
+    // ===== 講師抽出 =====
     const campusInstructorIds = await instructorIdsByCampus({
       schoolId,
       campusId: campus.id,
     });
 
-    const { genreId, ids: genreInstructorIdsRaw } =
-      await instructorIdsByGenreTag({ schoolId, genreTag });
+    const courseInstructorIds = recommendedCourse?.id
+      ? await instructorIdsByCourse({
+          schoolId,
+          courseId: recommendedCourse.id,
+        })
+      : [];
 
-    // genreTag が Genre_All なら「絞らない」
-    const useGenreFilter = Boolean(
-      genreTag && genreTag !== "Genre_All" && genreId,
-    );
+    const concernOptionId = getConcernOptionId(answers);
+    const concernInstructorIds = concernOptionId
+      ? await instructorIdsByConcernOption({
+          schoolId,
+          optionId: concernOptionId,
+        })
+      : [];
+
+    const { ids: genreInstructorIdsRaw } = await instructorIdsByGenreTag({
+      schoolId,
+      genreTag,
+    });
 
     const selectInstructor = {
       id: true,
@@ -335,266 +213,70 @@ export async function POST(req: NextRequest) {
       introduction: true,
     } as const;
 
+    const load = (ids: string[]) =>
+      ids.length === 0
+        ? []
+        : prisma.diagnosisInstructor.findMany({
+            where: { schoolId, isActive: true, id: { in: ids } },
+            orderBy: { sortOrder: "asc" },
+            select: selectInstructor,
+          });
+
     let instructors: any[] = [];
-    let instructorMatchedBy:
-      | "campus+course+genre"
-      | "campus+genre"
-      | "campus+course"
-      | "campus"
-      | "none" = "none";
+    let instructorMatchedBy = "none";
 
-    const loadInstructorsByIds = async (ids: string[]) => {
-      if (ids.length === 0) return [];
-      return prisma.diagnosisInstructor.findMany({
-        where: { schoolId, isActive: true, id: { in: ids } },
-        orderBy: { sortOrder: "asc" },
-        select: selectInstructor,
-      });
-    };
-
-    // course ids
-    let courseInstructorIds: string[] = [];
-    if (recommendedCourse?.id) {
-      courseInstructorIds = await instructorIdsByCourse({
-        schoolId,
-        courseId: recommendedCourse.id,
-      });
-    }
-
-    if (campusInstructorIds.length > 0) {
-      // 1) campus + course + genre
-      if (recommendedCourse?.id && useGenreFilter) {
-        const ids = intersectIds(
-          intersectIds(campusInstructorIds, courseInstructorIds),
-          genreInstructorIdsRaw,
-        );
-        const got = await loadInstructorsByIds(ids);
-        if (got.length > 0) {
-          instructors = got;
-          instructorMatchedBy = "campus+course+genre";
-        }
-      }
-
-      // 2) campus + genre
-      if (instructors.length === 0 && useGenreFilter) {
-        const ids = intersectIds(campusInstructorIds, genreInstructorIdsRaw);
-        const got = await loadInstructorsByIds(ids);
-        if (got.length > 0) {
-          instructors = got;
-          instructorMatchedBy = "campus+genre";
-        }
-      }
-
-      // 3) campus + course
-      if (instructors.length === 0 && recommendedCourse?.id) {
-        const ids = intersectIds(campusInstructorIds, courseInstructorIds);
-        const got = await loadInstructorsByIds(ids);
-        if (got.length > 0) {
-          instructors = got;
-          instructorMatchedBy = "campus+course";
-        }
-      }
-
-      // 4) campus
-      if (instructors.length === 0) {
-        const got = await loadInstructorsByIds(campusInstructorIds);
-        if (got.length > 0) {
-          instructors = got;
-          instructorMatchedBy = "campus";
-        }
+    // ⭐ 最優先：campus + concern
+    if (concernInstructorIds.length > 0) {
+      const ids = intersectIds(campusInstructorIds, concernInstructorIds);
+      const got = await load(ids);
+      if (got.length > 0) {
+        instructors = got;
+        instructorMatchedBy = "campus+concern";
       }
     }
 
-    if (instructors.length === 0) instructorMatchedBy = "none";
+    // 従来ロジック
+    if (instructors.length === 0 && courseInstructorIds.length > 0) {
+      const ids = intersectIds(campusInstructorIds, courseInstructorIds);
+      const got = await load(ids);
+      if (got.length > 0) {
+        instructors = got;
+        instructorMatchedBy = "campus+course";
+      }
+    }
 
-    // resultCopy
-    const levelTag = getOptionTagFromAnswers("Q2", answers);
-    const ageTag = getOptionTagFromAnswers("Q3", answers);
-    const teacherTag = getOptionTagFromAnswers("Q5", answers);
+    if (instructors.length === 0) {
+      const got = await load(campusInstructorIds);
+      if (got.length > 0) {
+        instructors = got;
+        instructorMatchedBy = "campus";
+      }
+    }
+
+    // ===== コピー =====
     const concernKey = getConcernKey(answers);
-
     const concernText =
-      CONCERN_RESULT_COPY[concernKey] ??
-      concernMessages[concernKey] ??
-      CONCERN_RESULT_COPY["Msg_Consult"] ??
-      concernMessages["Msg_Consult"] ??
-      "";
-
-    const resultCopy = {
-      level: (levelTag && LEVEL_RESULT_COPY[levelTag]) || null,
-      age: (ageTag && AGE_RESULT_COPY[ageTag]) || null,
-      teacher: (teacherTag && TEACHER_RESULT_COPY[teacherTag]) || null,
-      concern: concernText || null,
-    };
-
-    const concernMessage = concernText || "";
-
-    // ✅ コース画像URL（photoDataが入っている時だけ）
-    const courseHasPhoto =
-      Boolean(recommendedCourse?.photoMime) &&
-      Boolean(recommendedCourse?.photoData) &&
-      (recommendedCourse.photoData as any)?.length > 0;
-
-    const coursePhotoUrl =
-      recommendedCourse?.id && courseHasPhoto
-        ? `/api/diagnosis/courses/photo?schoolId=${encodeURIComponent(
-            schoolId,
-          )}&id=${encodeURIComponent(recommendedCourse.id)}`
-        : null;
-
-    // ✅ スケジュール取得（選ばれたコースに紐づく枠）
-    let scheduleSlots: ScheduleSlotVM[] = [];
-    if (recommendedCourse?.id) {
-      const slots = await prisma.diagnosisScheduleSlot.findMany({
-        where: {
-          schoolId,
-          isActive: true,
-          courses: {
-            some: { courseId: recommendedCourse.id },
-          },
-        },
-        orderBy: [
-          { weekday: "asc" },
-          { sortOrder: "asc" },
-          { createdAt: "asc" },
-        ],
-      });
-
-      scheduleSlots = slots.map((s) => ({
-        id: s.id,
-        weekday: s.weekday as any,
-        genreText: s.genreText,
-        timeText: s.timeText,
-        teacher: s.teacher,
-        place: s.place,
-        sortOrder: s.sortOrder,
-      }));
-    }
-
-    // ✅ selectedGenre はDBが見つかればそれを優先して返す（見つからなければ従来互換）
-    let selectedGenreOut = {
-      id: q4Meta.id,
-      label: q4Meta.label,
-      slug: q4Meta.tag,
-      answerTag: q4Meta.tag,
-    } as any;
-
-    if (genreId) {
-      const g = await prisma.diagnosisGenre.findFirst({
-        where: { id: genreId, schoolId },
-        select: { id: true, label: true, slug: true, answerTag: true },
-      });
-      if (g) {
-        selectedGenreOut = {
-          id: g.id,
-          label: g.label,
-          slug: g.slug,
-          answerTag: g.answerTag,
-        };
-      }
-    }
+      CONCERN_RESULT_COPY[concernKey] ?? concernMessages[concernKey] ?? "";
 
     return NextResponse.json({
-      pattern: "A",
-      patternMessage: null,
-      score: 100,
-      headerLabel: "あなたにおすすめの理由",
-
-      bestMatch: {
-        classId: best.id,
-        className: recommendedCourse?.label ?? best.title,
-        genres: q4Meta.label ? [q4Meta.label] : [],
-        levels: [],
-        targets: [],
-      },
-
-      selectedCourse: recommendedCourse
-        ? {
-            id: recommendedCourse.id,
-            label: recommendedCourse.label,
-            slug: recommendedCourse.slug,
-            answerTag: recommendedCourse.answerTag ?? null,
-            photoUrl: coursePhotoUrl,
-          }
-        : null,
-
-      scheduleSlots,
-
-      teacher: {
-        id: undefined,
-        name: undefined,
-        photoUrl: null,
-        styles: [],
-      },
-
-      instructors: instructors.map((t) => {
-        const url = `/api/diagnosis/instructors/photo?schoolId=${encodeURIComponent(
-          schoolId,
-        )}&id=${encodeURIComponent(t.id)}`;
-
-        const hasPhoto =
-          Boolean(t.photoMime) &&
-          Boolean(t.photoData) &&
-          (t.photoData as any)?.length > 0;
-
-        return {
-          id: t.id,
-          label: t.label,
-          slug: t.slug,
-          photoUrl: hasPhoto ? url : null,
-          charmTags: t.charmTags ?? null,
-          introduction: t.introduction ?? null,
-        };
-      }),
-
-      breakdown: [],
-      worstMatch: null,
-
-      concernMessage,
-      resultCopy,
-
-      result: {
-        id: best.id,
-        title: best.title,
-        body: best.body,
-        ctaLabel: best.ctaLabel,
-        ctaUrl: best.ctaUrl,
-      },
-
-      selectedCampus: {
-        label: campus.label,
-        slug: campus.slug,
-        address: campus.address ?? null,
-        access: campus.access ?? null,
-        googleMapUrl: campus.googleMapUrl ?? null,
-        googleMapEmbedUrl: campus.googleMapEmbedUrl ?? null,
-      },
-
-      // ✅ 互換：Embedが参照する
-      selectedGenre: selectedGenreOut,
-
+      instructors: instructors.map((t) => ({
+        id: t.id,
+        label: t.label,
+        slug: t.slug,
+        charmTags: t.charmTags ?? null,
+        introduction: t.introduction ?? null,
+      })),
+      concernMessage: concernText,
       debug: {
-        ctx,
-        campusId: campus.id,
-        genreTag,
-        genreId: genreId ?? null,
-        recommendedCourseId: recommendedCourse?.id ?? null,
+        concernOptionId,
         instructorMatchedBy,
         instructorsCount: instructors.length,
-        scheduleSlotsCount: scheduleSlots.length,
-        copyKeys: { levelTag, ageTag, teacherTag, concernKey },
-        concernResolved: {
-          concernKey,
-          hasConcernCopy: Boolean(CONCERN_RESULT_COPY[concernKey]),
-          hasConcernMessage: Boolean(concernMessages[concernKey]),
-          concernTextLength: concernText.length,
-        },
       },
     });
   } catch (e: any) {
-    console.error("[POST /api/diagnosis/result] error", e);
+    console.error(e);
     return NextResponse.json(
-      { error: "INTERNAL_ERROR", message: e?.message ?? "サーバーエラー" },
+      { error: "INTERNAL_ERROR", message: e?.message },
       { status: 500 },
     );
   }

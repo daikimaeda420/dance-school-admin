@@ -34,6 +34,7 @@ type InstructorRow = {
   courseIds?: string[];
   campusIds?: string[];
   genreIds?: string[];
+  concernIds?: string[];
 };
 
 function slugifyJa(input: string) {
@@ -237,6 +238,7 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
   const [courses, setCourses] = useState<OptionRow[]>([]);
   const [campuses, setCampuses] = useState<OptionRow[]>([]);
   const [genres, setGenres] = useState<OptionRow[]>([]);
+  const [concerns, setConcerns] = useState<OptionRow[]>([]);
 
   const [newId, setNewId] = useState("");
   const [newLabel, setNewLabel] = useState("");
@@ -247,6 +249,7 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
   const [newCourseIds, setNewCourseIds] = useState<string[]>([]);
   const [newCampusIds, setNewCampusIds] = useState<string[]>([]);
   const [newGenreIds, setNewGenreIds] = useState<string[]>([]);
+  const [newConcernIds, setNewConcernIds] = useState<string[]>([]);
 
   const [newCharmTags, setNewCharmTags] = useState("");
   const [newIntroduction, setNewIntroduction] = useState("");
@@ -305,19 +308,12 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
     if (!canLoad) return;
 
     try {
-      // ✅ genres はDBから取らないので gRes は消す
       const [cRes, pRes] = await Promise.all([
         fetch(
           `/api/diagnosis/courses?schoolId=${encodeURIComponent(schoolId)}`,
-          {
-            cache: "no-store",
-          },
         ),
         fetch(
           `/api/diagnosis/campuses?schoolId=${encodeURIComponent(schoolId)}`,
-          {
-            cache: "no-store",
-          },
         ),
       ]);
 
@@ -327,29 +323,27 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
       const c = normalizeOptions("course", cJson);
       const p = normalizeOptions("campus", pJson);
 
-      // ✅ Q4の選択肢を options に変換して genres として扱う
+      // Q4
       const q4 = QUESTIONS.find((q) => q.id === "Q4");
       const g: OptionRow[] = (q4?.options ?? []).map((o: any) => ({
-        id: String(o.id), // ← checkbox の値になる
-        label: String(o.label), // ← 表示
-        slug: undefined,
-        dbId: undefined,
-        answerTag: String(o.id), // ← API側で解決に使える
+        id: String(o.id),
+        label: String(o.label),
+        answerTag: String(o.id),
         isActive: true,
       }));
 
-      console.log("[fetchOptions]", {
-        schoolId,
-        courses: c.length,
-        campuses: p.length,
-        genres: g.length,
-        sampleCampus: p[0],
-        sampleGenre: g[0],
-      });
+      // ✅ Q6
+      const q6 = QUESTIONS.find((q) => q.id === "Q6");
+      const concerns: OptionRow[] = (q6?.options ?? []).map((o: any) => ({
+        id: String(o.id),
+        label: String(o.label),
+        isActive: true,
+      }));
 
       setCourses(c);
       setCampuses(p);
       setGenres(g);
+      setConcerns(concerns);
     } catch {
       // noop
     }
@@ -475,9 +469,15 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
         genres,
       );
 
+      const sendConcernIds = normalizeIdsByOptions(
+        resolveToOptionIds(uniqStrings(newConcernIds), concerns),
+        concerns,
+      );
+
       fd.append("courseIds", JSON.stringify(sendCourseIds));
       fd.append("campusIds", JSON.stringify(sendCampusIds));
       fd.append("genreIds", JSON.stringify(sendGenreIds));
+      fd.append("q6OptionIds", JSON.stringify(sendConcernIds));
 
       fd.append("charmTags", newCharmTags);
       fd.append("introduction", newIntroduction);
@@ -498,6 +498,7 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
       setNewFile(null);
       setNewCourseIds([]);
       setNewCampusIds([]);
+      setNewConcernIds([]);
       setNewGenreIds([]);
       setNewCharmTags("");
       setNewIntroduction("");
@@ -632,13 +633,19 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
         campuses,
       );
       const sendGenreIds = normalizeIdsByOptions(
-        resolveToOptionIds(uniqStrings(e.genreIds ?? []), genres),
+        resolveToOptionIds(uniqStrings(newGenreIds), genres),
         genres,
+      );
+
+      const sendConcernIds = normalizeIdsByOptions(
+        resolveToOptionIds(uniqStrings(newConcernIds), concerns),
+        concerns,
       );
 
       fd.append("courseIds", JSON.stringify(sendCourseIds));
       fd.append("campusIds", JSON.stringify(sendCampusIds));
       fd.append("genreIds", JSON.stringify(sendGenreIds));
+      fd.append("q6OptionIds", JSON.stringify(sendConcernIds));
 
       fd.append("charmTags", String((e as any).charmTags ?? ""));
       fd.append("introduction", String((e as any).introduction ?? ""));
@@ -700,9 +707,20 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
         genres,
       );
 
+      const keepConcernRaw =
+        safeArray((r as any).q6OptionIds).length > 0
+          ? safeArray((r as any).q6OptionIds)
+          : safeArray((r as any).concernIds);
+
+      const keepConcernIds = normalizeIdsByOptions(
+        resolveToOptionIds(keepConcernRaw, concerns),
+        concerns,
+      );
+
       fd.append("courseIds", JSON.stringify(keepCourseIds));
       fd.append("campusIds", JSON.stringify(keepCampusIds));
       fd.append("genreIds", JSON.stringify(keepGenreIds));
+      fd.append("q6OptionIds", JSON.stringify(keepConcernIds));
 
       fd.append("charmTags", String(r.charmTags ?? ""));
       fd.append("introduction", String(r.introduction ?? ""));
