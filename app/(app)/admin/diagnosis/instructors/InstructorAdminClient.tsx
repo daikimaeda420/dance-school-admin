@@ -1062,7 +1062,9 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
                 resolveToOptionIds(
                   editing
                     ? uniqStrings((e?.concernIds ?? []) as any[])
-                    : safeArray((r as any).q6OptionIds),
+                    : safeArray(
+                        (r as any).concernIds ?? (r as any).q6OptionIds,
+                      ),
                   concerns,
                 ),
                 concerns,
@@ -1215,7 +1217,7 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
                         {/* 対応コース/校舎/ジャンル */}
                         <div className="md:col-span-3">
                           <div className="text-[11px] font-semibold text-gray-600 dark:text-gray-300">
-                            対応（コース / 校舎 / ジャンル）
+                            紐づけ（コース / 校舎 / ジャンル / 不安点）
                           </div>
 
                           {editing ? (
