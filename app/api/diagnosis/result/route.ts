@@ -18,6 +18,7 @@ type DiagnosisRequestBody = {
   answers?: Record<string, string>;
 };
 
+// ✅ Q4 は「質問としては存在」しても「講師抽出には使わない」ので required は維持
 const REQUIRED_QUESTION_IDS = ["Q1", "Q2", "Q3", "Q4", "Q5", "Q6"] as const;
 
 // =========================
@@ -50,17 +51,6 @@ function getOptionTagFromAnswers(
   const opt = q?.options.find((o: any) => o.id === optionId) as any;
   const tag = opt?.tag;
   return typeof tag === "string" && tag.trim() ? tag.trim() : null;
-}
-
-function getQ4Meta(answers: Record<string, string>) {
-  const q4 = QUESTIONS.find((q) => q.id === "Q4");
-  const optionId = answers["Q4"];
-  const opt: any = q4?.options.find((o: any) => o.id === optionId);
-  return {
-    id: String(optionId ?? ""),
-    label: typeof opt?.label === "string" ? opt.label : null,
-    tag: typeof opt?.tag === "string" ? opt.tag : "Genre_All",
-  };
 }
 
 function norm(s: unknown): string {
@@ -118,35 +108,13 @@ async function instructorIdsByConcernOption(params: {
   return rows.map((r) => r.instructorId);
 }
 
-function getTeacherIdealOptionId(answers: Record<string, string>): string | null {
+function getTeacherIdealOptionId(
+  answers: Record<string, string>,
+): string | null {
   const optionId = answers["Q5"];
   return typeof optionId === "string" && optionId.trim()
     ? optionId.trim()
     : null;
-}
-
-async function instructorIdsByGenreTag(params: {
-  schoolId: string;
-  genreTag: string;
-}) {
-  const { schoolId, genreTag } = params;
-  if (!genreTag || genreTag === "Genre_All") {
-    return { genreId: null, ids: [] as string[] };
-  }
-
-  const genre = await prisma.diagnosisGenre.findFirst({
-    where: { schoolId, isActive: true, answerTag: genreTag },
-    select: { id: true },
-  });
-
-  if (!genre) return { genreId: null, ids: [] };
-
-  const links = await prisma.diagnosisInstructorGenre.findMany({
-    where: { schoolId, genreId: genre.id },
-    select: { instructorId: true },
-  });
-
-  return { genreId: genre.id, ids: links.map((r) => r.instructorId) };
 }
 
 // =========================
@@ -174,8 +142,7 @@ export async function POST(req: NextRequest) {
     if (!campus)
       return NextResponse.json({ error: "NO_CAMPUS" }, { status: 400 });
 
-    const q4Meta = getQ4Meta(answers);
-    const genreTag = q4Meta.tag;
+    // ✅ Q4（好みの音楽・雰囲気）は講師抽出に使わない（完全に切る）
     const q2ForCourse = getQ2ValueForCourse(answers);
 
     const recommendedCourse = await prisma.diagnosisCourse.findFirst({
@@ -207,11 +174,6 @@ export async function POST(req: NextRequest) {
         })
       : [];
 
-    const { ids: genreInstructorIdsRaw } = await instructorIdsByGenreTag({
-      schoolId,
-      genreTag,
-    });
-
     const selectInstructor = {
       id: true,
       label: true,
@@ -234,7 +196,7 @@ export async function POST(req: NextRequest) {
     let instructors: any[] = [];
     let instructorMatchedBy = "none";
 
-    // ⭐ 最優先：campus + concern
+    // ⭐ 最優先：campus + concern(Q5)
     if (concernInstructorIds.length > 0) {
       const ids = intersectIds(campusInstructorIds, concernInstructorIds);
       const got = await load(ids);
@@ -244,7 +206,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 従来ロジック
+    // 次点：campus + course
     if (instructors.length === 0 && courseInstructorIds.length > 0) {
       const ids = intersectIds(campusInstructorIds, courseInstructorIds);
       const got = await load(ids);
@@ -254,6 +216,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // 最後：campus のみ
     if (instructors.length === 0) {
       const got = await load(campusInstructorIds);
       if (got.length > 0) {

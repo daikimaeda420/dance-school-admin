@@ -103,13 +103,6 @@ type DiagnosisResult = {
     mapEmbedUrl?: string | null;
   };
 
-  selectedGenre?: {
-    id: string;
-    label: string;
-    slug: string;
-    answerTag?: string;
-  } | null;
-
   resultCopy?: {
     level?: ResultCopy | null;
     age?: ResultCopy | null;
@@ -644,10 +637,6 @@ export default function DiagnosisEmbedClient({
 
   const className = result?.bestMatch?.className ?? "おすすめクラス";
 
-  const genreLabel =
-    result?.selectedGenre?.label?.trim() ||
-    (result?.bestMatch?.genres?.[0] ?? "").trim();
-
   const rawCoursePhotoUrl = result?.selectedCourse?.photoUrl ?? null;
 
   const coursePhotoUrl = rawCoursePhotoUrl
@@ -663,16 +652,7 @@ export default function DiagnosisEmbedClient({
         )}&id=${encodeURIComponent(result.selectedCourse.id)}`
       : null;
 
-  const genreId = result?.selectedGenre?.id;
-
-  const genreImgSrc =
-    !coursePhotoUrl && !fallbackCourseImgSrc && genreId
-      ? `/api/diagnosis/genres/image?id=${encodeURIComponent(
-          String(genreId),
-        )}&schoolId=${encodeURIComponent(schoolId)}`
-      : null;
-
-  const imgSrc = coursePhotoUrl || fallbackCourseImgSrc || genreImgSrc || null;
+  const imgSrc = coursePhotoUrl || fallbackCourseImgSrc || null;
 
   // ✅ DiagnosisForm 用 option 生成（常に定義）
   const dayOrder = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"] as const;
@@ -856,9 +836,7 @@ export default function DiagnosisEmbedClient({
                       alt={
                         coursePhotoUrl || fallbackCourseImgSrc
                           ? `${className}の画像`
-                          : genreLabel
-                            ? `${genreLabel}の画像`
-                            : "診断結果画像"
+                          : "診断結果画像"
                       }
                       className="h-40 w-full object-cover"
                       loading="lazy"
@@ -1617,11 +1595,6 @@ export default function DiagnosisEmbedClient({
                       campusSlug:
                         result.campus?.slug ??
                         result.selectedCampus?.slug ??
-                        "",
-                      genre: result.selectedGenre?.label ?? "",
-                      genreSlug:
-                        result.selectedGenre?.answerTag ??
-                        result.selectedGenre?.slug ??
                         "",
                       score: String(result.score),
                       pattern: result.pattern,

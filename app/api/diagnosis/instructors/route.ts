@@ -30,7 +30,8 @@ function json(message: string, status = 400) {
 }
 
 /**
- * courseIds / campusIds / genreIds / q4OptionIds / q6OptionIds などを柔軟に受け取る
+ * courseIds / campusIds / q6OptionIds / concernIds などを柔軟に受け取る
+ * NOTE: 旧互換で genreIds / q4OptionIds が送られてきても、このAPIでは無視する（エラーにしない）
  */
 function readIdList(fd: FormData, key: string): string[] {
   const all = fd
@@ -78,15 +79,6 @@ function uniq(arr: string[]) {
 
 type ResolveKind = "campus" | "course";
 
-function q4LabelMap() {
-  const q4 = QUESTIONS.find((q) => q.id === "Q4");
-  const map = new Map<string, string>();
-  for (const o of q4?.options ?? []) {
-    map.set(String(o.id), String(o.label));
-  }
-  return map;
-}
-
 function q6LabelMap() {
   // 互換キーは q6 のまま維持しつつ、実体は Q5 option を許可
   const q5 = QUESTIONS.find((q) => q.id === "Q5");
@@ -97,26 +89,12 @@ function q6LabelMap() {
   return map;
 }
 
-/** ✅ Q4の選択肢として「許可された optionId」だけに正規化 */
-function normalizeQ4OptionIds(input: string[]) {
-  const map = q4LabelMap();
-  const allow = new Set(Array.from(map.keys()));
-  const cleaned = uniq(input);
-  return cleaned.filter((v) => allow.has(v));
-}
-
 /** ✅ 互換キー(q6/concern)で受けつつ、Q5の選択肢として許可された optionId だけに正規化 */
 function normalizeQ6OptionIds(input: string[]) {
   const map = q6LabelMap();
   const allow = new Set(Array.from(map.keys()));
   const cleaned = uniq(input);
   return cleaned.filter((v) => allow.has(v));
-}
-
-function toStrArray(v: any): string[] {
-  if (Array.isArray(v)) return v.map(String).filter(Boolean);
-  if (typeof v === "string") return [v].filter(Boolean);
-  return [];
 }
 
 /**
@@ -175,23 +153,19 @@ async function resolveConnectIds(params: {
 }
 
 /**
- * ✅ 明示中間（Course/Campus） + ✅ Q4 option + ✅ Q6 option の紐づけを返す
- *
- * NOTE:
- * - prisma.diagnosisInstructorQ6Option が存在する前提です（Q4と同じ中間テーブル）
- *   fields: schoolId, instructorId, optionId
+ * ✅ 明示中間（Course/Campus） + ✅ Q6 option の紐づけを返す
+ * NOTE: Q4（雰囲気/genre）紐づけは廃止したため、ここでは扱わない
  */
 async function fetchLinks(schoolId: string, instructorIds: string[]) {
   if (instructorIds.length === 0) {
     return {
       coursesByInstructor: new Map<string, any[]>(),
       campusesByInstructor: new Map<string, any[]>(),
-      q4ByInstructor: new Map<string, string[]>(),
       q6ByInstructor: new Map<string, string[]>(),
     };
   }
 
-  const [courseLinks, campusLinks, q4Links, q6Links] = await Promise.all([
+  const [courseLinks, campusLinks, q6Links] = await Promise.all([
     prisma.diagnosisInstructorCourse.findMany({
       where: { schoolId, instructorId: { in: instructorIds } },
       select: { instructorId: true, courseId: true },
@@ -199,10 +173,6 @@ async function fetchLinks(schoolId: string, instructorIds: string[]) {
     prisma.diagnosisInstructorCampus.findMany({
       where: { schoolId, instructorId: { in: instructorIds } },
       select: { instructorId: true, campusId: true },
-    }),
-    prisma.diagnosisInstructorQ4Option.findMany({
-      where: { schoolId, instructorId: { in: instructorIds } },
-      select: { instructorId: true, optionId: true },
     }),
     prisma.diagnosisInstructorQ6Option.findMany({
       where: { schoolId, instructorId: { in: instructorIds } },
@@ -249,13 +219,6 @@ async function fetchLinks(schoolId: string, instructorIds: string[]) {
     campusesByInstructor.set(row.instructorId, cur);
   }
 
-  const q4ByInstructor = new Map<string, string[]>();
-  for (const row of q4Links) {
-    const cur = q4ByInstructor.get(row.instructorId) ?? [];
-    cur.push(String(row.optionId));
-    q4ByInstructor.set(row.instructorId, Array.from(new Set(cur)));
-  }
-
   const q6ByInstructor = new Map<string, string[]>();
   for (const row of q6Links) {
     const cur = q6ByInstructor.get(row.instructorId) ?? [];
@@ -263,12 +226,7 @@ async function fetchLinks(schoolId: string, instructorIds: string[]) {
     q6ByInstructor.set(row.instructorId, Array.from(new Set(cur)));
   }
 
-  return {
-    coursesByInstructor,
-    campusesByInstructor,
-    q4ByInstructor,
-    q6ByInstructor,
-  };
+  return { coursesByInstructor, campusesByInstructor, q6ByInstructor };
 }
 
 function readOptionalText(fd: FormData, key: string): string | null {
@@ -313,14 +271,9 @@ export async function GET(req: NextRequest) {
     });
 
     const instructorIds = rows.map((r) => r.id);
-    const {
-      coursesByInstructor,
-      campusesByInstructor,
-      q4ByInstructor,
-      q6ByInstructor,
-    } = await fetchLinks(schoolId, instructorIds);
+    const { coursesByInstructor, campusesByInstructor, q6ByInstructor } =
+      await fetchLinks(schoolId, instructorIds);
 
-    const q4Map = q4LabelMap();
     const q6Map = q6LabelMap();
 
     return NextResponse.json(
@@ -328,19 +281,8 @@ export async function GET(req: NextRequest) {
         const courses = coursesByInstructor.get(r.id) ?? [];
         const campuses = campusesByInstructor.get(r.id) ?? [];
 
-        // ✅ Q4 option ids
-        const q4OptionIds = q4ByInstructor.get(r.id) ?? [];
-        // ✅ Q6 option ids
+        // ✅ Q6 option ids（実体はQ5）
         const q6OptionIds = q6ByInstructor.get(r.id) ?? [];
-
-        // ✅ フロント表示用：genres に「Q4選択肢」
-        const q4Options = q4OptionIds.map((oid) => ({
-          id: oid,
-          label: q4Map.get(oid) ?? oid,
-          slug: oid,
-        }));
-
-        // ✅ フロント表示用：concerns に「Q6選択肢」
         const q6Options = q6OptionIds.map((oid) => ({
           id: oid,
           label: q6Map.get(oid) ?? oid,
@@ -356,22 +298,16 @@ export async function GET(req: NextRequest) {
           courses,
           campuses,
 
-          // ✅ 重要：genres は Q4選択肢
-          genres: q4Options,
-
-          // ✅ 追加：concerns は Q6選択肢
+          // ✅ concerns は Q6（= Q5 option）
           concerns: q6Options,
 
           courseIds: courses.map((c: any) => c.id),
           campusIds: campuses.map((c: any) => c.id),
 
-          // ✅ 互換：フロントが genreIds を見ててもOK
-          genreIds: q4OptionIds,
           // ✅ 互換：フロントが concernIds を見ててもOK
           concernIds: q6OptionIds,
 
           // ✅ 将来用：正式キー
-          q4OptionIds,
           q6OptionIds,
         };
       }),
@@ -409,19 +345,15 @@ export async function POST(req: NextRequest) {
     const courseVals = readIdList(fd, "courseIds");
     const campusVals = readIdList(fd, "campusIds");
 
-    // ✅ Q4（雰囲気）互換：genreIdsでも来る
-    const q4ValsRaw = uniq([
-      ...readIdList(fd, "q4OptionIds"),
-      ...readIdList(fd, "genreIds"),
-    ]);
-    const q4Vals = normalizeQ4OptionIds(q4ValsRaw);
-
     // ✅ Q6（一番の不安）互換：concernIdsでも来る
     const q6ValsRaw = uniq([
       ...readIdList(fd, "q6OptionIds"),
       ...readIdList(fd, "concernIds"),
     ]);
     const q6Vals = normalizeQ6OptionIds(q6ValsRaw);
+
+    // ✅ 旧互換：genreIds / q4OptionIds が来ても無視（エラーにしない）
+    // readIdList(fd, "genreIds"); readIdList(fd, "q4OptionIds");
 
     if (!id || !schoolId || !label || !slug) {
       return json("id / schoolId / label / slug は必須です", 400);
@@ -497,19 +429,7 @@ export async function POST(req: NextRequest) {
         });
       }
 
-      // ✅ Q4保存
-      if (q4Vals.length > 0) {
-        await tx.diagnosisInstructorQ4Option.createMany({
-          data: q4Vals.map((optionId) => ({
-            instructorId: created.id,
-            schoolId,
-            optionId,
-          })),
-          skipDuplicates: true,
-        });
-      }
-
-      // ✅ Q6保存
+      // ✅ Q6保存（Q5 option）
       if (q6Vals.length > 0) {
         await tx.diagnosisInstructorQ6Option.createMany({
           data: q6Vals.map((optionId) => ({
@@ -524,28 +444,14 @@ export async function POST(req: NextRequest) {
       return created;
     });
 
-    // 返却整形（GETと同じ形式）
-    const {
-      coursesByInstructor,
-      campusesByInstructor,
-      q4ByInstructor,
-      q6ByInstructor,
-    } = await fetchLinks(schoolId, [instructor.id]);
+    const { coursesByInstructor, campusesByInstructor, q6ByInstructor } =
+      await fetchLinks(schoolId, [instructor.id]);
 
     const courses = coursesByInstructor.get(instructor.id) ?? [];
     const campuses = campusesByInstructor.get(instructor.id) ?? [];
-    const q4OptionIds = q4ByInstructor.get(instructor.id) ?? [];
     const q6OptionIds = q6ByInstructor.get(instructor.id) ?? [];
 
-    const q4Map = q4LabelMap();
     const q6Map = q6LabelMap();
-
-    const q4Options = q4OptionIds.map((oid) => ({
-      id: oid,
-      label: q4Map.get(oid) ?? oid,
-      slug: oid,
-    }));
-
     const q6Options = q6OptionIds.map((oid) => ({
       id: oid,
       label: q6Map.get(oid) ?? oid,
@@ -558,15 +464,15 @@ export async function POST(req: NextRequest) {
         photoMime: instructor.photoMime ?? null,
         charmTags: instructor.charmTags ?? null,
         introduction: instructor.introduction ?? null,
+
         courses,
         campuses,
-        genres: q4Options,
         concerns: q6Options,
+
         courseIds: courses.map((c: any) => c.id),
         campusIds: campuses.map((c: any) => c.id),
-        genreIds: q4OptionIds,
+
         concernIds: q6OptionIds,
-        q4OptionIds,
         q6OptionIds,
       },
       { status: 201 },
@@ -609,17 +515,15 @@ export async function PUT(req: NextRequest) {
     const courseVals = readIdList(fd, "courseIds");
     const campusVals = readIdList(fd, "campusIds");
 
-    const q4ValsRaw = uniq([
-      ...readIdList(fd, "q4OptionIds"),
-      ...readIdList(fd, "genreIds"),
-    ]);
-    const q4Vals = normalizeQ4OptionIds(q4ValsRaw);
-
+    // ✅ Q6（一番の不安）互換：concernIdsでも来る
     const q6ValsRaw = uniq([
       ...readIdList(fd, "q6OptionIds"),
       ...readIdList(fd, "concernIds"),
     ]);
     const q6Vals = normalizeQ6OptionIds(q6ValsRaw);
+
+    // ✅ 旧互換：genreIds / q4OptionIds が来ても無視（エラーにしない）
+    // readIdList(fd, "genreIds"); readIdList(fd, "q4OptionIds");
 
     if (!id || !schoolId || !label || !slug) {
       return json("id / schoolId / label / slug は必須です", 400);
@@ -694,22 +598,7 @@ export async function PUT(req: NextRequest) {
         });
       }
 
-      // ✅ Q4は全置換
-      await tx.diagnosisInstructorQ4Option.deleteMany({
-        where: { instructorId: id, schoolId },
-      });
-      if (q4Vals.length > 0) {
-        await tx.diagnosisInstructorQ4Option.createMany({
-          data: q4Vals.map((optionId) => ({
-            instructorId: id,
-            schoolId,
-            optionId,
-          })),
-          skipDuplicates: true,
-        });
-      }
-
-      // ✅ Q6は全置換
+      // ✅ Q6は全置換（Q5 option）
       await tx.diagnosisInstructorQ6Option.deleteMany({
         where: { instructorId: id, schoolId },
       });
@@ -740,27 +629,14 @@ export async function PUT(req: NextRequest) {
       },
     });
 
-    const {
-      coursesByInstructor,
-      campusesByInstructor,
-      q4ByInstructor,
-      q6ByInstructor,
-    } = await fetchLinks(schoolId, [id]);
+    const { coursesByInstructor, campusesByInstructor, q6ByInstructor } =
+      await fetchLinks(schoolId, [id]);
 
     const courses = coursesByInstructor.get(id) ?? [];
     const campuses = campusesByInstructor.get(id) ?? [];
-    const q4OptionIds = q4ByInstructor.get(id) ?? [];
     const q6OptionIds = q6ByInstructor.get(id) ?? [];
 
-    const q4Map = q4LabelMap();
     const q6Map = q6LabelMap();
-
-    const q4Options = q4OptionIds.map((oid) => ({
-      id: oid,
-      label: q4Map.get(oid) ?? oid,
-      slug: oid,
-    }));
-
     const q6Options = q6OptionIds.map((oid) => ({
       id: oid,
       label: q6Map.get(oid) ?? oid,
@@ -772,15 +648,15 @@ export async function PUT(req: NextRequest) {
       photoMime: updated?.photoMime ?? null,
       charmTags: updated?.charmTags ?? null,
       introduction: updated?.introduction ?? null,
+
       courses,
       campuses,
-      genres: q4Options,
       concerns: q6Options,
+
       courseIds: courses.map((c: any) => c.id),
       campusIds: campuses.map((c: any) => c.id),
-      genreIds: q4OptionIds,
+
       concernIds: q6OptionIds,
-      q4OptionIds,
       q6OptionIds,
     });
   } catch (e: any) {
