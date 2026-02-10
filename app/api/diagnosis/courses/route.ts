@@ -27,9 +27,6 @@ export async function GET(req: NextRequest) {
       isActive: true,
       q2AnswerTags: true,
 
-      // ✅ 追加：Q4紐づけ
-      answerTag: true,
-
       // ✅ 追加：画像（判定にだけ使う：Bytesは返さない）
       photoMime: true,
       photoData: true,
