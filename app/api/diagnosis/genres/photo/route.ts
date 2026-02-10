@@ -1,39 +1,44 @@
 // app/api/diagnosis/genres/photo/route.ts
+export const dynamic = "force-dynamic";
+
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
 
 export const runtime = "nodejs";
 
-/**
- * GET /api/diagnosis/genres/photo?id=xxx&schoolId=yyy
- * <img src="..."> で使うため、画像バイナリを返す
- */
+function placeholderSvg(text = "NO IMAGE") {
+  const svg = `
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240">
+  <rect width="100%" height="100%" rx="24" fill="#E5E7EB"/>
+  <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle"
+        font-family="ui-sans-serif, system-ui" font-size="16" fill="#6B7280">
+    ${text}
+  </text>
+</svg>`;
+  return Buffer.from(svg, "utf8");
+}
+
+// GET /api/diagnosis/genres/photo?id=xxx&schoolId=yyy
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const id = String(searchParams.get("id") ?? "").trim();
   const schoolId = String(searchParams.get("schoolId") ?? "").trim();
 
   if (!id || !schoolId) {
-    return new NextResponse("bad request", { status: 400 });
+    return new NextResponse(placeholderSvg("BAD REQUEST"), {
+      status: 400,
+      headers: {
+        "Content-Type": "image/svg+xml; charset=utf-8",
+        "Cache-Control": "no-store",
+      },
+    });
   }
 
-  const g = await prisma.diagnosisGenre.findFirst({
-    where: { id, schoolId },
-    select: { photoMime: true, photoData: true, updatedAt: true },
+  // ✅ Q4(Genres) 廃止：DB参照はしない（img互換のためSVGを返す）
+  return new NextResponse(placeholderSvg("DISABLED"), {
+    status: 410, // Gone
+    headers: {
+      "Content-Type": "image/svg+xml; charset=utf-8",
+      "Cache-Control": "no-store",
+    },
   });
-
-  if (!g?.photoMime || !g.photoData) {
-    return new NextResponse("not found", { status: 404 });
-  }
-
-  const headers = new Headers();
-  headers.set("Content-Type", g.photoMime);
-
-  // 管理画面で差し替えがあるので強キャッシュしない（必要なら調整）
-  headers.set("Cache-Control", "private, max-age=60");
-
-  // 画像が存在することが前提なので、ETagは必須じゃないが軽く付ける
-  headers.set("ETag", `"genre-${id}-${g.updatedAt.getTime()}"`);
-
-  return new NextResponse(g.photoData, { status: 200, headers });
 }
