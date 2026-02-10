@@ -63,9 +63,6 @@ export async function GET(req: NextRequest) {
       updatedAt: true,
       q2AnswerTags: true,
 
-      // ✅ 既存
-      answerTag: true,
-
       // ✅ 追加：コース説明文
       description: true,
 
@@ -125,12 +122,6 @@ export async function POST(req: NextRequest) {
   // ✅ Q2タグを正規化して保存
   const q2AnswerTags = normalizeStringArray(body.q2AnswerTags);
 
-  // ✅ answerTag（Q4紐づけ）
-  const answerTag =
-    typeof body.answerTag === "string" && body.answerTag.trim()
-      ? body.answerTag.trim()
-      : null;
-
   // ✅ 追加：description（任意）
   const description = normalizeNullableText(body.description);
 
@@ -142,7 +133,6 @@ export async function POST(req: NextRequest) {
       sortOrder,
       isActive: body.isActive !== false,
       q2AnswerTags,
-      answerTag,
 
       // ✅ 追加
       description,
