@@ -4,7 +4,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  // ✅ Prisma 7以降: schema.prisma の url は廃止（prisma.config.ts 側へ）
+  url      = env("DATABASE_URL")
 }
 
 model Faq {
