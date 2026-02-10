@@ -88,9 +88,10 @@ function q4LabelMap() {
 }
 
 function q6LabelMap() {
-  const q6 = QUESTIONS.find((q) => q.id === "Q6");
+  // 互換キーは q6 のまま維持しつつ、実体は Q5 option を許可
+  const q5 = QUESTIONS.find((q) => q.id === "Q5");
   const map = new Map<string, string>();
-  for (const o of q6?.options ?? []) {
+  for (const o of q5?.options ?? []) {
     map.set(String(o.id), String(o.label));
   }
   return map;
@@ -104,7 +105,7 @@ function normalizeQ4OptionIds(input: string[]) {
   return cleaned.filter((v) => allow.has(v));
 }
 
-/** ✅ Q6の選択肢として「許可された optionId」だけに正規化 */
+/** ✅ 互換キー(q6/concern)で受けつつ、Q5の選択肢として許可された optionId だけに正規化 */
 function normalizeQ6OptionIds(input: string[]) {
   const map = q6LabelMap();
   const allow = new Set(Array.from(map.keys()));
