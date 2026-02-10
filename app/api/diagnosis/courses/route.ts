@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
       isActive: true,
       q2AnswerTags: true,
 
-      // ✅ 追加：画像（判定にだけ使う：Bytesは返さない）
+      // ✅ 画像（判定にだけ使う）
       photoMime: true,
       photoData: true,
     },
@@ -56,10 +56,7 @@ export async function GET(req: NextRequest) {
 
       q2AnswerTags: c.q2AnswerTags ?? [],
 
-      // ✅ 追加
-      answerTag: c.answerTag ?? null,
-
-      // ✅ 追加
+      // ✅ 画像関連
       hasImage,
       photoUrl,
     };
