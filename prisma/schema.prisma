@@ -4,7 +4,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+  // ✅ Prisma 7以降: schema.prisma の url は廃止（prisma.config.ts 側へ）
 }
 
 model Faq {
@@ -92,13 +92,13 @@ model DiagnosisCourse {
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  description String? // ← 追加（コース説明文）
+  description String?
 
   // 既存：Q2の複数回答タグ
   q2AnswerTags String[] @default([])
 
-  // ✅ 追加：Q4の固定回答タグ（ジャンル管理から移動）
-  answerTag String?
+  // ✅ Q4削除：answerTag は不要になったので削除
+  // answerTag String?
 
   // ✅ 追加：診断結果に表示する画像（任意）
   photoMime String?
@@ -106,13 +106,13 @@ model DiagnosisCourse {
 
   results DiagnosisResult[] @relation("ResultCourses")
 
-  // ✅ これを追加（★今回のビルドエラー解消ポイント）
+  // ✅ これを追加（ビルドエラー解消ポイント）
   scheduleSlots DiagnosisScheduleSlotCourse[]
 
   @@unique([schoolId, slug])
   @@index([schoolId, sortOrder])
   @@index([schoolId, isActive])
-  @@index([schoolId, answerTag])
+  // @@index([schoolId, answerTag])  // ✅ Q4削除により不要
 }
 
 model DiagnosisLifestyle {
@@ -124,29 +124,6 @@ model DiagnosisLifestyle {
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
-  @@unique([schoolId, slug])
-  @@index([schoolId, sortOrder])
-  @@index([schoolId, isActive])
-}
-
-model DiagnosisGenre {
-  id        String  @id @default(cuid())
-  schoolId  String
-  label     String
-  slug      String
-  sortOrder Int     @default(0)
-  isActive  Boolean @default(true)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  answerTag String?
-
-  photoData Bytes?
-  photoMime String?
-
-  results DiagnosisResult[] @relation("ResultGenres")
 
   @@unique([schoolId, slug])
   @@index([schoolId, sortOrder])
@@ -172,8 +149,8 @@ model DiagnosisInstructor {
 
   results DiagnosisResult[] @relation("ResultInstructors")
 
-  // ✅ 既存：Q4 option 紐づけ（逆側）
-  q4Options DiagnosisInstructorQ4Option[] @relation("InstructorQ4Options")
+  // ✅ Q4削除：q4Options を削除
+  // q4Options DiagnosisInstructorQ4Option[] @relation("InstructorQ4Options")
 
   // ✅ 追加：Q6 option 紐づけ（逆側）
   q6Options DiagnosisInstructorQ6Option[] @relation("InstructorQ6Options")
@@ -194,16 +171,8 @@ model DiagnosisInstructorCourse {
   @@index([courseId])
 }
 
-model DiagnosisInstructorGenre {
-  instructorId String
-  genreId      String
-  schoolId     String
-  createdAt    DateTime @default(now()) @db.Timestamp(6)
-
-  @@id([instructorId, genreId])
-  @@index([schoolId])
-  @@index([genreId])
-}
+// ✅ Q4削除：DiagnosisInstructorGenre を削除
+// model DiagnosisInstructorGenre { ... }
 
 model DiagnosisInstructorCampus {
   instructorId String
@@ -234,7 +203,8 @@ model DiagnosisResult {
 
   campuses    DiagnosisCampus[]     @relation("ResultCampuses")
   courses     DiagnosisCourse[]     @relation("ResultCourses")
-  genres      DiagnosisGenre[]      @relation("ResultGenres")
+  // ✅ Q4削除：genres を削除
+  // genres   DiagnosisGenre[]      @relation("ResultGenres")
   instructors DiagnosisInstructor[] @relation("ResultInstructors")
 
   @@index([schoolId, sortOrder])
@@ -308,10 +278,10 @@ model DiagnosisScheduleSlot {
   schoolId String
 
   weekday   Weekday
-  genreText String // 例: "K-POP"
-  timeText  String // 例: "15:00〜17:00"
-  teacher   String // 例: "AYAKA"
-  place     String // 例: "大阪校"
+  genreText String // 例: "K-POP"（※表示用テキストとしては残してOK）
+  timeText  String
+  teacher   String
+  place     String
 
   isActive  Boolean @default(true)
   sortOrder Int     @default(0)
@@ -334,7 +304,6 @@ model DiagnosisScheduleSlotCourse {
   @@id([slotId, courseId])
 }
 
-/// 診断結果ページの最下部に出す「フォーム」設定
 model DiagnosisForm {
   id       String @id @default(cuid())
   schoolId String @unique
@@ -344,10 +313,10 @@ model DiagnosisForm {
   title       String?
   description String?
 
-  submitType String  @default("INTERNAL") // INTERNAL / EXTERNAL / GOOGLE（運用で文字列）
+  submitType String  @default("INTERNAL")
   submitUrl  String?
 
-  thanksType String  @default("MESSAGE") // MESSAGE / REDIRECT（運用で文字列）
+  thanksType String  @default("MESSAGE")
   thanksText String?
   thanksUrl  String?
 
@@ -364,7 +333,7 @@ model DiagnosisFormField {
   formId String
 
   label       String
-  type        String // TEXT / EMAIL / TEL / TEXTAREA / SELECT / CHECKBOX / HIDDEN
+  type        String
   required    Boolean @default(false)
   placeholder String?
 
@@ -382,27 +351,23 @@ model DiagnosisFormField {
   @@index([formId, sortOrder])
 }
 
-/// ✅ 追加：フォーム送信時の「メール通知/自動返信」設定（スクール単位で1つ）
 model DiagnosisFormEmailSetting {
   id       String @id @default(cuid())
   schoolId String @unique
 
   isActive Boolean @default(true)
 
-  // 送信元
   fromName  String?
   fromEmail String?
   replyTo   String?
 
-  // 管理者通知
-  adminTo  String // カンマ区切りで複数OK（例: a@x.com,b@y.com）
+  adminTo  String
   adminCc  String?
   adminBcc String?
 
   adminSubjectTemplate String  @default("【診断フォーム】新しいお問い合わせ")
   adminBodyTemplate    String?
 
-  // 自動返信（ユーザー宛）
   userAutoReplyEnabled Boolean @default(true)
   userSubjectTemplate  String  @default("お問い合わせありがとうございます")
   userBodyTemplate     String?
@@ -413,18 +378,8 @@ model DiagnosisFormEmailSetting {
   @@index([schoolId])
 }
 
-model DiagnosisInstructorQ4Option {
-  id           String @id @default(cuid())
-  schoolId     String
-  instructorId String
-  optionId     String
-
-  instructor DiagnosisInstructor @relation("InstructorQ4Options", fields: [instructorId], references: [id], onDelete: Cascade)
-
-  @@unique([schoolId, instructorId, optionId])
-  @@index([schoolId, optionId])
-  @@index([instructorId])
-}
+// ✅ Q4削除：DiagnosisInstructorQ4Option を削除
+// model DiagnosisInstructorQ4Option { ... }
 
 model DiagnosisInstructorQ6Option {
   id           String @id @default(cuid())

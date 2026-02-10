@@ -1266,7 +1266,7 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
                         {/* 対応コース/校舎/ジャンル */}
                         <div className="md:col-span-3">
                           <div className="text-[11px] font-semibold text-gray-600 dark:text-gray-300">
-                            紐づけ（コース / 校舎 / ジャンル / 理想の先生）
+                            紐づけ（コース / 校舎 / 理想の先生）
                           </div>
 
                           {editing ? (
