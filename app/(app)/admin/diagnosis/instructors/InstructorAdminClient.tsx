@@ -381,9 +381,9 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
         isActive: true,
       }));
 
-      // ✅ Q6
-      const q6 = QUESTIONS.find((q) => q.id === "Q6");
-      const concerns: OptionRow[] = (q6?.options ?? []).map((o: any) => ({
+      // ✅ 講師紐づけは Q5 を使用（保存キー q6OptionIds は互換維持）
+      const q5 = QUESTIONS.find((q) => q.id === "Q5");
+      const concerns: OptionRow[] = (q5?.options ?? []).map((o: any) => ({
         id: String(o.id),
         label: String(o.label),
         isActive: true,
@@ -700,7 +700,7 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
         genres,
       );
 
-      // ✅ Q6（不安）：e.concernIds が無い/空のときのフォールバックも見る
+      // ✅ 講師紐づけ（UIはQ5）：e.concernIds が無い/空のときのフォールバックも見る
       const rawConcernIds = uniqStrings(
         (e.concernIds && e.concernIds.length > 0
           ? e.concernIds
@@ -983,7 +983,7 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
 
             <div>
               <div className="mb-1 text-[11px] font-semibold text-gray-600 dark:text-gray-300">
-                一番の不安（チェック）
+                理想の先生（Q5）
               </div>
               <CheckboxList
                 options={concerns}
@@ -1266,7 +1266,7 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
                         {/* 対応コース/校舎/ジャンル */}
                         <div className="md:col-span-3">
                           <div className="text-[11px] font-semibold text-gray-600 dark:text-gray-300">
-                            紐づけ（コース / 校舎 / ジャンル / 不安点）
+                            紐づけ（コース / 校舎 / ジャンル / 理想の先生）
                           </div>
 
                           {editing ? (
@@ -1330,7 +1330,7 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
 
                               <div>
                                 <div className="mb-1 text-[11px] font-semibold text-gray-600 dark:text-gray-300">
-                                  一番の不安（チェック）
+                                  理想の先生（Q5）
                                 </div>
                                 <CheckboxList
                                   options={concerns}
@@ -1399,7 +1399,7 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
 
                                   <div>
                                     <div className="text-[11px] font-semibold text-gray-600 dark:text-gray-300">
-                                      一番の不安（Q6）
+                                      理想の先生（Q5）
                                     </div>
                                     <div className="mt-1">
                                       <TagPills

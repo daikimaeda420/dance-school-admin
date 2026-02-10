@@ -118,6 +118,13 @@ async function instructorIdsByConcernOption(params: {
   return rows.map((r) => r.instructorId);
 }
 
+function getTeacherIdealOptionId(answers: Record<string, string>): string | null {
+  const optionId = answers["Q5"];
+  return typeof optionId === "string" && optionId.trim()
+    ? optionId.trim()
+    : null;
+}
+
 async function instructorIdsByGenreTag(params: {
   schoolId: string;
   genreTag: string;
@@ -190,11 +197,13 @@ export async function POST(req: NextRequest) {
         })
       : [];
 
-    const concernOptionId = getConcernOptionId(answers);
-    const concernInstructorIds = concernOptionId
+    // ✅ 講師照合は Q5（理想の先生）を利用
+    const teacherIdealOptionId = getTeacherIdealOptionId(answers);
+    const concernOptionId = getConcernOptionId(answers); // concernMessage 生成用に維持
+    const concernInstructorIds = teacherIdealOptionId
       ? await instructorIdsByConcernOption({
           schoolId,
-          optionId: concernOptionId,
+          optionId: teacherIdealOptionId,
         })
       : [];
 
@@ -269,6 +278,7 @@ export async function POST(req: NextRequest) {
       concernMessage: concernText,
       debug: {
         concernOptionId,
+        teacherIdealOptionId,
         instructorMatchedBy,
         instructorsCount: instructors.length,
       },
