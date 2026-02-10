@@ -118,7 +118,9 @@ async function instructorIdsByConcernOption(params: {
   return rows.map((r) => r.instructorId);
 }
 
-function getTeacherIdealOptionId(answers: Record<string, string>): string | null {
+function getTeacherIdealOptionId(
+  answers: Record<string, string>,
+): string | null {
   const optionId = answers["Q5"];
   return typeof optionId === "string" && optionId.trim()
     ? optionId.trim()
@@ -130,23 +132,40 @@ async function instructorIdsByGenreTag(params: {
   genreTag: string;
 }) {
   const { schoolId, genreTag } = params;
+
+  // 「全部見る」
   if (!genreTag || genreTag === "Genre_All") {
-    return { genreId: null, ids: [] as string[] };
+    return { courseId: null, ids: [] as string[] };
   }
 
-  const genre = await prisma.diagnosisGenre.findFirst({
-    where: { schoolId, isActive: true, answerTag: genreTag },
+  // ① genreTag = answerTag で「コース」を特定
+  const course = await prisma.diagnosisCourse.findFirst({
+    where: {
+      schoolId,
+      isActive: true,
+      answerTag: genreTag,
+    },
     select: { id: true },
+    orderBy: { sortOrder: "asc" },
   });
 
-  if (!genre) return { genreId: null, ids: [] };
+  if (!course) {
+    return { courseId: null, ids: [] };
+  }
 
-  const links = await prisma.diagnosisInstructorGenre.findMany({
-    where: { schoolId, genreId: genre.id },
+  // ② そのコースに紐づく講師を取得
+  const links = await prisma.diagnosisInstructorCourse.findMany({
+    where: {
+      schoolId,
+      courseId: course.id,
+    },
     select: { instructorId: true },
   });
 
-  return { genreId: genre.id, ids: links.map((r) => r.instructorId) };
+  return {
+    courseId: course.id,
+    ids: links.map((r) => r.instructorId),
+  };
 }
 
 // =========================
