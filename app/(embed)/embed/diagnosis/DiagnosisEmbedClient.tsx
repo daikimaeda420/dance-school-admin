@@ -611,7 +611,7 @@ export default function DiagnosisEmbedClient({
               <div className="flex flex-col gap-2">
                 <a
                   href={
-                    result.bestMatch.classId
+                    result.bestMatch?.classId
                       ? `/reserve?classId=${encodeURIComponent(
                           result.bestMatch.classId,
                         )}`
