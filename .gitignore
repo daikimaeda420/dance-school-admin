@@ -3,7 +3,10 @@ node_modules/
 .next/
 dist/
 .env
+.env.*
 .DS_Store
-.next
 
 /generated/prisma
+
+# 機密データ
+data/users.json

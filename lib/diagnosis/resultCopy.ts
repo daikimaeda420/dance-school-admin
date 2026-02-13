@@ -94,7 +94,7 @@ export const AGE_RESULT_COPY: Record<string, ResultCopy> = {
   },
 };
 
-// Q5（teacher）の option.tag（Style_Healing 等）に対応
+// Q4（teacher）の option.tag（Style_Healing 等）に対応
 export const TEACHER_RESULT_COPY: Record<string, ResultCopy> = {
   Style_Healing: {
     title: "あなたの「良いところ」を\n全力で褒めて伸ばすクラス",

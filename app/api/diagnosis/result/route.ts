@@ -7,9 +7,6 @@ import {
   ConcernMessageKey,
 } from "@/lib/diagnosis/config";
 import {
-  LEVEL_RESULT_COPY,
-  AGE_RESULT_COPY,
-  TEACHER_RESULT_COPY,
   CONCERN_RESULT_COPY,
 } from "@/lib/diagnosis/resultCopy";
 
