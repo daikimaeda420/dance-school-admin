@@ -226,9 +226,17 @@ export async function POST(req: NextRequest) {
         })
       : [];
 
-    const { ids: genreInstructorIdsRaw } = await instructorIdsByGenreTag({
-      schoolId,
-      genreTag,
+    // ① genreTag で「コース」を特定
+    const course = await prisma.diagnosisCourse.findFirst({
+      where: {
+        schoolId,
+        isActive: true,
+        // ❌ answerTag: genreTag,
+        // ✅ 修正
+        q2AnswerTags: { has: genreTag },
+      },
+      select: { id: true },
+      orderBy: { sortOrder: "asc" },
     });
 
     const selectInstructor = {
