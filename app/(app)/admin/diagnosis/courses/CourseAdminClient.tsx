@@ -33,8 +33,7 @@ type Course = {
   isActive: boolean;
   q2AnswerTags: string[];
 
-  // ✅ 追加：Q4紐づけ
-  answerTag: string | null;
+
 
   // ✅ 追加：コース説明文
   description?: string | null;
@@ -223,8 +222,7 @@ export default function CourseAdminClient({ schoolId }: Props) {
   // ✅ 追加：コース説明文（新規）
   const [newDescription, setNewDescription] = useState<string>("");
 
-  // ✅ 追加
-  const [newAnswerTag, setNewAnswerTag] = useState<string>(""); // "" = 未設定
+
   const [newImageFile, setNewImageFile] = useState<File | null>(null);
 
   // ✅ 行ごとの画像アップロード用
@@ -243,19 +241,7 @@ export default function CourseAdminClient({ schoolId }: Props) {
 
   const courseIds = useMemo(() => courses.map((c) => c.id), [courses]);
 
-  // ✅ Q4 options: QUESTIONS から取得
-  const q4Options = useMemo(() => {
-    const q4 = QUESTIONS.find((q: any) => q.id === "Q4") as any;
-    const opts = Array.isArray(q4?.options) ? q4.options : [];
-    const mapped = opts
-      .map((o: any) => ({
-        id: String(o?.id ?? ""),
-        label: String(o?.label ?? o?.value ?? o?.id ?? ""),
-        tag: typeof o?.tag === "string" ? String(o.tag) : "",
-      }))
-      .filter((x: any) => x.tag && x.label);
-    return mapped;
-  }, []);
+
 
   const fetchCourses = async () => {
     if (!schoolId) return;
@@ -280,7 +266,7 @@ export default function CourseAdminClient({ schoolId }: Props) {
           q2AnswerTags: Array.isArray(d.q2AnswerTags)
             ? uniqStrings(d.q2AnswerTags)
             : [],
-          answerTag: typeof d.answerTag === "string" ? d.answerTag : null,
+
 
           // ✅ 追加：コース説明文
           description: typeof d.description === "string" ? d.description : null,
@@ -344,8 +330,7 @@ export default function CourseAdminClient({ schoolId }: Props) {
           isActive: newIsActive,
           q2AnswerTags: uniqStrings(newQ2Tags),
 
-          // ✅ 追加
-          answerTag: newAnswerTag ? newAnswerTag : null,
+
 
           // ✅ 追加：説明文
           description: newDescription ? newDescription : null,
@@ -370,7 +355,7 @@ export default function CourseAdminClient({ schoolId }: Props) {
       setNewSortOrder(0);
       setNewIsActive(true);
       setNewQ2Tags([]);
-      setNewAnswerTag("");
+
       setNewImageFile(null);
 
       // ✅ 追加
@@ -393,7 +378,6 @@ export default function CourseAdminClient({ schoolId }: Props) {
       | "sortOrder"
       | "isActive"
       | "q2AnswerTags"
-      | "answerTag"
       | "description"
     >,
     value: string | number | boolean | string[] | null,
@@ -559,45 +543,20 @@ export default function CourseAdminClient({ schoolId }: Props) {
           </label>
         </div>
 
-        {/* ✅ Q4紐づけ */}
-        <div className="mt-2 grid gap-2 md:grid-cols-3">
-          <div className="md:col-span-2">
-            <div className="mb-1 text-[11px] font-semibold text-gray-600 dark:text-gray-300">
-              Q4紐づけ（answerTag）
-            </div>
-            <select
-              className={selectCls}
-              value={newAnswerTag}
-              onChange={(e) => setNewAnswerTag(e.target.value)}
-              disabled={disabled || saving || savingSort}
-            >
-              <option value="">未設定（紐づけなし）</option>
-              {q4Options.map((o) => (
-                <option key={o.id} value={o.tag}>
-                  {o.label}（{o.tag}）
-                </option>
-              ))}
-            </select>
-            <div className="mt-1 text-[11px] text-gray-500 dark:text-gray-400">
-              ※ Q4の選択肢（tag）とコースを紐づけます
-            </div>
+        {/* 画像（任意） */}
+        <div className="mt-2">
+          <div className="mb-1 text-[11px] font-semibold text-gray-600 dark:text-gray-300">
+            診断結果画像（任意）
           </div>
-
-          {/* ✅ 画像（任意） */}
-          <div className="md:col-span-1">
-            <div className="mb-1 text-[11px] font-semibold text-gray-600 dark:text-gray-300">
-              診断結果画像（任意）
-            </div>
-            <input
-              className={inputCls}
-              type="file"
-              accept="image/*"
-              onChange={(e) => setNewImageFile(e.target.files?.[0] ?? null)}
-              disabled={disabled || saving || savingSort}
-            />
-            <div className="mt-1 text-[11px] text-gray-500 dark:text-gray-400">
-              ※ 3MBまで
-            </div>
+          <input
+            className={inputCls}
+            type="file"
+            accept="image/*"
+            onChange={(e) => setNewImageFile(e.target.files?.[0] ?? null)}
+            disabled={disabled || saving || savingSort}
+          />
+          <div className="mt-1 text-[11px] text-gray-500 dark:text-gray-400">
+            ※ 3MBまで
           </div>
         </div>
 
@@ -777,44 +736,7 @@ export default function CourseAdminClient({ schoolId }: Props) {
                             />
                           </div>
 
-                          {/* ✅ answerTag */}
-                          <div className="md:col-span-3">
-                            <div className="mb-1 text-[11px] font-semibold text-gray-600 dark:text-gray-300">
-                              Q4紐づけ（answerTag）
-                            </div>
-                            <select
-                              className={selectCls}
-                              value={c.answerTag ?? ""}
-                              onChange={(e) => {
-                                const v = e.target.value;
-                                setCourses((prev) =>
-                                  prev.map((p) =>
-                                    p.id === c.id
-                                      ? { ...p, answerTag: v ? v : null }
-                                      : p,
-                                  ),
-                                );
-                              }}
-                              onBlur={() =>
-                                handleUpdateField(
-                                  c.id,
-                                  "answerTag",
-                                  c.answerTag ?? null,
-                                )
-                              }
-                              disabled={saving || savingSort}
-                            >
-                              <option value="">未設定（紐づけなし）</option>
-                              {q4Options.map((o) => (
-                                <option key={o.id} value={o.tag}>
-                                  {o.label}（{o.tag}）
-                                </option>
-                              ))}
-                            </select>
-                            <div className="mt-1 text-[11px] text-gray-500 dark:text-gray-400">
-                              ※ Q4のtagと一致させてください
-                            </div>
-                          </div>
+
 
                           <div className="md:col-span-2">
                             <div className="mb-1 text-[11px] font-semibold text-gray-600 dark:text-gray-300">

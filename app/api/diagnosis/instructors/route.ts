@@ -31,7 +31,6 @@ function json(message: string, status = 400) {
 
 /**
  * courseIds / campusIds / q6OptionIds / concernIds などを柔軟に受け取る
- * ※ Q4（ジャンル/雰囲気）は「コース設定時のみ利用」なので、講師APIでは扱わない
  */
 function readIdList(fd: FormData, key: string): string[] {
   const all = fd
@@ -159,8 +158,7 @@ async function resolveConnectIds(params: {
 }
 
 /**
- * ✅ 明示中間（Course/Campus） + ✅ Q6 option の紐づけを返す
- * ※ Q4（ジャンル/雰囲気）はコース設定時のみ利用するため、このAPIでは扱わない
+ * ✅ 明示中間（Course/Campus） + ✅ Q5 option の紐づけを返す
  *
  * NOTE:
  * - prisma.diagnosisInstructorQ6Option が存在する前提です
@@ -295,7 +293,7 @@ export async function GET(req: NextRequest) {
         const courses = coursesByInstructor.get(r.id) ?? [];
         const campuses = campusesByInstructor.get(r.id) ?? [];
 
-        // ✅ Q6 option ids
+        // ✅ Q5 option ids
         const q6OptionIds = q6ByInstructor.get(r.id) ?? [];
 
         // ✅ フロント表示用：concerns に「Q6選択肢」
@@ -361,7 +359,7 @@ export async function POST(req: NextRequest) {
     const courseVals = readIdList(fd, "courseIds");
     const campusVals = readIdList(fd, "campusIds");
 
-    // ✅ Q6（一番の不安）互換：concernIdsでも来る
+    // ✅ Q5（一番の不安）互換：concernIdsでも来る
     const q6ValsRaw = uniq([
       ...readIdList(fd, "q6OptionIds"),
       ...readIdList(fd, "concernIds"),

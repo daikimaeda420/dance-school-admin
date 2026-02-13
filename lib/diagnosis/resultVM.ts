@@ -59,13 +59,11 @@ export function buildMatchContextFromAnswers(
   const optQ2 = getOption("Q2", answers.Q2);
   const optQ3 = getOption("Q3", answers.Q3);
   const optQ4 = getOption("Q4", answers.Q4);
-  const optQ5 = getOption("Q5", answers.Q5);
 
   return {
     userLevel: optQ2?.tag ?? "Lv1_入門",
     userAge: optQ3?.tag ?? "Age_Adult_Work",
-    userGenre: optQ4?.tag ?? "Genre_All",
-    userTeacherStyle: optQ5?.tag ?? "Style_Healing",
+    userTeacherStyle: optQ4?.tag ?? "Style_Healing",
   };
 }
 
@@ -83,13 +81,13 @@ export function buildDiagnosisResultVM<
 
   const optQ2 = getOption("Q2", answers.Q2);
   const optQ3 = getOption("Q3", answers.Q3);
+  const optQ4 = getOption("Q4", answers.Q4);
   const optQ5 = getOption("Q5", answers.Q5);
-  const optQ6 = getOption("Q6", answers.Q6);
 
   const levelTag = optQ2?.tag;
   const ageTag = optQ3?.tag;
-  const teacherTag = optQ5?.tag;
-  const concernKey = optQ6?.messageKey;
+  const teacherTag = optQ4?.tag;
+  const concernKey = optQ5?.messageKey;
 
   const headline = `あなたにおすすめ：${
     best.clazz?.name ?? "おすすめクラス"
@@ -120,17 +118,17 @@ export function buildDiagnosisResultVM<
               "生活スタイルに合わせて通えます。",
           }
         : undefined,
-      teacher: optQ5
+      teacher: optQ4
         ? {
-            selectedLabel: optQ5.label,
+            selectedLabel: optQ4.label,
             message:
               TEACHER_RESULT_COPY[teacherTag ?? ""] ??
               "あなたに合う先生と出会えます。",
           }
         : undefined,
-      concern: optQ6
+      concern: optQ5
         ? {
-            selectedLabel: optQ6.label,
+            selectedLabel: optQ5.label,
             message: concernKey
               ? CONCERN_RESULT_COPY[concernKey]
               : "不安を一緒に解消できます。",

@@ -29,11 +29,9 @@ type InstructorRow = {
 
   courses?: OptionRow[];
   campuses?: OptionRow[];
-  genres?: OptionRow[];
 
   courseIds?: string[];
   campusIds?: string[];
-  genreIds?: string[];
   concernIds?: string[];
 };
 
@@ -286,7 +284,7 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
 
   const [courses, setCourses] = useState<OptionRow[]>([]);
   const [campuses, setCampuses] = useState<OptionRow[]>([]);
-  const [genres, setGenres] = useState<OptionRow[]>([]);
+
   const [concerns, setConcerns] = useState<OptionRow[]>([]);
 
   const [newId, setNewId] = useState("");
@@ -297,7 +295,7 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
 
   const [newCourseIds, setNewCourseIds] = useState<string[]>([]);
   const [newCampusIds, setNewCampusIds] = useState<string[]>([]);
-  const [newGenreIds, setNewGenreIds] = useState<string[]>([]);
+
   const [newConcernIds, setNewConcernIds] = useState<string[]>([]);
 
   const [newCharmTags, setNewCharmTags] = useState("");
@@ -323,7 +321,7 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
       id,
     )}&schoolId=${encodeURIComponent(schoolId)}`;
 
-  type OptionKind = "course" | "campus" | "genre";
+  type OptionKind = "course" | "campus";
 
   const normalizeOptions = (kind: OptionKind, x: any): OptionRow[] => {
     const arr = Array.isArray(x?.items) ? x.items : Array.isArray(x) ? x : [];
@@ -335,11 +333,9 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
         const label = String(d.label ?? d.name ?? d.title ?? "").trim();
         const answerTag = d.answerTag ? String(d.answerTag).trim() : null;
 
-        // ✅ UIで使う id を kind ごとに統一
+        // UIで使う id を kind ごとに統一
         // course/campus: slug（beginner / ikoma）
-        // genre(Q4): answerTag（Genre_KPOP）
-        const uiId =
-          kind === "genre" ? answerTag || slug || dbId : slug || dbId;
+        const uiId = slug || dbId;
 
         return {
           id: uiId, // ✅ UIキー
@@ -372,18 +368,9 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
       const c = normalizeOptions("course", cJson);
       const p = normalizeOptions("campus", pJson);
 
-      // Q4
+      // 講師紐づけは Q4（理想の先生）を使用（保存キー q6OptionIds は互換維持）
       const q4 = QUESTIONS.find((q) => q.id === "Q4");
-      const g: OptionRow[] = (q4?.options ?? []).map((o: any) => ({
-        id: String(o.id),
-        label: String(o.label),
-        answerTag: String(o.id),
-        isActive: true,
-      }));
-
-      // ✅ 講師紐づけは Q5 を使用（保存キー q6OptionIds は互換維持）
-      const q5 = QUESTIONS.find((q) => q.id === "Q5");
-      const concerns: OptionRow[] = (q5?.options ?? []).map((o: any) => ({
+      const concerns: OptionRow[] = (q4?.options ?? []).map((o: any) => ({
         id: String(o.id),
         label: String(o.label),
         isActive: true,
@@ -391,7 +378,6 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
 
       setCourses(c);
       setCampuses(p);
-      setGenres(g);
       setConcerns(concerns);
     } catch {
       // noop
@@ -425,11 +411,11 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
 
         courses: Array.isArray(d.courses) ? d.courses : [],
         campuses: Array.isArray(d.campuses) ? d.campuses : [],
-        genres: Array.isArray(d.genres) ? d.genres : [],
+
 
         courseIds: safeArray(d.courseIds),
         campusIds: safeArray(d.campusIds),
-        genreIds: safeArray(d.genreIds),
+
         concernIds: safeArray(d.q6OptionIds ?? d.concernIds),
       }));
 
@@ -448,7 +434,7 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
   useEffect(() => {
     if (!canLoad) return;
 
-    // ✅ options（courses/campuses/genres）を先に読み込んでから list を読む
+    // options（courses/campuses）を先に読み込んでから list を読む
     (async () => {
       try {
         await fetchOptions();
@@ -514,10 +500,7 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
         resolveToOptionIds(uniqStrings(newCampusIds), campuses),
         campuses,
       );
-      const sendGenreIds = normalizeIdsByOptions(
-        resolveToOptionIds(uniqStrings(newGenreIds), genres),
-        genres,
-      );
+
 
       const sendConcernIds = normalizeIdsByOptions(
         resolveToOptionIds(uniqStrings(newConcernIds), concerns),
@@ -526,7 +509,7 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
 
       fd.append("courseIds", JSON.stringify(sendCourseIds));
       fd.append("campusIds", JSON.stringify(sendCampusIds));
-      fd.append("genreIds", JSON.stringify(sendGenreIds));
+
       fd.append("q6OptionIds", JSON.stringify(sendConcernIds));
 
       fd.append("charmTags", newCharmTags);
@@ -549,7 +532,7 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
       setNewCourseIds([]);
       setNewCampusIds([]);
       setNewConcernIds([]);
-      setNewGenreIds([]);
+
       setNewCharmTags("");
       setNewIntroduction("");
 
@@ -572,10 +555,7 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
         ? safeArray(r.campusIds)
         : uniqStrings((r.campuses ?? []).map((c) => c.id));
 
-    const rawGenreIds =
-      safeArray(r.genreIds).length > 0
-        ? safeArray(r.genreIds)
-        : uniqStrings((r.genres ?? []).map((g) => g.id));
+
 
     const rawConcernIds =
       safeArray(r.concernIds).length > 0
@@ -595,10 +575,7 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
       resolveToOptionIds(rawCampusIds, campuses),
       campuses,
     );
-    const seedGenreIds = normalizeIdsByOptions(
-      resolveToOptionIds(rawGenreIds, genres),
-      genres,
-    );
+
 
     setEditMap((prev) => ({
       ...prev,
@@ -612,7 +589,7 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
 
         courseIds: seedCourseIds,
         campusIds: seedCampusIds,
-        genreIds: seedGenreIds,
+
         concernIds: seedConcernIds,
 
         charmTags: String(r.charmTags ?? ""),
@@ -686,7 +663,7 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
       const file = editFileMap[id];
       if (file) fd.append("file", file);
 
-      // ✅ コース/校舎/ジャンル：編集値(e.xxx)を送る
+      // コース/校舎：編集値(e.xxx)を送る
       const sendCourseIds = normalizeIdsByOptions(
         resolveToOptionIds(uniqStrings(e.courseIds ?? []), courses),
         courses,
@@ -695,10 +672,7 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
         resolveToOptionIds(uniqStrings(e.campusIds ?? []), campuses),
         campuses,
       );
-      const sendGenreIds = normalizeIdsByOptions(
-        resolveToOptionIds(uniqStrings(e.genreIds ?? []), genres),
-        genres,
-      );
+
 
       // ✅ 講師紐づけ（UIはQ5）：e.concernIds が無い/空のときのフォールバックも見る
       const rawConcernIds = uniqStrings(
@@ -715,7 +689,7 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
       // ✅ 送信
       fd.append("courseIds", JSON.stringify(sendCourseIds));
       fd.append("campusIds", JSON.stringify(sendCampusIds));
-      fd.append("genreIds", JSON.stringify(sendGenreIds));
+
       fd.append("q6OptionIds", JSON.stringify(sendConcernIds));
 
       fd.append("charmTags", String((e as any).charmTags ?? ""));
@@ -761,10 +735,7 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
         safeArray(r.campusIds).length > 0
           ? safeArray(r.campusIds)
           : uniqStrings((r.campuses ?? []).map((c) => c.id));
-      const keepGenreRaw =
-        safeArray(r.genreIds).length > 0
-          ? safeArray(r.genreIds)
-          : uniqStrings((r.genres ?? []).map((g) => g.id));
+
 
       const keepCourseIds = normalizeIdsByOptions(
         resolveToOptionIds(keepCourseRaw, courses),
@@ -774,10 +745,7 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
         resolveToOptionIds(keepCampusRaw, campuses),
         campuses,
       );
-      const keepGenreIds = normalizeIdsByOptions(
-        resolveToOptionIds(keepGenreRaw, genres),
-        genres,
-      );
+
 
       const keepConcernRaw =
         safeArray((r as any).q6OptionIds).length > 0
@@ -791,7 +759,7 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
 
       fd.append("courseIds", JSON.stringify(keepCourseIds));
       fd.append("campusIds", JSON.stringify(keepCampusIds));
-      fd.append("genreIds", JSON.stringify(keepGenreIds));
+
       fd.append("q6OptionIds", JSON.stringify(keepConcernIds));
 
       fd.append("charmTags", String(r.charmTags ?? ""));
@@ -966,24 +934,12 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
                 />
               </div>
 
-              <div>
-                <div className="mb-1 text-[11px] font-semibold text-gray-600 dark:text-gray-300">
-                  好みの音楽・雰囲気（チェック）
-                </div>
-                <CheckboxList
-                  options={genres}
-                  selected={newGenreIds}
-                  onChange={(next) =>
-                    setNewGenreIds(normalizeIdsByOptions(next, genres))
-                  }
-                  columns={1}
-                />
-              </div>
+
             </div>
 
             <div>
               <div className="mb-1 text-[11px] font-semibold text-gray-600 dark:text-gray-300">
-                理想の先生（Q5）
+                理想の先生（Q4）
               </div>
               <CheckboxList
                 options={concerns}
@@ -1083,14 +1039,7 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
                       (r.campuses ?? []).map((c) => (c as any).dbId ?? c.id),
                     );
 
-              // ✅ ジャンル：IDsが無い場合は genres 配列から拾う（後方互換）
-              const rawGenreIds = editing
-                ? uniqStrings((e?.genreIds ?? []) as any[])
-                : safeArray(r.genreIds).length > 0
-                  ? safeArray(r.genreIds)
-                  : uniqStrings(
-                      (r.genres ?? []).map((g) => (g as any).dbId ?? g.id),
-                    );
+
 
               const selectedCourseIds = normalizeIdsByOptions(
                 resolveToOptionIds(rawCourseIds, courses),
@@ -1102,10 +1051,7 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
                 campuses,
               );
 
-              const selectedGenreIds = normalizeIdsByOptions(
-                resolveToOptionIds(rawGenreIds, genres),
-                genres,
-              );
+
 
               const selectedConcernIds = normalizeIdsByOptions(
                 resolveToOptionIds(
@@ -1309,28 +1255,11 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
                                 />
                               </div>
 
-                              <div>
-                                <div className="mb-1 text-[11px] text-gray-600 dark:text-gray-300">
-                                  好みの音楽・雰囲気（チェック）
-                                </div>
-                                <CheckboxList
-                                  options={genres}
-                                  selected={selectedGenreIds}
-                                  onChange={(next) =>
-                                    updateEditField(r.id, {
-                                      genreIds: normalizeIdsByOptions(
-                                        next,
-                                        genres,
-                                      ),
-                                    })
-                                  }
-                                  columns={1}
-                                />
-                              </div>
+
 
                               <div>
                                 <div className="mb-1 text-[11px] font-semibold text-gray-600 dark:text-gray-300">
-                                  理想の先生（Q5）
+                                  理想の先生（Q4）
                                 </div>
                                 <CheckboxList
                                   options={concerns}
@@ -1365,20 +1294,6 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
                                       />
                                     </div>
                                   </div>
-
-                                  <div>
-                                    <div className="text-[11px] font-semibold text-gray-600 dark:text-gray-300">
-                                      好みの音楽・雰囲気（Q4）
-                                    </div>
-                                    <div className="mt-1">
-                                      <TagPills
-                                        labels={labelsBySelectedIds(
-                                          selectedGenreIds,
-                                          genres,
-                                        )}
-                                      />
-                                    </div>
-                                  </div>
                                 </div>
 
                                 {/* 右 */}
@@ -1399,7 +1314,7 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
 
                                   <div>
                                     <div className="text-[11px] font-semibold text-gray-600 dark:text-gray-300">
-                                      理想の先生（Q5）
+                                      理想の先生（Q4）
                                     </div>
                                     <div className="mt-1">
                                       <TagPills
@@ -1422,10 +1337,7 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
                                   campus: {selectedCampusIds.length}
                                 </span>
                                 <span className="rounded-full border border-gray-200 bg-white px-2 py-0.5 dark:border-gray-800 dark:bg-gray-900">
-                                  genre: {selectedGenreIds.length}
-                                </span>
-                                <span className="rounded-full border border-gray-200 bg-white px-2 py-0.5 dark:border-gray-800 dark:bg-gray-900">
-                                  q6: {selectedConcernIds.length}
+                                  q5: {selectedConcernIds.length}
                                 </span>
                               </div>
                             </div>

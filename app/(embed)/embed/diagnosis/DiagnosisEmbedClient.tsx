@@ -35,7 +35,6 @@ type DiagnosisResult = {
   bestMatch: {
     classId?: string;
     className?: string;
-    genres: string[];
     levels: string[];
     targets: string[];
   };
@@ -50,7 +49,7 @@ type DiagnosisResult = {
   instructors?: DiagnosisInstructorVM[];
 
   breakdown: {
-    key: "level" | "genre" | "age" | "teacher";
+    key: "level" | "age" | "teacher";
     scoreDiff: number;
     note: string;
   }[];
@@ -103,12 +102,7 @@ type DiagnosisResult = {
     mapEmbedUrl?: string | null;
   };
 
-  selectedGenre?: {
-    id: string;
-    label: string;
-    slug: string;
-    answerTag?: string;
-  } | null;
+
 
   resultCopy?: {
     level?: ResultCopy | null;
@@ -125,7 +119,7 @@ type Props = {
   // 既存：親から渡せる場合は優先する
   campusOptions?: DiagnosisQuestionOption[];
   courseOptions?: DiagnosisQuestionOption[];
-  genreOptions?: DiagnosisQuestionOption[];
+
   instructorOptions?: DiagnosisQuestionOption[];
 };
 
@@ -455,7 +449,7 @@ export default function DiagnosisEmbedClient({
     }
 
     const missing: string[] = [];
-    (["Q1", "Q2", "Q3", "Q4", "Q5", "Q6"] as DiagnosisQuestionId[]).forEach(
+    (["Q1", "Q2", "Q3", "Q4", "Q5"] as DiagnosisQuestionId[]).forEach(
       (id) => {
         if (!finalAnswers[id]) missing.push(id);
       },
@@ -644,10 +638,6 @@ export default function DiagnosisEmbedClient({
 
   const className = result?.bestMatch?.className ?? "おすすめクラス";
 
-  const genreLabel =
-    result?.selectedGenre?.label?.trim() ||
-    (result?.bestMatch?.genres?.[0] ?? "").trim();
-
   const rawCoursePhotoUrl = result?.selectedCourse?.photoUrl ?? null;
 
   const coursePhotoUrl = rawCoursePhotoUrl
@@ -663,16 +653,7 @@ export default function DiagnosisEmbedClient({
         )}&id=${encodeURIComponent(result.selectedCourse.id)}`
       : null;
 
-  const genreId = result?.selectedGenre?.id;
-
-  const genreImgSrc =
-    !coursePhotoUrl && !fallbackCourseImgSrc && genreId
-      ? `/api/diagnosis/genres/image?id=${encodeURIComponent(
-          String(genreId),
-        )}&schoolId=${encodeURIComponent(schoolId)}`
-      : null;
-
-  const imgSrc = coursePhotoUrl || fallbackCourseImgSrc || genreImgSrc || null;
+  const imgSrc = coursePhotoUrl || fallbackCourseImgSrc || null;
 
   // ✅ DiagnosisForm 用 option 生成（常に定義）
   const dayOrder = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"] as const;
@@ -854,11 +835,9 @@ export default function DiagnosisEmbedClient({
                     <img
                       src={imgSrc}
                       alt={
-                        coursePhotoUrl || fallbackCourseImgSrc
+                        imgSrc === coursePhotoUrl || imgSrc === fallbackCourseImgSrc
                           ? `${className}の画像`
-                          : genreLabel
-                            ? `${genreLabel}の画像`
-                            : "診断結果画像"
+                          : "診断結果画像"
                       }
                       className="h-40 w-full object-cover"
                       loading="lazy"
@@ -1618,11 +1597,7 @@ export default function DiagnosisEmbedClient({
                         result.campus?.slug ??
                         result.selectedCampus?.slug ??
                         "",
-                      genre: result.selectedGenre?.label ?? "",
-                      genreSlug:
-                        result.selectedGenre?.answerTag ??
-                        result.selectedGenre?.slug ??
-                        "",
+
                       score: String(result.score),
                       pattern: result.pattern,
                     }}

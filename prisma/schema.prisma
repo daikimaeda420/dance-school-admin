@@ -97,8 +97,7 @@ model DiagnosisCourse {
   // 既存：Q2の複数回答タグ
   q2AnswerTags String[] @default([])
 
-  // ✅ Q4削除：answerTag は不要になったので削除
-  // answerTag String?
+
 
   // ✅ 追加：診断結果に表示する画像（任意）
   photoMime String?
@@ -112,7 +111,7 @@ model DiagnosisCourse {
   @@unique([schoolId, slug])
   @@index([schoolId, sortOrder])
   @@index([schoolId, isActive])
-  // @@index([schoolId, answerTag])  // ✅ Q4削除により不要
+
 }
 
 model DiagnosisLifestyle {
@@ -149,10 +148,9 @@ model DiagnosisInstructor {
 
   results DiagnosisResult[] @relation("ResultInstructors")
 
-  // ✅ Q4削除：q4Options を削除
-  // q4Options DiagnosisInstructorQ4Option[] @relation("InstructorQ4Options")
 
-  // ✅ 追加：Q6 option 紐づけ（逆側）
+
+  // Q5（不安）option 紐づけ
   q6Options DiagnosisInstructorQ6Option[] @relation("InstructorQ6Options")
 
   @@unique([schoolId, slug])
@@ -171,8 +169,7 @@ model DiagnosisInstructorCourse {
   @@index([courseId])
 }
 
-// ✅ Q4削除：DiagnosisInstructorGenre を削除
-// model DiagnosisInstructorGenre { ... }
+
 
 model DiagnosisInstructorCampus {
   instructorId String
@@ -203,8 +200,7 @@ model DiagnosisResult {
 
   campuses    DiagnosisCampus[]     @relation("ResultCampuses")
   courses     DiagnosisCourse[]     @relation("ResultCourses")
-  // ✅ Q4削除：genres を削除
-  // genres   DiagnosisGenre[]      @relation("ResultGenres")
+
   instructors DiagnosisInstructor[] @relation("ResultInstructors")
 
   @@index([schoolId, sortOrder])
@@ -378,8 +374,7 @@ model DiagnosisFormEmailSetting {
   @@index([schoolId])
 }
 
-// ✅ Q4削除：DiagnosisInstructorQ4Option を削除
-// model DiagnosisInstructorQ4Option { ... }
+
 
 model DiagnosisInstructorQ6Option {
   id           String @id @default(cuid())

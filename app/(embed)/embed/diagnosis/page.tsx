@@ -12,7 +12,7 @@ function getOriginFromHeaders() {
 }
 
 async function fetchOptions(
-  path: "campuses" | "courses" | "genres" | "instructors",
+  path: "campuses" | "courses" | "instructors",
   schoolId: string
 ): Promise<DiagnosisQuestionOption[]> {
   if (!schoolId) return [];
@@ -51,11 +51,10 @@ export default async function DiagnosisPage({
   // ★ 両対応（schoolId 優先）
   const schoolId = searchParams.schoolId ?? searchParams.school ?? "";
 
-  const [campusOptions, courseOptions, genreOptions, instructorOptions] =
+  const [campusOptions, courseOptions, instructorOptions] =
     await Promise.all([
       fetchOptions("campuses", schoolId),
       fetchOptions("courses", schoolId),
-      fetchOptions("genres", schoolId),
       fetchOptions("instructors", schoolId),
     ]);
 
@@ -64,7 +63,6 @@ export default async function DiagnosisPage({
       schoolIdProp={schoolId}
       campusOptions={campusOptions}
       courseOptions={courseOptions}
-      genreOptions={genreOptions}
       instructorOptions={instructorOptions}
     />
   );

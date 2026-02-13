@@ -18,21 +18,21 @@ type DiagnosisRequestBody = {
   answers?: Record<string, string>;
 };
 
-const REQUIRED_QUESTION_IDS = ["Q1", "Q2", "Q3", "Q4", "Q5", "Q6"] as const;
+const REQUIRED_QUESTION_IDS = ["Q1", "Q2", "Q3", "Q4", "Q5"] as const;
 
 // =========================
-// Q6 helpers
+// Q5 helpers
 // =========================
 function getConcernKey(answers: Record<string, string>): ConcernMessageKey {
-  const q6 = QUESTIONS.find((q) => q.id === "Q6");
-  const optionId = answers["Q6"];
-  const opt = q6?.options.find((o) => o.id === optionId);
+  const q5 = QUESTIONS.find((q) => q.id === "Q5");
+  const optionId = answers["Q5"];
+  const opt = q5?.options.find((o) => o.id === optionId);
   const key = (opt as any)?.messageKey ?? "Msg_Consult";
   return key as ConcernMessageKey;
 }
 
 function getConcernOptionId(answers: Record<string, string>): string | null {
-  const optionId = answers["Q6"];
+  const optionId = answers["Q5"];
   return typeof optionId === "string" && optionId.trim()
     ? optionId.trim()
     : null;
@@ -52,16 +52,7 @@ function getOptionTagFromAnswers(
   return typeof tag === "string" && tag.trim() ? tag.trim() : null;
 }
 
-function getQ4Meta(answers: Record<string, string>) {
-  const q4 = QUESTIONS.find((q) => q.id === "Q4");
-  const optionId = answers["Q4"];
-  const opt: any = q4?.options.find((o: any) => o.id === optionId);
-  return {
-    id: String(optionId ?? ""),
-    label: typeof opt?.label === "string" ? opt.label : null,
-    tag: typeof opt?.tag === "string" ? opt.tag : "Genre_All",
-  };
-}
+
 
 function norm(s: unknown): string {
   return String(s ?? "").trim();
@@ -121,52 +112,13 @@ async function instructorIdsByConcernOption(params: {
 function getTeacherIdealOptionId(
   answers: Record<string, string>,
 ): string | null {
-  const optionId = answers["Q5"];
+  const optionId = answers["Q4"];
   return typeof optionId === "string" && optionId.trim()
     ? optionId.trim()
     : null;
 }
 
-async function instructorIdsByGenreTag(params: {
-  schoolId: string;
-  genreTag: string;
-}) {
-  const { schoolId, genreTag } = params;
 
-  // 「全部見る」
-  if (!genreTag || genreTag === "Genre_All") {
-    return { courseId: null, ids: [] as string[] };
-  }
-
-  // ① genreTag = answerTag で「コース」を特定
-  const course = await prisma.diagnosisCourse.findFirst({
-    where: {
-      schoolId,
-      isActive: true,
-      answerTag: genreTag,
-    },
-    select: { id: true },
-    orderBy: { sortOrder: "asc" },
-  });
-
-  if (!course) {
-    return { courseId: null, ids: [] };
-  }
-
-  // ② そのコースに紐づく講師を取得
-  const links = await prisma.diagnosisInstructorCourse.findMany({
-    where: {
-      schoolId,
-      courseId: course.id,
-    },
-    select: { instructorId: true },
-  });
-
-  return {
-    courseId: course.id,
-    ids: links.map((r) => r.instructorId),
-  };
-}
 
 // =========================
 // POST
@@ -193,8 +145,6 @@ export async function POST(req: NextRequest) {
     if (!campus)
       return NextResponse.json({ error: "NO_CAMPUS" }, { status: 400 });
 
-    const q4Meta = getQ4Meta(answers);
-    const genreTag = q4Meta.tag;
     const q2ForCourse = getQ2ValueForCourse(answers);
 
     const recommendedCourse = await prisma.diagnosisCourse.findFirst({
@@ -202,7 +152,6 @@ export async function POST(req: NextRequest) {
       orderBy: { sortOrder: "asc" },
       select: { id: true, label: true, slug: true },
     });
-
     // ===== 講師抽出 =====
     const campusInstructorIds = await instructorIdsByCampus({
       schoolId,
@@ -216,28 +165,15 @@ export async function POST(req: NextRequest) {
         })
       : [];
 
-    // ✅ 講師照合は Q5（理想の先生）を利用
+    // 講師照合は Q4（理想の先生）を利用
     const teacherIdealOptionId = getTeacherIdealOptionId(answers);
-    const concernOptionId = getConcernOptionId(answers); // concernMessage 生成用に維持
+    const concernOptionId = getConcernOptionId(answers);
     const concernInstructorIds = teacherIdealOptionId
       ? await instructorIdsByConcernOption({
           schoolId,
           optionId: teacherIdealOptionId,
         })
       : [];
-
-    // ① genreTag で「コース」を特定
-    const course = await prisma.diagnosisCourse.findFirst({
-      where: {
-        schoolId,
-        isActive: true,
-        // ❌ answerTag: genreTag,
-        // ✅ 修正
-        q2AnswerTags: { has: genreTag },
-      },
-      select: { id: true },
-      orderBy: { sortOrder: "asc" },
-    });
 
     const selectInstructor = {
       id: true,

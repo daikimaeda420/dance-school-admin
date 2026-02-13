@@ -16,7 +16,6 @@ type VM = {
   headline: string;
   subline: string;
   campus?: { id: string; label: string; slug: string };
-  genre?: { id: string; label: string; slug: string };
   messages?: {
     q2?: string;
     q3?: string;

@@ -5,11 +5,10 @@ import { LEVEL_ORDER } from "./config";
 export type MatchContext = {
   userLevel: string; // 例: "Lv1_入門"
   userAge: string; // 例: "Age_Adult_Work"
-  userGenre: string; // 例: "Genre_KPOP" | "Genre_All"
   userTeacherStyle: string; // 例: "Style_Healing"
 };
 
-export type ScoreBreakdownKey = "level" | "genre" | "age" | "teacher";
+export type ScoreBreakdownKey = "level" | "age" | "teacher";
 
 export type ScoreBreakdownItem = {
   key: ScoreBreakdownKey;
@@ -23,7 +22,6 @@ export type ClassLike = {
   name?: string;
   levels: string[]; // ["Lv0_超入門", ...]
   targets: string[]; // ["Age_Adult_Work", ...]
-  genres: string[]; // ["Genre_KPOP", ...]
 };
 
 // 講師側に必要な項目
@@ -75,7 +73,6 @@ export function levelDistance(
  * 1クラス×1講師のスコアを計算
  * 減点方式:
  *  - レベル  : 0 / -10 / -30
- *  - ジャンル: 0 / -20（Genre_All の場合は常に0）
  *  - 年代    : 0 / -15
  *  - スタイル: 0 / -5
  */
@@ -109,21 +106,7 @@ export function scorePair<
     });
   }
 
-  // 2. ジャンル
-  if (ctx.userGenre === "Genre_All") {
-    // 「迷っている」場合は全ジャンル減点なし
-  } else if ((pair.clazz.genres || []).includes(ctx.userGenre)) {
-    // 完全一致 → 減点なし
-  } else {
-    score -= 20;
-    breakdown.push({
-      key: "genre",
-      scoreDiff: -20,
-      note: "好きな音楽ジャンルと少し雰囲気が違うクラスです。",
-    });
-  }
-
-  // 3. 年代
+  // 2. 年代
   if (!(pair.clazz.targets || []).includes(ctx.userAge)) {
     score -= 15;
     breakdown.push({
@@ -133,7 +116,7 @@ export function scorePair<
     });
   }
 
-  // 4. 先生のスタイル
+  // 3. 先生のスタイル
   if (!(pair.teacher.styles || []).includes(ctx.userTeacherStyle)) {
     score -= 5;
     breakdown.push({

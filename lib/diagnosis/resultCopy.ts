@@ -128,7 +128,7 @@ export const TEACHER_RESULT_COPY: Record<string, ResultCopy> = {
   },
 };
 
-// Q6（concern）の messageKey（Msg_Pace 等）に対応（タイトル不要なので string のまま）
+// Q5（concern）の messageKey（Msg_Pace 等）に対応（タイトル不要なので string のまま）
 export const CONCERN_RESULT_COPY: Record<ConcernMessageKey, string> = {
   Msg_Pace:
     "「待って、今のどうやるの？」が言える環境なのでご安心ください。\n" +

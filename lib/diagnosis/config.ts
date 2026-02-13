@@ -1,6 +1,6 @@
 // lib/diagnosis/config.ts
 
-// Q5（今回は Q6）で使う不安メッセージのキー
+// Q5で使う不安メッセージのキー
 export type ConcernMessageKey =
   | "Msg_Pace"
   | "Msg_Atmosphere"
@@ -13,18 +13,18 @@ export type DiagnosisQuestionOption = {
   id: string; // 例: "1-1"
   label: string; // 表示テキスト
   tag?: string; // 判定用タグ（エリア以外のQで使用）
-  messageKey?: ConcernMessageKey; // 不安質問専用（Q6）
+  messageKey?: ConcernMessageKey; // 不安質問専用（Q5）
 };
 
 // 質問定義
-export type DiagnosisQuestionId = "Q1" | "Q2" | "Q3" | "Q4" | "Q5" | "Q6";
+export type DiagnosisQuestionId = "Q1" | "Q2" | "Q3" | "Q4" | "Q5";
 
 export type DiagnosisQuestion = {
   id: DiagnosisQuestionId;
   title: string;
   description?: string;
-  // Q1: area / Q2: level / Q3: age / Q4: genre / Q5: teacher / Q6: concern
-  key: "area" | "level" | "age" | "genre" | "teacher" | "concern";
+  // Q1: area / Q2: level / Q3: age / Q4: teacher / Q5: concern
+  key: "area" | "level" | "age" | "teacher" | "concern";
   options: DiagnosisQuestionOption[];
 };
 
@@ -37,7 +37,7 @@ export const LEVEL_ORDER = [
   "Lv4_中上級",
 ] as const;
 
-// 質問一覧（Q1〜Q6）
+// 質問一覧（Q1〜Q5）
 export const QUESTIONS: DiagnosisQuestion[] = [
   // -------------------
   // Q1: エリア・校舎
@@ -55,7 +55,7 @@ export const QUESTIONS: DiagnosisQuestion[] = [
   },
 
   // -------------------
-  // Q2: レベル質問（元Q1）
+  // Q2: レベル質問
   // -------------------
   {
     id: "Q2",
@@ -92,7 +92,7 @@ export const QUESTIONS: DiagnosisQuestion[] = [
   },
 
   // -------------------
-  // Q3: 年代・ライフスタイル（元Q2）
+  // Q3: 年代・ライフスタイル
   // -------------------
   {
     id: "Q3",
@@ -118,49 +118,31 @@ export const QUESTIONS: DiagnosisQuestion[] = [
   },
 
   // -------------------
-  // Q4: 好みの音楽・雰囲気（元Q3）
+  // Q4: 理想の先生
   // -------------------
   {
     id: "Q4",
-    title: "Q4. 好みの音楽・雰囲気",
-    description: "一番「踊ってみたい！」と思うものを選んでください。",
-    key: "genre",
-    options: [
-      { id: "4-1", label: "K-POP・流行りの曲", tag: "Genre_KPOP" },
-      { id: "4-2", label: "アイドル・完コピ", tag: "Genre_idol" },
-      { id: "4-3", label: "重低音の効いたカッコいい洋楽", tag: "Genre_HIPHOP" },
-      { id: "4-4", label: "オシャレでゆったりした曲", tag: "Genre_JAZZ" },
-      { id: "4-5", label: "とにかく明るく楽しい曲", tag: "Genre_ThemePark" },
-      { id: "4-6", label: "まだ迷っている・色々見てみたい", tag: "Genre_All" },
-    ],
-  },
-
-  // -------------------
-  // Q5: 理想の先生（元Q4）
-  // -------------------
-  {
-    id: "Q5",
-    title: "Q5. 理想の先生",
+    title: "Q4. 理想の先生",
     description: "どんな先生だと続けやすそうですか？",
     key: "teacher",
     options: [
       {
-        id: "5-1",
+        id: "4-1",
         label: "とにかく優しく！褒めて伸ばしてほしい",
         tag: "Style_Healing", // 癒し
       },
       {
-        id: "5-2",
+        id: "4-2",
         label: "プロ志望！厳しくても本格的に指導してほしい",
         tag: "Style_Hard", // ガチ
       },
       {
-        id: "5-3",
+        id: "4-3",
         label: "実績のあるベテラン講師に、基礎から丁寧に習いたい",
         tag: "Style_Logical", // 論理
       },
       {
-        id: "5-4",
+        id: "4-4",
         label: "先生というより「友達」みたいに接してほしい",
         tag: "Style_Friendly", // 友達
       },
@@ -168,36 +150,36 @@ export const QUESTIONS: DiagnosisQuestion[] = [
   },
 
   // -------------------
-  // Q6: 一番の不安（元Q5）
+  // Q5: 一番の不安
   // -------------------
   {
-    id: "Q6",
-    title: "Q6. 一番の不安",
+    id: "Q5",
+    title: "Q5. 一番の不安",
     description: "正直な気持ちに一番近いものを選んでください。",
     key: "concern",
     options: [
       {
-        id: "6-1",
+        id: "5-1",
         label: "周りのペースについていけるか",
         messageKey: "Msg_Pace",
       },
       {
-        id: "6-2",
+        id: "5-2",
         label: "教室の雰囲気に馴染めるか",
         messageKey: "Msg_Atmosphere",
       },
       {
-        id: "6-3",
+        id: "5-3",
         label: "リズム感・運動神経に自信がない",
         messageKey: "Msg_Sense",
       },
       {
-        id: "6-4",
+        id: "5-4",
         label: "しっかり上達できるか・レベルが低すぎないか",
         messageKey: "Msg_LevelUp",
       },
       {
-        id: "6-5",
+        id: "5-5",
         label: "まだ勇気が出ない・色々不安",
         messageKey: "Msg_Consult",
       },
