@@ -7,7 +7,6 @@ import { usePathname } from "next/navigation";
 import { LogIn, LogOut, Menu } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import Sidebar from "@/components/Sidebar";
-import ThemeToggle from "@/components/ThemeToggle";
 
 export default function Header() {
   // フック（順序固定）
@@ -135,10 +134,8 @@ export default function Header() {
             </Link>
           </div>
 
-          {/* 右：テーマ切替＋認証エリア */}
+          {/* 右：認証エリア */}
           <div className="flex items-center gap-3">
-            <ThemeToggle />
-
             {status === "authenticated" ? (
               <div className="flex items-center gap-4">
                 {/* PC：名前/メール */}

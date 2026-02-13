@@ -4,7 +4,7 @@
 import { ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
-import RootShell from "@/app/RootShell"; // ← ここは実際のパスに合わせてOK（元が "./RootShell" なら "@/app/RootShell" でOK）
+import Header from "@/components/Header";
 
 export default function LayoutShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
@@ -20,5 +20,10 @@ export default function LayoutShell({ children }: { children: ReactNode }) {
   if (isTopPage && status !== "authenticated") return <>{children}</>;
 
   // ✅ それ以外は管理画面殻（ヘッダー/サイドバーあり）
-  return <RootShell>{children}</RootShell>;
+  return (
+    <>
+      <Header />
+      <main>{children}</main>
+    </>
+  );
 }
