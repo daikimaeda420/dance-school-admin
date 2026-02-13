@@ -79,16 +79,16 @@ function uniq(arr: string[]) {
 type ResolveKind = "campus" | "course";
 
 function q6LabelMap() {
-  // 互換キーは q6 のまま維持しつつ、実体は Q5 option を許可
-  const q5 = QUESTIONS.find((q) => q.id === "Q5");
+  // 互換キーは q6 のまま維持しつつ、実体は Q4（理想の先生）option を許可
+  const q4 = QUESTIONS.find((q) => q.id === "Q4");
   const map = new Map<string, string>();
-  for (const o of q5?.options ?? []) {
+  for (const o of q4?.options ?? []) {
     map.set(String(o.id), String(o.label));
   }
   return map;
 }
 
-/** ✅ 互換キー(q6/concern)で受けつつ、Q5の選択肢として許可された optionId だけに正規化 */
+/** ✅ 互換キー(q6)で受けつつ、Q4（理想の先生）の選択肢として許可された optionId だけに正規化 */
 function normalizeQ6OptionIds(input: string[]) {
   const map = q6LabelMap();
   const allow = new Set(Array.from(map.keys()));
