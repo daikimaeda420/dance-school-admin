@@ -28,18 +28,13 @@ type UserWithSchool = {
 
 type KPI = { label: string; value: string; delta?: string; note?: string };
 type Activity = { time: string; text: string };
-type Task = {
-  kind: "warn" | "error" | "info";
-  title: string;
-  count?: number;
-  href?: string;
-};
+type SetupItem = { label: string; done: boolean; href: string };
 type SystemInfo = { version: string; env: string; lastBackup: string };
 
 type DashboardResponse = {
   kpis: KPI[];
+  setup: SetupItem[];
   activities: Activity[];
-  tasks: Task[];
   system: SystemInfo | null;
 };
 
@@ -56,8 +51,8 @@ export default function HomePage() {
 
   const [range, setRange] = useState<number>(7);
   const [kpis, setKpis] = useState<KPI[]>([]);
+  const [setup, setSetup] = useState<SetupItem[]>([]);
   const [activities, setActivities] = useState<Activity[]>([]);
-  const [tasks, setTasks] = useState<Task[]>([]);
   const [system, setSystem] = useState<SystemInfo | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -87,14 +82,14 @@ export default function HomePage() {
 
       const data: DashboardResponse = await res.json();
       setKpis(data.kpis ?? []);
+      setSetup(data.setup ?? []);
       setActivities(data.activities ?? []);
-      setTasks(data.tasks ?? []);
       setSystem(data.system ?? null);
     } catch {
       showToast("err", "ダッシュボードの取得に失敗しました");
       setKpis([]);
+      setSetup([]);
       setActivities([]);
-      setTasks([]);
       setSystem({
         version: "v0.1.0",
         env: process.env.NODE_ENV ?? "development",
@@ -702,7 +697,7 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* クイックアクション & タスク */}
+      {/* クイックアクション & セットアップ */}
       <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-3">
         <div className="card p-5 lg:col-span-2">
           <div className="mb-3 flex items-center gap-2">
@@ -711,18 +706,22 @@ export default function HomePage() {
           </div>
           <div className="flex flex-wrap gap-2">
             <a
-              href="/faq/new"
+              href="/faq"
               className="btn-ghost inline-flex items-center gap-2"
             >
-              <PlusCircle className="h-4 w-4" /> 新しいQ&Aを追加{" "}
+              <PlusCircle className="h-4 w-4" /> Q&A編集{" "}
               <ArrowUpRight className="h-4 w-4 opacity-60" />
             </a>
 
             <a
-              href="/faq?draft=1"
+              href={`/admin/diagnosis/campuses${
+                schoolId
+                  ? `?schoolId=${encodeURIComponent(schoolId)}`
+                  : ""
+              }`}
               className="btn-ghost inline-flex items-center gap-2"
             >
-              <ClipboardList className="h-4 w-4" /> ドラフトを公開{" "}
+              <ClipboardList className="h-4 w-4" /> 診断編集{" "}
               <ArrowUpRight className="h-4 w-4 opacity-60" />
             </a>
 
@@ -748,37 +747,36 @@ export default function HomePage() {
         <div className="card p-5">
           <div className="mb-3 flex items-center gap-2">
             <AlertCircle className="h-5 w-5" />
-            <h2 className="text-base font-semibold">アラート & タスク</h2>
+            <h2 className="text-base font-semibold">セットアップ状況</h2>
           </div>
-          {tasks.length === 0 ? (
+          {setup.length === 0 ? (
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              特にありません
+              読み込み中…
             </p>
           ) : (
             <ul className="space-y-2">
-              {tasks.map((t, idx) => (
+              {setup.map((s, idx) => (
                 <li
                   key={idx}
                   className="flex items-center justify-between gap-2"
                 >
-                  <a href={t.href ?? "#"} className="text-sm hover:underline">
-                    {t.title}
+                  <a href={s.href} className="text-sm hover:underline flex items-center gap-2">
+                    {s.done ? (
+                      <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                    ) : (
+                      <AlertCircle className="h-4 w-4 text-amber-500" />
+                    )}
+                    {s.label}
                   </a>
-                  {typeof t.count === "number" ? (
-                    <span
-                      className={`text-xs px-2 py-0.5 rounded-full border ${
-                        t.kind === "error"
-                          ? "bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-200 dark:border-red-700"
-                          : t.kind === "warn"
-                          ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-100 dark:border-amber-700"
-                          : "bg-gray-50 text-gray-700 border-gray-200 dark:bg-gray-800/60 dark:text-gray-200 dark:border-gray-700"
-                      }`}
-                    >
-                      {t.count}
-                    </span>
-                  ) : (
-                    <CheckCircle2 className="h-4 w-4 opacity-60" />
-                  )}
+                  <span
+                    className={`text-xs px-2 py-0.5 rounded-full border ${
+                      s.done
+                        ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-200 dark:border-emerald-700"
+                        : "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-100 dark:border-amber-700"
+                    }`}
+                  >
+                    {s.done ? "完了" : "未設定"}
+                  </span>
                 </li>
               ))}
             </ul>
@@ -791,7 +789,7 @@ export default function HomePage() {
         <div className="card p-5 lg:col-span-2">
           <div className="mb-3 flex items-center gap-2">
             <ClipboardList className="h-5 w-5" />
-            <h2 className="text-base font-semibold">最近のアクティビティ</h2>
+            <h2 className="text-base font-semibold">最近のチャットログ</h2>
           </div>
           {activities.length === 0 ? (
             <p className="text-sm text-gray-500 dark:text-gray-400">

@@ -1,13 +1,14 @@
 // app/api/dashboard/route.ts
 import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
 
-type FaqLog = {
-  sessionId?: string;
-  timestamp: string;
-  question: any;
-  answer?: any;
-  url?: string;
-};
+function fmtDate(d: Date) {
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${p(d.getMonth() + 1)}/${p(d.getDate())} ${p(d.getHours())}:${p(
+    d.getMinutes()
+  )}`;
+}
+
 type FAQItem =
   | { type: "question"; question: string; answer: string; url?: string }
   | {
@@ -17,62 +18,19 @@ type FAQItem =
       options: { label: string; next: FAQItem }[];
     };
 
-function validateFAQ(items: FAQItem[]) {
-  const errors = {
-    emptyQuestion: 0,
-    emptyAnswer: 0,
-    unlabeledOption: 0,
-    invalidUrl: 0,
-  };
+/** FAQアイテムツリーの総ノード数をカウント */
+function countFaqItems(items: FAQItem[]): number {
+  let count = 0;
   const walk = (item: FAQItem) => {
-    if (item.type === "question") {
-      if (!item.question?.trim()) errors.emptyQuestion++;
-      if (!item.answer?.trim()) errors.emptyAnswer++;
-      if (item.url && !/^https?:\/\//i.test(item.url)) errors.invalidUrl++;
-      return;
-    }
-    if (!item.question?.trim()) errors.emptyQuestion++;
-    for (const opt of item.options ?? []) {
-      if (!opt.label?.trim()) errors.unlabeledOption++;
-      walk(opt.next);
+    count++;
+    if (item.type === "select") {
+      for (const opt of item.options ?? []) {
+        walk(opt.next);
+      }
     }
   };
   for (const it of items ?? []) walk(it);
-  return errors;
-}
-
-function fmtDate(d: Date) {
-  const p = (n: number) => String(n).padStart(2, "0");
-  return `${p(d.getMonth() + 1)}/${p(d.getDate())} ${p(d.getHours())}:${p(
-    d.getMinutes()
-  )}`;
-}
-
-/** 内部APIを叩く（Cookie転送＋タイムアウト＋no-store） */
-async function fetchInternalJSON<T>(
-  url: string,
-  req: NextRequest,
-  timeoutMs = 5000
-): Promise<T | null> {
-  const ctrl = new AbortController();
-  const t = setTimeout(() => ctrl.abort(), timeoutMs);
-  try {
-    const res = await fetch(url, {
-      headers: {
-        // 🔑 ログイン状態を引き継ぐ
-        cookie: req.headers.get("cookie") ?? "",
-        accept: "application/json",
-      },
-      cache: "no-store",
-      signal: ctrl.signal,
-    });
-    if (!res.ok) return null; // 401/500などはnullで返す（ダッシュボードはフォールバック）
-    return (await res.json()) as T;
-  } catch {
-    return null;
-  } finally {
-    clearTimeout(t);
-  }
+  return count;
 }
 
 export async function GET(req: NextRequest) {
@@ -80,133 +38,150 @@ export async function GET(req: NextRequest) {
     const url = new URL(req.url);
     const school = url.searchParams.get("school") || "";
     const days = Math.max(1, Number(url.searchParams.get("days") || 7));
-    const since = Date.now() - days * 24 * 60 * 60 * 1000;
+    const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
 
-    const origin = req.nextUrl.origin;
-    const q = school ? `?school=${encodeURIComponent(school)}` : "";
+    const schoolFilter = school ? { schoolId: school } : {};
+    const schoolFilterStr = school ? { school } : {};
 
-    // 内部API呼び出し（Cookie転送）
-    const [logs, faq] = await Promise.all([
-      fetchInternalJSON<FaqLog[]>(`${origin}/api/logs${q}`, req),
-      fetchInternalJSON<FAQItem[]>(`${origin}/api/faq${q}`, req),
+    // ── Prisma 直接クエリで全データ取得 ──
+    const [
+      sessionCount,
+      logCount,
+      recentLogs,
+      courseCount,
+      instructorCount,
+      campusCount,
+      scheduleSlotCount,
+      faqRow,
+      formRow,
+    ] = await Promise.all([
+      // チャットセッション数（期間内）
+      prisma.faqLog
+        .findMany({
+          where: { ...schoolFilterStr, timestamp: { gte: since } },
+          select: { sessionId: true },
+          distinct: ["sessionId"],
+        })
+        .then((rows) => rows.length),
+
+      // ログ総件数（期間内）
+      prisma.faqLog.count({
+        where: { ...schoolFilterStr, timestamp: { gte: since } },
+      }),
+
+      // 最新のチャットログ5件
+      prisma.faqLog.findMany({
+        where: { ...schoolFilterStr, timestamp: { gte: since } },
+        orderBy: { timestamp: "desc" },
+        take: 5,
+        select: { timestamp: true, question: true, sessionId: true },
+      }),
+
+      // 診断コース数（有効）
+      prisma.diagnosisCourse.count({
+        where: { ...schoolFilter, isActive: true },
+      }),
+
+      // 診断講師数（有効）
+      prisma.diagnosisInstructor.count({
+        where: { ...schoolFilter, isActive: true },
+      }),
+
+      // 診断校舎数（有効）
+      prisma.diagnosisCampus.count({
+        where: { ...schoolFilter, isActive: true },
+      }),
+
+      // スケジュールスロット数（有効）
+      prisma.diagnosisScheduleSlot.count({
+        where: { ...schoolFilter, isActive: true },
+      }),
+
+      // FAQ
+      school
+        ? prisma.faq.findUnique({
+            where: { schoolId: school },
+            select: { items: true },
+          })
+        : prisma.faq.findFirst({ select: { items: true } }),
+
+      // 診断フォーム
+      school
+        ? prisma.diagnosisForm.findUnique({
+            where: { schoolId: school },
+            select: { isActive: true },
+          })
+        : prisma.diagnosisForm.findFirst({ select: { isActive: true } }),
     ]);
 
-    const safeLogs: FaqLog[] = Array.isArray(logs) ? logs : [];
-    const safeFaq: FAQItem[] = Array.isArray(faq) ? faq : [];
+    // FAQ件数
+    const faqItems = (faqRow?.items as FAQItem[] | null) ?? [];
+    const faqCount = Array.isArray(faqItems) ? countFaqItems(faqItems) : 0;
 
-    // 期間内フィルタ
-    const inRange = safeLogs.filter(
-      (l) => new Date(l.timestamp).getTime() >= since
-    );
-
-    // KPI
-    const sessions = new Set(inRange.map((l) => l.sessionId || "unknown"));
-    const interactions = inRange.length;
-
-    const counts = new Map<string, number>();
-    for (const l of inRange) {
-      const qtxt =
-        typeof l.question === "string"
-          ? l.question
-          : l?.question?.text || (l?.question?.question ?? "");
-      if (qtxt) counts.set(qtxt, (counts.get(qtxt) ?? 0) + 1);
-    }
-    const top = Array.from(counts.entries()).sort((a, b) => b[1] - a[1])[0];
-    const topShare = top
-      ? Math.round((top[1] / Math.max(1, interactions)) * 100)
-      : 0;
-
-    const issues = validateFAQ(safeFaq);
-    const invalidCount =
-      issues.emptyQuestion +
-      issues.emptyAnswer +
-      issues.unlabeledOption +
-      issues.invalidUrl;
-
+    // ── KPIカード ──
     const kpis = [
       {
-        label: `セッション（${days}日）`,
-        value: sessions.size.toLocaleString(),
+        label: `チャットセッション（${days}日）`,
+        value: sessionCount.toLocaleString(),
+        note: `ログ ${logCount.toLocaleString()} 件`,
       },
       {
-        label: "人気の質問 シェア",
-        value: `${topShare}%`,
-        note: top ? top[0] : "-",
+        label: "診断コース",
+        value: `${courseCount}`,
+        note: "有効なコース数",
       },
       {
-        label: "未解決/要修正",
-        value: `${invalidCount}件`,
-        delta: invalidCount ? `+${invalidCount}` : undefined,
-        note: "バリデーション結果へ",
+        label: "登録講師",
+        value: `${instructorCount}`,
+        note: "有効な講師数",
       },
-      { label: "ログ件数", value: interactions.toLocaleString() },
+      {
+        label: "FAQ登録数",
+        value: `${faqCount}`,
+        note: "Q&Aアイテム総数",
+      },
     ];
 
-    // アクティビティ（最新5件）
-    const latest = inRange
-      .slice()
-      .sort((a, b) => +new Date(b.timestamp) - +new Date(a.timestamp))
-      .slice(0, 5);
-    const activities = latest.map((l) => {
-      const txt =
-        typeof l.question === "string"
-          ? l.question
-          : l?.question?.text || (l?.question?.question ?? "(不明な質問)");
-      return { time: fmtDate(new Date(l.timestamp)), text: `「${txt}」に回答` };
-    });
-
-    const tasks = [
-      ...(issues.unlabeledOption
-        ? [
-            {
-              kind: "warn" as const,
-              title: "ラベル未設定の選択肢",
-              count: issues.unlabeledOption,
-              href: "/faq?filter=unlabeled",
-            },
-          ]
-        : []),
-      ...(issues.invalidUrl
-        ? [
-            {
-              kind: "error" as const,
-              title: "無効なURL",
-              count: issues.invalidUrl,
-              href: "/faq?filter=broken",
-            },
-          ]
-        : []),
-      ...(invalidCount === 0
-        ? [{ kind: "info" as const, title: "問題は検出されていません" }]
-        : []),
+    // ── セットアップ状況 ──
+    const setup = [
+      { label: "コース登録", done: courseCount > 0, href: "/admin/diagnosis/courses" },
+      { label: "講師登録", done: instructorCount > 0, href: "/admin/diagnosis/instructors" },
+      { label: "校舎登録", done: campusCount > 0, href: "/admin/diagnosis/campuses" },
+      { label: "スケジュール登録", done: scheduleSlotCount > 0, href: "/admin/diagnosis/schedule" },
+      { label: "診断フォーム設定", done: !!formRow, href: "/admin/diagnosis/form" },
+      { label: "FAQ登録", done: faqCount > 0, href: "/faq" },
     ];
 
+    // ── 最近のアクティビティ ──
+    const activities = recentLogs.map((l) => ({
+      time: fmtDate(new Date(l.timestamp)),
+      text: `「${String(l.question).slice(0, 60)}」`,
+    }));
+
+    // ── システム情報 ──
     const system = {
       version: process.env.NEXT_PUBLIC_APP_VERSION || "v0.1.0",
-      env: process.env.NODE_ENV || "development",
+      env:
+        process.env.NODE_ENV === "production" ? "Production" : "Development",
       lastBackup: "-",
     };
 
-    // 常に200で返す（UIを止めない）
-    return NextResponse.json({ kpis, activities, tasks, system });
+    return NextResponse.json({ kpis, setup, activities, system });
   } catch (e: any) {
-    // 最終フォールバック：エラーでも“空ダッシュボード”を返却
-    const to = new Date();
-    const from = new Date();
-    from.setDate(to.getDate() - 6);
+    console.error("[dashboard] error:", e);
     return NextResponse.json(
       {
         kpis: [
-          { label: `セッション（7日）`, value: "0" },
-          { label: "人気の質問 シェア", value: "0%", note: "-" },
-          { label: "未解決/要修正", value: "0件" },
-          { label: "ログ件数", value: "0" },
+          { label: "チャットセッション（7日）", value: "0", note: "ログ 0 件" },
+          { label: "診断コース", value: "0", note: "-" },
+          { label: "登録講師", value: "0", note: "-" },
+          { label: "FAQ登録数", value: "0", note: "-" },
         ],
+        setup: [],
         activities: [],
-        tasks: [{ kind: "info", title: "問題は検出されていません" }],
         system: {
           version: process.env.NEXT_PUBLIC_APP_VERSION || "v0.1.0",
-          env: process.env.NODE_ENV || "development",
+          env: "Production",
           lastBackup: "-",
         },
         error: e?.message ?? "unknown",
