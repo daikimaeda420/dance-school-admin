@@ -151,6 +151,8 @@ function extractPayload(raw: unknown): {
   ctaLabel?: string | null;
   ctaUrl?: string | null;
   launcherText?: string | null;
+  chatEnabled?: boolean;
+  diagnosisEnabled?: boolean;
 } {
   if (Array.isArray(raw)) {
     return { items: raw };
@@ -168,6 +170,9 @@ function extractPayload(raw: unknown): {
         typeof r.launcherText === "string" && r.launcherText.trim()
           ? r.launcherText
           : null,
+      chatEnabled: typeof r.chatEnabled === "boolean" ? r.chatEnabled : undefined,
+      diagnosisEnabled:
+        typeof r.diagnosisEnabled === "boolean" ? r.diagnosisEnabled : undefined,
     };
   }
   return { items: [] };
@@ -206,7 +211,9 @@ export async function GET(req: NextRequest) {
         palette: true,
         ctaLabel: true,
         ctaUrl: true,
-        launcherText: true, // ★ 追加
+        launcherText: true,
+        chatEnabled: true, // ★ 追加
+        diagnosisEnabled: true, // ★ 追加
         updatedAt: true,
         updatedBy: true,
       },
@@ -221,7 +228,9 @@ export async function GET(req: NextRequest) {
         palette: rec?.palette ?? null,
         ctaLabel: rec?.ctaLabel ?? null,
         ctaUrl: rec?.ctaUrl ?? null,
-        launcherText: rec?.launcherText ?? null, // ★ 追加
+        launcherText: rec?.launcherText ?? null,
+        chatEnabled: rec?.chatEnabled ?? true, // ★ 追加
+        diagnosisEnabled: rec?.diagnosisEnabled ?? false, // ★ 追加
         updatedAt: rec?.updatedAt ?? null,
         updatedBy: rec?.updatedBy ?? null,
       },
@@ -253,6 +262,8 @@ export async function POST(req: NextRequest) {
       ctaLabel,
       ctaUrl,
       launcherText,
+      chatEnabled, // ★ 追加
+      diagnosisEnabled, // ★ 追加
     } = extractPayload(raw);
 
     // まず items 部分だけバリデーション
@@ -280,7 +291,9 @@ export async function POST(req: NextRequest) {
         palette: palette ?? null,
         ctaLabel: ctaLabel ?? null,
         ctaUrl: ctaUrl ?? null,
-        launcherText: launcherText ?? null, // ★ 追加
+        launcherText: launcherText ?? null,
+        chatEnabled: chatEnabled ?? true, // ★ 追加
+        diagnosisEnabled: diagnosisEnabled ?? false, // ★ 追加
         updatedBy: "api",
       },
       create: {
@@ -289,7 +302,9 @@ export async function POST(req: NextRequest) {
         palette: palette ?? null,
         ctaLabel: ctaLabel ?? null,
         ctaUrl: ctaUrl ?? null,
-        launcherText: launcherText ?? null, // ★ 追加
+        launcherText: launcherText ?? null,
+        chatEnabled: chatEnabled ?? true, // ★ 追加
+        diagnosisEnabled: diagnosisEnabled ?? false, // ★ 追加
         updatedBy: "api",
       },
       select: { id: true, schoolId: true, updatedAt: true },

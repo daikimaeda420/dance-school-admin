@@ -119,6 +119,10 @@ export default function FAQPage() {
   // ▼ ランチャー吹き出しテキスト（DBから読み書き）
   const [launcherText, setLauncherText] = useState("質問はコチラ");
 
+  // ▼ 表示設定
+  const [chatEnabled, setChatEnabled] = useState(true);
+  const [diagnosisEnabled, setDiagnosisEnabled] = useState(false);
+
   // 取得（FAQ + メタ）
   useEffect(() => {
     if (status === "authenticated" && schoolId) {
@@ -131,6 +135,8 @@ export default function FAQPage() {
           let nextCtaLabel = "";
           let nextCtaUrl = "";
           let nextLauncherText = "質問はコチラ";
+          let nextChatEnabled = true;
+          let nextDiagnosisEnabled = false;
 
           if (data && typeof data === "object") {
             const d = data as any;
@@ -145,6 +151,10 @@ export default function FAQPage() {
             if (typeof d.launcherText === "string" && d.launcherText.trim()) {
               nextLauncherText = d.launcherText;
             }
+            if (typeof d.chatEnabled === "boolean") nextChatEnabled = d.chatEnabled;
+            if (typeof d.diagnosisEnabled === "boolean") {
+              nextDiagnosisEnabled = d.diagnosisEnabled;
+            }
           }
 
           setFaq(arr);
@@ -152,6 +162,8 @@ export default function FAQPage() {
           setCtaLabel(nextCtaLabel);
           setCtaUrl(nextCtaUrl);
           setLauncherText(nextLauncherText);
+          setChatEnabled(nextChatEnabled);
+          setDiagnosisEnabled(nextDiagnosisEnabled);
           setDirty(false); // ← サーバーから読み込んだ直後は「保存済み」扱い
         })
         .catch(() => {
@@ -160,6 +172,8 @@ export default function FAQPage() {
           setCtaLabel("");
           setCtaUrl("");
           setLauncherText("質問はコチラ");
+          setChatEnabled(true);
+          setDiagnosisEnabled(false);
           setDirty(false); // 空データ読み込みも保存済み扱い
         });
     }
@@ -199,6 +213,8 @@ export default function FAQPage() {
       ctaLabel: ctaLabel.trim() || null,
       ctaUrl: ctaUrl.trim() || null,
       launcherText: launcherText.trim() || null,
+      chatEnabled,
+      diagnosisEnabled,
     };
 
     const res = await fetch(`/api/faq?school=${schoolId}`, {
@@ -393,6 +409,66 @@ export default function FAQPage() {
 
       {/* ===== 1カラム構成 ===== */}
       <div className="space-y-6">
+        {/* 🔥 埋め込み表示設定 */}
+        <section className="card">
+          <div className="card-header">
+            <h3 className="font-semibold flex items-center gap-2">
+              <CodeXml aria-hidden="true" className="w-5 h-5" />
+              <span>埋め込み表示設定</span>
+            </h3>
+            <p className="text-xs text-gray-500">
+              埋め込みスクリプトで表示する機能をON/OFFできます。診断バナーは左下（PC）または右下上部（チャットの上/モバイル）に表示されます。
+            </p>
+          </div>
+          <div className="card-body">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              {/* チャットボット表示トグル */}
+              <div className="flex items-center justify-between border p-4 rounded-lg">
+                <div>
+                  <h4 className="font-medium text-sm">チャットボットを表示</h4>
+                  <p className="text-xs text-gray-500 mt-1">
+                    右下のチャットボットアイコンを表示します
+                  </p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    className="sr-only peer"
+                    checked={chatEnabled}
+                    onChange={(e) => {
+                      setChatEnabled(e.target.checked);
+                      setDirty(true);
+                    }}
+                  />
+                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                </label>
+              </div>
+
+              {/* 診断バナー表示トグル */}
+              <div className="flex items-center justify-between border p-4 rounded-lg">
+                <div>
+                  <h4 className="font-medium text-sm">診断バナーを表示</h4>
+                  <p className="text-xs text-gray-500 mt-1">
+                    左下に診断ページへのリンクバナーを表示します
+                  </p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    className="sr-only peer"
+                    checked={diagnosisEnabled}
+                    onChange={(e) => {
+                      setDiagnosisEnabled(e.target.checked);
+                      setDirty(true);
+                    }}
+                  />
+                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                </label>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* エディタ */}
         <section className="space-y-4">
           {empty ? (

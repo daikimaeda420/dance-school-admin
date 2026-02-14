@@ -19,6 +19,9 @@ model Faq {
   palette      String   @default("gray")
   launcherText String?
 
+  chatEnabled      Boolean @default(true)
+  diagnosisEnabled Boolean @default(false)
+
   @@index([updatedAt])
 }
 
