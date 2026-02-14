@@ -320,9 +320,12 @@ export async function POST(req: NextRequest) {
       },
       { status: 200 }
     );
-  } catch (err) {
+  } catch (err: any) {
     console.error("POST /api/faq error:", err);
-    return withNoCache({ error: "保存に失敗しました" }, { status: 500 });
+    return withNoCache(
+      { error: err?.message || "保存に失敗しました" },
+      { status: 500 }
+    );
   }
 }
 
