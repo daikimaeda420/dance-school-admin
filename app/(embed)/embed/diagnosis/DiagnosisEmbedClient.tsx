@@ -685,7 +685,7 @@ export default function DiagnosisEmbedClient({
             // ==========================
             // ✅ 質問画面（横幅統一）
             // ==========================
-            <div className="min-h-[100svh] w-full bg-[#fbf6ef] px-4 py-6">
+            <div className="min-h-[100svh] w-full bg-[#faf5ee] px-4 py-6">
               <div className="mx-auto w-full max-w-[420px]">
                 {/* 上部：戻る＋タイトル＋進捗 */}
                 <div className="mb-4 flex items-start justify-between gap-3">

@@ -2,6 +2,8 @@
 
 .root {
   /* embed全体のスコープ。必要なら背景やフォント調整など */
+  background-color: #faf5ee;
+  min-height: 100vh;
 }
 
 /* 講師紹介の吹き出しをFigma寄りに微調整したい時用 */
