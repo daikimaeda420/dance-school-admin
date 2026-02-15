@@ -150,7 +150,13 @@ export async function POST(req: NextRequest) {
     const recommendedCourse = await prisma.diagnosisCourse.findFirst({
       where: { schoolId, isActive: true, q2AnswerTags: { has: q2ForCourse } },
       orderBy: { sortOrder: "asc" },
-      select: { id: true, label: true, slug: true },
+      select: {
+        id: true,
+        label: true,
+        slug: true,
+        description: true,
+        photoMime: true,
+      },
     });
     // ===== 講師抽出 =====
     const campusInstructorIds = await instructorIdsByCampus({
@@ -243,7 +249,22 @@ export async function POST(req: NextRequest) {
       concern: concernText,
     };
 
+    const selectedCourse = recommendedCourse
+      ? {
+          id: recommendedCourse.id,
+          label: recommendedCourse.label,
+          slug: recommendedCourse.slug,
+          description: recommendedCourse.description ?? null,
+          photoUrl: recommendedCourse.photoMime
+            ? `/api/diagnosis/courses/photo?schoolId=${encodeURIComponent(
+                schoolId,
+              )}&id=${encodeURIComponent(recommendedCourse.id)}`
+            : null,
+        }
+      : null;
+
     return NextResponse.json({
+      selectedCourse,
       instructors: instructors.map((t) => {
         const hasImage =
           t.photoData &&

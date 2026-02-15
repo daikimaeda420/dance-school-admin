@@ -11,6 +11,7 @@ import ReasonCards from "./_components/ReasonCards";
 import InstructorCards from "./_components/InstructorCards";
 import ScheduleSection from "./_components/ScheduleSection";
 import ResultSections from "./_components/ResultSections";
+import ClassIntroduction from "./_components/ClassIntroduction";
 import {
   QUESTIONS,
   DiagnosisQuestionId,
@@ -85,6 +86,7 @@ type DiagnosisResult = {
     slug: string;
     answerTag?: string | null;
     photoUrl?: string | null;
+    description?: string | null;
   } | null;
 
   selectedCampus?: {
@@ -629,6 +631,14 @@ export default function DiagnosisEmbedClient({
                 resultCopy={result.resultCopy}
                 concernMessage={result.concernMessage}
               />
+
+              {/* クラス紹介 */}
+              {result.selectedCourse && (
+                <ClassIntroduction
+                  courseName={result.selectedCourse.label}
+                  description={result.selectedCourse.description}
+                />
+              )}
 
               {/* 講師 */}
               <InstructorCards
