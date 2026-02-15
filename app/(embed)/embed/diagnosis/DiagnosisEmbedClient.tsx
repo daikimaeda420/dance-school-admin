@@ -851,6 +851,15 @@ export default function DiagnosisEmbedClient({
           )}
         </div>
       </div>
+      {/* ✅ ローディングオーバーレイ */}
+      {isSubmitting && (
+        <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-white/90 backdrop-blur-sm transition-opacity duration-300">
+          <div className="h-16 w-16 animate-spin rounded-full border-4 border-[#f5c400] border-t-transparent" />
+          <div className="mt-6 text-[18px] font-bold text-[#6b4a2b] animate-pulse">
+            診断中...
+          </div>
+        </div>
+      )}
     </div>
   );
 }
