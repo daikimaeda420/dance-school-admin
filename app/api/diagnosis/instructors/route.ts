@@ -269,17 +269,6 @@ export async function GET(req: NextRequest) {
     const rows = await prisma.diagnosisInstructor.findMany({
       where: { schoolId },
       orderBy: { sortOrder: "asc" },
-      select: {
-        id: true,
-        schoolId: true,
-        label: true,
-        slug: true,
-        sortOrder: true,
-        isActive: true,
-        photoMime: true,
-        charmTags: true,
-        introduction: true,
-      },
     });
 
     const instructorIds = rows.map((r) => r.id);
@@ -292,36 +281,41 @@ export async function GET(req: NextRequest) {
       rows.map((r) => {
         const courses = coursesByInstructor.get(r.id) ?? [];
         const campuses = campusesByInstructor.get(r.id) ?? [];
-
-        // ✅ Q5 option ids
         const q6OptionIds = q6ByInstructor.get(r.id) ?? [];
 
-        // ✅ フロント表示用：concerns に「Q6選択肢」
         const q6Options = q6OptionIds.map((oid) => ({
           id: oid,
           label: q6Map.get(oid) ?? oid,
           slug: oid,
         }));
 
+        const hasImage =
+          r.photoData &&
+          (r.photoData as unknown as Uint8Array).length > 0 &&
+          Boolean(r.photoMime);
+
+        const photoUrl = hasImage
+          ? `/api/diagnosis/instructors/photo?schoolId=${encodeURIComponent(
+              schoolId,
+            )}&id=${encodeURIComponent(r.id)}`
+          : null;
+
+        // photoData, photoMime は削る
+        const { photoData, photoMime, ...rest } = r;
+
         return {
-          ...r,
-          photoMime: r.photoMime ?? null,
+          ...rest,
+          photoMime: photoMime ?? null,
+          photoUrl,
           charmTags: r.charmTags ?? null,
           introduction: r.introduction ?? null,
 
           courses,
           campuses,
-
-          // ✅ concerns は Q6選択肢（Q5由来）
           concerns: q6Options,
-
           courseIds: courses.map((c: any) => c.id),
           campusIds: campuses.map((c: any) => c.id),
-
-          // ✅ 互換：フロントが concernIds を見ててもOK
           concernIds: q6OptionIds,
-
-          // ✅ 将来用：正式キー
           q6OptionIds,
         };
       }),
@@ -622,18 +616,11 @@ export async function PUT(req: NextRequest) {
 
     const updated = await prisma.diagnosisInstructor.findFirst({
       where: { id, schoolId },
-      select: {
-        id: true,
-        schoolId: true,
-        label: true,
-        slug: true,
-        sortOrder: true,
-        isActive: true,
-        photoMime: true,
-        charmTags: true,
-        introduction: true,
-      },
     });
+
+    if (!updated) {
+      throw new Error("更新後のデータ取得に失敗しました");
+    }
 
     const { coursesByInstructor, campusesByInstructor, q6ByInstructor } =
       await fetchLinks(schoolId, [id]);
@@ -650,11 +637,26 @@ export async function PUT(req: NextRequest) {
       slug: oid,
     }));
 
+    const hasImage =
+      updated.photoData &&
+      (updated.photoData as unknown as Uint8Array).length > 0 &&
+      Boolean(updated.photoMime);
+
+    const photoUrl = hasImage
+      ? `/api/diagnosis/instructors/photo?schoolId=${encodeURIComponent(
+          schoolId,
+        )}&id=${encodeURIComponent(updated.id)}`
+      : null;
+
+    // photoData, photoMime は削る
+    const { photoData, photoMime, ...rest } = updated;
+
     return NextResponse.json({
-      ...updated,
-      photoMime: updated?.photoMime ?? null,
-      charmTags: updated?.charmTags ?? null,
-      introduction: updated?.introduction ?? null,
+      ...rest,
+      photoMime: photoMime ?? null,
+      photoUrl,
+      charmTags: updated.charmTags ?? null,
+      introduction: updated.introduction ?? null,
       courses,
       campuses,
       concerns: q6Options,

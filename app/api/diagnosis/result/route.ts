@@ -244,13 +244,27 @@ export async function POST(req: NextRequest) {
     };
 
     return NextResponse.json({
-      instructors: instructors.map((t) => ({
-        id: t.id,
-        label: t.label,
-        slug: t.slug,
-        charmTags: t.charmTags ?? null,
-        introduction: t.introduction ?? null,
-      })),
+      instructors: instructors.map((t) => {
+        const hasImage =
+          t.photoData &&
+          (t.photoData as any).length > 0 && // Uint8Array check
+          Boolean(t.photoMime);
+
+        const photoUrl = hasImage
+          ? `/api/diagnosis/instructors/photo?schoolId=${encodeURIComponent(
+              schoolId,
+            )}&id=${encodeURIComponent(t.id)}`
+          : null;
+
+        return {
+          id: t.id,
+          label: t.label,
+          slug: t.slug,
+          charmTags: t.charmTags ?? null,
+          introduction: t.introduction ?? null,
+          photoUrl, // ✅ 追加
+        };
+      }),
       resultCopy, // 追加
       concernMessage: concernText,
       debug: {
