@@ -607,25 +607,30 @@ export default function DiagnosisEmbedClient({
                 }
               />
 
-              {/* CTA */}
-              <div className="flex flex-col gap-2">
-                <a
-                  href={
-                    result.bestMatch?.classId
-                      ? `/reserve?classId=${encodeURIComponent(
-                          result.bestMatch.classId,
-                        )}`
-                      : "/reserve"
-                  }
-                  className={[
-                    "flex items-center justify-center bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700",
-                    "rounded-full",
-                    styles.ctaPrimary,
-                  ].join(" ")}
-                >
-                  このクラスの体験レッスンを予約する
-                </a>
+              {/* CTA (フッター固定) */}
+              <div className="fixed bottom-0 left-0 z-50 w-full bg-white/90 backdrop-blur-sm p-4 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
+                <div className="mx-auto max-w-[560px]">
+                  <a
+                    href={
+                      result.bestMatch?.classId
+                        ? `/reserve?classId=${encodeURIComponent(
+                            result.bestMatch.classId,
+                          )}`
+                        : "/reserve"
+                    }
+                    className="block transition-transform hover:scale-105 active:scale-95"
+                  >
+                    <img
+                      src="/images/reservation_button.png"
+                      alt="お申し込みはこちら"
+                      className="mx-auto w-full max-w-[300px] h-auto drop-shadow-md"
+                    />
+                  </a>
+                </div>
               </div>
+
+              {/* フッター固定分の余白 */}
+              <div className="h-24" />
 
               {/* ✅ 診断結果フォーム（ここ1回だけ） */}
               {diagnosisForm && (
