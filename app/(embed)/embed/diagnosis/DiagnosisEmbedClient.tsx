@@ -4,7 +4,7 @@
 import styles from "./DiagnosisEmbedClient.module.scss";
 import type { ResultCopy } from "@/lib/diagnosis/resultCopy";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import DiagnosisForm from "./_components/DiagnosisForm";
 import ResultHero from "./_components/ResultHero";
 import ReasonCards from "./_components/ReasonCards";
@@ -128,6 +128,22 @@ export default function DiagnosisEmbedClient({
   const [error, setError] = useState<string | null>(null);
   const [diagnosisForm, setDiagnosisForm] = useState<any | null>(null);
   const [openIndex, setOpenIndex] = useState<number | null>(0);
+
+  // ✅ フォーム監視用
+  const formRef = useRef<HTMLDivElement>(null);
+  const [isFormVisible, setIsFormVisible] = useState(false);
+
+  useEffect(() => {
+    if (!formRef.current) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsFormVisible(entry.isIntersecting);
+      },
+      { threshold: 0.1 }
+    );
+    observer.observe(formRef.current);
+    return () => observer.disconnect();
+  }, [diagnosisForm]); // diagnosisForm がロードされたら監視開始
 
   const faqs = [
     {
@@ -607,21 +623,33 @@ export default function DiagnosisEmbedClient({
                 }
               />
 
-              {/* CTA (フッター固定) */}
-              <div className="fixed bottom-0 left-0 z-50 w-full bg-white/90 backdrop-blur-sm p-4 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
+              {/* CTA (フッター固定) - フォームが見えたら隠す */}
+              <div
+                className={`fixed bottom-0 left-0 z-50 w-full bg-white/90 backdrop-blur-sm p-4 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] transition-all duration-300 ${
+                  isFormVisible
+                    ? "pointer-events-none translate-y-full opacity-0"
+                    : "translate-y-0 opacity-100"
+                }`}
+              >
                 <div className="mx-auto max-w-[560px]">
-                  <a
-                    href={
-                      result.bestMatch?.classId
-                        ? `/reserve?classId=${encodeURIComponent(
-                            result.bestMatch.classId,
-                          )}`
-                        : "/reserve"
-                    }
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (formRef.current) {
+                        formRef.current.scrollIntoView({ behavior: "smooth" });
+                      } else if (result.bestMatch?.classId) {
+                        // フォームが無い場合（万が一）は通常遷移
+                        window.location.href = `/reserve?classId=${encodeURIComponent(
+                          result.bestMatch.classId
+                        )}`;
+                      } else {
+                        window.location.href = "/reserve";
+                      }
+                    }}
                     className="flex w-full max-w-[360px] mx-auto items-center justify-center rounded-full bg-[#f5c400] px-6 py-4 text-[18px] font-bold text-[#6b4a2b] shadow-lg transition-transform hover:scale-105 active:scale-95"
                   >
                     体験予約はコチラ
-                  </a>
+                  </button>
                 </div>
               </div>
 
@@ -630,7 +658,7 @@ export default function DiagnosisEmbedClient({
 
               {/* ✅ 診断結果フォーム（ここ1回だけ） */}
               {diagnosisForm && (
-                <div>
+                <div ref={formRef}>
                   <DiagnosisForm
                     form={diagnosisForm}
                     hiddenValues={{
