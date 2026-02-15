@@ -9,7 +9,7 @@ export default function ClassIntroduction({ courseName, description }: Props) {
   if (!courseName) return null;
 
   return (
-    <div className="rounded-[32px] border border-[#EFE7DB] bg-[#AFAFAF] px-5 py-8 text-center shadow-sm">
+    <div className="rounded-[32px] border border-[#EFE7DB] bg-[#FCFBF9] px-5 py-8 text-center shadow-sm">
       {/* 見出し */}
       <div className="text-center">
         <h2 className="text-[22px] font-extrabold tracking-wide text-[#7A4C1F]">
