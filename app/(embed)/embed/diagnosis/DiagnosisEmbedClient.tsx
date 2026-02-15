@@ -794,12 +794,12 @@ export default function DiagnosisEmbedClient({
                               handleSelectOption(currentQuestion.id, opt.id)
                             }
                             className={[
-                              "w-full rounded-[18px] px-5 py-5 text-left",
-                              "text-[14px] font-extrabold leading-6",
-                              "transition active:scale-[0.99]",
+                              "w-full rounded-[16px] px-6 py-5 text-left transition-all duration-200",
+                              "text-[15px] font-bold leading-relaxed",
+                              "shadow-[0_4px_0_rgba(0,0,0,0.08)] active:shadow-none active:translate-y-[4px]",
                               selected
-                                ? "bg-[#fff2b8] text-[#6b4a2b] ring-2 ring-[#f5c400] shadow-[0_10px_22px_rgba(0,0,0,0.10)]"
-                                : "bg-[#f6f1e9] text-[#6b4a2b]/85 ring-1 ring-black/5 hover:bg-[#f3ede3]",
+                                ? "bg-[#fcedce] text-[#6b4a2b] ring-2 ring-[#f5c400]"
+                                : "bg-white text-[#6b4a2b] ring-1 ring-black/10 hover:bg-[#fffdf7] hover:shadow-[0_6px_0_rgba(0,0,0,0.08)] hover:-translate-y-[1px]",
                             ].join(" ")}
                           >
                             {opt.label}
