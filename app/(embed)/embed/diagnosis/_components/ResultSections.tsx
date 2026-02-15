@@ -443,24 +443,34 @@ export default function ResultSections({
                     </div>
                   </div>
                   <div className="ml-2 flex h-9 w-9 items-center justify-center">
-                    <span className="text-[22px] font-extrabold text-[#f5c400] leading-none">
-                      {isOpen ? "−" : "+"}
+                    <span
+                      className={`text-[22px] font-extrabold text-[#f5c400] leading-none transition-transform duration-300 ${
+                        isOpen ? "rotate-45" : "rotate-0"
+                      }`}
+                    >
+                      +
                     </span>
                   </div>
                 </button>
-                {isOpen && (
-                  <div className="px-4 pb-4">
-                    <div className="h-px w-full bg-black/10" />
-                    <div className="mt-4 flex items-start gap-3">
-                      <div className="grid h-9 w-9 place-items-center rounded-full border-2 border-[#f5c400] text-[#7a4b1f] font-extrabold">
-                        A
+                <div
+                  className={`grid transition-[grid-template-rows] duration-300 ease-in-out ${
+                    isOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+                  }`}
+                >
+                  <div className="overflow-hidden">
+                    <div className="px-4 pb-4">
+                      <div className="h-px w-full bg-black/10" />
+                      <div className="mt-4 flex items-start gap-3">
+                        <div className="grid h-9 w-9 place-items-center rounded-full border-2 border-[#f5c400] text-[#7a4b1f] font-extrabold">
+                          A
+                        </div>
+                        <p className="flex-1 whitespace-pre-line text-[14px] leading-7 text-[#7a4b1f]/90">
+                          {item.a}
+                        </p>
                       </div>
-                      <p className="flex-1 whitespace-pre-line text-[14px] leading-7 text-[#7a4b1f]/90">
-                        {item.a}
-                      </p>
                     </div>
                   </div>
-                )}
+                </div>
               </div>
             );
           })}
