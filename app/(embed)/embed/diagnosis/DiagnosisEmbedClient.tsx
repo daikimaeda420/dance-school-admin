@@ -799,7 +799,7 @@ export default function DiagnosisEmbedClient({
                               "shadow-[0_4px_0_rgba(0,0,0,0.08)] active:shadow-none active:translate-y-[4px]",
                               selected
                                 ? "bg-[#fcedce] text-[#6b4a2b] ring-2 ring-[#f5c400]"
-                                : "bg-white text-[#6b4a2b] ring-1 ring-black/10 hover:bg-[#fffdf7] hover:shadow-[0_6px_0_rgba(0,0,0,0.08)] hover:-translate-y-[1px]",
+                                : "bg-[#fff4cb] text-[#6b4a2b] ring-1 ring-black/5 hover:brightness-95 hover:shadow-[0_6px_0_rgba(0,0,0,0.08)] hover:-translate-y-[1px]",
                             ].join(" ")}
                           >
                             {opt.label}
