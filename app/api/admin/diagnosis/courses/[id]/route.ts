@@ -60,10 +60,17 @@ export async function PATCH(
 
     const body = (await req.json()) as PatchBody;
 
+
     const q2 =
       body.q2AnswerTags === undefined
         ? undefined
         : normalizeStringArray(body.q2AnswerTags);
+
+    // ✅ 追加：Q4（ジャンル）
+    const genreTags =
+      (body as any).genreTags === undefined
+        ? undefined
+        : normalizeStringArray((body as any).genreTags);
 
     const nextAnswerTag =
       body.answerTag === undefined
@@ -90,6 +97,9 @@ export async function PATCH(
         ...(body.sortOrder !== undefined ? { sortOrder: body.sortOrder } : {}),
         ...(body.isActive !== undefined ? { isActive: body.isActive } : {}),
         ...(q2 !== undefined ? { q2AnswerTags: q2 } : {}),
+
+        // ✅ 追加
+        ...(genreTags !== undefined ? { genreTags } : {}),
 
         ...(nextAnswerTag !== undefined ? { answerTag: nextAnswerTag } : {}),
 

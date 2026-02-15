@@ -26,6 +26,8 @@ export async function GET(req: NextRequest) {
       sortOrder: true,
       isActive: true,
       q2AnswerTags: true,
+      // ✅ Q4タグ取得
+      genreTags: true,
 
       // ✅ 画像（判定にだけ使う）
       photoMime: true,
@@ -55,6 +57,8 @@ export async function GET(req: NextRequest) {
       isActive: c.isActive,
 
       q2AnswerTags: c.q2AnswerTags ?? [],
+      // ✅ Q4（ジャンル）タグ
+      genreTags: c.genreTags ?? [],
 
       // ✅ 画像関連
       hasImage,

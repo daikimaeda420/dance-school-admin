@@ -32,6 +32,8 @@ type Course = {
   sortOrder: number;
   isActive: boolean;
   q2AnswerTags: string[];
+  // ✅ 追加：Q4（ジャンル）タグ
+  genreTags: string[];
 
 
 
@@ -146,6 +148,78 @@ function Q2ToggleChips({
   );
 }
 
+/** ✅ Q4 (ジャンル) 用トグルチップ */
+function Q4ToggleChips({
+  selected,
+  setSelected,
+  disabled,
+  dense,
+}: {
+  selected: string[];
+  setSelected: (v: SetStateAction<string[]>) => void;
+  disabled?: boolean;
+  dense?: boolean;
+}) {
+  const q4 = QUESTIONS.find((q) => q.id === "Q4");
+  const options = q4?.options ?? [];
+
+  return (
+    <div
+      className={[
+        "flex flex-wrap gap-2 rounded-md border border-gray-200 bg-gray-50 p-2",
+        "dark:border-gray-800 dark:bg-gray-950",
+        dense ? "text-[11px]" : "text-xs",
+        disabled ? "opacity-60" : "",
+      ].join(" ")}
+    >
+      {options.map((o) => {
+        const tag = o.tag ?? "";
+        if (!tag) return null;
+        const on = selected.includes(tag);
+        return (
+          <button
+            key={o.id}
+            type="button"
+            disabled={disabled}
+            onClick={() =>
+              setSelected((prev) => uniqStrings(toggleInArray(prev, tag)))
+            }
+            aria-pressed={on}
+            className={[
+              "group inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-left",
+              "transition select-none",
+              on
+                ? "border-pink-500 bg-pink-600 text-white dark:border-pink-400 dark:bg-pink-500"
+                : "border-gray-300 bg-white text-gray-800 hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 dark:hover:bg-gray-800",
+              disabled ? "cursor-not-allowed" : "cursor-pointer",
+            ].join(" ")}
+            title={o.label}
+          >
+            <span
+              className={[
+                "inline-flex h-4 w-4 items-center justify-center rounded-sm border",
+                on
+                  ? "border-white/70 bg-white/20"
+                  : "border-gray-300 bg-transparent dark:border-gray-600",
+              ].join(" ")}
+            >
+              {on ? (
+                <span className="text-[12px] leading-none">✓</span>
+              ) : (
+                <span className="text-[12px] leading-none opacity-0 group-hover:opacity-30">
+                  ✓
+                </span>
+              )}
+            </span>
+
+            <span className="min-w-0">{o.label}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 /**
  * ✅ DnD：div行をsortableに（tableをやめて横スクロール撲滅）
  */
@@ -218,6 +292,8 @@ export default function CourseAdminClient({ schoolId }: Props) {
   const [newSortOrder, setNewSortOrder] = useState<number>(0); // UIは出さない
   const [newIsActive, setNewIsActive] = useState(true);
   const [newQ2Tags, setNewQ2Tags] = useState<string[]>([]);
+  // ✅ 追加
+  const [newGenreTags, setNewGenreTags] = useState<string[]>([]);
 
   // ✅ 追加：コース説明文（新規）
   const [newDescription, setNewDescription] = useState<string>("");
@@ -265,6 +341,10 @@ export default function CourseAdminClient({ schoolId }: Props) {
           isActive: Boolean(d.isActive ?? true),
           q2AnswerTags: Array.isArray(d.q2AnswerTags)
             ? uniqStrings(d.q2AnswerTags)
+            : [],
+          // ✅ 追加
+          genreTags: Array.isArray(d.genreTags)
+            ? uniqStrings(d.genreTags)
             : [],
 
 
@@ -329,6 +409,8 @@ export default function CourseAdminClient({ schoolId }: Props) {
           sortOrder: newSortOrder,
           isActive: newIsActive,
           q2AnswerTags: uniqStrings(newQ2Tags),
+          // ✅ 追加
+          genreTags: uniqStrings(newGenreTags),
 
 
 
@@ -355,6 +437,7 @@ export default function CourseAdminClient({ schoolId }: Props) {
       setNewSortOrder(0);
       setNewIsActive(true);
       setNewQ2Tags([]);
+      setNewGenreTags([]);
 
       setNewImageFile(null);
 
@@ -378,6 +461,7 @@ export default function CourseAdminClient({ schoolId }: Props) {
       | "sortOrder"
       | "isActive"
       | "q2AnswerTags"
+      | "genreTags" // ✅
       | "description"
     >,
     value: string | number | boolean | string[] | null,
@@ -591,6 +675,22 @@ export default function CourseAdminClient({ schoolId }: Props) {
           <div className="mt-1 text-[11px] text-gray-500 dark:text-gray-400">
             ※ クリックでON/OFF（青＝ON）
           </div>
+          <div className="mt-1 text-[11px] text-gray-500 dark:text-gray-400">
+            ※ クリックでON/OFF（青＝ON）
+          </div>
+        </div>
+
+        {/* ✅ ジャンル (Q4) */}
+        <div className="mt-2">
+          <div className="mb-1 text-[11px] font-semibold text-gray-600 dark:text-gray-300">
+            Q4 ジャンル（複数OK）
+          </div>
+
+          <Q4ToggleChips
+            selected={newGenreTags}
+            setSelected={setNewGenreTags}
+            disabled={disabled || saving || savingSort}
+          />
         </div>
 
         <button
@@ -745,6 +845,38 @@ export default function CourseAdminClient({ schoolId }: Props) {
                             <Q2ToggleChips
                               selected={c.q2AnswerTags ?? []}
                               setSelected={setRowSelected}
+                              disabled={saving || savingSort}
+                              dense
+                            />
+                          </div>
+
+                          {/* ✅ ジャンル (Q4) */}
+                          <div className="md:col-span-2">
+                             <div className="mb-1 text-[11px] font-semibold text-gray-600 dark:text-gray-300">
+                              Q4 ジャンル
+                            </div>
+                            <Q4ToggleChips
+                              selected={c.genreTags ?? []}
+                              setSelected={(v) => {
+                                const base = c.genreTags ?? [];
+                                const nextValue =
+                                  typeof v === "function"
+                                    ? (v as (prev: string[]) => string[])(base)
+                                    : v;
+                                const normalized = uniqStrings(nextValue ?? []);
+                                setCourses((prev) =>
+                                  prev.map((p) =>
+                                    p.id === c.id
+                                      ? { ...p, genreTags: normalized }
+                                      : p,
+                                  ),
+                                );
+                                void handleUpdateField(
+                                  c.id,
+                                  "genreTags",
+                                  normalized,
+                                );
+                              }}
                               disabled={saving || savingSort}
                               dense
                             />

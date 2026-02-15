@@ -18,21 +18,21 @@ type DiagnosisRequestBody = {
   answers?: Record<string, string>;
 };
 
-const REQUIRED_QUESTION_IDS = ["Q1", "Q2", "Q3", "Q4", "Q5"] as const;
+const REQUIRED_QUESTION_IDS = ["Q1", "Q2", "Q3", "Q4", "Q5", "Q6"] as const;
 
 // =========================
-// Q5 helpers
+// Q6 helpers (Old Q5)
 // =========================
 function getConcernKey(answers: Record<string, string>): ConcernMessageKey {
-  const q5 = QUESTIONS.find((q) => q.id === "Q5");
-  const optionId = answers["Q5"];
-  const opt = q5?.options.find((o) => o.id === optionId);
+  const q6 = QUESTIONS.find((q) => q.id === "Q6");
+  const optionId = answers["Q6"];
+  const opt = q6?.options.find((o) => o.id === optionId);
   const key = (opt as any)?.messageKey ?? "Msg_Consult";
   return key as ConcernMessageKey;
 }
 
 function getConcernOptionId(answers: Record<string, string>): string | null {
-  const optionId = answers["Q5"];
+  const optionId = answers["Q6"];
   return typeof optionId === "string" && optionId.trim()
     ? optionId.trim()
     : null;
@@ -112,7 +112,7 @@ async function instructorIdsByConcernOption(params: {
 function getTeacherIdealOptionId(
   answers: Record<string, string>,
 ): string | null {
-  const optionId = answers["Q4"];
+  const optionId = answers["Q5"]; // Q4 -> Q5
   return typeof optionId === "string" && optionId.trim()
     ? optionId.trim()
     : null;
@@ -165,7 +165,7 @@ export async function POST(req: NextRequest) {
         })
       : [];
 
-    // 講師照合は Q4（理想の先生）を利用
+    // 講師照合は Q5（理想の先生）を利用（旧Q4）
     const teacherIdealOptionId = getTeacherIdealOptionId(answers);
     const concernOptionId = getConcernOptionId(answers);
     const concernInstructorIds = teacherIdealOptionId
@@ -233,12 +233,13 @@ export async function POST(req: NextRequest) {
     // resultCopy の生成
     const q2Tag = getOptionTagFromAnswers("Q2", answers);
     const q3Tag = getOptionTagFromAnswers("Q3", answers);
-    const q4Tag = getOptionTagFromAnswers("Q4", answers);
+    // const q4Tag = getOptionTagFromAnswers("Q4", answers); // ジャンルは一旦コピーに使わない？
+    const q5Tag = getOptionTagFromAnswers("Q5", answers); // 先生 (旧Q4)
 
     const resultCopy = {
       level: q2Tag ? (LEVEL_RESULT_COPY as any)[q2Tag] ?? null : null,
       age: q3Tag ? (AGE_RESULT_COPY as any)[q3Tag] ?? null : null,
-      teacher: q4Tag ? (TEACHER_RESULT_COPY as any)[q4Tag] ?? null : null,
+      teacher: q5Tag ? (TEACHER_RESULT_COPY as any)[q5Tag] ?? null : null,
       concern: concernText,
     };
 

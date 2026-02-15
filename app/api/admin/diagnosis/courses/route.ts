@@ -117,10 +117,14 @@ export async function POST(req: NextRequest) {
     );
   }
 
+
   const sortOrder = typeof body.sortOrder === "number" ? body.sortOrder : 0;
 
   // ✅ Q2タグを正規化して保存
   const q2AnswerTags = normalizeStringArray(body.q2AnswerTags);
+
+  // ✅ 追加：Q4（ジャンル）タグを正規化して保存
+  const genreTags = normalizeStringArray(body.genreTags);
 
   // ✅ 追加：description（任意）
   const description = normalizeNullableText(body.description);
@@ -133,6 +137,7 @@ export async function POST(req: NextRequest) {
       sortOrder,
       isActive: body.isActive !== false,
       q2AnswerTags,
+      genreTags, // ✅
 
       // ✅ 追加
       description,

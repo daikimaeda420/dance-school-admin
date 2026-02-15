@@ -56,7 +56,13 @@ export default async function DiagnosisPage({
       fetchOptions("campuses", schoolId),
       fetchOptions("courses", schoolId),
       fetchOptions("instructors", schoolId),
+      fetchOptions("instructors", schoolId),
     ]);
+
+  // ✅ 有効なジャンルタグを集計
+  const activeGenreTags = Array.from(
+    new Set(courseOptions.flatMap((c) => c.genreTags ?? []).filter(Boolean)),
+  );
 
   return (
     <DiagnosisEmbedClient
@@ -64,6 +70,7 @@ export default async function DiagnosisPage({
       campusOptions={campusOptions}
       courseOptions={courseOptions}
       instructorOptions={instructorOptions}
+      activeGenreTags={activeGenreTags}
     />
   );
 }

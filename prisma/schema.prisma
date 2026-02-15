@@ -97,8 +97,12 @@ model DiagnosisCourse {
   updatedAt   DateTime @updatedAt
   description String?
 
+
   // 既存：Q2の複数回答タグ
   q2AnswerTags String[] @default([])
+
+  // ✅ 追加：Q4のジャンルタグ
+  genreTags String[] @default([])
 
 
 

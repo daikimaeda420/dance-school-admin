@@ -112,12 +112,14 @@ type Props = {
   campusOptions?: DiagnosisQuestionOption[];
   courseOptions?: DiagnosisQuestionOption[];
   instructorOptions?: DiagnosisQuestionOption[];
+  activeGenreTags?: string[];
 };
 
 export default function DiagnosisEmbedClient({
   schoolIdProp,
   onClose,
   campusOptions: campusOptionsProp,
+  activeGenreTags,
 }: Props) {
   const searchParams = useSearchParams();
 
@@ -278,14 +280,27 @@ export default function DiagnosisEmbedClient({
   // ✅ Q1のみ管理画面連動、Q2〜Q5は固定
   const questions = useMemo(() => {
     return QUESTIONS.map((q) => {
-      if (q.id !== "Q1") return q;
+      if (q.id === "Q1") {
+        if (!campusLoaded)
+          return { ...q, options: [] as DiagnosisQuestionOption[] };
+        return { ...q, options: campusOptions };
+      }
 
-      if (!campusLoaded)
-        return { ...q, options: [] as DiagnosisQuestionOption[] };
+      // ✅ Q4: ジャンルフィルター
+      if (q.id === "Q4" && activeGenreTags && activeGenreTags.length > 0) {
+        // activeGenreTags に含まれるタグだけを残す
+        const filtered = q.options.filter((opt) => {
+          if (!opt.tag) return true;
+          // "Genre_None" は常に表示
+          if (opt.tag === "Genre_None") return true;
+          return activeGenreTags.includes(opt.tag);
+        });
+        return { ...q, options: filtered };
+      }
 
-      return { ...q, options: campusOptions };
+      return q;
     });
-  }, [campusLoaded, campusOptions]);
+  }, [campusLoaded, campusOptions, activeGenreTags]);
 
   const currentQuestion = questions[stepIndex];
   const totalSteps = questions.length;
