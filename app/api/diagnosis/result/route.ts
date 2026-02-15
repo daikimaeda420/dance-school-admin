@@ -8,6 +8,9 @@ import {
 } from "@/lib/diagnosis/config";
 import {
   CONCERN_RESULT_COPY,
+  LEVEL_RESULT_COPY,
+  AGE_RESULT_COPY,
+  TEACHER_RESULT_COPY,
 } from "@/lib/diagnosis/resultCopy";
 
 type DiagnosisRequestBody = {
@@ -227,6 +230,18 @@ export async function POST(req: NextRequest) {
     const concernText =
       CONCERN_RESULT_COPY[concernKey] ?? concernMessages[concernKey] ?? "";
 
+    // resultCopy の生成
+    const q2Tag = getOptionTagFromAnswers("Q2", answers);
+    const q3Tag = getOptionTagFromAnswers("Q3", answers);
+    const q4Tag = getOptionTagFromAnswers("Q4", answers);
+
+    const resultCopy = {
+      level: q2Tag ? (LEVEL_RESULT_COPY as any)[q2Tag] ?? null : null,
+      age: q3Tag ? (AGE_RESULT_COPY as any)[q3Tag] ?? null : null,
+      teacher: q4Tag ? (TEACHER_RESULT_COPY as any)[q4Tag] ?? null : null,
+      concern: concernText,
+    };
+
     return NextResponse.json({
       instructors: instructors.map((t) => ({
         id: t.id,
@@ -235,6 +250,7 @@ export async function POST(req: NextRequest) {
         charmTags: t.charmTags ?? null,
         introduction: t.introduction ?? null,
       })),
+      resultCopy, // 追加
       concernMessage: concernText,
       debug: {
         concernOptionId,
