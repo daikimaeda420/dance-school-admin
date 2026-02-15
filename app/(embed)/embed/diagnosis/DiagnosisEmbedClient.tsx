@@ -618,13 +618,9 @@ export default function DiagnosisEmbedClient({
                           )}`
                         : "/reserve"
                     }
-                    className="block transition-transform hover:scale-105 active:scale-95"
+                    className="flex w-full max-w-[360px] mx-auto items-center justify-center rounded-full bg-[#f5c400] px-6 py-4 text-[18px] font-bold text-[#6b4a2b] shadow-lg transition-transform hover:scale-105 active:scale-95"
                   >
-                    <img
-                      src="/images/reservation_button.png"
-                      alt="お申し込みはこちら"
-                      className="mx-auto w-full max-w-[300px] h-auto drop-shadow-md"
-                    />
+                    体験予約はコチラ
                   </a>
                 </div>
               </div>
