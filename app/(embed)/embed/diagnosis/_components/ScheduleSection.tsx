@@ -16,10 +16,9 @@ type PublicSchedule = Record<
 >;
 
 type DayKey = "MON" | "TUE" | "WED" | "THU" | "FRI" | "SAT" | "SUN";
-type ViewDayKey = "ALL" | DayKey;
+type ViewDayKey = DayKey;
 
 const dayKeys: ViewDayKey[] = [
-  "ALL",
   "MON",
   "TUE",
   "WED",
@@ -30,7 +29,6 @@ const dayKeys: ViewDayKey[] = [
 ];
 
 const viewDayLabel: Record<ViewDayKey, string> = {
-  ALL: "ALL",
   MON: "月",
   TUE: "火",
   WED: "水",
@@ -67,16 +65,10 @@ export default function ScheduleSection({
   const list =
     !s || total === 0
       ? []
-      : activeDay === "ALL"
-        ? (
-            ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"] as const
-          ).flatMap((k) =>
-            (s[k] ?? []).map((slot) => ({ ...slot, weekday: k })),
-          )
-        : (s[activeDay as DayKey] ?? []).map((slot) => ({
-            ...slot,
-            weekday: activeDay,
-          }));
+      : (s[activeDay as DayKey] ?? []).map((slot) => ({
+          ...slot,
+          weekday: activeDay,
+        }));
 
   return (
     <div className="rounded-[28px] bg-white px-5 py-6 shadow-sm ring-1 ring-black/5">
@@ -102,13 +94,13 @@ export default function ScheduleSection({
         </div>
       ) : (
         <>
-          <div className="mt-6 flex flex-wrap gap-3">
+          <div className="mt-6 grid grid-cols-4 gap-3">
             {dayKeys.map((k) => (
               <button
                 key={k}
                 onClick={() => setActiveDay(k)}
                 className={[
-                  "h-11 min-w-[72px] rounded-full px-5 text-[14px] font-bold",
+                  "h-11 rounded-full text-[14px] font-bold",
                   "transition active:scale-[0.99]",
                   "shadow-[0_8px_16px_rgba(0,0,0,0.08)]",
                   k === activeDay
@@ -166,11 +158,7 @@ export default function ScheduleSection({
                         </div>
                       </div>
 
-                      {activeDay === "ALL" && (
-                        <div className="mt-3 text-[11px] font-bold text-[#6b4a2b]/55">
-                          {viewDayLabel[slot.weekday as ViewDayKey]}
-                        </div>
-                      )}
+
                     </div>
                   </div>
                 </div>

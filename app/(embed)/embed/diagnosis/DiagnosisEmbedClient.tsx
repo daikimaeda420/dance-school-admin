@@ -186,8 +186,8 @@ export default function DiagnosisEmbedClient({
   >;
 
   const [scheduleDay, setScheduleDay] = useState<
-    "ALL" | "MON" | "TUE" | "WED" | "THU" | "FRI" | "SAT" | "SUN"
-  >("ALL");
+    "MON" | "TUE" | "WED" | "THU" | "FRI" | "SAT" | "SUN"
+  >("MON");
 
   const [schedule, setSchedule] = useState<PublicSchedule | null>(null);
   const [scheduleError, setScheduleError] = useState<string | null>(null);
@@ -513,15 +513,10 @@ export default function DiagnosisEmbedClient({
   const classOptions = useMemo(() => {
     if (!schedule) return [];
 
-    const list =
-      scheduleDay === "ALL"
-        ? dayOrder.flatMap((d) =>
-            (schedule[d] ?? []).map((s) => ({ ...s, weekday: d })),
-          )
-        : (schedule[scheduleDay] ?? []).map((s) => ({
-            ...s,
-            weekday: scheduleDay as DayKey,
-          }));
+    const list = (schedule[scheduleDay] ?? []).map((s) => ({
+      ...s,
+      weekday: scheduleDay as DayKey,
+    }));
 
     return list.map((s) => ({
       value: s.id,
@@ -530,12 +525,10 @@ export default function DiagnosisEmbedClient({
   }, [schedule, scheduleDay]);
 
   const dateOptions = useMemo(() => {
-    const want = scheduleDay === "ALL" ? 14 : 12;
+    const want = 12;
 
     const targetDow =
-      scheduleDay === "ALL"
-        ? null
-        : scheduleDay === "MON"
+      scheduleDay === "MON"
           ? 1
           : scheduleDay === "TUE"
             ? 2
