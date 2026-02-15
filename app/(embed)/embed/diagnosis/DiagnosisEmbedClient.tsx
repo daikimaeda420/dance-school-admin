@@ -4,7 +4,7 @@
 import styles from "./DiagnosisEmbedClient.module.scss";
 import type { ResultCopy } from "@/lib/diagnosis/resultCopy";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useState, useRef } from "react";
+import { useEffect, useMemo, useState, useRef, useCallback } from "react";
 import DiagnosisForm from "./_components/DiagnosisForm";
 import ResultHero from "./_components/ResultHero";
 import ReasonCards from "./_components/ReasonCards";
@@ -554,6 +554,21 @@ export default function DiagnosisEmbedClient({
   }, [scheduleDay]);
 
   // ==========================
+  // ✅ CTAクリック（スクロール or 遷移）
+  // ==========================
+  const handleCtaClick = useCallback(() => {
+    if (formRef.current) {
+      formRef.current.scrollIntoView({ behavior: "smooth" });
+    } else if (result?.bestMatch?.classId) {
+      window.location.href = `/reserve?classId=${encodeURIComponent(
+        result.bestMatch.classId,
+      )}`;
+    } else {
+      window.location.href = "/reserve";
+    }
+  }, [result]);
+
+  // ==========================
   // ✅ 質問ステップ画面の判定
   // ==========================
   const isQ1 = currentQuestion?.id === "Q1";
@@ -591,6 +606,7 @@ export default function DiagnosisEmbedClient({
                 coursePhotoUrl={coursePhotoUrl}
                 fallbackCourseImgSrc={fallbackCourseImgSrc}
                 className={className}
+                onCtaClick={handleCtaClick}
               />
 
               {/* おすすめ理由 */}
@@ -634,18 +650,7 @@ export default function DiagnosisEmbedClient({
                 <div className="mx-auto max-w-[560px]">
                   <button
                     type="button"
-                    onClick={() => {
-                      if (formRef.current) {
-                        formRef.current.scrollIntoView({ behavior: "smooth" });
-                      } else if (result.bestMatch?.classId) {
-                        // フォームが無い場合（万が一）は通常遷移
-                        window.location.href = `/reserve?classId=${encodeURIComponent(
-                          result.bestMatch.classId
-                        )}`;
-                      } else {
-                        window.location.href = "/reserve";
-                      }
-                    }}
+                    onClick={handleCtaClick}
                     className="flex w-full max-w-[360px] mx-auto items-center justify-center rounded-full bg-[#f5c400] px-6 py-4 text-[18px] font-bold text-[#6b4a2b] shadow-lg transition-transform hover:scale-105 active:scale-95"
                   >
                     体験予約はコチラ
