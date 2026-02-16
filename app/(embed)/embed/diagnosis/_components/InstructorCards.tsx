@@ -39,7 +39,7 @@ export default function InstructorCards({
 
   return (
     <div className="space-y-2">
-      <div className="text-xs font-semibold text-gray-500">担当講師</div>
+
 
       {hasInstructors ? (
         <div className="space-y-3">
