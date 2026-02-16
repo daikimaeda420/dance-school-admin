@@ -12,7 +12,7 @@ function getOriginFromHeaders() {
 }
 
 async function fetchOptions(
-  path: "campuses" | "courses" | "instructors",
+  path: "campuses" | "courses" | "instructors" | "lifestyles",
   schoolId: string
 ): Promise<DiagnosisQuestionOption[]> {
   if (!schoolId) return [];
@@ -51,17 +51,23 @@ export default async function DiagnosisPage({
   // ★ 両対応（schoolId 優先）
   const schoolId = searchParams.schoolId ?? searchParams.school ?? "";
 
-  const [campusOptions, courseOptions, instructorOptions] =
+  const [campusOptions, courseOptions, instructorOptions, lifestyleOptions] =
     await Promise.all([
       fetchOptions("campuses", schoolId),
       fetchOptions("courses", schoolId),
       fetchOptions("instructors", schoolId),
-      fetchOptions("instructors", schoolId),
+      fetchOptions("lifestyles", schoolId),
     ]);
 
   // ✅ 有効なジャンルタグを集計
   const activeGenreTags = Array.from(
     new Set(courseOptions.flatMap((c) => c.genreTags ?? []).filter(Boolean)),
+  );
+
+  // ✅ 有効な年代タグを集計（Q3用）
+  // APIから { id, label, tag: slug } が返ってくる想定
+  const activeLifestyleTags = Array.from(
+    new Set(lifestyleOptions.flatMap((l) => l.tag ?? []).filter(Boolean)),
   );
 
   return (
@@ -71,6 +77,7 @@ export default async function DiagnosisPage({
       courseOptions={courseOptions}
       instructorOptions={instructorOptions}
       activeGenreTags={activeGenreTags}
+      activeLifestyleTags={activeLifestyleTags}
     />
   );
 }

@@ -115,6 +115,7 @@ type Props = {
   courseOptions?: DiagnosisQuestionOption[];
   instructorOptions?: DiagnosisQuestionOption[];
   activeGenreTags?: string[];
+  activeLifestyleTags?: string[];
 };
 
 export default function DiagnosisEmbedClient({
@@ -122,6 +123,7 @@ export default function DiagnosisEmbedClient({
   onClose,
   campusOptions: campusOptionsProp,
   activeGenreTags,
+  activeLifestyleTags,
 }: Props) {
   const searchParams = useSearchParams();
 
@@ -296,6 +298,19 @@ export default function DiagnosisEmbedClient({
           // "Genre_None" は常に表示
           if (opt.tag === "Genre_None") return true;
           return activeGenreTags.includes(opt.tag);
+        });
+        return { ...q, options: filtered };
+      }
+
+      // ✅ Q3: 年代フィルター
+      if (
+        q.id === "Q3" &&
+        activeLifestyleTags &&
+        activeLifestyleTags.length > 0
+      ) {
+        const filtered = q.options.filter((opt) => {
+          if (!opt.tag) return true;
+          return activeLifestyleTags.includes(opt.tag);
         });
         return { ...q, options: filtered };
       }
