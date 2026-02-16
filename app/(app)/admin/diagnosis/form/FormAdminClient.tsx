@@ -396,12 +396,13 @@ export default function FormAdminClient({ schoolId }: { schoolId: string }) {
                       : ""
                   }
                   onChange={(e) => {
-                    const lines = e.target.value
-                      .split("\n")
-                      .map((s) => s.trim())
-                      .filter(Boolean);
+                    const rawVal = e.target.value;
+                    // 入力中は空行も許容しないと改行できないため、そのまま保存
+                    // ※空行除去は保存時や使用時に行う運用にする、あるいは
+                    // 「空文字でも配列には含めるが、labelが空」状態にする
+                    const lines = rawVal.split("\n");
                     const newOptions = lines.map((s) => ({
-                      label: s,
+                      label: s, // trim()するとスペース入力できなくなるので注意
                       value: s,
                     }));
                     updateField(i, { optionsJson: newOptions });
