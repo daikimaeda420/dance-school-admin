@@ -8,6 +8,7 @@ type Field = {
   type: string;
   required: boolean;
   placeholder?: string | null;
+  optionsJson?: any;
 };
 
 type SelectOption = { value: string; label: string };
@@ -352,7 +353,21 @@ export default function DiagnosisForm({
                         <span className="ml-1 text-[#6b4a2b]/70">（必須）</span>
                       )}
                     </label>
-                    {f.type === "TEXTAREA" ? (
+
+                    {/* ✅ SELECT の場合 */}
+                    {f.type === "SELECT" ? (
+                      <SelectLike
+                        value={values[f.id] ?? ""}
+                        onChange={(v) => setVal(f.id, v)}
+                        required={f.required}
+                        placeholder={f.placeholder ?? "選択してください"}
+                        options={
+                          Array.isArray(f.optionsJson)
+                            ? (f.optionsJson as SelectOption[])
+                            : []
+                        }
+                      />
+                    ) : f.type === "TEXTAREA" ? (
                       <textarea
                         className={INPUT + " min-h-[140px] resize-none"}
                         rows={5}

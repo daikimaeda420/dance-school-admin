@@ -380,6 +380,35 @@ export default function FormAdminClient({ schoolId }: { schoolId: string }) {
                 削除
               </button>
             </div>
+            {/* ✅ SELECTの場合の選択肢編集 */}
+            {f.type === "SELECT" && (
+              <div className="col-span-12 mt-2">
+                <div className="mb-1 text-xs text-gray-500 dark:text-gray-400">
+                  選択肢（改行区切りで入力）
+                </div>
+                <textarea
+                  className={TEXTAREA_BASE}
+                  rows={3}
+                  placeholder="選択肢A&#13;&#10;選択肢B&#13;&#10;選択肢C"
+                  value={
+                    Array.isArray(f.optionsJson)
+                      ? f.optionsJson.map((o: any) => o.label).join("\n")
+                      : ""
+                  }
+                  onChange={(e) => {
+                    const lines = e.target.value
+                      .split("\n")
+                      .map((s) => s.trim())
+                      .filter(Boolean);
+                    const newOptions = lines.map((s) => ({
+                      label: s,
+                      value: s,
+                    }));
+                    updateField(i, { optionsJson: newOptions });
+                  }}
+                />
+              </div>
+            )}
           </div>
         ))}
       </section>
