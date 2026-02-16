@@ -312,12 +312,25 @@ export default function DiagnosisEmbedClient({
           if (!opt.tag) return true;
           return activeLifestyleTags.includes(opt.tag);
         });
+
+        // DEBUG:
+        console.log("Q3 Filtering:", {
+          activeLifestyleTags,
+          allOptions: q.options.map((o) => o.tag),
+          filteredOptions: filtered.map((o) => o.tag),
+        });
+
+        // フィルタリング結果が0件になってしまう場合は、全表示に戻す（設定ミスの可能性への安全策）
+        if (filtered.length === 0) {
+          return q;
+        }
+
         return { ...q, options: filtered };
       }
 
       return q;
     });
-  }, [campusLoaded, campusOptions, activeGenreTags]);
+  }, [campusLoaded, campusOptions, activeGenreTags, activeLifestyleTags]);
 
   const currentQuestion = questions[stepIndex];
   const totalSteps = questions.length;

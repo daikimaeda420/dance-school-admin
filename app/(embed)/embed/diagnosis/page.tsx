@@ -67,8 +67,8 @@ export default async function DiagnosisPage({
   // ✅ 有効な年代タグを集計（Q3用）
   // APIから { id, label, tag: slug } が返ってくる想定
   const activeLifestyleTags = Array.from(
-    new Set(lifestyleOptions.flatMap((l) => l.tag ?? []).filter(Boolean)),
-  );
+    new Set(lifestyleOptions.map((l) => l.tag).filter(Boolean)),
+  ) as string[];
 
   return (
     <DiagnosisEmbedClient

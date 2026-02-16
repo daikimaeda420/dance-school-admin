@@ -45,23 +45,23 @@ export const LEVEL_RESULT_COPY: Record<string, ResultCopy> = {
   },
 };
 
-// Q3（age）の option.tag（Age_Adult_Work 等）に対応
+// Q3（age）の option.tag（preschool 等）に対応
 export const AGE_RESULT_COPY: Record<string, ResultCopy> = {
-  Age_Kids: {
+  preschool: {
     title: "音に合わせて体を動かすだけ！\n「遊び」の延長で楽しくスタート",
     body:
       "リズム遊びやマネっこ感覚でOK！\n" +
       "お友達と一緒に体を動かすことで、まずは「ダンスって楽しい！」\n" +
       "という感性と、「できた！」という自信を育みます。",
   },
-  Age_Elementary: {
+  elementary: {
     title: "同年代の友達がいっぱい！\n流行りの曲で楽しく踊ろう",
     body:
       "同世代の仲間がたくさん待っています！\n" +
       "学校で流行っている曲も使いながら、\n" +
       "まずは「ダンスって楽しい！」と心から感じる体験を届けます。",
   },
-  Age_Teen: {
+  "junior-high-high": {
     title: "学校帰りに「部活感覚」で！\n同世代の仲間と熱くなろう",
     body:
       "放課後に通いやすい時間帯が充実。\n" +
@@ -70,7 +70,7 @@ export const AGE_RESULT_COPY: Record<string, ResultCopy> = {
   },
 
   // ✅ FIX: "Age_Student" のコピーが社会人向けになっていたので学生向けに修正
-  Age_Student: {
+  college: {
     title: "忙しくても続けやすい！\n学業と両立できるダンス習慣",
     body:
       "授業やバイトで忙しくても、通いやすい時間帯・ペースで続けられます。\n" +
@@ -78,14 +78,14 @@ export const AGE_RESULT_COPY: Record<string, ResultCopy> = {
       "（スクールによっては）学割プランが使えることもあります。",
   },
 
-  Age_Adult_Work: {
+  worker: {
     title: "仕事帰りにリフレッシュ！\n「残業後」でも間に合うクラス",
     body:
       "仕事の疲れはダンスで発散！\n" +
       "残業後でも通える「平日遅めの時間」や、土日のクラスが充実。\n" +
       "ライフスタイルに合わせて無理なく通えます。",
   },
-  Age_Adult_Day: {
+  homemaker: {
     title: "家事の合間を「自分時間」に\n広々踊れる平日昼が狙い目！",
     body:
       "忙しい日々の隙間時間を有効活用しませんか？\n" +
