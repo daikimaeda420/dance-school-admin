@@ -158,6 +158,7 @@ type FaqItem = {
 type Props = {
   campus: CampusInfo | null | undefined;
   faqs: FaqItem[];
+  courses?: { label: string }[];
   openIndex: number | null;
   onToggleFaq: (i: number) => void;
 };
@@ -166,6 +167,7 @@ type Props = {
 export default function ResultSections({
   campus,
   faqs,
+  courses,
   openIndex,
   onToggleFaq,
 }: Props) {
@@ -211,13 +213,16 @@ export default function ResultSections({
           コース月謝
         </div>
         <div className="mt-4 space-y-3">
-          {["XXXXコース", "XXXXコース", "XXXXコース"].map((course, i) => (
+          {(courses && courses.length > 0
+            ? courses
+            : [{ label: "XXXXコース" }, { label: "XXXXコース" }]
+          ).map((course, i) => (
             <div
               key={i}
               className="rounded-[18px] border border-black/15 bg-white px-4 py-4 text-center"
             >
               <div className="text-[13px] font-bold text-[#7a4b1f]">
-                {course}
+                {course.label}
               </div>
               <div className="mt-2 flex items-end justify-center gap-1">
                 <div className="text-[34px] font-extrabold text-[#7a4b1f]">

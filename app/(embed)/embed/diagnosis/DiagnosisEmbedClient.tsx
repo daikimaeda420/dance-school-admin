@@ -18,6 +18,22 @@ import {
   DiagnosisQuestionOption,
 } from "@/lib/diagnosis/config";
 
+// ✅ APIから取得するFAQの型
+type ApiFaqItem = {
+  type: "question" | "select";
+  question: string;
+  answer?: string;
+  options?: { label: string; next: any }[];
+};
+
+// ✅ APIから取得するコースの型
+type ApiCourse = {
+  id: string;
+  label: string;
+  slug: string;
+  // 必要に応じて追加
+};
+
 type AnswersState = Partial<Record<DiagnosisQuestionId, string>>;
 
 // ✅ 講師（DiagnosisInstructor を表示する用）
@@ -127,6 +143,12 @@ export default function DiagnosisEmbedClient({
 }: Props) {
   const searchParams = useSearchParams();
 
+  // ✅ schoolId / school どっちでも受ける
+  const schoolId = useMemo(() => {
+    if (schoolIdProp) return schoolIdProp;
+    return searchParams.get("schoolId") ?? searchParams.get("school") ?? "";
+  }, [schoolIdProp, searchParams]);
+
   const [answers, setAnswers] = useState<AnswersState>({});
   const [stepIndex, setStepIndex] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -151,28 +173,43 @@ export default function DiagnosisEmbedClient({
     return () => observer.disconnect();
   }, [diagnosisForm]); // diagnosisForm がロードされたら監視開始
 
-  const faqs = [
-    {
-      q: "ダンスに興味がありますがダンス初心者でリズム感もありません。レッスンについていけるか心配です。",
-      a: "リンクスはダンス初心者さんの為のダンススクールですのでご安心ください。\nリンクスのクラスはアットホームで、講師が優しくレクチャーいたしますので是非体験レッスンにお越しくださいませ。",
-    },
-    {
-      q: "40代の主婦です。年齢的に周りの生徒さんについていけるか心配です。年齢層はどのような感じでしょうか。",
-      a: "リンクスでは、クラスによりますが20代〜60代の方まで幅広く、男女比は男性4割、女性6割(目安)の方がレッスンに参加されております。",
-    },
-    {
-      q: "ダンスレッスンに初めて参加します。何が必要ですか？",
-      a: "ダンスレッスンでは特別な道具は必要ございません。①動きやすい服 or 着替え ②汗拭きタオル ③お飲物(蓋の閉まるもの) ④動きやすい室内用シューズ 以上4点をご用意ください。\nまた、クラスやジャンルによってはシューズが不要な場合もございます。",
-    },
-    {
-      q: "入会するのは月初めではないとダメでしょうか。月の途中で入会はできますか？",
-      a: "可能でございます。月の途中で入会される場合は、週割りのお月謝をお支払いただきます。",
-    },
-    {
-      q: "支払い方法は何が利用できますか？",
-      a: "初回金(入会金)はお振込み、お月謝はクレジットカードがご利用いただけます。\n体験料はクレジットカード前払いでお支払いいただきます。(会員登録不要)",
-    },
-  ];
+  // ✅ FAQ取得
+  const [fetchedFaqs, setFetchedFaqs] = useState<{ q: string; a: string }[]>(
+    [],
+  );
+  useEffect(() => {
+    if (!schoolId) return;
+    fetch(`/api/faq?school=${encodeURIComponent(schoolId)}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!data?.items) return;
+        // ResultSections用に変換 (type="question" のみ抽出)
+        const validItems = (data.items as ApiFaqItem[])
+          .filter(
+            (item) => item.type === "question" && item.question && item.answer,
+          )
+          .map((item) => ({
+            q: item.question,
+            a: item.answer || "",
+          }));
+        setFetchedFaqs(validItems);
+      })
+      .catch((e) => console.error("Failed to load FAQs:", e));
+  }, [schoolId]);
+
+  // ✅ コース取得
+  const [fetchedCourses, setFetchedCourses] = useState<ApiCourse[]>([]);
+  useEffect(() => {
+    if (!schoolId) return;
+    fetch(`/api/diagnosis/courses?schoolId=${encodeURIComponent(schoolId)}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (Array.isArray(data)) {
+          setFetchedCourses(data as ApiCourse[]);
+        }
+      })
+      .catch((e) => console.error("Failed to load courses:", e));
+  }, [schoolId]);
 
   type PublicScheduleSlot = {
     id: string;
@@ -194,11 +231,7 @@ export default function DiagnosisEmbedClient({
   const [schedule, setSchedule] = useState<PublicSchedule | null>(null);
   const [scheduleError, setScheduleError] = useState<string | null>(null);
 
-  // ✅ schoolId / school どっちでも受ける
-  const schoolId = useMemo(() => {
-    if (schoolIdProp) return schoolIdProp;
-    return searchParams.get("schoolId") ?? searchParams.get("school") ?? "";
-  }, [schoolIdProp, searchParams]);
+
 
   // =========================================================
   // ✅ Q1 校舎 options を API から取得（フラッシュ対策）
@@ -676,13 +709,12 @@ export default function DiagnosisEmbedClient({
               />
 
               {/* 料金・生徒の声・アクセス・体験の流れ・FAQ */}
-              <ResultSections
+                <ResultSections
                 campus={result.campus ?? result.selectedCampus ?? null}
-                faqs={faqs}
+                faqs={fetchedFaqs} // ✅ 取得したFAQを渡す
+                courses={fetchedCourses} // ✅ 取得したコースを渡す
                 openIndex={openIndex}
-                onToggleFaq={(i) =>
-                  setOpenIndex(openIndex === i ? null : i)
-                }
+                onToggleFaq={(i) => setOpenIndex(openIndex === i ? null : i)}
               />
 
               {/* CTA (フッター固定) - フォームが見えたら隠す */}
