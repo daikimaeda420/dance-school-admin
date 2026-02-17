@@ -488,6 +488,32 @@ export default function CourseAdminClient({ schoolId }: Props) {
     }
   };
 
+  const handleUpdateMultiFields = async (
+    id: string,
+    updates: Partial<Course>,
+  ) => {
+    setSaving(true);
+    setSavingRowId(id);
+    setError(null);
+    try {
+      const res = await fetch(`/api/admin/diagnosis/courses/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updates),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.message ?? "更新に失敗しました。");
+      }
+      await fetchCourses();
+    } catch (e: any) {
+      setError(e?.message ?? "通信エラーが発生しました。");
+    } finally {
+      setSaving(false);
+      setSavingRowId(null);
+    }
+  };
+
   const handleUploadRowPhoto = async (id: string) => {
     const file = pendingFiles[id];
     if (!file) return;
@@ -1015,17 +1041,10 @@ export default function CourseAdminClient({ schoolId }: Props) {
                                     // そもそも Q2/Q4 は即時保存されているので「Save」ボタンは
                                     // 「念のため保存」として機能させる。
 
-                                    // Q2保存
-                                    void handleUpdateField(
+                                    // Q2/Q4 をまとめて保存
+                                    void handleUpdateMultiFields(
                                       c.id,
-                                      "q2AnswerTags",
-                                      payload.q2AnswerTags,
-                                    );
-                                    // Q4保存
-                                    void handleUpdateField(
-                                      c.id,
-                                      "genreTags",
-                                      payload.genreTags,
+                                      payload,
                                     );
                                   }}
                                   disabled={saving || savingSort || rowSaving}

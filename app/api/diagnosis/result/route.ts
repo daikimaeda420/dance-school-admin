@@ -146,9 +146,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "NO_CAMPUS" }, { status: 400 });
 
     const q2ForCourse = getQ2ValueForCourse(answers);
+    const q4Tag = getOptionTagFromAnswers("Q4", answers);
 
     const recommendedCourse = await prisma.diagnosisCourse.findFirst({
-      where: { schoolId, isActive: true, q2AnswerTags: { has: q2ForCourse } },
+      where: {
+        schoolId,
+        isActive: true,
+        q2AnswerTags: { has: q2ForCourse },
+        // ✅ Q4タグがあれば絞り込み（"特になし"以外）
+        ...(q4Tag && q4Tag !== "Genre_None" ? { genreTags: { has: q4Tag } } : {}),
+      },
       orderBy: { sortOrder: "asc" },
       select: {
         id: true,
