@@ -226,6 +226,34 @@ export default function GenreAdminClient({
     }
   }
 
+  async function handleReset() {
+    if (
+      !confirm(
+        "ジャンルを初期状態（K-POP, ヒップホップ等）に戻しますか？現在のデータはすべて削除されます。",
+      )
+    )
+      return;
+
+    setError(null);
+    setSaving(true);
+    try {
+      const res = await fetch(`${apiBase}/reset`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ schoolId }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data?.message ?? "リセットに失敗しました");
+      }
+      await fetchRows();
+    } catch (e: any) {
+      setError(e.message ?? "リセットに失敗しました");
+    } finally {
+      setSaving(false);
+    }
+  }
+
   function resetEdits() {
     setRows(originalRef.current);
   }
@@ -310,6 +338,14 @@ export default function GenreAdminClient({
           </div>
 
           <div className="flex items-center gap-2">
+            <button
+              className={btnDanger}
+              onClick={handleReset}
+              disabled={loading || saving}
+            >
+              初期値でリセット
+            </button>
+            <div className="mx-2 h-4 w-px bg-gray-200 dark:bg-gray-800" />
             <button
               className={btn}
               onClick={resetEdits}

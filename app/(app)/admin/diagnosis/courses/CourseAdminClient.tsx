@@ -152,16 +152,21 @@ function Q2ToggleChips({
 function Q4ToggleChips({
   selected,
   setSelected,
+  genres, // ✅ 追加
   disabled,
   dense,
 }: {
   selected: string[];
   setSelected: (v: SetStateAction<string[]>) => void;
+  genres: Array<{ label: string; slug: string }>; // ✅ 追加
   disabled?: boolean;
   dense?: boolean;
 }) {
-  const q4 = QUESTIONS.find((q) => q.id === "Q4");
-  const options = q4?.options ?? [];
+  const options = genres.map((g, idx) => ({
+    id: `dynamic-${idx}`,
+    label: g.label,
+    tag: g.slug,
+  }));
 
   return (
     <div
@@ -280,6 +285,9 @@ const selectCls =
 
 export default function CourseAdminClient({ schoolId }: Props) {
   const [courses, setCourses] = useState<Course[]>([]);
+  const [genres, setGenres] = useState<Array<{ label: string; slug: string }>>(
+    [],
+  ); // ✅ 追加
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [savingRowId, setSavingRowId] = useState<string | null>(null);
@@ -366,8 +374,24 @@ export default function CourseAdminClient({ schoolId }: Props) {
     }
   };
 
+  const fetchGenres = async () => {
+    if (!schoolId) return;
+    try {
+      const res = await fetch(
+        `/api/admin/diagnosis/genres?schoolId=${encodeURIComponent(schoolId)}`,
+      );
+      if (res.ok) {
+        const data = await res.json();
+        setGenres(data.genres || []);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   useEffect(() => {
     void fetchCourses();
+    void fetchGenres(); // ✅ 追加
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [schoolId]);
 
@@ -715,6 +739,7 @@ export default function CourseAdminClient({ schoolId }: Props) {
           <Q4ToggleChips
             selected={newGenreTags}
             setSelected={setNewGenreTags}
+            genres={genres} // ✅ 追加
             disabled={disabled || saving || savingSort}
           />
         </div>
@@ -903,6 +928,7 @@ export default function CourseAdminClient({ schoolId }: Props) {
                                   normalized,
                                 );
                               }}
+                              genres={genres} // ✅ 追加
                               disabled={saving || savingSort}
                               dense
                             />
