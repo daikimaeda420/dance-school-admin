@@ -1000,13 +1000,34 @@ export default function CourseAdminClient({ schoolId }: Props) {
 
                               <div className="flex items-center gap-2">
                                 <button
-                                  onClick={() =>
-                                    handleUpdateField(
+                                  onClick={() => {
+                                    const payload = {
+                                      q2AnswerTags: uniqStrings(
+                                        c.q2AnswerTags ?? [],
+                                      ),
+                                      genreTags: uniqStrings(c.genreTags ?? []),
+                                    };
+                                    // 個別に呼ぶか、API側でまとめて受け取れるなら1回で呼ぶ
+                                    // handleUpdateField は単一フィールド想定だが、
+                                    // 実装を見ると `body: JSON.stringify({ [field]: value })` なので
+                                    // 複数フィールドを一度に送るには改修が必要。
+                                    // ここでは既存の handleUpdateField を2回呼ぶか、
+                                    // そもそも Q2/Q4 は即時保存されているので「Save」ボタンは
+                                    // 「念のため保存」として機能させる。
+
+                                    // Q2保存
+                                    void handleUpdateField(
                                       c.id,
                                       "q2AnswerTags",
-                                      uniqStrings(c.q2AnswerTags ?? []),
-                                    )
-                                  }
+                                      payload.q2AnswerTags,
+                                    );
+                                    // Q4保存
+                                    void handleUpdateField(
+                                      c.id,
+                                      "genreTags",
+                                      payload.genreTags,
+                                    );
+                                  }}
                                   disabled={saving || savingSort || rowSaving}
                                   className="rounded-full border border-gray-300 bg-white px-3 py-1 text-[11px] font-semibold text-gray-800 hover:bg-gray-50 disabled:opacity-40 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100 dark:hover:bg-gray-900"
                                 >

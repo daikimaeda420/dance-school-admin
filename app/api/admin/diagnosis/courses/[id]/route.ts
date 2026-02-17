@@ -34,6 +34,9 @@ type PatchBody = {
 
   // ✅ 追加：コース説明文
   description?: string | null;
+
+  // ✅ 追加：Q4
+  genreTags?: string[];
 };
 
 function normalizeNullableText(v: unknown): string | null {
@@ -68,9 +71,9 @@ export async function PATCH(
 
     // ✅ 追加：Q4（ジャンル）
     const genreTags =
-      (body as any).genreTags === undefined
+      body.genreTags === undefined
         ? undefined
-        : normalizeStringArray((body as any).genreTags);
+        : normalizeStringArray(body.genreTags);
 
     const nextAnswerTag =
       body.answerTag === undefined
