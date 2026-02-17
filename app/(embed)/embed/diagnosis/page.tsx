@@ -12,10 +12,11 @@ function getOriginFromHeaders() {
 }
 
 async function fetchOptions(
-  path: "campuses" | "courses" | "instructors" | "lifestyles",
+  path: "campuses" | "courses" | "instructors" | "lifestyles" | "genres",
   schoolId: string
 ): Promise<DiagnosisQuestionOption[]> {
   if (!schoolId) return [];
+// ... (omitted for brevity in search but should be full)
 
   try {
     const origin = getOriginFromHeaders();
@@ -51,13 +52,19 @@ export default async function DiagnosisPage({
   // ★ 両対応（schoolId 優先）
   const schoolId = searchParams.schoolId ?? searchParams.school ?? "";
 
-  const [campusOptions, courseOptions, instructorOptions, lifestyleOptions] =
-    await Promise.all([
-      fetchOptions("campuses", schoolId),
-      fetchOptions("courses", schoolId),
-      fetchOptions("instructors", schoolId),
-      fetchOptions("lifestyles", schoolId),
-    ]);
+  const [
+    campusOptions,
+    courseOptions,
+    instructorOptions,
+    lifestyleOptions,
+    genreOptions,
+  ] = await Promise.all([
+    fetchOptions("campuses", schoolId),
+    fetchOptions("courses", schoolId),
+    fetchOptions("instructors", schoolId),
+    fetchOptions("lifestyles", schoolId),
+    fetchOptions("genres", schoolId),
+  ]);
 
   // ✅ 有効なジャンルタグを集計
   const activeGenreTags = Array.from(
@@ -65,7 +72,6 @@ export default async function DiagnosisPage({
   );
 
   // ✅ 有効な年代タグを集計（Q3用）
-  // APIから { id, label, tag: slug } が返ってくる想定
   const activeLifestyleTags = Array.from(
     new Set(lifestyleOptions.map((l) => l.tag).filter(Boolean)),
   ) as string[];
@@ -76,6 +82,7 @@ export default async function DiagnosisPage({
       campusOptions={campusOptions}
       courseOptions={courseOptions}
       instructorOptions={instructorOptions}
+      genreOptions={genreOptions} // ✅ 追加
       activeGenreTags={activeGenreTags}
       activeLifestyleTags={activeLifestyleTags}
     />

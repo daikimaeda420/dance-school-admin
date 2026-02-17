@@ -130,6 +130,7 @@ type Props = {
   campusOptions?: DiagnosisQuestionOption[];
   courseOptions?: DiagnosisQuestionOption[];
   instructorOptions?: DiagnosisQuestionOption[];
+  genreOptions?: DiagnosisQuestionOption[]; // ✅ 追加
   activeGenreTags?: string[];
   activeLifestyleTags?: string[];
 };
@@ -138,6 +139,7 @@ export default function DiagnosisEmbedClient({
   schoolIdProp,
   onClose,
   campusOptions: campusOptionsProp,
+  genreOptions, // ✅ 追加
   activeGenreTags,
   activeLifestyleTags,
 }: Props) {
@@ -323,16 +325,23 @@ export default function DiagnosisEmbedClient({
         return { ...q, options: campusOptions };
       }
 
-      // ✅ Q4: ジャンルフィルター
-      if (q.id === "Q4" && activeGenreTags && activeGenreTags.length > 0) {
-        // activeGenreTags に含まれるタグだけを残す
-        const filtered = q.options.filter((opt) => {
-          if (!opt.tag) return true;
-          // "Genre_None" は常に表示
-          if (opt.tag === "Genre_None") return true;
-          return activeGenreTags.includes(opt.tag);
-        });
-        return { ...q, options: filtered };
+      // ✅ Q4: ジャンルフィルター (管理画面設定を優先)
+      if (q.id === "Q4") {
+        let baseOptions = q.options;
+        // 管理画面から取得できている場合はそちらを使う
+        if (genreOptions && genreOptions.length > 0) {
+          baseOptions = genreOptions;
+        }
+
+        if (activeGenreTags && activeGenreTags.length > 0) {
+          const filtered = baseOptions.filter((opt) => {
+            if (!opt.tag) return true;
+            if (opt.tag === "Genre_None") return true;
+            return activeGenreTags.includes(opt.tag);
+          });
+          return { ...q, options: filtered };
+        }
+        return { ...q, options: baseOptions };
       }
 
       // ✅ Q3: 年代フィルター

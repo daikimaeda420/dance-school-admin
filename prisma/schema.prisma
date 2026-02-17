@@ -136,6 +136,21 @@ model DiagnosisLifestyle {
   @@index([schoolId, isActive])
 }
 
+model DiagnosisGenre {
+  id        String   @id @default(cuid())
+  schoolId  String
+  label     String
+  slug      String
+  sortOrder Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([schoolId, slug])
+  @@index([schoolId, sortOrder])
+  @@index([schoolId, isActive])
+}
+
 model DiagnosisInstructor {
   id        String  @id @default(cuid())
   schoolId  String

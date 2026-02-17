@@ -127,14 +127,7 @@ export const QUESTIONS: DiagnosisQuestion[] = [
     title: "Q4. 興味のあるジャンル",
     description: "やってみたい！と思うジャンルはありますか？",
     key: "genre",
-    options: [
-      { id: "4-1", label: "K-POP", tag: "Genre_Kpop" },
-      { id: "4-2", label: "ヒップホップ", tag: "Genre_Hiphop" },
-      { id: "4-3", label: "ジャズダンス", tag: "Genre_Jazz" },
-      { id: "4-4", label: "アイドルダンス", tag: "Genre_Idol" },
-      { id: "4-5", label: "テーマパーク", tag: "Genre_ThemePark" },
-      { id: "4-6", label: "特になし・わからない", tag: "Genre_None" },
-    ],
+    options: [], // ✅ 管理画面から動的に取得するため空にする
   },
 
   // -------------------

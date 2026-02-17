@@ -146,7 +146,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "NO_CAMPUS" }, { status: 400 });
 
     const q2ForCourse = getQ2ValueForCourse(answers);
-    const q4Tag = getOptionTagFromAnswers("Q4", answers);
+    
+    // ✅ Q4 は動的なので答案そのものをタグとして扱う（Frontend で id=tag としているため）
+    const q4Tag = answers["Q4"]; 
 
     const recommendedCourse = await prisma.diagnosisCourse.findFirst({
       where: {
