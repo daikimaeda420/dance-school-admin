@@ -383,6 +383,7 @@ export default function CourseAdminClient({ schoolId }: Props) {
       );
       if (res.ok) {
         const data = await res.json();
+        console.log("DEBUG: fetchGenres result:", data.genres); // ✅ 追加
         setGenres(data.genres || []);
       }
     } catch (e) {
