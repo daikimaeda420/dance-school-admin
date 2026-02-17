@@ -66,6 +66,9 @@ export async function GET(req: NextRequest) {
       // ✅ 追加：コース説明文
       description: true,
 
+      // ✅ 追加
+      genreTags: true,
+
       photoMime: true,
       // photoData は select しない
     },
