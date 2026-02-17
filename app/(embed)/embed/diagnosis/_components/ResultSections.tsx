@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { DiagnosisQuestionOption } from "@/lib/diagnosis/config";
 
 // ===== ReviewCard =====
 function CornerMarks() {
@@ -158,7 +159,8 @@ type FaqItem = {
 type Props = {
   campus: CampusInfo | null | undefined;
   faqs: FaqItem[];
-  courses?: { label: string }[];
+  courses?: Array<{ label: string; genreTags?: string[] }>;
+  genres?: DiagnosisQuestionOption[]; // ✅ 更新
   openIndex: number | null;
   onToggleFaq: (i: number) => void;
 };
@@ -168,9 +170,15 @@ export default function ResultSections({
   campus,
   faqs,
   courses,
+  genres = [], // ✅ 更新
   openIndex,
   onToggleFaq,
 }: Props) {
+  // tag から label を引くための Map
+  const genreLabelMap = new Map(
+    genres.filter((g) => g.tag).map((g) => [g.tag!, g.label]),
+  );
+
   return (
     <>
       {/* ✅ レッスン料金 */}
@@ -215,7 +223,7 @@ export default function ResultSections({
         <div className="mt-4 space-y-3">
           {(courses && courses.length > 0
             ? courses
-            : [{ label: "XXXXコース" }, { label: "XXXXコース" }]
+            : [{ label: "XXXXコース", genreTags: [] }]
           ).map((course, i) => (
             <div
               key={i}
@@ -224,6 +232,21 @@ export default function ResultSections({
               <div className="text-[13px] font-bold text-[#7a4b1f]">
                 {course.label}
               </div>
+              {/* ✅ ジャンルラベル表示 */}
+              <div className="mt-1 flex flex-wrap justify-center gap-1">
+                {(course.genreTags ?? []).map((tag) => {
+                  const label = genreLabelMap.get(tag) || tag;
+                  return (
+                    <span
+                      key={tag}
+                      className="rounded bg-[#f5c400]/10 px-1.5 py-0.5 text-[10px] font-bold text-[#7a4b1f]/70"
+                    >
+                      {label}
+                    </span>
+                  );
+                })}
+              </div>
+
               <div className="mt-2 flex items-end justify-center gap-1">
                 <div className="text-[34px] font-extrabold text-[#7a4b1f]">
                   ¥2,800

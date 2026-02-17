@@ -379,6 +379,7 @@ export default function CourseAdminClient({ schoolId }: Props) {
     try {
       const res = await fetch(
         `/api/admin/diagnosis/genres?schoolId=${encodeURIComponent(schoolId)}`,
+        { cache: "no-store" },
       );
       if (res.ok) {
         const data = await res.json();

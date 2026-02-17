@@ -31,6 +31,7 @@ type ApiCourse = {
   id: string;
   label: string;
   slug: string;
+  genreTags?: string[]; // ✅ 追加
   // 必要に応じて追加
 };
 
@@ -325,23 +326,12 @@ export default function DiagnosisEmbedClient({
         return { ...q, options: campusOptions };
       }
 
-      // ✅ Q4: ジャンルフィルター (管理画面設定を優先)
+      // ✅ Q4: ジャンルフィルター (管理画面設定を优先)
       if (q.id === "Q4") {
-        let baseOptions = q.options;
-        // 管理画面から取得できている場合はそちらを使う
         if (genreOptions && genreOptions.length > 0) {
-          baseOptions = genreOptions;
+          return { ...q, options: genreOptions };
         }
-
-        if (activeGenreTags && activeGenreTags.length > 0) {
-          const filtered = baseOptions.filter((opt) => {
-            if (!opt.tag) return true;
-            if (opt.tag === "Genre_None") return true;
-            return activeGenreTags.includes(opt.tag);
-          });
-          return { ...q, options: filtered };
-        }
-        return { ...q, options: baseOptions };
+        return q;
       }
 
       // ✅ Q3: 年代フィルター
@@ -722,6 +712,7 @@ export default function DiagnosisEmbedClient({
                 campus={result.campus ?? result.selectedCampus ?? null}
                 faqs={fetchedFaqs} // ✅ 取得したFAQを渡す
                 courses={fetchedCourses} // ✅ 取得したコースを渡す
+                genres={genreOptions} // ✅ 追加
                 openIndex={openIndex}
                 onToggleFaq={(i) => setOpenIndex(openIndex === i ? null : i)}
               />
