@@ -387,7 +387,7 @@ export default function DiagnosisEmbedClient({
     }
 
     const missing: string[] = [];
-    (["Q1", "Q2", "Q3", "Q4", "Q5"] as DiagnosisQuestionId[]).forEach(
+    (["Q1", "Q2", "Q3", "Q4", "Q5", "Q6"] as DiagnosisQuestionId[]).forEach(
       (id) => {
         if (!finalAnswers[id]) missing.push(id);
       },
