@@ -13,11 +13,10 @@ async function ensureLoggedIn() {
 
 const DEFAULTS: Array<{ label: string; slug: string; sortOrder: number }> = [
   { label: "K-POP", slug: "Genre_Kpop", sortOrder: 10 },
-  { label: "ヒップホップ", slug: "Genre_Hiphop", sortOrder: 20 },
+  { label: "HIPHOP", slug: "Genre_Hiphop", sortOrder: 20 },
   { label: "ジャズダンス", slug: "Genre_Jazz", sortOrder: 30 },
   { label: "アイドルダンス", slug: "Genre_Idol", sortOrder: 40 },
-  { label: "テーマパーク", slug: "Genre_ThemePark", sortOrder: 50 },
-  { label: "特になし・わからない", slug: "Genre_None", sortOrder: 60 },
+  { label: "特になし・わからない", slug: "Genre_None", sortOrder: 50 },
 ];
 
 export async function POST(req: NextRequest) {
