@@ -288,6 +288,7 @@ export default function CourseAdminClient({ schoolId }: Props) {
   const [genres, setGenres] = useState<Array<{ label: string; slug: string }>>(
     [],
   ); // ✅ 追加
+  const [genresLoading, setGenresLoading] = useState(true); // ✅ genres取得中フラグ
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [savingRowId, setSavingRowId] = useState<string | null>(null);
@@ -376,6 +377,7 @@ export default function CourseAdminClient({ schoolId }: Props) {
 
   const fetchGenres = async () => {
     if (!schoolId) return;
+    setGenresLoading(true);
     try {
       const res = await fetch(
         `/api/admin/diagnosis/genres?schoolId=${encodeURIComponent(schoolId)}`,
@@ -396,6 +398,8 @@ export default function CourseAdminClient({ schoolId }: Props) {
       }
     } catch (e) {
       console.error("fetchGenres error:", e);
+    } finally {
+      setGenresLoading(false);
     }
   };
 
@@ -743,11 +747,11 @@ export default function CourseAdminClient({ schoolId }: Props) {
         {/* ✅ ジャンル (Q4) */}
         <div className="mt-2">
           <div className="mb-1 text-[11px] font-semibold text-gray-600 dark:text-gray-300">
-            Q4 ジャンル（複数OK）— 取得件数: {genres.length}
+            Q4 ジャンル（複数OK）{!genresLoading && `— 取得件数: ${genres.length}`}
           </div>
 
-          {/* DEBUG: genres stateの中身を表示 */}
-          {genres.length === 0 && (
+          {/* genres取得完了後にジャンルが0件の場合のみ警告 */}
+          {!genresLoading && genres.length === 0 && (
             <div className="mb-1 rounded border border-yellow-300 bg-yellow-50 p-1 text-[10px] text-yellow-800 dark:border-yellow-700 dark:bg-yellow-950 dark:text-yellow-200">
               ⚠ ジャンルが0件です。APIからの取得に失敗している可能性があります。
             </div>
