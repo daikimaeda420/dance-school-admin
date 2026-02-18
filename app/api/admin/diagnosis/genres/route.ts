@@ -24,9 +24,29 @@ const DEFAULTS: Array<{ label: string; slug: string; sortOrder: number }> = [
 ];
 
 async function ensureDefaults(schoolId: string) {
-  const count = await prisma.diagnosisGenre.count({ where: { schoolId } });
-  if (count > 0) return;
+  const existing = await prisma.diagnosisGenre.findMany({ where: { schoolId } });
+  
+  // レコードが0件の場合 → デフォルト投入
+  if (existing.length === 0) {
+    await prisma.diagnosisGenre.createMany({
+      data: DEFAULTS.map((d) => ({
+        schoolId,
+        label: d.label,
+        slug: d.slug,
+        sortOrder: d.sortOrder,
+        isActive: true,
+      })),
+    });
+    return;
+  }
 
+  // 正しい Genre_XXX 形式の slug が1件でもあればスキップ
+  const hasProperSlugs = existing.some((g) => g.slug.startsWith("Genre_"));
+  if (hasProperSlugs) return;
+
+  // レガシーデータのみ → 古いデータを削除してデフォルトを投入
+  console.log(`[ensureDefaults] レガシージャンルを検出 (${existing.length}件)。デフォルトに置換します。`);
+  await prisma.diagnosisGenre.deleteMany({ where: { schoolId } });
   await prisma.diagnosisGenre.createMany({
     data: DEFAULTS.map((d) => ({
       schoolId,
