@@ -383,11 +383,17 @@ export default function CourseAdminClient({ schoolId }: Props) {
       );
       if (res.ok) {
         const data = await res.json();
-        console.log("DEBUG: fetchGenres result:", data.genres); // ✅ 追加
-        setGenres(data.genres || []);
+        // ✅ isActive:true のジャンルのみ使用（無効ジャンルはQ4チップに表示しない）
+        const activeGenres = (data.genres || []).filter(
+          (g: { label: string; slug: string; isActive?: boolean }) =>
+            g.isActive !== false,
+        );
+        setGenres(activeGenres);
+      } else {
+        console.error("fetchGenres: HTTP", res.status, await res.text().catch(() => ""));
       }
     } catch (e) {
-      console.error(e);
+      console.error("fetchGenres error:", e);
     }
   };
 
