@@ -383,11 +383,13 @@ export default function CourseAdminClient({ schoolId }: Props) {
       );
       if (res.ok) {
         const data = await res.json();
+        console.log("DEBUG fetchGenres raw:", JSON.stringify(data.genres));
         // ✅ isActive:true のジャンルのみ使用（無効ジャンルはQ4チップに表示しない）
         const activeGenres = (data.genres || []).filter(
           (g: { label: string; slug: string; isActive?: boolean }) =>
             g.isActive !== false,
         );
+        console.log("DEBUG fetchGenres active:", activeGenres.length, "件", activeGenres.map((g: any) => g.label));
         setGenres(activeGenres);
       } else {
         console.error("fetchGenres: HTTP", res.status, await res.text().catch(() => ""));
@@ -741,8 +743,15 @@ export default function CourseAdminClient({ schoolId }: Props) {
         {/* ✅ ジャンル (Q4) */}
         <div className="mt-2">
           <div className="mb-1 text-[11px] font-semibold text-gray-600 dark:text-gray-300">
-            Q4 ジャンル（複数OK）
+            Q4 ジャンル（複数OK）— 取得件数: {genres.length}
           </div>
+
+          {/* DEBUG: genres stateの中身を表示 */}
+          {genres.length === 0 && (
+            <div className="mb-1 rounded border border-yellow-300 bg-yellow-50 p-1 text-[10px] text-yellow-800 dark:border-yellow-700 dark:bg-yellow-950 dark:text-yellow-200">
+              ⚠ ジャンルが0件です。APIからの取得に失敗している可能性があります。
+            </div>
+          )}
 
           <Q4ToggleChips
             selected={newGenreTags}
