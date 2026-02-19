@@ -16,11 +16,15 @@ const TABS: Tab[] = [
   { href: "/admin/diagnosis/form", label: "フォーム" },
 ];
 
-export default function DiagnosisAdminNav() {
+type Props = {
+  defaultSchoolId?: string;
+};
+
+export default function DiagnosisAdminNav({ defaultSchoolId }: Props) {
   const pathname = usePathname();
   const sp = useSearchParams();
 
-  const schoolId = sp.get("schoolId") ?? "";
+  const schoolId = sp.get("schoolId") ?? defaultSchoolId ?? "";
 
   const qs = useMemo(() => {
     const p = new URLSearchParams();
