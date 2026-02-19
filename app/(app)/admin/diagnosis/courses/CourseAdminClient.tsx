@@ -21,8 +21,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
-// ✅ Q4 options を拾う
-import { QUESTIONS } from "@/lib/diagnosis/config";
+
 
 type Course = {
   id: string; // ✅ DBのid(cuid) で運用（admin API側）

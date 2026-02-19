@@ -11,13 +11,7 @@ async function ensureLoggedIn() {
   return session?.user?.email ? session : null;
 }
 
-const DEFAULTS: Array<{ label: string; slug: string; sortOrder: number }> = [
-  { label: "K-POP", slug: "Genre_Kpop", sortOrder: 10 },
-  { label: "HIPHOP", slug: "Genre_Hiphop", sortOrder: 20 },
-  { label: "ジャズダンス", slug: "Genre_Jazz", sortOrder: 30 },
-  { label: "アイドルダンス", slug: "Genre_Idol", sortOrder: 40 },
-  { label: "特になし・わからない", slug: "Genre_None", sortOrder: 50 },
-];
+import { DEFAULT_GENRES } from "@/lib/diagnosis/constants";
 
 export async function POST(req: NextRequest) {
   try {
@@ -33,7 +27,7 @@ export async function POST(req: NextRequest) {
     await prisma.diagnosisGenre.deleteMany({ where: { schoolId } });
 
     await prisma.diagnosisGenre.createMany({
-      data: DEFAULTS.map((d) => ({
+      data: DEFAULT_GENRES.map((d) => ({
         schoolId,
         label: d.label,
         slug: d.slug,
