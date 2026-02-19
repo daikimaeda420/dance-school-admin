@@ -384,14 +384,10 @@ export default function CourseAdminClient({ schoolId }: Props) {
       );
       if (res.ok) {
         const data = await res.json();
-        console.log("DEBUG fetchGenres raw:", JSON.stringify(data.genres));
-        // ✅ isActive:true のジャンルのみ使用（無効ジャンルはQ4チップに表示しない）
-        // 一旦全件表示してデバッグ（正しく反映されるか確認）
-        const activeGenres = data.genres || [];
-        // const activeGenres = (data.genres || []).filter(
-        //   (g: { label: string; slug: string; isActive?: boolean }) =>
-        //     g.isActive !== false,
-        // );
+        const activeGenres = (data.genres || []).filter(
+          (g: { label: string; slug: string; isActive?: boolean }) =>
+            g.isActive !== false,
+        );
         console.log("DEBUG fetchGenres active:", activeGenres.length, "件", activeGenres.map((g: any) => g.label));
         setGenres(activeGenres);
       } else {
