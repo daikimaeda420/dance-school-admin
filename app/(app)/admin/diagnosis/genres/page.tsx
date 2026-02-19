@@ -7,11 +7,21 @@ export const metadata = {
   title: "ジャンル管理 | 診断設定",
 };
 
-export default async function GenreAdminPage() {
-  // schoolId はシステム的に1つ（またはコンテキストから取得）想定だが、
-  // 既存のパターンに従い最初の一件を取得
-  const school = await prisma.faq.findFirst({ select: { schoolId: true } });
-  const schoolId = school?.schoolId ?? "";
+export default async function GenreAdminPage({
+  searchParams,
+}: {
+  searchParams: { [key: string]: string | string[] | undefined };
+}) {
+  const spSchoolId = searchParams?.schoolId;
+  let schoolId = "";
+
+  if (typeof spSchoolId === "string" && spSchoolId) {
+    schoolId = spSchoolId;
+  } else {
+    // パラメータがない場合はデフォルト
+    const school = await prisma.faq.findFirst({ select: { schoolId: true } });
+    schoolId = school?.schoolId ?? "";
+  }
 
   return (
     <div className="mx-auto max-w-5xl p-4 md:p-8">
