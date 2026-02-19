@@ -744,7 +744,7 @@ export default function CourseAdminClient({ schoolId }: Props) {
         {/* ✅ ジャンル (Q4) */}
         <div className="mt-2">
           <div className="mb-1 text-[11px] font-semibold text-gray-600 dark:text-gray-300">
-            Q4 ジャンル（複数OK）{!genresLoading && `— 取得件数: ${genres.length}`}
+            Q4 ジャンル（複数OK） [sch:{schoolId.slice(0, 4)}...] {!genresLoading && `— 取得件数: ${genres.length}`}
           </div>
 
           {/* genres取得完了後にジャンルが0件の場合のみ警告 */}
