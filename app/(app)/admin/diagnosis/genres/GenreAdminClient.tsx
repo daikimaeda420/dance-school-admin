@@ -83,6 +83,8 @@ export default function GenreAdminClient({
     return false;
   }, [rows]);
 
+  const [debugInfo, setDebugInfo] = useState<string>(""); // ✅ Debug info
+
   async function fetchRows() {
     setLoading(true);
     setError(null);
@@ -90,12 +92,7 @@ export default function GenreAdminClient({
 
     try {
       const res = await fetch(url, { cache: "no-store" });
-      const text = await res.text();
-
-      let data: any = null;
-      try {
-        data = text ? JSON.parse(text) : null;
-      } catch {}
+      const data = await res.json();
 
       if (!res.ok) {
         throw new Error(data?.message ?? `HTTP ${res.status}`);
@@ -104,6 +101,11 @@ export default function GenreAdminClient({
       const normalized = normalizeRowsWithOrder(data?.genres ?? []);
       setRows(normalized);
       originalRef.current = normalized;
+      
+      // Debug info
+      if (data.debug) {
+        setDebugInfo(`Count:${data.debug.count}, ID:${data.debug.schoolId}`);
+      }
     } catch (e: any) {
       setError(e?.message ?? "取得に失敗しました");
     } finally {
@@ -334,7 +336,7 @@ export default function GenreAdminClient({
       <div className={card}>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="font-semibold text-gray-900 dark:text-gray-100">
-            ジャンル一覧
+            ジャンル一覧 {debugInfo && <span className="text-xs font-normal text-gray-500">({debugInfo})</span>}
           </div>
 
           <div className="flex items-center gap-2">
