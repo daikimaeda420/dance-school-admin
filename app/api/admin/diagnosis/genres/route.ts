@@ -53,7 +53,14 @@ export async function GET(req: NextRequest) {
       orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
     });
 
-    return NextResponse.json({ genres: rows });
+    return NextResponse.json({ 
+      genres: rows,
+      debug: {
+        schoolId,
+        count: rows.length,
+        ts: Date.now()
+      }
+    });
   } catch (e: any) {
     return json("genres取得でエラー", 500, {
       detail: e?.message ?? String(e),
