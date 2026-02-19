@@ -5,6 +5,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 async function ensureLoggedIn() {
   const session = await getServerSession(authOptions);
@@ -39,23 +40,6 @@ async function ensureDefaults(schoolId: string) {
     });
     return;
   }
-
-  // 正しい Genre_XXX 形式の slug が1件でもあればスキップ
-  const hasProperSlugs = existing.some((g) => g.slug.startsWith("Genre_"));
-  if (hasProperSlugs) return;
-
-  // レガシーデータのみ → 古いデータを削除してデフォルトを投入
-  console.log(`[ensureDefaults] レガシージャンルを検出 (${existing.length}件)。デフォルトに置換します。`);
-  await prisma.diagnosisGenre.deleteMany({ where: { schoolId } });
-  await prisma.diagnosisGenre.createMany({
-    data: DEFAULTS.map((d) => ({
-      schoolId,
-      label: d.label,
-      slug: d.slug,
-      sortOrder: d.sortOrder,
-      isActive: true,
-    })),
-  });
 }
 
 // GET /api/admin/diagnosis/genres?schoolId=xxx
