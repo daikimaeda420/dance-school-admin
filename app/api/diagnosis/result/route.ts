@@ -165,6 +165,7 @@ export async function POST(req: NextRequest) {
         slug: true,
         description: true,
         photoMime: true,
+        youtubeVideoId: true,
       },
     });
     // ===== 講師抽出 =====
@@ -264,6 +265,7 @@ export async function POST(req: NextRequest) {
           label: recommendedCourse.label,
           slug: recommendedCourse.slug,
           description: recommendedCourse.description ?? null,
+          youtubeVideoId: recommendedCourse.youtubeVideoId ?? null,
           photoUrl: recommendedCourse.photoMime
             ? `/api/diagnosis/courses/photo?schoolId=${encodeURIComponent(
                 schoolId,
