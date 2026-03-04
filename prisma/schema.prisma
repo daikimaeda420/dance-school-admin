@@ -429,3 +429,16 @@ model DiagnosisFaq {
   @@index([schoolId, sortOrder])
   @@index([schoolId, isActive])
 }
+
+model DiagnosisMedia {
+  id        String   @id @default(cuid())
+  schoolId  String
+  key       String   // 用途キー例: "campaign_banner"
+  photoData Bytes?
+  photoMime String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([schoolId, key])
+  @@index([schoolId])
+}

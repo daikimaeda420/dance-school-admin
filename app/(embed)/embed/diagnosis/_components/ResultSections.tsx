@@ -161,7 +161,8 @@ type Props = {
   faqs: FaqItem[];
   courses?: Array<{ label: string; slug?: string; genreTags?: string[] }>;
   genres?: DiagnosisQuestionOption[];
-  selectedCourseSlug?: string | null; // ✅ 診断結果のコースslug
+  selectedCourseSlug?: string | null;
+  bannerUrl?: string | null; // ✅ 追加
   openIndex: number | null;
   onToggleFaq: (i: number) => void;
 };
@@ -173,6 +174,7 @@ export default function ResultSections({
   courses,
   genres = [],
   selectedCourseSlug,
+  bannerUrl,
   openIndex,
   onToggleFaq,
 }: Props) {
@@ -274,13 +276,24 @@ export default function ResultSections({
           </>
         )}
         <div className="mt-5">
-          <div className="rounded-[26px] bg-[#d9d9d9] px-6 py-10 text-center shadow-[0_12px_24px_rgba(0,0,0,0.12)]">
-            <div className="text-[22px] font-extrabold leading-tight text-white">
-              キャンペーン
-              <br />
-              実施中！
+          {bannerUrl ? (
+            <div className="relative w-full overflow-hidden rounded-[26px] shadow-[0_12px_24px_rgba(0,0,0,0.12)]">
+              {/* unoptimizedにすることでnext/imageの最適化をバイパスし、外部URLから直接読み込む */}
+              <img
+                src={bannerUrl}
+                alt="キャンペーン"
+                className="w-full h-auto object-cover"
+              />
             </div>
-          </div>
+          ) : (
+            <div className="rounded-[26px] bg-[#d9d9d9] px-6 py-10 text-center shadow-[0_12px_24px_rgba(0,0,0,0.12)]">
+              <div className="text-[22px] font-extrabold leading-tight text-white">
+                キャンペーン
+                <br />
+                実施中！
+              </div>
+            </div>
+          )}
         </div>
       </section>
 

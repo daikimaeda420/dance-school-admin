@@ -15,6 +15,7 @@ const TABS: Tab[] = [
   { href: "/admin/diagnosis/schedule", label: "スケジュール" },
   { href: "/admin/diagnosis/form", label: "フォーム" },
   { href: "/admin/diagnosis/faqs", label: "よくある質問" },
+  { href: "/admin/diagnosis/media", label: "画像・動画" },
 ];
 
 type Props = {

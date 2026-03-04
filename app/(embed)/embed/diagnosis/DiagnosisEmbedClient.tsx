@@ -197,6 +197,24 @@ export default function DiagnosisEmbedClient({
       .catch((e) => console.error("Failed to load FAQs:", e));
   }, [schoolId]);
 
+  // ✅ バナー画像の取得
+  const [bannerUrl, setBannerUrl] = useState<string | null>(null);
+  useEffect(() => {
+    if (!schoolId) return;
+    fetch(`/api/admin/diagnosis/media/banner?schoolId=${encodeURIComponent(schoolId)}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        // 画像が存在する場合のみURLを設定
+        if (data?.hasImage) {
+          // キャッシュ対策として最新の更新日時をクエリパラメータに付与するのもありだがまずはシンプルに
+          setBannerUrl(`/api/diagnosis/media/banner?schoolId=${encodeURIComponent(schoolId)}&v=${data.updatedAt || Date.now()}`);
+        } else {
+          setBannerUrl(null);
+        }
+      })
+      .catch((e) => console.error("Failed to check banner:", e));
+  }, [schoolId]);
+
   // ✅ コース取得
   const [fetchedCourses, setFetchedCourses] = useState<ApiCourse[]>([]);
   useEffect(() => {
@@ -711,6 +729,7 @@ export default function DiagnosisEmbedClient({
                 courses={fetchedCourses}
                 genres={genreOptions}
                 selectedCourseSlug={result.selectedCourse?.slug ?? null}
+                bannerUrl={bannerUrl}
                 openIndex={openIndex}
                 onToggleFaq={(i) => setOpenIndex(openIndex === i ? null : i)}
               />
