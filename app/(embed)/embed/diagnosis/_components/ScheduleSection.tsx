@@ -133,15 +133,9 @@ export default function ScheduleSection({
 
                     <div className="min-w-0 flex-1">
                       <div className="text-[18px] font-extrabold text-[#6b4a2b]">
-                        XXXXXコース
+                        {slot.genreText}
                       </div>
-
                       <div className="mt-3 space-y-2 text-[14px] font-semibold text-[#6b4a2b]/85">
-                        <div className="flex items-center gap-2">
-                          <span className="text-[#b8a99a]">✦</span>
-                          <span className="truncate">{slot.genreText}</span>
-                        </div>
-
                         <div className="flex items-center gap-2">
                           <span className="text-[#b8a99a]">🕒</span>
                           <span className="truncate">{slot.timeText}</span>
@@ -157,8 +151,6 @@ export default function ScheduleSection({
                           <span className="truncate">{slot.place}</span>
                         </div>
                       </div>
-
-
                     </div>
                   </div>
                 </div>
