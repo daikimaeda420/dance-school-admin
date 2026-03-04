@@ -215,6 +215,18 @@ export default function DiagnosisEmbedClient({
       .catch((e) => console.error("Failed to check banner:", e));
   }, [schoolId]);
 
+  // ✅ YouTube動画の取得
+  const [youtubeVideoId, setYoutubeVideoId] = useState<string | null>(null);
+  useEffect(() => {
+    if (!schoolId) return;
+    fetch(`/api/diagnosis/media/video?schoolId=${encodeURIComponent(schoolId)}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        setYoutubeVideoId(data?.videoId || null);
+      })
+      .catch((e) => console.error("Failed to check video:", e));
+  }, [schoolId]);
+
   // ✅ コース取得
   const [fetchedCourses, setFetchedCourses] = useState<ApiCourse[]>([]);
   useEffect(() => {
@@ -699,6 +711,22 @@ export default function DiagnosisEmbedClient({
                 resultCopy={result.resultCopy}
                 concernMessage={result.concernMessage}
               />
+
+              {/* YouTube動画埋め込み (あれば表示) */}
+              {youtubeVideoId && (
+                <div className="overflow-hidden rounded-2xl shadow-lg mt-6 bg-black">
+                  <div className="relative w-full aspect-video pointer-events-none">
+                    <iframe
+                      className="absolute top-0 left-0 w-full h-full"
+                      src={`https://www.youtube.com/embed/${youtubeVideoId}?autoplay=1&mute=1&loop=1&playlist=${youtubeVideoId}&controls=0&modestbranding=1&playsinline=1`}
+                      title="Class Video"
+                      frameBorder="0"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                    ></iframe>
+                  </div>
+                </div>
+              )}
 
               {/* クラス紹介 */}
               {result.selectedCourse && (

@@ -433,9 +433,10 @@ model DiagnosisFaq {
 model DiagnosisMedia {
   id        String   @id @default(cuid())
   schoolId  String
-  key       String   // 用途キー例: "campaign_banner"
+  key       String   // 用途キー例: "campaign_banner", "youtube_video"
   photoData Bytes?
   photoMime String?
+  textData  String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

@@ -14,28 +14,45 @@ export default function MediaAdminClient({ schoolId }: Props) {
   const [hasBanner, setHasBanner] = useState(false);
   const [bannerTs, setBannerTs] = useState<number>(0);
 
+  const [youtubeVideoId, setYoutubeVideoId] = useState<string | null>(null);
+  const [youtubeUrlInput, setYoutubeUrlInput] = useState("");
+  const [savingYoutube, setSavingYoutube] = useState(false);
+  const [youtubeError, setYoutubeError] = useState<string | null>(null);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const fetchBannerState = async () => {
+  const fetchData = async () => {
     if (!schoolId) return;
+    setLoading(true);
     try {
-      const res = await fetch(
+      // バナー取得
+      const resBanner = await fetch(
         `/api/admin/diagnosis/media/banner?schoolId=${encodeURIComponent(schoolId)}`,
       );
-      if (res.ok) {
-        const data = await res.json();
+      if (resBanner.ok) {
+        const data = await resBanner.json();
         setHasBanner(data.hasImage);
         if (data.updatedAt) setBannerTs(new Date(data.updatedAt).getTime());
       }
+
+      // 動画取得
+      const resVideo = await fetch(
+        `/api/admin/diagnosis/media/video?schoolId=${encodeURIComponent(schoolId)}`,
+      );
+      if (resVideo.ok) {
+        const data = await resVideo.json();
+        setYoutubeVideoId(data.videoId || null);
+      }
     } catch (e: any) {
       console.error(e);
+      setError("データの読み込みに失敗しました。");
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    void fetchBannerState();
+    void fetchData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [schoolId]);
 
@@ -70,7 +87,7 @@ export default function MediaAdminClient({ schoolId }: Props) {
         throw new Error(json?.message ?? "保存に失敗しました");
       }
 
-      await fetchBannerState();
+      await fetchData();
       setBannerTs(Date.now());
     } catch (err: any) {
       setError(err?.message ?? "通信エラー");
@@ -168,6 +185,118 @@ export default function MediaAdminClient({ schoolId }: Props) {
               </div>
             ) : (
               <div className="flex items-center justify-center rounded-lg border border-gray-200 bg-gray-100 aspect-[10/3] w-full max-w-[400px] text-xs text-gray-400">
+                未設定
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* YouTube動画設定セクション */}
+      <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+        <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-gray-100">
+          YouTube動画埋め込み
+        </h2>
+        
+        {youtubeError && (
+          <div className="mb-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+            {youtubeError}
+          </div>
+        )}
+
+        <div className="flex flex-col md:flex-row gap-6">
+          <div className="flex-1">
+            <p className="mb-4 text-xs text-gray-600 dark:text-gray-300">
+              診断結果画面の「運命のクラスかも？」の下に表示させるYouTube動画のURLを入力してください。<br />
+              未設定の場合は動画は表示されません。
+            </p>
+
+            <div className="flex flex-col gap-3">
+              <input
+                type="text"
+                placeholder="例: https://www.youtube.com/watch?v=..."
+                value={youtubeUrlInput}
+                onChange={(e) => setYoutubeUrlInput(e.target.value)}
+                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
+              />
+              <div className="flex gap-3">
+                <button
+                  onClick={async () => {
+                    if (!youtubeUrlInput.trim()) return;
+                    setSavingYoutube(true);
+                    setYoutubeError(null);
+                    try {
+                      const res = await fetch("/api/admin/diagnosis/media/video", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ schoolId, url: youtubeUrlInput.trim() }),
+                      });
+                      if (!res.ok) {
+                        const json = await res.json().catch(() => null);
+                        throw new Error(json?.message ?? "保存に失敗しました");
+                      }
+                      setYoutubeUrlInput("");
+                      await fetchData();
+                    } catch (e: any) {
+                      setYoutubeError(e?.message ?? "通信エラー");
+                    } finally {
+                      setSavingYoutube(false);
+                    }
+                  }}
+                  disabled={loading || savingYoutube || !youtubeUrlInput.trim()}
+                  className="rounded-full bg-blue-600 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+                >
+                  {savingYoutube ? "保存中..." : "動画を設定する"}
+                </button>
+
+                {youtubeVideoId && (
+                  <button
+                    onClick={async () => {
+                      if (!window.confirm("動画設定を削除しますか？")) return;
+                      setSavingYoutube(true);
+                      setYoutubeError(null);
+                      try {
+                        const res = await fetch("/api/admin/diagnosis/media/video", {
+                          method: "DELETE",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ schoolId }),
+                        });
+                        if (!res.ok) throw new Error("削除に失敗しました");
+                        await fetchData();
+                      } catch (e: any) {
+                        setYoutubeError(e?.message ?? "通信エラー");
+                      } finally {
+                        setSavingYoutube(false);
+                      }
+                    }}
+                    disabled={savingYoutube}
+                    className="rounded-full border border-red-200 px-4 py-2 text-xs font-semibold text-red-500 hover:bg-red-50 disabled:opacity-50"
+                  >
+                    削除
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="md:w-[320px]">
+            <div className="mb-2 text-xs font-semibold text-gray-700 dark:text-gray-300">
+              現在の動画プレビュー
+            </div>
+            {youtubeVideoId ? (
+              <div className="overflow-hidden rounded-lg border border-gray-200">
+                <iframe
+                  width="100%"
+                  height="180"
+                  src={`https://www.youtube.com/embed/${youtubeVideoId}`}
+                  title="YouTube video player"
+                  frameBorder="0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                ></iframe>
+              </div>
+            ) : (
+              <div className="flex h-[180px] w-full items-center justify-center rounded-lg border border-gray-200 bg-gray-100 text-xs text-gray-400">
                 未設定
               </div>
             )}
