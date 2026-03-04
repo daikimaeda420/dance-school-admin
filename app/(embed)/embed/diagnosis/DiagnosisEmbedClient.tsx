@@ -176,26 +176,23 @@ export default function DiagnosisEmbedClient({
     return () => observer.disconnect();
   }, [diagnosisForm]); // diagnosisForm がロードされたら監視開始
 
-  // ✅ FAQ取得
+  // ✅ 診断専用FAQ取得（DiagnosisFaqテーブル）
   const [fetchedFaqs, setFetchedFaqs] = useState<{ q: string; a: string }[]>(
     [],
   );
   useEffect(() => {
     if (!schoolId) return;
-    fetch(`/api/faq?school=${encodeURIComponent(schoolId)}`)
+    fetch(`/api/diagnosis/faqs?schoolId=${encodeURIComponent(schoolId)}`)
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
-        if (!data?.items) return;
-        // ResultSections用に変換 (type="question" のみ抽出)
-        const validItems = (data.items as ApiFaqItem[])
-          .filter(
-            (item) => item.type === "question" && item.question && item.answer,
-          )
-          .map((item) => ({
-            q: item.question,
-            a: item.answer || "",
+        if (!Array.isArray(data)) return;
+        const items = data
+          .filter((item: any) => item.question && item.answer)
+          .map((item: any) => ({
+            q: String(item.question),
+            a: String(item.answer),
           }));
-        setFetchedFaqs(validItems);
+        setFetchedFaqs(items);
       })
       .catch((e) => console.error("Failed to load FAQs:", e));
   }, [schoolId]);

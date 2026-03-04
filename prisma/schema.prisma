@@ -415,3 +415,17 @@ enum UserRole {
   SUPERADMIN
   SCHOOL_ADMIN
 }
+
+model DiagnosisFaq {
+  id        String   @id @default(cuid())
+  schoolId  String
+  question  String
+  answer    String
+  sortOrder Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolId, sortOrder])
+  @@index([schoolId, isActive])
+}
