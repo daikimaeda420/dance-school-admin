@@ -28,6 +28,8 @@ export async function GET(req: NextRequest) {
       q2AnswerTags: true,
       // ✅ Q4タグ取得
       genreTags: true,
+      
+      youtubeVideoId: true,
 
       // ✅ 画像（判定にだけ使う）
       photoMime: true,
@@ -59,6 +61,8 @@ export async function GET(req: NextRequest) {
       q2AnswerTags: c.q2AnswerTags ?? [],
       // ✅ Q4（ジャンル）タグ
       genreTags: c.genreTags ?? [],
+      
+      youtubeVideoId: c.youtubeVideoId ?? null,
 
       // ✅ 画像関連
       hasImage,

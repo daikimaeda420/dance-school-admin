@@ -110,6 +110,9 @@ model DiagnosisCourse {
   photoMime String?
   photoData Bytes?
 
+  // ✅ 追加：YouTube動画ID（任意）
+  youtubeVideoId String?
+
   results DiagnosisResult[] @relation("ResultCourses")
 
   // ✅ これを追加（ビルドエラー解消ポイント）

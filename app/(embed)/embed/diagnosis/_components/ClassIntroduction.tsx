@@ -3,9 +3,10 @@
 type Props = {
   courseName?: string;
   description?: string | null;
+  youtubeVideoId?: string | null;
 };
 
-export default function ClassIntroduction({ courseName, description }: Props) {
+export default function ClassIntroduction({ courseName, description, youtubeVideoId }: Props) {
   if (!courseName) return null;
 
   return (
@@ -35,6 +36,22 @@ export default function ClassIntroduction({ courseName, description }: Props) {
       <div className="mt-4 text-[28px] font-extrabold text-[#F29600] drop-shadow-sm">
         {courseName}
       </div>
+
+      {/* YouTube動画埋め込み (あれば表示) */}
+      {youtubeVideoId && (
+        <div className="mt-6 mb-2 overflow-hidden rounded-2xl shadow-md bg-black">
+          <div className="relative w-full aspect-video pointer-events-none">
+            <iframe
+              className="absolute top-0 left-0 w-full h-full"
+              src={`https://www.youtube.com/embed/${youtubeVideoId}?autoplay=1&mute=1&loop=1&playlist=${youtubeVideoId}&controls=0&modestbranding=1&playsinline=1`}
+              title="Class Video"
+              frameBorder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            ></iframe>
+          </div>
+        </div>
+      )}
 
       {/* 説明文 */}
       <div className="mt-5 text-left">

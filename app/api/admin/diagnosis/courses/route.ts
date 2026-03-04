@@ -68,6 +68,8 @@ export async function GET(req: NextRequest) {
 
       // ✅ 追加
       genreTags: true,
+      
+      youtubeVideoId: true,
 
       photoMime: true,
       // photoData は select しない
@@ -132,6 +134,8 @@ export async function POST(req: NextRequest) {
   // ✅ 追加：description（任意）
   const description = normalizeNullableText(body.description);
 
+  const youtubeVideoId = normalizeNullableText(body.youtubeVideoId);
+
   const course = await prisma.diagnosisCourse.create({
     data: {
       schoolId: body.schoolId,
@@ -144,6 +148,7 @@ export async function POST(req: NextRequest) {
 
       // ✅ 追加
       description,
+      youtubeVideoId,
     },
   });
 

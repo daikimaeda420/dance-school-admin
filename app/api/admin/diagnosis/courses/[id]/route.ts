@@ -37,6 +37,9 @@ type PatchBody = {
 
   // ✅ 追加：Q4
   genreTags?: string[];
+
+  // ✅ 追加：YouTube動画ID
+  youtubeVideoId?: string | null;
 };
 
 function normalizeNullableText(v: unknown): string | null {
@@ -90,6 +93,12 @@ export async function PATCH(
         ? undefined
         : normalizeNullableText(body.description);
 
+    // ✅ 追加：youtubeVideoId
+    const nextYoutubeVideoId =
+      body.youtubeVideoId === undefined
+        ? undefined
+        : normalizeNullableText(body.youtubeVideoId);
+
     const updated = await prisma.diagnosisCourse.update({
       where: { id },
       data: {
@@ -109,6 +118,11 @@ export async function PATCH(
         // ✅ 追加
         ...(nextDescription !== undefined
           ? { description: nextDescription }
+          : {}),
+
+        // ✅ 追加
+        ...(nextYoutubeVideoId !== undefined
+          ? { youtubeVideoId: nextYoutubeVideoId }
           : {}),
       },
     });

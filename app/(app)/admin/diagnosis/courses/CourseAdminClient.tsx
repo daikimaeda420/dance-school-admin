@@ -42,6 +42,9 @@ type Course = {
   // ✅ 追加：画像（診断結果用）
   hasImage?: boolean;
   photoUrl?: string | null;
+
+  // ✅ 追加：YouTube動画ID
+  youtubeVideoId?: string | null;
 };
 
 type Props = { schoolId: string };
@@ -78,6 +81,14 @@ function uniqStrings(xs: string[]) {
 function toggleInArray(arr: string[], value: string) {
   const has = arr.includes(value);
   return has ? arr.filter((x) => x !== value) : [...arr, value];
+}
+
+function extractYouTubeId(url: string | null | undefined): string | null {
+  if (!url) return null;
+  const match = url.match(
+    /(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))((\w|-){11})/,
+  );
+  return match && match[1] ? match[1] : null;
 }
 
 /** ✅ チップ型 ON/OFF（チェックボックスのように分かりやすいUI） */
@@ -306,7 +317,8 @@ export default function CourseAdminClient({ schoolId }: Props) {
   // ✅ 追加：コース説明文（新規）
   const [newDescription, setNewDescription] = useState<string>("");
 
-
+  // ✅ 追加：YouTube動画URL（新規）
+  const [newYoutubeUrl, setNewYoutubeUrl] = useState<string>("");
   const [newImageFile, setNewImageFile] = useState<File | null>(null);
 
   // ✅ 行ごとの画像アップロード用
@@ -361,6 +373,7 @@ export default function CourseAdminClient({ schoolId }: Props) {
 
           hasImage: Boolean(d.hasImage ?? false),
           photoUrl: typeof d.photoUrl === "string" ? d.photoUrl : null,
+          youtubeVideoId: typeof d.youtubeVideoId === "string" ? d.youtubeVideoId : null,
         }),
       );
 
@@ -458,6 +471,7 @@ export default function CourseAdminClient({ schoolId }: Props) {
 
           // ✅ 追加：説明文
           description: newDescription ? newDescription : null,
+          youtubeVideoId: extractYouTubeId(newYoutubeUrl),
         }),
       });
 
@@ -485,6 +499,7 @@ export default function CourseAdminClient({ schoolId }: Props) {
 
       // ✅ 追加
       setNewDescription("");
+      setNewYoutubeUrl("");
 
       await fetchCourses();
     } catch (e: any) {
@@ -505,6 +520,7 @@ export default function CourseAdminClient({ schoolId }: Props) {
       | "q2AnswerTags"
       | "genreTags" // ✅
       | "description"
+      | "youtubeVideoId"
     >,
     value: string | number | boolean | string[] | null,
   ) => {
@@ -727,6 +743,32 @@ export default function CourseAdminClient({ schoolId }: Props) {
           <div className="mt-1 text-[11px] text-gray-500 dark:text-gray-400">
             ※ 診断結果に表示するなら 120〜200文字くらいが読みやすいです
           </div>
+        </div>
+
+        {/* ✅ YouTube動画（任意） */}
+        <div className="mt-2">
+          <div className="mb-1 text-[11px] font-semibold text-gray-600 dark:text-gray-300">
+            YouTube動画URL（任意）※結果画面のクラス紹介に埋め込まれます
+          </div>
+          <input
+            className={inputCls}
+            placeholder="例：https://www.youtube.com/watch?v=..."
+            value={newYoutubeUrl}
+            onChange={(e) => setNewYoutubeUrl(e.target.value)}
+            disabled={disabled || saving || savingSort}
+          />
+          {newYoutubeUrl && extractYouTubeId(newYoutubeUrl) && (
+            <div className="mt-2 overflow-hidden rounded-md border border-gray-200">
+              <iframe
+                className="aspect-video w-full"
+                src={`https://www.youtube.com/embed/${extractYouTubeId(newYoutubeUrl)}`}
+                title="YouTube video player"
+                frameBorder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
+            </div>
+          )}
         </div>
 
         <div className="mt-2">
@@ -1053,6 +1095,68 @@ export default function CourseAdminClient({ schoolId }: Props) {
                             />
                             <div className="mt-1 text-[11px] text-gray-500 dark:text-gray-400">
                               ※ 入力後、フォーカスを外すと保存（onBlur）
+                            </div>
+                          </div>
+
+                          {/* ✅ YouTube動画URL（フル幅） */}
+                          <div className="md:col-span-12">
+                            <div className="mb-1 text-[11px] font-semibold text-gray-600 dark:text-gray-300">
+                              YouTube動画URL ※結果画面のクラス紹介に埋め込まれます
+                            </div>
+                            <input
+                              className={inputCls}
+                              placeholder="例：https://www.youtube.com/watch?v=..."
+                              value={
+                                // 入力中のURLを持たせるため、Course型ではなく一時Stateとして管理するか、
+                                // URLをそのまま持ってonBlurでID化するか選択する。
+                                // ここでは、元のURLを保持していないため、再入力用に https://youtu.be/~ の形式で表示
+                                c.youtubeVideoId ? `https://youtu.be/${c.youtubeVideoId}` : ""
+                              }
+                              onChange={(e) => {
+                                const url = e.target.value;
+                                const videoId = extractYouTubeId(url);
+                                // inputにはURLを入力させるが、状態としてはidを保持
+                                setCourses((prev) =>
+                                  prev.map((p) =>
+                                    p.id === c.id
+                                      ? { ...p, youtubeVideoId: videoId || url } // IDが取れなければURLをそのまま持って編集可能にする
+                                      : p,
+                                  ),
+                                );
+                              }}
+                              onBlur={(e) => {
+                                const url = e.target.value;
+                                const videoId = extractYouTubeId(url);
+                                handleUpdateField(
+                                  c.id,
+                                  "youtubeVideoId",
+                                  videoId ? videoId : null,
+                                );
+                                // onBlur時に正規化されたIDで上書き
+                                setCourses((prev) =>
+                                  prev.map((p) =>
+                                    p.id === c.id
+                                      ? { ...p, youtubeVideoId: videoId ? videoId : null }
+                                      : p,
+                                  ),
+                                );
+                              }}
+                              disabled={saving || savingSort}
+                            />
+                            {c.youtubeVideoId && !c.youtubeVideoId.includes("http") && (
+                              <div className="mt-2 w-full max-w-[320px] overflow-hidden rounded-md border border-gray-200">
+                                <iframe
+                                  className="aspect-video w-full"
+                                  src={`https://www.youtube.com/embed/${c.youtubeVideoId}`}
+                                  title="YouTube preview"
+                                  frameBorder="0"
+                                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                  allowFullScreen
+                                />
+                              </div>
+                            )}
+                            <div className="mt-1 text-[11px] text-gray-500 dark:text-gray-400">
+                              ※ URLを入力し、フォーカスを外すと保存（onBlur）
                             </div>
                           </div>
 

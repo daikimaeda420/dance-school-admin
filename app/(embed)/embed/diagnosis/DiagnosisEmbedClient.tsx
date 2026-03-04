@@ -104,6 +104,7 @@ type DiagnosisResult = {
     answerTag?: string | null;
     photoUrl?: string | null;
     description?: string | null;
+    youtubeVideoId?: string | null;
   } | null;
 
   selectedCampus?: {
@@ -718,6 +719,7 @@ export default function DiagnosisEmbedClient({
                 <ClassIntroduction
                   courseName={result.selectedCourse.label}
                   description={result.selectedCourse.description}
+                  youtubeVideoId={result.selectedCourse.youtubeVideoId}
                 />
               )}
 
