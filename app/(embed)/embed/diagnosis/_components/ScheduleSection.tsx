@@ -133,7 +133,7 @@ export default function ScheduleSection({
 
                     <div className="min-w-0 flex-1">
                       <div className="text-[18px] font-extrabold text-[#6b4a2b]">
-                        {slot.genreText}
+                        {slot.genreText}コース
                       </div>
                       <div className="mt-3 space-y-2 text-[14px] font-semibold text-[#6b4a2b]/85">
                         <div className="flex items-center gap-2">
