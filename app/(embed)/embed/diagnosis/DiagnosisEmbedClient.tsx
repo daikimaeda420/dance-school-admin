@@ -710,9 +710,10 @@ export default function DiagnosisEmbedClient({
               {/* 料金・生徒の声・アクセス・体験の流れ・FAQ */}
                 <ResultSections
                 campus={result.campus ?? result.selectedCampus ?? null}
-                faqs={fetchedFaqs} // ✅ 取得したFAQを渡す
-                courses={fetchedCourses} // ✅ 取得したコースを渡す
-                genres={genreOptions} // ✅ 追加
+                faqs={fetchedFaqs}
+                courses={fetchedCourses}
+                genres={genreOptions}
+                selectedCourseSlug={result.selectedCourse?.slug ?? null}
                 openIndex={openIndex}
                 onToggleFaq={(i) => setOpenIndex(openIndex === i ? null : i)}
               />

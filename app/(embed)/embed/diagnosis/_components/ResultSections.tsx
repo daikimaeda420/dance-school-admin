@@ -159,8 +159,9 @@ type FaqItem = {
 type Props = {
   campus: CampusInfo | null | undefined;
   faqs: FaqItem[];
-  courses?: Array<{ label: string; genreTags?: string[] }>;
-  genres?: DiagnosisQuestionOption[]; // ✅ 更新
+  courses?: Array<{ label: string; slug?: string; genreTags?: string[] }>;
+  genres?: DiagnosisQuestionOption[];
+  selectedCourseSlug?: string | null; // ✅ 診断結果のコースslug
   openIndex: number | null;
   onToggleFaq: (i: number) => void;
 };
@@ -170,7 +171,8 @@ export default function ResultSections({
   campus,
   faqs,
   courses,
-  genres = [], // ✅ 更新
+  genres = [],
+  selectedCourseSlug,
   openIndex,
   onToggleFaq,
 }: Props) {
@@ -178,6 +180,18 @@ export default function ResultSections({
   const genreLabelMap = new Map(
     genres.filter((g) => g.tag).map((g) => [g.tag!, g.label]),
   );
+
+  // 診断結果コースだけに絞り込む（slugが一致するもの）
+  const displayCourses = (() => {
+    if (!courses || courses.length === 0) return [];
+    if (!selectedCourseSlug) return courses;
+    const matched = courses.filter(
+      (c) => (c as any).slug === selectedCourseSlug || (c as any).id === selectedCourseSlug,
+    );
+    return matched.length > 0 ? matched : courses.filter(
+      (c) => (c as any).slug === selectedCourseSlug,
+    );
+  })();
 
   return (
     <>
@@ -217,47 +231,48 @@ export default function ResultSections({
             </div>
           </div>
         </div>
-        <div className="mt-7 text-center text-[16px] font-bold text-[#7a4b1f]">
-          コース月謝
-        </div>
-        <div className="mt-4 space-y-3">
-          {(courses && courses.length > 0
-            ? courses
-            : [{ label: "XXXXコース", genreTags: [] }]
-          ).map((course, i) => (
-            <div
-              key={i}
-              className="rounded-[18px] border border-black/15 bg-white px-4 py-4 text-center"
-            >
-              <div className="text-[13px] font-bold text-[#7a4b1f]">
-                {course.label}
-              </div>
-              {/* ✅ ジャンルラベル表示 */}
-              <div className="mt-1 flex flex-wrap justify-center gap-1">
-                {(course.genreTags ?? []).map((tag) => {
-                  const label = genreLabelMap.get(tag) || tag;
-                  return (
-                    <span
-                      key={tag}
-                      className="rounded bg-[#f5c400]/10 px-1.5 py-0.5 text-[10px] font-bold text-[#7a4b1f]/70"
-                    >
-                      {label}
-                    </span>
-                  );
-                })}
-              </div>
-
-              <div className="mt-2 flex items-end justify-center gap-1">
-                <div className="text-[34px] font-extrabold text-[#7a4b1f]">
-                  ¥2,800
-                </div>
-                <div className="pb-[6px] text-[12px] font-bold text-[#7a4b1f]/80">
-                  /月（税込）
-                </div>
-              </div>
+        {displayCourses.length > 0 && (
+          <>
+            <div className="mt-7 text-center text-[16px] font-bold text-[#7a4b1f]">
+              コース月謝
             </div>
-          ))}
-        </div>
+            <div className="mt-4 space-y-3">
+              {displayCourses.map((course, i) => (
+                <div
+                  key={i}
+                  className="rounded-[18px] border border-black/15 bg-white px-4 py-4 text-center"
+                >
+                  <div className="text-[13px] font-bold text-[#7a4b1f]">
+                    {course.label}
+                  </div>
+                  {/* ジャンルラベル表示 */}
+                  <div className="mt-1 flex flex-wrap justify-center gap-1">
+                    {(course.genreTags ?? []).map((tag) => {
+                      const label = genreLabelMap.get(tag) || tag;
+                      return (
+                        <span
+                          key={tag}
+                          className="rounded bg-[#f5c400]/10 px-1.5 py-0.5 text-[10px] font-bold text-[#7a4b1f]/70"
+                        >
+                          {label}
+                        </span>
+                      );
+                    })}
+                  </div>
+
+                  <div className="mt-2 flex items-end justify-center gap-1">
+                    <div className="text-[34px] font-extrabold text-[#7a4b1f]">
+                      ¥2,800
+                    </div>
+                    <div className="pb-[6px] text-[12px] font-bold text-[#7a4b1f]/80">
+                      /月（税込）
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
         <div className="mt-5">
           <div className="rounded-[26px] bg-[#d9d9d9] px-6 py-10 text-center shadow-[0_12px_24px_rgba(0,0,0,0.12)]">
             <div className="text-[22px] font-extrabold leading-tight text-white">
