@@ -36,6 +36,8 @@ type Props = {
   coursePhotoUrl: string | null;
   fallbackCourseImgSrc: string | null;
   className: string;
+  youtubeVideoId?: string | null;
+  onCtaClick?: () => void;
 };
 
 export default function ResultHero({
@@ -45,8 +47,9 @@ export default function ResultHero({
   coursePhotoUrl,
   fallbackCourseImgSrc,
   className,
+  youtubeVideoId,
   onCtaClick,
-}: Props & { onCtaClick?: () => void }) {
+}: Props) {
   return (
     <div className="relative">
       {/* カード本体 */}
@@ -114,10 +117,23 @@ export default function ResultHero({
           )}
         </div>
 
-        {/* スタンプ風装飾（例） */}
-        {/* <div className="absolute right-4 top-20 opacity-20 rotate-12 pointer-events-none">
-          <div className="border-4 border-red-500 rounded-full w-16 h-16" />
-        </div> */}
+        {/* YouTube動画埋め込み (あれば表示) */}
+        {youtubeVideoId && (
+          <div className="mt-6 px-6">
+            <div className="overflow-hidden rounded-2xl shadow-md bg-black">
+              <div className="relative w-full aspect-video pointer-events-none">
+                <iframe
+                  className="absolute top-0 left-0 w-full h-full"
+                  src={`https://www.youtube.com/embed/${youtubeVideoId}?autoplay=1&mute=1&loop=1&playlist=${youtubeVideoId}&controls=0&modestbranding=1&playsinline=1`}
+                  title="Class Video"
+                  frameBorder="0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                ></iframe>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* ボタン */}
         <div className="mt-8 px-6">
