@@ -272,12 +272,58 @@ export async function POST(req: NextRequest) {
         }
       : null;
 
+    // ===== キャンパス情報取得 =====
+    const campusFull = await prisma.diagnosisCampus.findFirst({
+      where: { schoolId, slug: campusSlug, isActive: true },
+      select: {
+        id: true,
+        label: true,
+        slug: true,
+        address: true,
+        access: true,
+        googleMapUrl: true,
+        googleMapEmbedUrl: true,
+      },
+    });
+
+    // ===== スコア計算（シンプル） =====
+    const score = recommendedCourse ? 88 : 60;
+
     return NextResponse.json({
+      score,
+      pattern: "A" as const,
+      patternMessage: null,
+      headerLabel: recommendedCourse?.label ?? "おすすめのクラス",
+      bestMatch: {
+        classId: recommendedCourse?.id ?? undefined,
+        className: recommendedCourse?.label ?? undefined,
+        levels: [],
+        targets: [],
+      },
+      teacher: {
+        styles: [],
+      },
+      breakdown: [],
+      worstMatch: null,
+      allScores: [],
+      campus: campusFull
+        ? {
+            id: campusFull.id,
+            label: campusFull.label,
+            slug: campusFull.slug,
+            address: campusFull.address ?? null,
+            access: campusFull.access ?? null,
+            googleMapUrl: campusFull.googleMapUrl ?? null,
+            googleMapEmbedUrl: campusFull.googleMapEmbedUrl ?? null,
+            mapLinkUrl: campusFull.googleMapUrl ?? null,
+            mapEmbedUrl: campusFull.googleMapEmbedUrl ?? null,
+          }
+        : undefined,
       selectedCourse,
       instructors: instructors.map((t) => {
         const hasImage =
           t.photoData &&
-          (t.photoData as any).length > 0 && // Uint8Array check
+          (t.photoData as any).length > 0 &&
           Boolean(t.photoMime);
 
         const photoUrl = hasImage
@@ -292,10 +338,10 @@ export async function POST(req: NextRequest) {
           slug: t.slug,
           charmTags: t.charmTags ?? null,
           introduction: t.introduction ?? null,
-          photoUrl, // ✅ 追加
+          photoUrl,
         };
       }),
-      resultCopy, // 追加
+      resultCopy,
       concernMessage: concernText,
       debug: {
         concernOptionId,

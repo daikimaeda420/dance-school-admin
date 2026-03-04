@@ -105,7 +105,7 @@ export default function ResultHero({
             運命のクラスかも？
           </div>
           <div className="mt-1 px-4 text-[26px] font-black leading-tight text-[#f28c68]">
-            {result.bestMatch?.className ?? "K-POP 初級クラス"}
+            {result.selectedCourse?.label ?? result.bestMatch?.className ?? "おすすめのクラス"}
           </div>
           {result.patternMessage && (
             <div className="mt-2 text-xs font-medium text-gray-400">

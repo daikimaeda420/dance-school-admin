@@ -41,10 +41,17 @@ function addAliases<
 }
 
 // GET /api/diagnosis/campuses?schoolId=xxx&full=1
+// ✅ 公開診断フォーム用は認証不要（full=1 の管理画面用は認証チェック）
 export async function GET(req: NextRequest) {
-  const session = await ensureLoggedIn();
-  if (!session) {
-    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+  const { searchParams: sp } = new URL(req.url);
+  const isFull = sp.get("full") === "1";
+
+  // 管理画面用フル取得は認証が必要
+  if (isFull) {
+    const session = await ensureLoggedIn();
+    if (!session) {
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    }
   }
 
   const { searchParams } = new URL(req.url);
@@ -53,7 +60,7 @@ export async function GET(req: NextRequest) {
   const schoolId = norm(
     searchParams.get("schoolId") ?? searchParams.get("school"),
   );
-  const full = searchParams.get("full") === "1";
+  const full = isFull;
 
   if (!schoolId) {
     return NextResponse.json(
