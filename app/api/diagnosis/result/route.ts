@@ -288,8 +288,38 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // ===== スコア計算（シンプル） =====
-    const score = recommendedCourse ? 88 : 60;
+    // ===== スコア計算（減点式） =====
+    // 基準: 100点 から各Qの回答に応じて減点
+    // Q1: 減点なし
+    // Q2: 2-3 → -2 / 2-4 → -3 / 2-5 → -4
+    // Q3: college(大学生) → -5 / worker(社会人) → -2 / homemaker(主婦) → -2
+    // Q4: 減点なし
+    // Q5: 5-2(プロ志望) → -5 / 5-3(ベテラン希望) → -2
+    // Q6: 減点なし
+    const Q2_DEDUCT: Record<string, number> = {
+      "2-3": -2,
+      "2-4": -3,
+      "2-5": -4,
+    };
+    const Q3_DEDUCT: Record<string, number> = {
+      college:   -5,
+      worker:    -2,
+      homemaker: -2,
+    };
+    const Q5_DEDUCT: Record<string, number> = {
+      "5-2": -5,
+      "5-3": -2,
+    };
+
+    // q2Tag / q3Tag は上の resultCopy ブロックで宣言済みのものを流用
+    const q5Answer = answers["Q5"] ?? "";
+
+    const deduct =
+      (Q2_DEDUCT[answers["Q2"] ?? ""] ?? 0) +
+      (Q3_DEDUCT[q3Tag ?? ""]        ?? 0) +
+      (Q5_DEDUCT[q5Answer]           ?? 0);
+
+    const score = 100 + deduct;
 
     return NextResponse.json({
       score,
