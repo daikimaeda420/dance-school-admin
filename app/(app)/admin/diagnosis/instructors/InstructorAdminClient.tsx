@@ -368,9 +368,9 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
       const c = normalizeOptions("course", cJson);
       const p = normalizeOptions("campus", pJson);
 
-      // 講師紐づけは Q4（理想の先生）を使用（保存キー q6OptionIds は互換維持）
-      const q4 = QUESTIONS.find((q) => q.id === "Q4");
-      const concerns: OptionRow[] = (q4?.options ?? []).map((o: any) => ({
+      // 講師紐づけは Q5（理想の先生）を使用（保存キー q6OptionIds は互換維持）
+      const q5 = QUESTIONS.find((q) => q.id === "Q5");
+      const concerns: OptionRow[] = (q5?.options ?? []).map((o: any) => ({
         id: String(o.id),
         label: String(o.label),
         isActive: true,

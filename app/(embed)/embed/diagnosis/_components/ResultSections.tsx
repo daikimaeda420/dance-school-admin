@@ -96,9 +96,7 @@ function StepItem(props: { step: number; text: ReactNode }) {
       <div className="absolute left-[4px] top-[2px]">
         <div className="grid h-10 w-10 place-items-center rounded-full bg-[#f5c400] shadow-sm">
           <div className="text-center leading-none text-[#7a4b1f]">
-            <div className="text-[10px] font-extrabold tracking-wide">
-              STEP
-            </div>
+            <div className="text-[10px] font-extrabold tracking-wide">STEP</div>
             <div className="text-[16px] font-extrabold">{props.step}</div>
           </div>
         </div>
@@ -188,11 +186,13 @@ export default function ResultSections({
     if (!courses || courses.length === 0) return [];
     if (!selectedCourseSlug) return courses;
     const matched = courses.filter(
-      (c) => (c as any).slug === selectedCourseSlug || (c as any).id === selectedCourseSlug,
+      (c) =>
+        (c as any).slug === selectedCourseSlug ||
+        (c as any).id === selectedCourseSlug,
     );
-    return matched.length > 0 ? matched : courses.filter(
-      (c) => (c as any).slug === selectedCourseSlug,
-    );
+    return matched.length > 0
+      ? matched
+      : courses.filter((c) => (c as any).slug === selectedCourseSlug);
   })();
 
   return (
@@ -374,7 +374,9 @@ export default function ResultSections({
                   <div className="font-extrabold text-[#7A4C1F]">
                     【電車でお越しの場合】
                   </div>
-                  <div className="mt-1 whitespace-pre-wrap">{campus.access}</div>
+                  <div className="mt-1 whitespace-pre-wrap">
+                    {campus.access}
+                  </div>
                 </div>
               )}
             </div>
@@ -413,13 +415,9 @@ export default function ResultSections({
               step={1}
               text={
                 <>
-                  下記の体験レッスン申込みフォームより
+                  下記の体験レッスン申込みフォームよりご予約ください。
                   <br />
-                  ご予約ください。
-                  <br />
-                  必要事項を入力するのみとなる為、簡単
-                  <br />
-                  にお申込みいただけます。
+                  必要事項を入力するのみとなる為、簡単にお申込みいただけます。
                 </>
               }
             />
@@ -427,17 +425,10 @@ export default function ResultSections({
               step={2}
               text={
                 <>
-                  お申込み後、スタッフより日程調整のご
+                  お申込み後、スタッフより日程調整のご連絡をいたします。
                   <br />
-                  連絡をいたします。
-                  <br />
-                  あわせて、当日の持ち物や服装、レッス
-                  <br />
-                  ンを行うスタジオの住所についてもご案
-                  <br />
-                  内しますので、初めての方でも安心で
-                  <br />
-                  す。
+                  あわせて、当日の持ち物や服装、レッスンを行うスタジオの住所についてもご案
+                  内しますので、初めての方でも安心です。
                 </>
               }
             />
@@ -445,15 +436,9 @@ export default function ResultSections({
               step={3}
               text={
                 <>
-                  当日は、指定のスタジオへお越しいただ
+                  当日は、指定のスタジオへお越しいただき体験レッスンにご参加ください。
                   <br />
-                  き体験レッスンにご参加ください。
-                  <br />
-                  初心者の方にも配慮した内容で進めます
-                  <br />
-                  ので、ダンスが初めての方でも無理なく
-                  <br />
-                  お楽しみいただけます。
+                  初心者の方にも配慮した内容で進めますので、ダンスが初めての方でも無理なくお楽しみいただけます。
                 </>
               }
             />
