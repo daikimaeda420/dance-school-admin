@@ -1,7 +1,22 @@
 // app/(app)/admin/diagnosis/faqs/FaqAdminClient.tsx
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import {
+  DndContext,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  closestCenter,
+  DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+  arrayMove,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 type Faq = {
   id: string;
@@ -21,11 +36,194 @@ const inputCls =
 
 const textareaCls = inputCls + " min-h-[80px] py-2 resize-y";
 
+// ────────────────────────────────────────────────
+// SortableItem
+// ────────────────────────────────────────────────
+type SortableItemProps = {
+  faq: Faq;
+  index: number;
+  savingId: string | null;
+  editId: string | null;
+  editQ: string;
+  editA: string;
+  setEditQ: (v: string) => void;
+  setEditA: (v: string) => void;
+  onToggleActive: (faq: Faq) => void;
+  onEdit: (faq: Faq) => void;
+  onEditSave: (id: string) => void;
+  onEditCancel: () => void;
+  onDelete: (id: string) => void;
+};
+
+function SortableItem({
+  faq,
+  index,
+  savingId,
+  editId,
+  editQ,
+  editA,
+  setEditQ,
+  setEditA,
+  onToggleActive,
+  onEdit,
+  onEditSave,
+  onEditCancel,
+  onDelete,
+}: SortableItemProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: faq.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.4 : 1,
+    zIndex: isDragging ? 50 : undefined,
+  };
+
+  const isSaving = savingId === faq.id;
+  const isEditing = editId === faq.id;
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={[
+        "rounded-lg border p-3",
+        faq.isActive
+          ? "border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900"
+          : "border-gray-100 bg-gray-50 opacity-60 dark:border-gray-800 dark:bg-gray-950",
+        isDragging ? "shadow-lg" : "",
+      ].join(" ")}
+    >
+      <div className="mb-1 flex items-center justify-between gap-2">
+        <div className="flex items-center gap-1.5">
+          {/* ドラッグハンドル */}
+          <button
+            {...attributes}
+            {...listeners}
+            className="cursor-grab touch-none rounded p-0.5 text-gray-300 hover:text-gray-500 active:cursor-grabbing dark:text-gray-600 dark:hover:text-gray-400"
+            aria-label="ドラッグして並び替え"
+            tabIndex={-1}
+          >
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 14 14"
+              fill="currentColor"
+              aria-hidden="true"
+            >
+              <circle cx="4" cy="3" r="1.2" />
+              <circle cx="10" cy="3" r="1.2" />
+              <circle cx="4" cy="7" r="1.2" />
+              <circle cx="10" cy="7" r="1.2" />
+              <circle cx="4" cy="11" r="1.2" />
+              <circle cx="10" cy="11" r="1.2" />
+            </svg>
+          </button>
+          <span className="text-[10px] font-bold text-gray-400">
+            #{index + 1}
+          </span>
+        </div>
+        <div className="flex items-center gap-1">
+          {/* 有効/無効 */}
+          <button
+            onClick={() => onToggleActive(faq)}
+            disabled={isSaving}
+            className={[
+              "rounded-full px-2 py-0.5 text-[10px] font-semibold border transition",
+              faq.isActive
+                ? "border-green-300 bg-green-50 text-green-700 hover:bg-green-100 dark:border-green-700 dark:bg-green-950 dark:text-green-300"
+                : "border-gray-300 bg-white text-gray-500 hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-900",
+            ].join(" ")}
+          >
+            {faq.isActive ? "表示中" : "非表示"}
+          </button>
+          {/* 編集 */}
+          {!isEditing && (
+            <button
+              onClick={() => onEdit(faq)}
+              disabled={isSaving}
+              className="rounded-full border border-gray-300 bg-white px-2 py-0.5 text-[10px] font-semibold text-gray-600 hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
+            >
+              編集
+            </button>
+          )}
+          {/* 削除 */}
+          <button
+            onClick={() => onDelete(faq.id)}
+            disabled={isSaving}
+            className="rounded-full border border-red-200 bg-white px-2 py-0.5 text-[10px] font-semibold text-red-500 hover:bg-red-50 dark:border-red-900 dark:bg-gray-900"
+          >
+            削除
+          </button>
+        </div>
+      </div>
+
+      {isEditing ? (
+        <div className="space-y-2">
+          <div>
+            <div className="mb-1 text-[10px] font-semibold text-gray-500">Q</div>
+            <input
+              className={inputCls}
+              value={editQ}
+              onChange={(e) => setEditQ(e.target.value)}
+              disabled={isSaving}
+            />
+          </div>
+          <div>
+            <div className="mb-1 text-[10px] font-semibold text-gray-500">A</div>
+            <textarea
+              className={textareaCls}
+              value={editA}
+              onChange={(e) => setEditA(e.target.value)}
+              disabled={isSaving}
+            />
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={() => onEditSave(faq.id)}
+              disabled={isSaving}
+              className="rounded-full bg-blue-600 px-3 py-1 text-[10px] font-semibold text-white hover:bg-blue-700 disabled:opacity-40"
+            >
+              {isSaving ? "保存中..." : "保存"}
+            </button>
+            <button
+              onClick={onEditCancel}
+              className="rounded-full border border-gray-300 px-3 py-1 text-[10px] font-semibold text-gray-600"
+            >
+              キャンセル
+            </button>
+          </div>
+        </div>
+      ) : (
+        <>
+          <div className="text-xs font-semibold text-gray-800 dark:text-gray-100">
+            Q. {faq.question}
+          </div>
+          <div className="mt-1 whitespace-pre-wrap text-xs leading-5 text-gray-600 dark:text-gray-300">
+            A. {faq.answer}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ────────────────────────────────────────────────
+// FaqAdminClient (main)
+// ────────────────────────────────────────────────
 export default function FaqAdminClient({ schoolId }: Props) {
   const [faqs, setFaqs] = useState<Faq[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [savingId, setSavingId] = useState<string | null>(null);
+  const [reordering, setReordering] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // 新規入力
@@ -38,6 +236,15 @@ export default function FaqAdminClient({ schoolId }: Props) {
   const [editA, setEditA] = useState("");
 
   const disabled = !schoolId;
+
+  // 並び替え保存のdebounce用ref
+  const reorderTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 5 },
+    }),
+  );
 
   const fetchFaqs = async () => {
     if (!schoolId) return;
@@ -62,6 +269,45 @@ export default function FaqAdminClient({ schoolId }: Props) {
     void fetchFaqs();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [schoolId]);
+
+  // ドラッグ終了
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    setFaqs((prev) => {
+      const oldIndex = prev.findIndex((f) => f.id === active.id);
+      const newIndex = prev.findIndex((f) => f.id === over.id);
+      const next = arrayMove(prev, oldIndex, newIndex);
+
+      // debounceして並び替えを保存
+      if (reorderTimerRef.current) clearTimeout(reorderTimerRef.current);
+      reorderTimerRef.current = setTimeout(() => {
+        void saveReorder(
+          next.map((f) => f.id),
+          schoolId,
+        );
+      }, 400);
+
+      return next;
+    });
+  };
+
+  const saveReorder = async (orderedIds: string[], sid: string) => {
+    setReordering(true);
+    try {
+      const res = await fetch("/api/admin/diagnosis/faqs/reorder", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ schoolId: sid, orderedIds }),
+      });
+      if (!res.ok) throw new Error("並び替えの保存に失敗しました");
+    } catch (e: any) {
+      setError(e?.message ?? "通信エラー");
+    } finally {
+      setReordering(false);
+    }
+  };
 
   const handleCreate = async () => {
     if (!schoolId || !newQ.trim() || !newA.trim()) {
@@ -214,6 +460,9 @@ export default function FaqAdminClient({ schoolId }: Props) {
           {loading && (
             <span className="text-xs font-normal text-gray-400">読み込み中...</span>
           )}
+          {reordering && (
+            <span className="text-xs font-normal text-blue-400">保存中...</span>
+          )}
         </h2>
 
         {faqs.length === 0 && !loading ? (
@@ -221,110 +470,37 @@ export default function FaqAdminClient({ schoolId }: Props) {
             FAQがまだ登録されていません。
           </div>
         ) : (
-          <div className="space-y-3">
-            {faqs.map((faq, i) => {
-              const isSaving = savingId === faq.id;
-              const isEditing = editId === faq.id;
-
-              return (
-                <div
-                  key={faq.id}
-                  className={[
-                    "rounded-lg border p-3",
-                    faq.isActive
-                      ? "border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900"
-                      : "border-gray-100 bg-gray-50 opacity-60 dark:border-gray-800 dark:bg-gray-950",
-                  ].join(" ")}
-                >
-                  <div className="mb-1 flex items-center justify-between gap-2">
-                    <span className="text-[10px] font-bold text-gray-400">
-                      #{i + 1}
-                    </span>
-                    <div className="flex items-center gap-1">
-                      {/* 有効/無効 */}
-                      <button
-                        onClick={() => handleToggleActive(faq)}
-                        disabled={isSaving}
-                        className={[
-                          "rounded-full px-2 py-0.5 text-[10px] font-semibold border transition",
-                          faq.isActive
-                            ? "border-green-300 bg-green-50 text-green-700 hover:bg-green-100 dark:border-green-700 dark:bg-green-950 dark:text-green-300"
-                            : "border-gray-300 bg-white text-gray-500 hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-900",
-                        ].join(" ")}
-                      >
-                        {faq.isActive ? "表示中" : "非表示"}
-                      </button>
-                      {/* 編集 */}
-                      {!isEditing && (
-                        <button
-                          onClick={() => handleEdit(faq)}
-                          disabled={isSaving}
-                          className="rounded-full border border-gray-300 bg-white px-2 py-0.5 text-[10px] font-semibold text-gray-600 hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
-                        >
-                          編集
-                        </button>
-                      )}
-                      {/* 削除 */}
-                      <button
-                        onClick={() => handleDelete(faq.id)}
-                        disabled={isSaving}
-                        className="rounded-full border border-red-200 bg-white px-2 py-0.5 text-[10px] font-semibold text-red-500 hover:bg-red-50 dark:border-red-900 dark:bg-gray-900"
-                      >
-                        削除
-                      </button>
-                    </div>
-                  </div>
-
-                  {isEditing ? (
-                    <div className="space-y-2">
-                      <div>
-                        <div className="mb-1 text-[10px] font-semibold text-gray-500">Q</div>
-                        <input
-                          className={inputCls}
-                          value={editQ}
-                          onChange={(e) => setEditQ(e.target.value)}
-                          disabled={isSaving}
-                        />
-                      </div>
-                      <div>
-                        <div className="mb-1 text-[10px] font-semibold text-gray-500">A</div>
-                        <textarea
-                          className={textareaCls}
-                          value={editA}
-                          onChange={(e) => setEditA(e.target.value)}
-                          disabled={isSaving}
-                        />
-                      </div>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => handleEditSave(faq.id)}
-                          disabled={isSaving}
-                          className="rounded-full bg-blue-600 px-3 py-1 text-[10px] font-semibold text-white hover:bg-blue-700 disabled:opacity-40"
-                        >
-                          {isSaving ? "保存中..." : "保存"}
-                        </button>
-                        <button
-                          onClick={() => setEditId(null)}
-                          className="rounded-full border border-gray-300 px-3 py-1 text-[10px] font-semibold text-gray-600"
-                        >
-                          キャンセル
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <>
-                      <div className="text-xs font-semibold text-gray-800 dark:text-gray-100">
-                        Q. {faq.question}
-                      </div>
-                      <div className="mt-1 whitespace-pre-wrap text-xs leading-5 text-gray-600 dark:text-gray-300">
-                        A. {faq.answer}
-                      </div>
-                    </>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext
+              items={faqs.map((f) => f.id)}
+              strategy={verticalListSortingStrategy}
+            >
+              <div className="space-y-3">
+                {faqs.map((faq, i) => (
+                  <SortableItem
+                    key={faq.id}
+                    faq={faq}
+                    index={i}
+                    savingId={savingId}
+                    editId={editId}
+                    editQ={editQ}
+                    editA={editA}
+                    setEditQ={setEditQ}
+                    setEditA={setEditA}
+                    onToggleActive={handleToggleActive}
+                    onEdit={handleEdit}
+                    onEditSave={handleEditSave}
+                    onEditCancel={() => setEditId(null)}
+                    onDelete={handleDelete}
+                  />
+                ))}
+              </div>
+            </SortableContext>
+          </DndContext>
         )}
       </div>
     </div>
