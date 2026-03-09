@@ -256,13 +256,28 @@ export default function ResultSections({
                     })}
                   </div>
 
-                  <div className="mt-2 flex items-end justify-center gap-1">
-                    <div className="text-[34px] font-extrabold text-[#7a4b1f]">
-                      ¥2,800
-                    </div>
-                    <div className="pb-[6px] text-[12px] font-bold text-[#7a4b1f]/80">
-                      /月（税込）
-                    </div>
+                  <div className="mt-3 space-y-2">
+                    {[
+                      { label: "月4回", price: "¥11,000" },
+                      { label: "月8回", price: "¥20,350" },
+                    ].map((plan) => (
+                      <div
+                        key={plan.label}
+                        className="flex items-center justify-between rounded-[12px] border border-black/10 px-4 py-2"
+                      >
+                        <div className="text-[13px] font-bold text-[#7a4b1f]">
+                          {plan.label}
+                        </div>
+                        <div className="flex items-end gap-1">
+                          <div className="text-[22px] font-extrabold text-[#7a4b1f]">
+                            {plan.price}
+                          </div>
+                          <div className="pb-[3px] text-[11px] font-bold text-[#7a4b1f]/70">
+                            （税込）
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
               ))}
