@@ -70,9 +70,9 @@ export default function ResultHero({
           今のあなたに1番おすすめのクラスは…
         </div>
 
-        {/* キャッチコピー */}
-        <div className="mt-4 text-[22px] font-black text-[#e83e3e] drop-shadow-sm">
-          相性バツグン！
+        {/* コース名 */}
+        <div className="mt-4 px-4 text-[22px] font-black leading-tight text-[#f28c68]">
+          {result.selectedCourse?.label ?? result.bestMatch?.className ?? "おすすめのクラス"}
         </div>
 
         {/* マッチング度（円グラフ） */}
@@ -102,20 +102,11 @@ export default function ResultHero({
           </div>
         </div>
 
-        {/* クラス名エリア */}
-        <div className="mt-5">
-          <div className="text-[15px] font-bold text-[#6b4a2b]">
-            運命のクラスかも？
+        {result.patternMessage && (
+          <div className="mt-2 text-xs font-medium text-gray-400">
+            {result.patternMessage}
           </div>
-          <div className="mt-1 px-4 text-[26px] font-black leading-tight text-[#f28c68]">
-            {result.selectedCourse?.label ?? result.bestMatch?.className ?? "おすすめのクラス"}
-          </div>
-          {result.patternMessage && (
-            <div className="mt-2 text-xs font-medium text-gray-400">
-              {result.patternMessage}
-            </div>
-          )}
-        </div>
+        )}
 
         {/* YouTube動画埋め込み (あれば表示) */}
         {youtubeVideoId && (
