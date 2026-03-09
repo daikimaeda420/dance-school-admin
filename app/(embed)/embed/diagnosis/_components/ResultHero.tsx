@@ -102,6 +102,11 @@ export default function ResultHero({
           </div>
         </div>
 
+        {/* クラス名ラベル */}
+        <div className="mt-5 text-[15px] font-bold text-[#6b4a2b]">
+          運命のクラスかも？
+        </div>
+
         {result.patternMessage && (
           <div className="mt-2 text-xs font-medium text-gray-400">
             {result.patternMessage}
