@@ -223,7 +223,7 @@ export default function ResultSections({
           <div className="rounded-[18px] border border-black/15 bg-white px-4 py-4 text-center">
             <div className="text-[13px] font-bold text-[#7a4b1f]">入会金</div>
             <div className="mt-2 text-[28px] font-extrabold text-[#7a4b1f]">
-              ¥8,800
+              ¥0
             </div>
           </div>
         </div>
