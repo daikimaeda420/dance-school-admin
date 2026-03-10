@@ -106,7 +106,7 @@ export default function DiagnosisForm({
   const emailField = findField(["メール", "Mail", "E-mail", "Email"]);
   const telField = findField(["電話", "TEL", "tel"]);
   const classField = findField(["体験クラス", "体験コース", "クラス", "コース"]);
-  const dateField = findField(["体験日", "日程", "日時"]);
+  const dateField = findField(["体験日", "日程", "日時", "体験レッスン日時"]);
   const msgField = form.fields.find((f) => f.type === "TEXTAREA");
 
   // ✅ options が入ってきたら、未入力時に先頭を自動選択（必須対策）
@@ -135,6 +135,13 @@ export default function DiagnosisForm({
       .map((f) => (f as Field).id),
   );
   const restFields = form.fields.filter((f) => !usedIds.has(f.id));
+
+  // 2日後以降の日付（YYYY-MM-DD）を計算
+  const minDateString = useMemo(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 2); // 2日後
+    return d.toISOString().split("T")[0];
+  }, []);
 
   return (
     <section className="mt-8">
@@ -297,7 +304,7 @@ export default function DiagnosisForm({
 
             <div className="h-px w-full bg-black/10" />
 
-            {/* ✅ 体験日：生成した日付 options を select に */}
+            {/* ✅ 体験日：ネイティブの date カレンダーに変更（2日後以降） */}
             {dateField && (
               <div>
                 <label className={LABEL}>
@@ -307,23 +314,15 @@ export default function DiagnosisForm({
                   )}
                 </label>
 
-                {dateOptions.length > 0 ? (
-                  <SelectLike
-                    value={values[dateField.id] ?? ""}
-                    onChange={(v) => setVal(dateField.id, v)}
-                    required={dateField.required}
-                    placeholder={dateField.placeholder ?? "---"}
-                    options={dateOptions}
-                  />
-                ) : (
-                  <input
-                    className={INPUT}
-                    required={dateField.required}
-                    placeholder={dateField.placeholder ?? "---"}
-                    value={values[dateField.id] ?? ""}
-                    onChange={(e) => setVal(dateField.id, e.target.value)}
-                  />
-                )}
+                <input
+                  type="date"
+                  className={`${INPUT} cursor-pointer w-[200px] text-center min-h-[46px]`}
+                  required={dateField.required}
+                  min={minDateString}
+                  placeholder={dateField.placeholder ?? "年/月/日"}
+                  value={values[dateField.id] ?? ""}
+                  onChange={(e) => setVal(dateField.id, e.target.value)}
+                />
               </div>
             )}
 

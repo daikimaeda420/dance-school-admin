@@ -35,6 +35,11 @@ export async function GET(req: NextRequest) {
 
   const hasClassField = form.fields.some((f) => !!f.label && isClassField(f.label));
 
+  const isDateField = (label: string) =>
+    ["体験日", "日程", "日時", "体験レッスン日時"].some((k) => label.includes(k));
+
+  const hasDateField = form.fields.some((f) => !!f.label && isDateField(f.label));
+
   if (!hasClassField) {
     form.fields.push({
       id: "virtual-class-field",
@@ -45,6 +50,22 @@ export async function GET(req: NextRequest) {
       optionsJson: null,
       placeholder: null,
       sortOrder: 9999,
+      isActive: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+  }
+
+  if (!hasDateField) {
+    form.fields.push({
+      id: "virtual-date-field",
+      formId: form.id,
+      label: "体験レッスン日時",
+      type: "DATE",
+      required: true,
+      optionsJson: null,
+      placeholder: null,
+      sortOrder: 9998,
       isActive: true,
       createdAt: new Date(),
       updatedAt: new Date(),

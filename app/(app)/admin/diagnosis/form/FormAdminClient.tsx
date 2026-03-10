@@ -54,6 +54,7 @@ const FIELD_TYPES = [
   "TEXTAREA",
   "SELECT",
   "CHECKBOX",
+  "DATE", // ✅ 追加
   "HIDDEN",
 ] as const;
 
@@ -61,10 +62,15 @@ const FIELD_TYPES = [
 const isClassField = (label: string) =>
   ["体験クラス", "体験コース", "クラス", "コース"].some((k) => label.includes(k));
 
-function ensureClassField(fData: FormData): FormData {
+const isDateField = (label: string) =>
+  ["体験日", "日程", "日時", "体験レッスン日時"].some((k) => label.includes(k));
+
+function ensureRequiredFields(fData: FormData): FormData {
   if (!fData.fields) fData.fields = [];
-  const hasIt = fData.fields.some((f) => !!f.label && isClassField(f.label));
-  if (!hasIt) {
+  
+  // 1. 体験コースの保証
+  const hasClassField = fData.fields.some((f) => !!f.label && isClassField(f.label));
+  if (!hasClassField) {
     fData.fields.push({
       label: "体験コース",
       type: "SELECT",
@@ -72,6 +78,18 @@ function ensureClassField(fData: FormData): FormData {
       isActive: true,
     });
   }
+
+  // 2. 体験レッスン日時の保証
+  const hasDateField = fData.fields.some((f) => !!f.label && isDateField(f.label));
+  if (!hasDateField) {
+    fData.fields.push({
+      label: "体験レッスン日時",
+      type: "DATE",
+      required: true,
+      isActive: true,
+    });
+  }
+
   return fData;
 }
 
@@ -134,7 +152,7 @@ export default function FormAdminClient({ schoolId }: { schoolId: string }) {
         const data = JSON.parse(text);
 
         if (!res.ok) throw new Error(data?.message ?? "フォームAPI error");
-        if (!cancelled) setForm(ensureClassField(data));
+        if (!cancelled) setForm(ensureRequiredFields(data));
 
         // ✅ メール設定（別API）
         // API未実装/テーブル未作成などで失敗しても、フォーム編集は生かす
@@ -221,6 +239,10 @@ export default function FormAdminClient({ schoolId }: { schoolId: string }) {
       alert("この項目（体験コース）はシステムで予約されているため、削除できません。");
       return;
     }
+    if (target && target.label && isDateField(target.label)) {
+      alert("この項目（体験レッスン日時）はシステムで予約されているため、削除できません。");
+      return;
+    }
     if (!confirm("この項目を削除しますか？")) return;
     const next = [...form.fields];
     next.splice(index, 1);
@@ -249,7 +271,7 @@ export default function FormAdminClient({ schoolId }: { schoolId: string }) {
           throw new Error(data?.message ?? "フォームの保存に失敗しました");
 
         // 返却がフォーム本体なら反映（{ok:true}でも害なし）
-        if (data?.id && data?.fields) setForm(ensureClassField(data));
+        if (data?.id && data?.fields) setForm(ensureRequiredFields(data));
       }
 
       // ✅ メール設定がロードされている場合のみ保存
@@ -399,7 +421,7 @@ export default function FormAdminClient({ schoolId }: { schoolId: string }) {
                 className="rounded border border-gray-300 px-2 py-1 text-xs text-red-600 dark:border-gray-600 dark:text-red-400 disabled:opacity-40"
                 onClick={() => removeField(i)}
                 type="button"
-                disabled={isClassField(f.label)}
+                disabled={isClassField(f.label) || isDateField(f.label)}
               >
                 削除
               </button>
