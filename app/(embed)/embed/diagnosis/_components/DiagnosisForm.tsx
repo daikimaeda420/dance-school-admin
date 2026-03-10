@@ -105,7 +105,7 @@ export default function DiagnosisForm({
   const nameField = findField(["おなまえ", "お名前", "氏名"]);
   const emailField = findField(["メール", "Mail", "E-mail", "Email"]);
   const telField = findField(["電話", "TEL", "tel"]);
-  const classField = findField(["体験クラス", "クラス"]);
+  const classField = findField(["体験クラス", "体験コース", "クラス", "コース"]);
   const dateField = findField(["体験日", "日程", "日時"]);
   const msgField = form.fields.find((f) => f.type === "TEXTAREA");
 
