@@ -325,7 +325,8 @@
         <span style="font-size: 16px; font-weight: 900; letter-spacing: 0.05em;">相性診断</span>
         <span style="font-size: 10px; margin-top: 6px; font-weight: bold; opacity: 0.8;">（診断スタート &gt;）</span>
       `;
-      container.appendChild(banner);
+      // 診断バナーを一番左（チャットボタンより前）に配置するため prepend を使用
+      container.prepend(banner);
     }
 
     // ウィジェットコンテナをbodyに追加 (中身がある場合のみ)
