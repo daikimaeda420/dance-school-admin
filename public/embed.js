@@ -14,7 +14,7 @@
 
   // レイアウト系の設定（data-rizbo-* を優先）
   const theme = s.dataset.rizboTheme || s.dataset.theme || "light";
-  const side = s.dataset.rizboSide || s.dataset.side || "left"; // left | right
+  const side = s.dataset.rizboSide || s.dataset.side || "right"; // left | right
   const openByDefault = (s.dataset.rizboOpen ?? s.dataset.open) === "true";
   const width = parseInt(s.dataset.rizboWidth || s.dataset.width || "380", 10);
   const height = parseInt(
@@ -325,8 +325,11 @@
         <span style="font-size: 16px; font-weight: 900; letter-spacing: 0.05em;">相性診断</span>
         <span style="font-size: 10px; margin-top: 6px; font-weight: bold; opacity: 0.8;">（診断スタート &gt;）</span>
       `;
-      // 診断バナーを一番左（チャットボタンより前）に配置するため prepend を使用
-      container.prepend(banner);
+      
+      const bannerContainer = document.createElement("div");
+      bannerContainer.className = "rzb-widget-container rzb-left";
+      bannerContainer.appendChild(banner);
+      document.body.appendChild(bannerContainer);
     }
 
     // ウィジェットコンテナをbodyに追加 (中身がある場合のみ)
