@@ -57,6 +57,24 @@ const FIELD_TYPES = [
   "HIDDEN",
 ] as const;
 
+// フォーム側のロジックと合わせる
+const isClassField = (label: string) =>
+  ["体験クラス", "体験コース", "クラス", "コース"].some((k) => label.includes(k));
+
+function ensureClassField(fData: FormData): FormData {
+  if (!fData.fields) fData.fields = [];
+  const hasIt = fData.fields.some((f) => !!f.label && isClassField(f.label));
+  if (!hasIt) {
+    fData.fields.push({
+      label: "体験コース",
+      type: "SELECT",
+      required: true,
+      isActive: true,
+    });
+  }
+  return fData;
+}
+
 // ✅ placeholder を必ず見えるように（light/dark 両対応）
 const INPUT_BASE =
   "w-full rounded border px-3 py-2 text-sm outline-none " +
@@ -116,7 +134,7 @@ export default function FormAdminClient({ schoolId }: { schoolId: string }) {
         const data = JSON.parse(text);
 
         if (!res.ok) throw new Error(data?.message ?? "フォームAPI error");
-        if (!cancelled) setForm(data);
+        if (!cancelled) setForm(ensureClassField(data));
 
         // ✅ メール設定（別API）
         // API未実装/テーブル未作成などで失敗しても、フォーム編集は生かす
@@ -198,6 +216,11 @@ export default function FormAdminClient({ schoolId }: { schoolId: string }) {
   }
 
   function removeField(index: number) {
+    const target = form?.fields[index];
+    if (target && target.label && isClassField(target.label)) {
+      alert("この項目（体験コース）はシステムで予約されているため、削除できません。");
+      return;
+    }
     if (!confirm("この項目を削除しますか？")) return;
     const next = [...form.fields];
     next.splice(index, 1);
@@ -226,7 +249,7 @@ export default function FormAdminClient({ schoolId }: { schoolId: string }) {
           throw new Error(data?.message ?? "フォームの保存に失敗しました");
 
         // 返却がフォーム本体なら反映（{ok:true}でも害なし）
-        if (data?.id && data?.fields) setForm(data);
+        if (data?.id && data?.fields) setForm(ensureClassField(data));
       }
 
       // ✅ メール設定がロードされている場合のみ保存
@@ -373,9 +396,10 @@ export default function FormAdminClient({ schoolId }: { schoolId: string }) {
                 ↓
               </button>
               <button
-                className="rounded border border-gray-300 px-2 py-1 text-xs text-red-600 dark:border-gray-600 dark:text-red-400"
+                className="rounded border border-gray-300 px-2 py-1 text-xs text-red-600 dark:border-gray-600 dark:text-red-400 disabled:opacity-40"
                 onClick={() => removeField(i)}
                 type="button"
+                disabled={isClassField(f.label)}
               >
                 削除
               </button>
@@ -383,31 +407,36 @@ export default function FormAdminClient({ schoolId }: { schoolId: string }) {
             {/* ✅ SELECTの場合の選択肢編集 */}
             {f.type === "SELECT" && (
               <div className="col-span-12 mt-2">
-                <div className="mb-1 text-xs text-gray-500 dark:text-gray-400">
-                  選択肢（改行区切りで入力）
-                </div>
-                <textarea
-                  className={TEXTAREA_BASE}
-                  rows={3}
-                  placeholder="選択肢A&#13;&#10;選択肢B&#13;&#10;選択肢C"
-                  value={
-                    Array.isArray(f.optionsJson)
-                      ? f.optionsJson.map((o: any) => o.label).join("\n")
-                      : ""
-                  }
-                  onChange={(e) => {
-                    const rawVal = e.target.value;
-                    // 入力中は空行も許容しないと改行できないため、そのまま保存
-                    // ※空行除去は保存時や使用時に行う運用にする、あるいは
-                    // 「空文字でも配列には含めるが、labelが空」状態にする
-                    const lines = rawVal.split("\n");
-                    const newOptions = lines.map((s) => ({
-                      label: s, // trim()するとスペース入力できなくなるので注意
-                      value: s,
-                    }));
-                    updateField(i, { optionsJson: newOptions });
-                  }}
-                />
+                {isClassField(f.label) ? (
+                  <div className="rounded bg-blue-50 px-3 py-2 text-xs text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
+                    ※この項目は、コース管理画面に登録されているコースの一覧から自動的に選択肢が作成されます。ここで選択肢を入力する必要はありません。
+                  </div>
+                ) : (
+                  <>
+                    <div className="mb-1 text-xs text-gray-500 dark:text-gray-400">
+                      選択肢（改行区切りで入力）
+                    </div>
+                    <textarea
+                      className={TEXTAREA_BASE}
+                      rows={3}
+                      placeholder="選択肢A&#13;&#10;選択肢B&#13;&#10;選択肢C"
+                      value={
+                        Array.isArray(f.optionsJson)
+                          ? f.optionsJson.map((o: any) => o.label).join("\n")
+                          : ""
+                      }
+                      onChange={(e) => {
+                        const rawVal = e.target.value;
+                        const lines = rawVal.split("\n");
+                        const newOptions = lines.map((s) => ({
+                          label: s,
+                          value: s,
+                        }));
+                        updateField(i, { optionsJson: newOptions });
+                      }}
+                    />
+                  </>
+                )}
               </div>
             )}
           </div>
