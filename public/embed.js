@@ -162,6 +162,30 @@
         transform: translateY(-2px);
         box-shadow: 0 6px 16px rgba(0,0,0,0.15);
       }
+      
+      /* 診断スタートボタン風要素 */
+      .rzb-diagnosis-start-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        margin-top: 4px;
+        padding: 4px 16px;
+        background: ${color};
+        color: #fff;
+        font-size: 11px;
+        font-weight: 900;
+        border-radius: 999px;
+        transition: all 0.2s ease;
+      }
+      .rzb-diagnosis-banner:hover .rzb-diagnosis-start-btn {
+        background: #fff;
+        color: ${color};
+      }
+      .rzb-diagnosis-start-btn svg {
+        width: 10px;
+        height: 10px;
+        fill: currentColor;
+      }
 
       @keyframes rzbTalk {
         0%,60%,100% { transform: scale(0.96) translateY(0); opacity: 0.6; }
@@ -323,7 +347,10 @@
       banner.innerHTML = `
         <span style="font-size: 11px; font-weight: bold; margin-bottom: 2px;">ダンスレッスン</span>
         <span style="font-size: 16px; font-weight: 900; letter-spacing: 0.05em;">相性診断</span>
-        <span style="font-size: 10px; margin-top: 6px; font-weight: bold; opacity: 0.8;">（診断スタート &gt;）</span>
+        <span class="rzb-diagnosis-start-btn">
+          診断スタート
+          <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+        </span>
       `;
       
       const bannerContainer = document.createElement("div");
