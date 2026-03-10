@@ -599,20 +599,11 @@ export default function DiagnosisEmbedClient({
   };
 
   const classOptions = useMemo(() => {
-    if (!schedule) return [];
-
-    const list: { value: string; label: string }[] = [];
-    for (const day of dayOrder) {
-      const slots = schedule[day] ?? [];
-      for (const s of slots) {
-        list.push({
-          value: s.id,
-          label: `${dayLabel[day]} ${s.timeText} ${s.genreText}`,
-        });
-      }
-    }
-    return list;
-  }, [schedule]);
+    return fetchedCourses.map((c) => ({
+      value: c.label, // フォーム送信時にコース名として送るためlabelを使用
+      label: c.label,
+    }));
+  }, [fetchedCourses]);
 
   const dateOptions = useMemo(() => {
     const want = 12;
@@ -794,6 +785,7 @@ export default function DiagnosisEmbedClient({
                     }}
                     classOptions={classOptions}
                     dateOptions={dateOptions}
+                    defaultClassValue={result.selectedCourse?.label ?? ""}
                   />
                 </div>
               )}

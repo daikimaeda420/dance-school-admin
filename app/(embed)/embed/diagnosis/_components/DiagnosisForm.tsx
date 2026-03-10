@@ -24,6 +24,7 @@ type Props = {
   // ✅ 追加：DiagnosisEmbedClient から注入
   classOptions?: SelectOption[];
   dateOptions?: SelectOption[];
+  defaultClassValue?: string;
 };
 
 const BROWN = "text-[#6b4a2b]";
@@ -79,6 +80,7 @@ export default function DiagnosisForm({
   hiddenValues,
   classOptions = [],
   dateOptions = [],
+  defaultClassValue,
 }: Props) {
   const schoolId = useMemo(() => hiddenValues?.schoolId ?? "", [hiddenValues]);
 
@@ -114,8 +116,12 @@ export default function DiagnosisForm({
       classOptions.length > 0 &&
       !(values[classField.id] ?? "")
     ) {
-      // placeholderを残したいならこの行は消してOK
-      // setVal(classField.id, classOptions[0].value);
+      if (defaultClassValue && classOptions.some(o => o.value === defaultClassValue)) {
+        setVal(classField.id, defaultClassValue);
+      } else {
+        // placeholderを残したいならこの行は消してOK
+        // setVal(classField.id, classOptions[0].value);
+      }
     }
     if (dateField && dateOptions.length > 0 && !(values[dateField.id] ?? "")) {
       // setVal(dateField.id, dateOptions[0].value);
