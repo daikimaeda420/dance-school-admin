@@ -14,7 +14,7 @@
 
   // レイアウト系の設定（data-rizbo-* を優先）
   const theme = s.dataset.rizboTheme || s.dataset.theme || "light";
-  const side = s.dataset.rizboSide || s.dataset.side || "right"; // left | right
+  const side = s.dataset.rizboSide || s.dataset.side || "left"; // left | right
   const openByDefault = (s.dataset.rizboOpen ?? s.dataset.open) === "true";
   const width = parseInt(s.dataset.rizboWidth || s.dataset.width || "380", 10);
   const height = parseInt(
@@ -144,18 +144,17 @@
       /* 診断バナー */
       .rzb-diagnosis-banner {
         pointer-events: auto;
-        display: flex; align-items: center; gap: 8px;
+        display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
         background: #fff;
-        border: 1px solid ${color};
+        border: 2px solid ${color};
         color: ${color};
-        padding: 10px 16px;
-        border-radius: 999px;
-        font-size: 14px; font-weight: bold;
+        padding: 12px 16px;
+        border-radius: 16px;
         text-decoration: none;
         box-shadow: 0 4px 12px rgba(0,0,0,0.1);
         transition: all 0.2s ease;
         cursor: pointer;
-        white-space: nowrap;
+        line-height: 1.2;
       }
       .rzb-diagnosis-banner:hover {
         background: ${color};
@@ -322,9 +321,9 @@
       banner.target = "_blank";
       banner.rel = "noopener noreferrer";
       banner.innerHTML = `
-        <span>🩰 ダンスレッスン相性診断</span>
-        <span>→</span>
-        <span>診断スタート</span>
+        <span style="font-size: 11px; font-weight: bold; margin-bottom: 2px;">ダンスレッスン</span>
+        <span style="font-size: 16px; font-weight: 900; letter-spacing: 0.05em;">相性診断</span>
+        <span style="font-size: 10px; margin-top: 6px; font-weight: bold; opacity: 0.8;">（診断スタート &gt;）</span>
       `;
       container.appendChild(banner);
     }
