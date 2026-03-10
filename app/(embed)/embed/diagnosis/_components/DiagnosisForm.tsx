@@ -316,12 +316,18 @@ export default function DiagnosisForm({
 
                 <input
                   type="date"
-                  className={`${INPUT} cursor-pointer w-[200px] text-center min-h-[46px]`}
+                  className={`${INPUT} cursor-pointer w-full text-center min-h-[46px]`}
                   required={dateField.required}
                   min={minDateString}
                   placeholder={dateField.placeholder ?? "年/月/日"}
                   value={values[dateField.id] ?? ""}
                   onChange={(e) => setVal(dateField.id, e.target.value)}
+                  onClick={(e) => {
+                    // @ts-ignore: HTMLInputElement.showPicker() exists in modern browsers
+                    if (e.currentTarget.showPicker) {
+                      e.currentTarget.showPicker();
+                    }
+                  }}
                 />
               </div>
             )}
