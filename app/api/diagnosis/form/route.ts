@@ -30,5 +30,26 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(null);
   }
 
+  const isClassField = (label: string) =>
+    ["体験クラス", "体験コース", "クラス", "コース"].some((k) => label.includes(k));
+
+  const hasClassField = form.fields.some((f) => !!f.label && isClassField(f.label));
+
+  if (!hasClassField) {
+    form.fields.push({
+      id: "virtual-class-field",
+      formId: form.id,
+      label: "体験コース",
+      type: "SELECT",
+      required: true,
+      optionsJson: null,
+      placeholder: null,
+      sortOrder: 9999,
+      isActive: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+  }
+
   return NextResponse.json(form);
 }
