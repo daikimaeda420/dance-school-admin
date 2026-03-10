@@ -43,7 +43,7 @@ export default function ScheduleSection({
   scheduleDay,
   onScheduleDayChange,
 }: Props) {
-  const [viewMode, setViewMode] = useState<ViewDayKey>(scheduleDay);
+  const [viewMode, setViewMode] = useState<ViewDayKey>("ALL");
 
   const s = schedule;
   const total = s

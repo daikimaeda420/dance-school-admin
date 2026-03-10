@@ -601,16 +601,18 @@ export default function DiagnosisEmbedClient({
   const classOptions = useMemo(() => {
     if (!schedule) return [];
 
-    const list = (schedule[scheduleDay] ?? []).map((s) => ({
-      ...s,
-      weekday: scheduleDay as DayKey,
-    }));
-
-    return list.map((s) => ({
-      value: s.id,
-      label: `${dayLabel[s.weekday as DayKey]} ${s.timeText} ${s.genreText}`,
-    }));
-  }, [schedule, scheduleDay]);
+    const list: { value: string; label: string }[] = [];
+    for (const day of dayOrder) {
+      const slots = schedule[day] ?? [];
+      for (const s of slots) {
+        list.push({
+          value: s.id,
+          label: `${dayLabel[day]} ${s.timeText} ${s.genreText}`,
+        });
+      }
+    }
+    return list;
+  }, [schedule]);
 
   const dateOptions = useMemo(() => {
     const want = 12;
