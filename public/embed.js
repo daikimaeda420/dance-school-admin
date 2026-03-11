@@ -154,7 +154,6 @@
         transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
         cursor: pointer;
         line-height: 1.2;
-        padding-top: 4px;
         gap: 3px;
         box-sizing: border-box;
       }

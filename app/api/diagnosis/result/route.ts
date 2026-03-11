@@ -155,8 +155,8 @@ export async function POST(req: NextRequest) {
         schoolId,
         isActive: true,
         q2AnswerTags: { has: q2ForCourse },
-        // ✅ Q4タグがあれば絞り込み（"特になし"以外）
-        ...(q4Tag && q4Tag !== "Genre_None" ? { genreTags: { has: q4Tag } } : {}),
+        // ✅ Q4タグ（ジャンル）で絞り込み
+        ...(q4Tag ? { genreTags: { has: q4Tag } } : {}),
       },
       orderBy: { sortOrder: "asc" },
       select: {
