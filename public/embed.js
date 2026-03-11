@@ -141,45 +141,74 @@
         right: auto; left: 14px;
       }
 
-      /* 診断バナー */
+      /* 診断バナー (丸型バッジ風) */
       .rzb-diagnosis-banner {
         pointer-events: auto;
-        display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        width: 170px; height: 170px;
         background: #fff;
-        border: 2px solid ${color};
-        color: ${color};
-        padding: 12px 16px;
-        border-radius: 16px;
+        border: 7px solid #4b4b4b; /* ダークグレーの太枠 */
+        border-radius: 50%; /* 完全な正円 */
         text-decoration: none;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        transition: all 0.2s ease;
+        box-shadow: 0 8px 16px rgba(0,0,0,0.12);
+        transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
         cursor: pointer;
         line-height: 1.2;
+        padding-top: 4px;
+        gap: 3px;
+        box-sizing: border-box;
       }
       .rzb-diagnosis-banner:hover {
-        background: ${color};
-        color: #fff;
-        transform: translateY(-2px);
-        box-shadow: 0 6px 16px rgba(0,0,0,0.15);
+        transform: translateY(-4px) scale(1.03);
+        box-shadow: 0 12px 24px rgba(0,0,0,0.18);
       }
       
+      /* バナー内テキスト 共通・個別調整 */
+      .rzb-badge-text-top {
+        color: #6b7280; /* グレー */
+        font-size: 14px;
+        font-weight: 700;
+        margin-bottom: 2px;
+      }
+      .rzb-badge-text-sub {
+        color: #1f2937;
+        font-size: 10px;
+        font-weight: 800;
+        margin-bottom: 4px;
+      }
+      .rzb-badge-marker {
+        background: linear-gradient(transparent 60%, rgba(253, 224, 71, 0.8) 60%);
+        padding: 0 2px;
+        color: #ea580c;
+      }
+      .rzb-badge-text-main {
+        color: #ea580c;
+        font-size: 16px;
+        font-weight: 900;
+        letter-spacing: -0.02em;
+        line-height: 1.1;
+      }
+      .rzb-badge-text-large {
+        color: #ea580c;
+        font-size: 22px;
+        font-weight: 900;
+        margin-top: 1px;
+        margin-bottom: 4px;
+        letter-spacing: 0.05em;
+      }
+
       /* 診断スタートボタン風要素 */
       .rzb-diagnosis-start-btn {
         display: inline-flex;
         align-items: center;
-        gap: 6px;
-        margin-top: 4px;
-        padding: 4px 16px;
-        background: ${color};
+        justify-content: center;
+        gap: 2px;
+        padding: 4px 14px;
+        background: #ea580c;
         color: #fff;
         font-size: 11px;
         font-weight: 900;
         border-radius: 999px;
-        transition: all 0.2s ease;
-      }
-      .rzb-diagnosis-banner:hover .rzb-diagnosis-start-btn {
-        background: #fff;
-        color: ${color};
       }
       .rzb-diagnosis-start-btn svg {
         width: 10px;
@@ -345,8 +374,10 @@
       banner.target = "_blank";
       banner.rel = "noopener noreferrer";
       banner.innerHTML = `
-        <span style="font-size: 11px; font-weight: bold; margin-bottom: 2px;">ダンスレッスン</span>
-        <span style="font-size: 16px; font-weight: 900; letter-spacing: 0.05em;">相性診断</span>
+        <span class="rzb-badge-text-top">簡単30秒!</span>
+        <span class="rzb-badge-text-sub"><span class="rzb-badge-marker">おすすめのレッスン</span>をご紹介!</span>
+        <span class="rzb-badge-text-main">ダンスレッスン</span>
+        <span class="rzb-badge-text-large">診断</span>
         <span class="rzb-diagnosis-start-btn">
           診断スタート
           <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
