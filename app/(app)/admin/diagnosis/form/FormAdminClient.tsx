@@ -74,6 +74,9 @@ const isEmailField = (label: string) =>
 const isPhoneField = (label: string) =>
   ["電話", "tel", "電話番号"].some((k) => label.toLowerCase().includes(k));
 
+const isQuestionField = (label: string) =>
+  ["質問", "備考", "ご要望", "その他"].some((k) => label.includes(k));
+
 function ensureRequiredFields(fData: FormData): FormData {
   if (!fData.fields) fData.fields = [];
   
@@ -132,6 +135,18 @@ function ensureRequiredFields(fData: FormData): FormData {
       type: "DATE",
       required: true,
       isActive: true,
+    });
+  }
+
+  // 6. 質問などの保証
+  const hasQuestionField = fData.fields.some((f) => !!f.label && isQuestionField(f.label));
+  if (!hasQuestionField) {
+    fData.fields.push({
+      label: "質問など",
+      type: "TEXTAREA",
+      required: false,
+      isActive: true,
+      placeholder: "気になる点やご要望などがあればご記入ください",
     });
   }
 
@@ -299,6 +314,10 @@ export default function FormAdminClient({ schoolId }: { schoolId: string }) {
       }
       if (isPhoneField(target.label)) {
         alert("この項目（電話番号）はシステムで必須のため、削除できません。");
+        return;
+      }
+      if (isQuestionField(target.label)) {
+        alert("この項目（質問など）はシステムで利用するため、削除できません。");
         return;
       }
     }
@@ -480,7 +499,7 @@ export default function FormAdminClient({ schoolId }: { schoolId: string }) {
                 className="rounded border border-gray-300 px-2 py-1 text-xs text-red-600 dark:border-gray-600 dark:text-red-400 disabled:opacity-40"
                 onClick={() => removeField(i)}
                 type="button"
-                disabled={isClassField(f.label) || isDateField(f.label) || isNameField(f.label) || isEmailField(f.label) || isPhoneField(f.label)}
+                disabled={isClassField(f.label) || isDateField(f.label) || isNameField(f.label) || isEmailField(f.label) || isPhoneField(f.label) || isQuestionField(f.label)}
               >
                 削除
               </button>

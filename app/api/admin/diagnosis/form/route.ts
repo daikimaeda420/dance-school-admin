@@ -86,11 +86,11 @@ export async function GET(req: NextRequest) {
               placeholder: "例）090-1234-5678",
             },
             {
-              label: "備考",
+              label: "質問など",
               type: "TEXTAREA",
               required: false, // 備考は任意にしておく
               sortOrder: 3,
-              placeholder: "ご要望・気になる点があればご記入ください",
+              placeholder: "気になる点やご要望などがあればご記入ください",
             },
           ],
         },
