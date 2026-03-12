@@ -81,14 +81,14 @@ export async function GET(req: NextRequest) {
             {
               label: "電話番号",
               type: "TEL",
-              required: false,
+              required: true, // 今回の要望で必須に
               sortOrder: 2,
               placeholder: "例）090-1234-5678",
             },
             {
               label: "備考",
               type: "TEXTAREA",
-              required: false,
+              required: false, // 備考は任意にしておく
               sortOrder: 3,
               placeholder: "ご要望・気になる点があればご記入ください",
             },

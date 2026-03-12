@@ -65,10 +65,55 @@ const isClassField = (label: string) =>
 const isDateField = (label: string) =>
   ["体験日", "日程", "日時", "体験レッスン日時"].some((k) => label.includes(k));
 
+const isNameField = (label: string) =>
+  ["名前", "氏名", "お名前"].some((k) => label.includes(k));
+
+const isEmailField = (label: string) =>
+  ["メール", "email", "アドレス"].some((k) => label.toLowerCase().includes(k));
+
+const isPhoneField = (label: string) =>
+  ["電話", "tel", "電話番号"].some((k) => label.toLowerCase().includes(k));
+
 function ensureRequiredFields(fData: FormData): FormData {
   if (!fData.fields) fData.fields = [];
   
-  // 1. 体験コースの保証
+  // 1. お名前の保証
+  const hasNameField = fData.fields.some((f) => !!f.label && isNameField(f.label));
+  if (!hasNameField) {
+    fData.fields.push({
+      label: "お名前",
+      type: "TEXT",
+      required: true,
+      isActive: true,
+      placeholder: "例）山田 太郎",
+    });
+  }
+
+  // 2. メールアドレスの保証
+  const hasEmailField = fData.fields.some((f) => !!f.label && isEmailField(f.label));
+  if (!hasEmailField) {
+    fData.fields.push({
+      label: "メールアドレス",
+      type: "EMAIL",
+      required: true,
+      isActive: true,
+      placeholder: "例）taro@example.com",
+    });
+  }
+
+  // 3. 電話番号の保証
+  const hasPhoneField = fData.fields.some((f) => !!f.label && isPhoneField(f.label));
+  if (!hasPhoneField) {
+    fData.fields.push({
+      label: "電話番号",
+      type: "TEL",
+      required: true, // 今回のご要望で必須に設定
+      isActive: true,
+      placeholder: "例）090-1234-5678",
+    });
+  }
+
+  // 4. 体験コースの保証
   const hasClassField = fData.fields.some((f) => !!f.label && isClassField(f.label));
   if (!hasClassField) {
     fData.fields.push({
@@ -79,7 +124,7 @@ function ensureRequiredFields(fData: FormData): FormData {
     });
   }
 
-  // 2. 体験レッスン日時の保証
+  // 5. 体験レッスン日時の保証
   const hasDateField = fData.fields.some((f) => !!f.label && isDateField(f.label));
   if (!hasDateField) {
     fData.fields.push({
@@ -235,13 +280,27 @@ export default function FormAdminClient({ schoolId }: { schoolId: string }) {
 
   function removeField(index: number) {
     const target = form?.fields[index];
-    if (target && target.label && isClassField(target.label)) {
-      alert("この項目（体験コース）はシステムで予約されているため、削除できません。");
-      return;
-    }
-    if (target && target.label && isDateField(target.label)) {
-      alert("この項目（体験レッスン日時）はシステムで予約されているため、削除できません。");
-      return;
+    if (target && target.label) {
+      if (isClassField(target.label)) {
+        alert("この項目（体験コース）はシステムで必須のため、削除できません。");
+        return;
+      }
+      if (isDateField(target.label)) {
+        alert("この項目（体験レッスン日時）はシステムで必須のため、削除できません。");
+        return;
+      }
+      if (isNameField(target.label)) {
+        alert("この項目（お名前）はシステムで必須のため、削除できません。");
+        return;
+      }
+      if (isEmailField(target.label)) {
+        alert("この項目（メールアドレス）はシステムで必須のため、削除できません。");
+        return;
+      }
+      if (isPhoneField(target.label)) {
+        alert("この項目（電話番号）はシステムで必須のため、削除できません。");
+        return;
+      }
     }
     if (!confirm("この項目を削除しますか？")) return;
     const next = [...form.fields];
@@ -421,7 +480,7 @@ export default function FormAdminClient({ schoolId }: { schoolId: string }) {
                 className="rounded border border-gray-300 px-2 py-1 text-xs text-red-600 dark:border-gray-600 dark:text-red-400 disabled:opacity-40"
                 onClick={() => removeField(i)}
                 type="button"
-                disabled={isClassField(f.label) || isDateField(f.label)}
+                disabled={isClassField(f.label) || isDateField(f.label) || isNameField(f.label) || isEmailField(f.label) || isPhoneField(f.label)}
               >
                 削除
               </button>
