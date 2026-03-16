@@ -742,28 +742,6 @@ export default function DiagnosisEmbedClient({
                 onToggleFaq={(i) => setOpenIndex(openIndex === i ? null : i)}
               />
 
-              {/* CTA (フッター固定) - フォームが見えたら隠す */}
-              <div
-                className={`fixed bottom-0 left-0 z-50 w-full bg-white/90 backdrop-blur-sm p-4 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] transition-all duration-300 ${
-                  isFormVisible
-                    ? "pointer-events-none translate-y-full opacity-0"
-                    : "translate-y-0 opacity-100"
-                }`}
-              >
-                <div className="mx-auto max-w-[560px]">
-                  <button
-                    type="button"
-                    onClick={handleCtaClick}
-                    className="flex w-full max-w-[360px] mx-auto items-center justify-center rounded-full bg-[#f5c400] px-6 py-4 text-[18px] font-bold text-[#6b4a2b] shadow-lg transition-transform hover:scale-105 active:scale-95"
-                  >
-                    体験予約はコチラ
-                  </button>
-                </div>
-              </div>
-
-              {/* フッター固定分の余白 */}
-              <div className="h-24" />
-
               {/* ✅ 診断結果フォーム（ここ1回だけ） */}
               {diagnosisForm && (
                 <div ref={formRef}>
@@ -789,6 +767,28 @@ export default function DiagnosisEmbedClient({
                   />
                 </div>
               )}
+
+              {/* フッター固定分の余白 */}
+              <div className="h-24" />
+
+              {/* CTA (フッター固定) - フォームが見えたら隠す */}
+              <div
+                className={`fixed bottom-0 left-0 z-50 w-full bg-white/90 backdrop-blur-sm p-4 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] transition-all duration-300 ${
+                  isFormVisible
+                    ? "pointer-events-none translate-y-full opacity-0"
+                    : "translate-y-0 opacity-100"
+                }`}
+              >
+                <div className="mx-auto max-w-[560px]">
+                  <button
+                    type="button"
+                    onClick={handleCtaClick}
+                    className="flex w-full max-w-[360px] mx-auto items-center justify-center rounded-full bg-[#f5c400] px-6 py-4 text-[18px] font-bold text-[#6b4a2b] shadow-lg transition-transform hover:scale-105 active:scale-95"
+                  >
+                    体験予約はコチラ
+                  </button>
+                </div>
+              </div>
             </div>
           ) : (
             // ==========================

@@ -122,13 +122,21 @@ export async function POST(req: NextRequest) {
     const fieldsText = buildFieldsText(fields);
     const hiddenText = buildFieldsText(hiddenValues);
 
-    const vars = {
+    const vars: Record<string, string> = {
       fieldsText,
       hiddenText,
       submittedAt,
       schoolId,
       userEmail,
     };
+
+    // {{fields.XXX}} や {{hidden.XXX}} をテンプレートで使えるように追加
+    for (const [k, v] of Object.entries(fields)) {
+      vars[`fields.${k}`] = String(v);
+    }
+    for (const [k, v] of Object.entries(hiddenValues)) {
+      vars[`hidden.${k}`] = String(v);
+    }
 
     // =========
     // 管理者通知

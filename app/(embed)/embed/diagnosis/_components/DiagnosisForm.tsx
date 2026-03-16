@@ -144,37 +144,70 @@ export default function DiagnosisForm({
   }, []);
 
   return (
-    <section className="mt-8">
-      <div className="rounded-[28px] bg-white px-6 pt-7 pb-6 shadow-[0_10px_25px_rgba(0,0,0,0.08)] ring-1 ring-black/5">
-        {/* ここは前回のデザインのまま（必要なら文言も差し替えOK） */}
-        <div className="text-center">
-          <h2 className={`text-[26px] font-extrabold ${BROWN}`}>体験予約</h2>
-          {form.title && (
-            <div className="mt-2 text-[14px] font-bold text-[#6b4a2b]/85">
-              {form.title}
-            </div>
-          )}
-          {form.description && (
-            <div className="mt-3 text-[12px] font-semibold text-[#6b4a2b]/70 whitespace-pre-wrap">
-              {form.description}
-            </div>
-          )}
-        </div>
-
-        <div className="my-7 h-px w-full bg-black/10" />
-
-        <div className="text-center">
-          <div className={`text-[24px] font-extrabold ${BROWN}`}>
-            体験予約フォーム
-          </div>
-        </div>
-
+    <section>
+      <div className="rounded-[28px] bg-white px-5 py-6 shadow-[0_10px_25px_rgba(0,0,0,0.08)] ring-1 ring-black/5">
         {done ? (
-          <div className="mt-5 rounded-2xl bg-[#ecf8ee] px-4 py-4 text-[13px] font-semibold text-green-800 ring-1 ring-green-200">
-            送信が完了しました。ご連絡をお待ちください。
+          <div className="flex flex-col items-center justify-center py-10 text-center">
+            <div className="mb-6 grid h-20 w-20 place-items-center rounded-full bg-[#ecf8ee] text-green-600 ring-4 ring-green-50 shadow-sm">
+              <svg
+                width="40"
+                height="40"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="3"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M20 6L9 17l-5-5" />
+              </svg>
+            </div>
+            <div className={`text-[24px] font-extrabold ${BROWN} mb-4`}>
+              ご予約完了
+            </div>
+            <div className="text-[14px] font-semibold leading-relaxed text-[#6b4a2b]/80 mb-8">
+              体験レッスンのご予約を受け付けました。<br />
+              ご入力いただいたメールアドレス宛に<br />
+              詳細をご案内いたしますので、<br />今しばらくお待ちください。
+            </div>
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              className={[
+                "w-full max-w-[280px] rounded-full py-4 text-[16px] font-extrabold",
+                "bg-[#f5c400] text-[#6b4a2b]",
+                "shadow-[0_8px_16px_rgba(0,0,0,0.1)]",
+                "transition-transform active:scale-[0.99]",
+              ].join(" ")}
+            >
+              トップに戻る
+            </button>
           </div>
         ) : (
-          <form
+          <>
+            <div className="text-center">
+              <h2 className={`text-[26px] font-extrabold ${BROWN}`}>体験予約</h2>
+              {form.title && (
+                <div className="mt-2 text-[14px] font-bold text-[#6b4a2b]/85">
+                  {form.title}
+                </div>
+              )}
+              {form.description && (
+                <div className="mt-3 text-[12px] font-semibold text-[#6b4a2b]/70 whitespace-pre-wrap">
+                  {form.description}
+                </div>
+              )}
+            </div>
+
+            <div className="my-7 h-px w-full bg-black/10" />
+
+            <div className="text-center">
+              <div className={`text-[24px] font-extrabold ${BROWN}`}>
+                体験予約フォーム
+              </div>
+            </div>
+
+            <form
             className="mt-6 space-y-6"
             onSubmit={async (e) => {
               e.preventDefault();
@@ -427,6 +460,7 @@ export default function DiagnosisForm({
               {sending ? "送信中..." : "体験レッスンを申し込む"}
             </button>
           </form>
+          </>
         )}
       </div>
     </section>
