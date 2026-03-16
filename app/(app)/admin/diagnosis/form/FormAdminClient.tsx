@@ -420,6 +420,16 @@ export default function FormAdminClient({ schoolId }: { schoolId: string }) {
             onChange={(e) => setForm({ ...form, description: e.target.value })}
           />
         </div>
+
+        <div>
+          <label className="block text-sm mb-1">トップに戻るボタンのURL（完了ページの遷移先）</label>
+          <input
+            className={INPUT_BASE}
+            placeholder="https://example.com/thanks"
+            value={form.thanksUrl ?? ""}
+            onChange={(e) => setForm({ ...form, thanksUrl: e.target.value })}
+          />
+        </div>
       </section>
 
       {/* ========== フォーム項目 ========== */}

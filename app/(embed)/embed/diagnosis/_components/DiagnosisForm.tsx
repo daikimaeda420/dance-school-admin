@@ -17,6 +17,7 @@ type Props = {
   form: {
     title?: string | null;
     description?: string | null;
+    thanksUrl?: string | null;
     fields: Field[];
   };
   hiddenValues?: Record<string, string>;
@@ -172,7 +173,13 @@ export default function DiagnosisForm({
             </div>
             <button
               type="button"
-              onClick={() => window.location.reload()}
+              onClick={() => {
+                if (form.thanksUrl) {
+                  window.top!.location.href = form.thanksUrl;
+                } else {
+                  window.location.reload();
+                }
+              }}
               className={[
                 "w-full max-w-[280px] rounded-full py-4 text-[16px] font-extrabold",
                 "bg-[#f5c400] text-[#6b4a2b]",
