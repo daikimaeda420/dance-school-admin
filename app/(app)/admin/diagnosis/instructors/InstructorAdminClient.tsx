@@ -3,6 +3,14 @@
 
 import { QUESTIONS } from "@/lib/diagnosis/config";
 import { useEffect, useMemo, useState } from "react";
+import AdminPageHeader from "../_components/AdminPageHeader";
+import {
+  adminCard,
+  adminInput,
+  adminBtnPrimary,
+  adminBtn,
+  adminBtnDanger,
+} from "../_components/adminStyles";
 
 type Props = { initialSchoolId?: string };
 
@@ -45,30 +53,15 @@ function slugifyJa(input: string) {
     .replace(/^\-|\-$/g, "");
 }
 
-const card =
-  "rounded-2xl border border-gray-200 bg-white p-4 shadow-sm " +
-  "dark:border-gray-800 dark:bg-gray-900";
-const input =
-  "w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 " +
-  "placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 " +
-  "disabled:opacity-50 " +
-  "dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100 dark:placeholder:text-gray-500";
+const card = adminCard;
+const input = adminInput;
 const monoInput = input + " font-mono";
 const codePill =
   "rounded bg-gray-100 px-1 py-0.5 text-[11px] text-gray-800 " +
   "dark:bg-gray-800 dark:text-gray-100";
-const btnPrimary =
-  "rounded-full bg-blue-600 px-4 py-2 text-sm font-semibold text-white " +
-  "hover:bg-blue-700 disabled:opacity-50 " +
-  "dark:bg-blue-500 dark:hover:bg-blue-400";
-const btnOutline =
-  "rounded-full border border-gray-300 bg-white px-4 py-2 text-sm " +
-  "hover:bg-gray-50 disabled:opacity-50 " +
-  "dark:border-gray-700 dark:bg-gray-900 dark:hover:bg-gray-800";
-const btnDanger =
-  "rounded-full border border-red-200 bg-white px-3 py-1.5 text-xs text-red-600 " +
-  "hover:bg-red-50 disabled:opacity-50 " +
-  "dark:border-red-900/50 dark:bg-gray-900 dark:text-red-300 dark:hover:bg-red-950/40";
+const btnPrimary = adminBtnPrimary;
+const btnOutline = adminBtn;
+const btnDanger = adminBtnDanger;
 const thumb =
   "h-12 w-12 rounded-xl border border-gray-200 object-cover dark:border-gray-800";
 
@@ -789,15 +782,15 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
 
   return (
     <div className="mx-auto w-full p-6 text-gray-900 dark:text-gray-100">
-      <div className="mb-4">
-        <div className="text-base font-bold">診断編集：講師管理</div>
-        <div className="text-xs text-gray-500 dark:text-gray-400">
-          画像は管理画面からアップロードしてDBに保存します（上限はAPI内で制御）。
-          <span className="ml-2">
-            推奨画像サイズ：<span className="font-semibold">500×500</span>
-          </span>
-        </div>
-      </div>
+      <AdminPageHeader
+        title="講師管理"
+        description="講師の追加・編集・写真アップロードが可能です。各講師ごとに編集→保存してください。推奨画像サイズ：500×500"
+        isDirty={false}
+        saving={false}
+        error={error}
+        onSave={() => {}}
+        hideSave
+      />
 
       {/* create */}
       <div className={`mb-4 ${card}`}>
@@ -992,11 +985,6 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
         </div>
       </div>
 
-      {error && (
-        <div className="mb-3 rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-700 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-200">
-          {error}
-        </div>
-      )}
 
       {/* list */}
       <div className={card}>

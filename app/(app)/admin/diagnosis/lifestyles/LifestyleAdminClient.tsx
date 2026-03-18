@@ -2,6 +2,14 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import AdminPageHeader from "../_components/AdminPageHeader";
+import {
+  adminCard,
+  adminInput,
+  adminBtn,
+  adminBtnPrimary,
+  adminBtnDanger,
+} from "../_components/adminStyles";
 
 type Row = {
   id: string;
@@ -12,31 +20,7 @@ type Row = {
   isActive: boolean;
 };
 
-const card =
-  "rounded-2xl border border-gray-200 bg-white p-4 shadow-sm " +
-  "dark:border-gray-800 dark:bg-gray-900";
-
-const input =
-  "w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 " +
-  "placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 " +
-  "disabled:opacity-50 " +
-  "dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100 dark:placeholder:text-gray-500";
-
-const btn =
-  "rounded-xl px-3 py-2 text-sm font-medium border " +
-  "border-gray-200 bg-white hover:bg-gray-50 text-gray-900 " +
-  "dark:border-gray-800 dark:bg-gray-900 dark:hover:bg-gray-800 dark:text-gray-100";
-
-const btnDanger =
-  "rounded-xl px-3 py-2 text-sm font-medium border " +
-  "border-red-200 bg-white hover:bg-red-50 text-red-700 " +
-  "dark:border-red-900 dark:bg-gray-900 dark:hover:bg-red-950 dark:text-red-200";
-
-const btnPrimary =
-  "rounded-xl px-3 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:hover:bg-blue-600";
-
 function normalizeRowsWithOrder(rows: Row[]) {
-  // 並び順は UI では見せないが、保存時に必要なので state には持たせる
   return rows
     .slice()
     .sort((a, b) => a.sortOrder - b.sortOrder)
@@ -63,7 +47,6 @@ export default function LifestyleAdminClient({
   const [savingId, setSavingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // 新規追加（並び順は入力させず末尾に自動付与）
   const [newLabel, setNewLabel] = useState("");
   const [newSlug, setNewSlug] = useState("");
   const [newIsActive, setNewIsActive] = useState(true);
@@ -71,7 +54,6 @@ export default function LifestyleAdminClient({
   const apiBase = useMemo(() => `/api/admin/diagnosis/lifestyles`, []);
   const originalRef = useRef<Row[]>([]);
 
-  // DnD
   const dragIdRef = useRef<string | null>(null);
   const overIdRef = useRef<string | null>(null);
 
@@ -80,7 +62,7 @@ export default function LifestyleAdminClient({
     if (orig.length !== rows.length) return true;
     for (let i = 0; i < rows.length; i++) {
       if (!orig[i]) return true;
-      if (rows[i].id !== orig[i].id) return true; // 順番が変わった
+      if (rows[i].id !== orig[i].id) return true;
       if (!isRowEqual(rows[i], orig[i])) return true;
     }
     return false;
@@ -93,7 +75,7 @@ export default function LifestyleAdminClient({
 
     try {
       const res = await fetch(url, { cache: "no-store" });
-      const text = await res.text(); // ← 先に text で取る（JSONじゃなくても落ちない）
+      const text = await res.text();
 
       let data: any = null;
       try {
@@ -183,12 +165,8 @@ export default function LifestyleAdminClient({
       const data = await res.json();
       if (!res.ok) throw new Error(data?.message ?? "削除に失敗しました");
 
-      // 削除は即時反映 & 並び順詰める（未保存編集と衝突しにくいようにそのまま state 更新）
       const next = normalizeRowsWithOrder(rows.filter((r) => r.id !== id));
       setRows(next);
-
-      // サーバー側は削除のみでOKだが、sortOrder詰めが必要なら保存を促す
-      // ここでは「保存」ボタンに任せる（dirtyになる）
     } catch (e: any) {
       setError(e.message ?? "削除に失敗しました");
     } finally {
@@ -218,12 +196,9 @@ export default function LifestyleAdminClient({
     try {
       const orig = originalRef.current;
 
-      // 差分がある行だけPATCH（順番も含む）
       for (let i = 0; i < rows.length; i++) {
         const cur = rows[i];
         const before = orig.find((x) => x.id === cur.id);
-
-        // 新規追加は fetchRows で同期済み想定（ここには来ないはず）
         if (!before) continue;
 
         if (!isRowEqual(cur, before)) {
@@ -236,7 +211,6 @@ export default function LifestyleAdminClient({
         }
       }
 
-      // 保存後にサーバーの真実で取り直す（表示も安定）
       await fetchRows();
     } catch (e: any) {
       setError(e.message ?? "保存に失敗しました");
@@ -251,25 +225,18 @@ export default function LifestyleAdminClient({
 
   return (
     <div className="space-y-4">
-      <div className={card}>
-        <div className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-          年代・ライフスタイル（Q3）
-        </div>
-        <div className="mt-2 text-sm text-gray-600 dark:text-gray-300">
-          デフォルト6項目が自動で作成されます。追加・編集・削除・並び替えが可能です。
-          <br />
-          並び替えはドラッグ＆ドロップで行い、最後に「変更を保存」を押してください。
-        </div>
-      </div>
-
-      {error && (
-        <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-200">
-          {error}
-        </div>
-      )}
+      <AdminPageHeader
+        title="年代・ライフスタイル（Q3）"
+        description="デフォルト6項目が自動で作成されます。追加・編集・削除・並び替えが可能です。並び替えはドラッグ＆ドロップで行い、最後に「保存」を押してください。"
+        isDirty={dirty}
+        saving={saving}
+        error={error}
+        onSave={saveAll}
+        onDiscard={resetEdits}
+      />
 
       {/* 新規追加 */}
-      <div className={card}>
+      <div className={adminCard}>
         <div className="font-semibold text-gray-900 dark:text-gray-100">
           新規追加
         </div>
@@ -279,7 +246,7 @@ export default function LifestyleAdminClient({
               表示ラベル
             </div>
             <input
-              className={input}
+              className={adminInput}
               value={newLabel}
               onChange={(e) => setNewLabel(e.target.value)}
               placeholder="例：社会人（お仕事をしている方）"
@@ -290,7 +257,7 @@ export default function LifestyleAdminClient({
               slug（回答値）
             </div>
             <input
-              className={input}
+              className={adminInput}
               value={newSlug}
               onChange={(e) => setNewSlug(e.target.value)}
               placeholder="例：worker"
@@ -309,42 +276,23 @@ export default function LifestyleAdminClient({
           </label>
 
           <button
-            className={btnPrimary}
+            className={adminBtnPrimary}
             onClick={createRow}
             disabled={savingId === "new" || !newLabel.trim() || !newSlug.trim()}
           >
             {savingId === "new" ? "追加中..." : "追加"}
           </button>
 
-          <button className={btn} onClick={fetchRows} disabled={loading}>
+          <button className={adminBtn} onClick={fetchRows} disabled={loading}>
             {loading ? "更新中..." : "再読込"}
           </button>
         </div>
       </div>
 
       {/* 一覧 */}
-      <div className={card}>
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="font-semibold text-gray-900 dark:text-gray-100">
-            一覧
-          </div>
-
-          <div className="flex items-center gap-2">
-            <button
-              className={btn}
-              onClick={resetEdits}
-              disabled={!dirty || saving}
-            >
-              変更を破棄
-            </button>
-            <button
-              className={btnPrimary}
-              onClick={saveAll}
-              disabled={!dirty || saving}
-            >
-              {saving ? "保存中..." : "変更を保存"}
-            </button>
-          </div>
+      <div className={adminCard}>
+        <div className="font-semibold text-gray-900 dark:text-gray-100">
+          一覧
         </div>
 
         <div className="mt-3 overflow-x-auto">
@@ -386,8 +334,7 @@ export default function LifestyleAdminClient({
                     overIdRef.current = null;
                   }}
                 >
-                  {/* ハンドル（見た目用。行自体を draggable にしてる） */}
-                  <td className="py-2 pr-3 text-gray-400 dark:text-gray-500 select-none">
+                  <td className="py-2 pr-3 text-gray-400 dark:text-gray-500 select-none cursor-move">
                     ≡
                   </td>
 
@@ -410,7 +357,7 @@ export default function LifestyleAdminClient({
 
                   <td className="py-2 pr-3">
                     <input
-                      className={input}
+                      className={adminInput}
                       value={r.label}
                       onChange={(e) =>
                         setRows((prev) =>
@@ -425,7 +372,7 @@ export default function LifestyleAdminClient({
 
                   <td className="py-2 pr-3">
                     <input
-                      className={input}
+                      className={adminInput}
                       value={r.slug}
                       onChange={(e) =>
                         setRows((prev) =>
@@ -440,7 +387,7 @@ export default function LifestyleAdminClient({
 
                   <td className="py-2 pr-3">
                     <button
-                      className={btnDanger}
+                      className={adminBtnDanger}
                       onClick={() => deleteRow(r.id)}
                       disabled={savingId === r.id || saving}
                     >

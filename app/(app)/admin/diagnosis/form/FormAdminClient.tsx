@@ -1,7 +1,9 @@
 // app/admin/diagnosis/form/FormAdminClient.tsx
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import AdminPageHeader from "../_components/AdminPageHeader";
+import { adminCard } from "../_components/adminStyles";
 
 type Field = {
   id?: string;
@@ -189,8 +191,17 @@ export default function FormAdminClient({ schoolId }: { schoolId: string }) {
   const [err, setErr] = useState<string | null>(null);
   const [emailErr, setEmailErr] = useState<string | null>(null);
 
+  const [originalForm, setOriginalForm] = useState<FormData | null>(null);
+  const [originalEmail, setOriginalEmail] = useState<EmailSetting | null>(null);
+
   // 画面上にまとめて出す用（フォームのエラー優先→メールのエラー）
   const topError = useMemo(() => err ?? emailErr, [err, emailErr]);
+
+  const isDirty = useMemo(() => {
+    if (!form || !originalForm) return false;
+    return JSON.stringify(form) !== JSON.stringify(originalForm) ||
+           JSON.stringify(emailSetting) !== JSON.stringify(originalEmail);
+  }, [form, originalForm, emailSetting, originalEmail]);
 
   useEffect(() => {
     let cancelled = false;
@@ -212,7 +223,11 @@ export default function FormAdminClient({ schoolId }: { schoolId: string }) {
         const data = JSON.parse(text);
 
         if (!res.ok) throw new Error(data?.message ?? "フォームAPI error");
-        if (!cancelled) setForm(ensureRequiredFields(data));
+        if (!cancelled) {
+          const fd = ensureRequiredFields(data);
+          setForm(fd);
+          setOriginalForm(JSON.parse(JSON.stringify(fd)));
+        }
 
         // ✅ メール設定（別API）
         // API未実装/テーブル未作成などで失敗しても、フォーム編集は生かす
@@ -230,7 +245,10 @@ export default function FormAdminClient({ schoolId }: { schoolId: string }) {
 
           if (!res2.ok)
             throw new Error(data2?.message ?? "メール設定API error");
-          if (!cancelled) setEmailSetting(data2);
+          if (!cancelled) {
+            setEmailSetting(data2);
+            setOriginalEmail(JSON.parse(JSON.stringify(data2)));
+          }
         } catch (e: any) {
           if (!cancelled) {
             setEmailSetting(null);
@@ -349,7 +367,11 @@ export default function FormAdminClient({ schoolId }: { schoolId: string }) {
           throw new Error(data?.message ?? "フォームの保存に失敗しました");
 
         // 返却がフォーム本体なら反映（{ok:true}でも害なし）
-        if (data?.id && data?.fields) setForm(ensureRequiredFields(data));
+        if (data?.id && data?.fields) {
+          const fd = ensureRequiredFields(data);
+          setForm(fd);
+          setOriginalForm(JSON.parse(JSON.stringify(fd)));
+        }
       }
 
       // ✅ メール設定がロードされている場合のみ保存
@@ -365,11 +387,12 @@ export default function FormAdminClient({ schoolId }: { schoolId: string }) {
         const data2 = JSON.parse(text2);
 
         if (!res2.ok) {
-          // フォーム保存は成功してるので、メール側だけエラー表示
           setEmailErr(data2?.message ?? "メール設定の保存に失敗しました");
         } else {
-          // 返ってきた最新を反映
-          if (data2?.id) setEmailSetting(data2);
+          if (data2?.id) {
+            setEmailSetting(data2);
+            setOriginalEmail(JSON.parse(JSON.stringify(data2)));
+          }
         }
       }
 
@@ -381,18 +404,29 @@ export default function FormAdminClient({ schoolId }: { schoolId: string }) {
     }
   }
 
+  const handleDiscard = () => {
+    if (originalForm) setForm(JSON.parse(JSON.stringify(originalForm)));
+    if (originalEmail) setEmailSetting(JSON.parse(JSON.stringify(originalEmail)));
+    setErr(null);
+    setEmailErr(null);
+  };
+
   return (
     <div className="space-y-6 text-gray-900 dark:text-gray-100">
-      {topError && (
-        <div className="rounded-xl border border-red-300 bg-red-50 p-4 text-sm text-red-700 dark:border-red-700 dark:bg-red-900/30 dark:text-red-300">
-          {topError}
-        </div>
-      )}
+      <AdminPageHeader
+        title="フォーム設定"
+        description="体験予約フォームの項目・メール設定を管理します。変更後は保存ボタンを押してください。"
+        isDirty={isDirty}
+        saving={saving}
+        error={topError}
+        onSave={saveAll}
+        onDiscard={handleDiscard}
+      />
 
       {/* ========== フォーム基本 ========== */}
-      <section className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900 space-y-3">
+      <section className={adminCard + " space-y-3"}>
         <div className="flex items-center justify-between gap-3">
-          <div className="font-semibold">フォーム設定</div>
+          <div className="font-semibold">フォーム基本設定</div>
           <label className="flex items-center gap-2 text-sm">
             <input
               type="checkbox"
@@ -433,7 +467,7 @@ export default function FormAdminClient({ schoolId }: { schoolId: string }) {
       </section>
 
       {/* ========== フォーム項目 ========== */}
-      <section className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900 space-y-4">
+      <section className={adminCard + " space-y-4"}>
         <div className="flex justify-between items-center">
           <h3 className="font-semibold">フォーム項目</h3>
           <button
@@ -554,7 +588,7 @@ export default function FormAdminClient({ schoolId }: { schoolId: string }) {
       </section>
 
       {/* ========== メール設定（統合） ========== */}
-      <section className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900 space-y-4">
+      <section className={adminCard + " space-y-4"}>
         <div className="flex items-center justify-between gap-3">
           <h3 className="font-semibold">メール設定</h3>
           {!emailSetting && (
@@ -790,17 +824,6 @@ export default function FormAdminClient({ schoolId }: { schoolId: string }) {
         )}
       </section>
 
-      {/* ========== 保存ボタン ========== */}
-      <div className="text-right">
-        <button
-          onClick={saveAll}
-          disabled={saving}
-          className="rounded bg-green-600 px-6 py-2 text-sm text-white hover:bg-green-700 disabled:opacity-50"
-          type="button"
-        >
-          {saving ? "保存中..." : "保存する"}
-        </button>
-      </div>
     </div>
   );
 }

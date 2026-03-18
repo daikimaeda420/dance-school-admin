@@ -2,6 +2,14 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import AdminPageHeader from "../_components/AdminPageHeader";
+import {
+  adminCard,
+  adminInput,
+  adminBtn,
+  adminBtnPrimary,
+  adminBtnDanger,
+} from "../_components/adminStyles";
 
 type Row = {
   id: string;
@@ -11,29 +19,6 @@ type Row = {
   sortOrder: number;
   isActive: boolean;
 };
-
-const card =
-  "rounded-2xl border border-gray-200 bg-white p-4 shadow-sm " +
-  "dark:border-gray-800 dark:bg-gray-900";
-
-const input =
-  "w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 " +
-  "placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 " +
-  "disabled:opacity-50 " +
-  "dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100 dark:placeholder:text-gray-500";
-
-const btn =
-  "rounded-xl px-3 py-2 text-sm font-medium border " +
-  "border-gray-200 bg-white hover:bg-gray-50 text-gray-900 " +
-  "dark:border-gray-800 dark:bg-gray-900 dark:hover:bg-gray-800 dark:text-gray-100";
-
-const btnDanger =
-  "rounded-xl px-3 py-2 text-sm font-medium border " +
-  "border-red-200 bg-white hover:bg-red-50 text-red-700 " +
-  "dark:border-red-900 dark:bg-gray-900 dark:hover:bg-red-950 dark:text-red-200";
-
-const btnPrimary =
-  "rounded-xl px-3 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:hover:bg-blue-600";
 
 function normalizeRowsWithOrder(rows: Row[]) {
   return rows
@@ -83,8 +68,6 @@ export default function GenreAdminClient({
     return false;
   }, [rows]);
 
-  const [debugInfo, setDebugInfo] = useState<string>(""); // ✅ Debug info
-
   async function fetchRows() {
     setLoading(true);
     setError(null);
@@ -101,11 +84,6 @@ export default function GenreAdminClient({
       const normalized = normalizeRowsWithOrder(data?.genres ?? []);
       setRows(normalized);
       originalRef.current = normalized;
-      
-      // Debug info
-      if (data.debug) {
-        setDebugInfo(`Count:${data.debug.count}, ID:${data.debug.schoolId}`);
-      }
     } catch (e: any) {
       setError(e?.message ?? "取得に失敗しました");
     } finally {
@@ -262,24 +240,18 @@ export default function GenreAdminClient({
 
   return (
     <div className="space-y-4">
-      <div className={card}>
-        <div className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-          Q4 ジャンル設定
-        </div>
-        <div className="mt-2 text-sm text-gray-600 dark:text-gray-300">
-          診断の「興味のあるジャンル」の選択肢を管理します。
-          名称編集、表示・非表示、並び替えが可能です。
-        </div>
-      </div>
-
-      {error && (
-        <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-200">
-          {error}
-        </div>
-      )}
+      <AdminPageHeader
+        title="Q4 ジャンル設定"
+        description="診断の「興味のあるジャンル」の選択肢を管理します。名称編集、表示・非表示、並び替えが可能です。"
+        isDirty={dirty}
+        saving={saving}
+        error={error}
+        onSave={saveAll}
+        onDiscard={resetEdits}
+      />
 
       {/* 新規追加 */}
-      <div className={card}>
+      <div className={adminCard}>
         <div className="font-semibold text-gray-900 dark:text-gray-100">
           新規追加
         </div>
@@ -289,7 +261,7 @@ export default function GenreAdminClient({
               表示ラベル
             </div>
             <input
-              className={input}
+              className={adminInput}
               value={newLabel}
               onChange={(e) => setNewLabel(e.target.value)}
               placeholder="例：ブレイクダンス"
@@ -300,7 +272,7 @@ export default function GenreAdminClient({
               タグ（内部識別子）
             </div>
             <input
-              className={input}
+              className={adminInput}
               value={newSlug}
               onChange={(e) => setNewSlug(e.target.value)}
               placeholder="例：Genre_Break"
@@ -319,50 +291,31 @@ export default function GenreAdminClient({
           </label>
 
           <button
-            className={btnPrimary}
+            className={adminBtnPrimary}
             onClick={createRow}
             disabled={savingId === "new" || !newLabel.trim() || !newSlug.trim()}
           >
             {savingId === "new" ? "追加中..." : "追加"}
           </button>
 
-          <button className={btn} onClick={fetchRows} disabled={loading}>
+          <button className={adminBtn} onClick={fetchRows} disabled={loading}>
             {loading ? "更新中..." : "再読込"}
+          </button>
+
+          <button
+            className={adminBtnDanger}
+            onClick={handleReset}
+            disabled={loading || saving}
+          >
+            初期値でリセット
           </button>
         </div>
       </div>
 
       {/* 一覧 */}
-      <div className={card}>
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="font-semibold text-gray-900 dark:text-gray-100">
-            ジャンル一覧 {debugInfo && <span className="text-xs font-normal text-gray-500">({debugInfo})</span>}
-          </div>
-
-          <div className="flex items-center gap-2">
-            <button
-              className={btnDanger}
-              onClick={handleReset}
-              disabled={loading || saving}
-            >
-              初期値でリセット
-            </button>
-            <div className="mx-2 h-4 w-px bg-gray-200 dark:bg-gray-800" />
-            <button
-              className={btn}
-              onClick={resetEdits}
-              disabled={!dirty || saving}
-            >
-              変更を破棄
-            </button>
-            <button
-              className={btnPrimary}
-              onClick={saveAll}
-              disabled={!dirty || saving}
-            >
-              {saving ? "保存中..." : "変更を保存"}
-            </button>
-          </div>
+      <div className={adminCard}>
+        <div className="font-semibold text-gray-900 dark:text-gray-100">
+          ジャンル一覧
         </div>
 
         <div className="mt-3 overflow-x-auto">
@@ -425,7 +378,7 @@ export default function GenreAdminClient({
 
                   <td className="py-2 pr-3">
                     <input
-                      className={input}
+                      className={adminInput}
                       value={r.label}
                       onChange={(e) =>
                         setRows((prev) =>
@@ -440,7 +393,7 @@ export default function GenreAdminClient({
 
                   <td className="py-2 pr-3">
                     <input
-                      className={input}
+                      className={adminInput}
                       value={r.slug}
                       onChange={(e) =>
                         setRows((prev) =>
@@ -455,7 +408,7 @@ export default function GenreAdminClient({
 
                   <td className="py-2 pr-3">
                     <button
-                      className={btnDanger}
+                      className={adminBtnDanger}
                       onClick={() => deleteRow(r.id)}
                       disabled={savingId === r.id || saving}
                     >
@@ -477,6 +430,10 @@ export default function GenreAdminClient({
               )}
             </tbody>
           </table>
+        </div>
+
+        <div className="mt-3 text-xs text-gray-500 dark:text-gray-400">
+          ※ 行をドラッグして並び替えできます（「≡」付近をつかむとやりやすいです）
         </div>
       </div>
     </div>

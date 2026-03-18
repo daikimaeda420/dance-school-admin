@@ -3,6 +3,16 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import AdminPageHeader from "../_components/AdminPageHeader";
+import {
+  adminCard as card,
+  adminInput as input,
+  adminSelect as select,
+  adminLabel as label,
+  adminBtn as btn,
+  adminBtnPrimary as btnPrimary,
+  adminBtnDanger as btnDanger,
+} from "../_components/adminStyles";
 
 type Props = { initialSchoolId?: string };
 
@@ -36,37 +46,6 @@ const WEEKDAYS: { key: Weekday; label: string }[] = [
   { key: "SAT", label: "土" },
   { key: "SUN", label: "日" },
 ];
-
-// ---- UI classes（ダークモードをしっかり整える） ----
-const card =
-  "rounded-2xl border border-gray-200 bg-white p-4 shadow-sm " +
-  "text-gray-900 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-100";
-
-const input =
-  "w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm " +
-  "text-gray-900 placeholder:text-gray-400 outline-none focus:border-blue-500 " +
-  "dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100 dark:placeholder:text-gray-500";
-
-const select =
-  "w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm " +
-  "text-gray-900 outline-none focus:border-blue-500 " +
-  "dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100";
-
-const label = "text-xs font-semibold text-gray-600 dark:text-gray-300";
-
-const btn =
-  "inline-flex items-center justify-center rounded-xl px-3 py-2 text-sm font-semibold " +
-  "border border-gray-200 bg-white text-gray-900 hover:bg-gray-50 " +
-  "dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100 dark:hover:bg-gray-900";
-
-const btnPrimary =
-  "inline-flex items-center justify-center rounded-xl px-3 py-2 text-sm font-semibold " +
-  "bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50";
-
-const btnDanger =
-  "inline-flex items-center justify-center rounded-xl px-3 py-2 text-sm font-semibold " +
-  "border border-red-200 bg-white text-red-600 hover:bg-red-50 " +
-  "dark:border-red-900/40 dark:bg-gray-950 dark:hover:bg-red-950/30";
 
 const badge =
   "ml-2 inline-flex items-center rounded-full px-2 py-0.5 text-xs font-bold " +
@@ -538,47 +517,22 @@ export default function ScheduleAdminClient({ initialSchoolId }: Props) {
   return (
     <div className="space-y-4">
       {/* ヘッダー */}
-      <div className={card}>
-        <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-          <div>
-            <div className="text-lg font-extrabold">スケジュール管理</div>
-            <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-              曜日ごとに枠を作り、対応コース（チェックボックス）を紐付けてください。
-              <span className="ml-2">
-                並び順は{" "}
-                <span className="font-semibold">ドラッグ＆ドロップ</span>{" "}
-                で変更できます。
-              </span>
-            </div>
-          </div>
+      <AdminPageHeader
+        title="スケジュール管理"
+        description="曜日ごとに枠を作り、対応コース（チェックボックス）を紐付けてください。並び順はドラッグ＆ドロップで変更できます。"
+        isDirty={false}
+        saving={savingId === "REORDER"}
+        error={error}
+        onSave={() => {}}
+        hideSave
+      />
 
-          <div className="text-xs text-gray-500 dark:text-gray-400">
-            schoolId:{" "}
-            <span className="font-semibold text-gray-900 dark:text-gray-100">
-              {schoolId || "(未指定)"}
-            </span>
-          </div>
+      {!schoolId && (
+        <div className="rounded-xl bg-red-50 p-3 text-xs text-red-700 dark:bg-red-950/40 dark:text-red-200">
+          URL に <span className="font-semibold">?schoolId=xxx</span>{" "}
+          が必要です。
         </div>
-
-        {!schoolId && (
-          <div className="mt-3 rounded-xl bg-red-50 p-3 text-xs text-red-700 dark:bg-red-950/40 dark:text-red-200">
-            URL に <span className="font-semibold">?schoolId=xxx</span>{" "}
-            が必要です。
-          </div>
-        )}
-
-        {error && (
-          <div className="mt-3 rounded-xl bg-red-50 p-3 text-xs text-red-700 dark:bg-red-950/40 dark:text-red-200">
-            {error}
-          </div>
-        )}
-
-        {savingId === "REORDER" && (
-          <div className="mt-3 rounded-xl bg-blue-50 p-3 text-xs text-blue-800 dark:bg-blue-950/40 dark:text-blue-200">
-            並び順を保存しています...
-          </div>
-        )}
-      </div>
+      )}
 
       {/* 曜日タブ */}
       <div className={card}>

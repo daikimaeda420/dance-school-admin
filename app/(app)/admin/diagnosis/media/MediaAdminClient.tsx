@@ -3,6 +3,13 @@
 
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
+import AdminPageHeader from "../_components/AdminPageHeader";
+import {
+  adminCard,
+  adminInput,
+  adminBtnPrimary,
+  adminBtnDanger,
+} from "../_components/adminStyles";
 
 type Props = { schoolId: string };
 
@@ -119,18 +126,25 @@ export default function MediaAdminClient({ schoolId }: Props) {
 
   if (!schoolId) return <div className="text-sm p-4 text-red-500">schoolId がありません。</div>;
 
+  const topError = error || youtubeError;
+  const isAnySaving = saving || savingYoutube;
+
   return (
-    <div className="space-y-6">
-      <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-        <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-gray-100">
+    <div className="space-y-4">
+      <AdminPageHeader
+        title="画像・動画管理"
+        description="診断結果ページ等で表示されるキャンペーンバナー画像やYouTube動画を設定できます。反映は即時行われます。"
+        isDirty={false}
+        saving={isAnySaving}
+        error={topError}
+        onSave={() => {}}
+        hideSave
+      />
+
+      <div className={adminCard}>
+        <h2 className="mb-4 text-sm font-semibold text-gray-900 dark:text-gray-100">
           キャンペーンバナー
         </h2>
-        
-        {error && (
-          <div className="mb-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
-            {error}
-          </div>
-        )}
 
         <div className="flex flex-col md:flex-row gap-6">
           <div className="flex-1">
@@ -144,7 +158,7 @@ export default function MediaAdminClient({ schoolId }: Props) {
               <button
                 onClick={handleUploadClick}
                 disabled={loading || saving}
-                className="rounded-full bg-blue-600 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+                className={adminBtnPrimary + " px-4 py-2 text-xs"}
               >
                 {saving ? "アップロード中..." : "画像を選択して変更"}
               </button>
@@ -160,7 +174,7 @@ export default function MediaAdminClient({ schoolId }: Props) {
                 <button
                   onClick={handleDelete}
                   disabled={saving}
-                  className="rounded-full border border-red-200 px-4 py-2 text-xs font-semibold text-red-500 hover:bg-red-50 disabled:opacity-50"
+                  className={adminBtnDanger + " px-4 py-2 text-xs"}
                 >
                   削除
                 </button>
@@ -193,16 +207,10 @@ export default function MediaAdminClient({ schoolId }: Props) {
       </div>
 
       {/* YouTube動画設定セクション */}
-      <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-        <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-gray-100">
+      <div className={adminCard}>
+        <h2 className="mb-4 text-sm font-semibold text-gray-900 dark:text-gray-100">
           YouTube動画埋め込み
         </h2>
-        
-        {youtubeError && (
-          <div className="mb-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
-            {youtubeError}
-          </div>
-        )}
 
         <div className="flex flex-col md:flex-row gap-6">
           <div className="flex-1">
@@ -217,7 +225,7 @@ export default function MediaAdminClient({ schoolId }: Props) {
                 placeholder="例: https://www.youtube.com/watch?v=..."
                 value={youtubeUrlInput}
                 onChange={(e) => setYoutubeUrlInput(e.target.value)}
-                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100"
+                className={adminInput}
               />
               <div className="flex gap-3">
                 <button
@@ -244,7 +252,7 @@ export default function MediaAdminClient({ schoolId }: Props) {
                     }
                   }}
                   disabled={loading || savingYoutube || !youtubeUrlInput.trim()}
-                  className="rounded-full bg-blue-600 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+                  className={adminBtnPrimary + " px-4 py-2 text-xs"}
                 >
                   {savingYoutube ? "保存中..." : "動画を設定する"}
                 </button>
@@ -270,7 +278,7 @@ export default function MediaAdminClient({ schoolId }: Props) {
                       }
                     }}
                     disabled={savingYoutube}
-                    className="rounded-full border border-red-200 px-4 py-2 text-xs font-semibold text-red-500 hover:bg-red-50 disabled:opacity-50"
+                    className={adminBtnDanger + " px-4 py-2 text-xs"}
                   >
                     削除
                   </button>

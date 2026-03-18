@@ -2,6 +2,15 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import AdminPageHeader from "../_components/AdminPageHeader";
+import {
+  adminCard as card,
+  adminInput as inputCls,
+  adminTextarea as textareaCls,
+  adminBtnPrimary as btnPrimary,
+  adminBtn as btnOutline,
+  adminBtnDanger as btnDanger,
+} from "../_components/adminStyles";
 import {
   DndContext,
   PointerSensor,
@@ -28,13 +37,6 @@ type Faq = {
 };
 
 type Props = { schoolId: string };
-
-const inputCls =
-  "w-full rounded-md border border-gray-300 bg-white px-2 py-1 text-xs text-gray-900 " +
-  "placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 " +
-  "disabled:opacity-50 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100";
-
-const textareaCls = inputCls + " min-h-[80px] py-2 resize-y";
 
 // ────────────────────────────────────────────────
 // SortableItem
@@ -149,7 +151,7 @@ function SortableItem({
             <button
               onClick={() => onEdit(faq)}
               disabled={isSaving}
-              className="rounded-full border border-gray-300 bg-white px-2 py-0.5 text-[10px] font-semibold text-gray-600 hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
+              className={btnOutline + " px-2 py-0.5 text-[10px]"}
             >
               編集
             </button>
@@ -158,7 +160,7 @@ function SortableItem({
           <button
             onClick={() => onDelete(faq.id)}
             disabled={isSaving}
-            className="rounded-full border border-red-200 bg-white px-2 py-0.5 text-[10px] font-semibold text-red-500 hover:bg-red-50 dark:border-red-900 dark:bg-gray-900"
+            className={btnDanger + " px-2 py-0.5 text-[10px]"}
           >
             削除
           </button>
@@ -185,17 +187,17 @@ function SortableItem({
               disabled={isSaving}
             />
           </div>
-          <div className="flex gap-2">
+          <div className="mt-2 flex gap-2">
             <button
               onClick={() => onEditSave(faq.id)}
               disabled={isSaving}
-              className="rounded-full bg-blue-600 px-3 py-1 text-[10px] font-semibold text-white hover:bg-blue-700 disabled:opacity-40"
+              className={btnPrimary + " px-3 py-1 text-[10px]"}
             >
               {isSaving ? "保存中..." : "保存"}
             </button>
             <button
               onClick={onEditCancel}
-              className="rounded-full border border-gray-300 px-3 py-1 text-[10px] font-semibold text-gray-600"
+              className={btnOutline + " px-3 py-1 text-[10px]"}
             >
               キャンセル
             </button>
@@ -406,8 +408,18 @@ export default function FaqAdminClient({ schoolId }: Props) {
 
   return (
     <div className="space-y-4">
+      <AdminPageHeader
+        title="よくある質問 (FAQ) 管理"
+        description="診断結果ページ等で表示されるFAQを追加・編集できます。ドラッグで並び替えが可能です。"
+        isDirty={false}
+        saving={reordering}
+        error={error}
+        onSave={() => {}}
+        hideSave
+      />
+
       {/* 新規追加 */}
-      <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+      <div className={card}>
         <h2 className="mb-3 text-sm font-semibold text-gray-900 dark:text-gray-100">
           よくある質問を追加
         </h2>
@@ -440,21 +452,14 @@ export default function FaqAdminClient({ schoolId }: Props) {
         <button
           onClick={handleCreate}
           disabled={disabled || saving || !newQ.trim() || !newA.trim()}
-          className="mt-3 rounded-full bg-blue-600 px-4 py-1.5 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-40"
+          className={btnPrimary + " mt-3 px-4 py-1.5 text-xs"}
         >
           {saving ? "保存中..." : "追加"}
         </button>
       </div>
 
-      {/* エラー */}
-      {error && (
-        <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-200">
-          {error}
-        </div>
-      )}
-
       {/* 一覧 */}
-      <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+      <div className={card}>
         <h2 className="mb-3 text-sm font-semibold text-gray-900 dark:text-gray-100">
           FAQ一覧{" "}
           {loading && (

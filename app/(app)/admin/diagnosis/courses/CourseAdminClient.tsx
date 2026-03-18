@@ -1,7 +1,16 @@
 // app/admin/diagnosis/courses/CourseAdminClient.tsx
 "use client";
 
-import { useEffect, useMemo, useState, type SetStateAction } from "react";
+import { useEffect, useMemo, useRef, useState, type SetStateAction } from "react";
+import AdminPageHeader from "../_components/AdminPageHeader";
+import {
+  adminCard as card,
+  adminInput as inputCls,
+  adminSelect as selectCls,
+  adminBtnPrimary as btnPrimary,
+  adminBtnDanger as btnDanger,
+  adminBtn,
+} from "../_components/adminStyles";
 
 import {
   DndContext,
@@ -282,19 +291,9 @@ function SortableRow({
   );
 }
 
-const inputCls =
-  "w-full rounded-md border border-gray-300 bg-white px-2 py-1 text-xs text-gray-900 " +
-  "placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 " +
-  "disabled:opacity-50 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100 dark:placeholder:text-gray-500";
-
-const selectCls =
-  inputCls +
-  " appearance-none pr-7 bg-[length:10px_10px] bg-no-repeat bg-[right_8px_center] " +
-  "bg-[image:linear-gradient(45deg,transparent_50%,#888_50%),linear-gradient(135deg,#888_50%,transparent_50%)] " +
-  "bg-[position:right_14px_center,right_9px_center] dark:bg-[image:linear-gradient(45deg,transparent_50%,#aaa_50%),linear-gradient(135deg,#aaa_50%,transparent_50%)]";
-
 export default function CourseAdminClient({ schoolId }: Props) {
   const [courses, setCourses] = useState<Course[]>([]);
+  const originalRef = useRef<Course[]>([]);
   const [genres, setGenres] = useState<Array<{ label: string; slug: string }>>(
     [],
   ); // ✅ 追加
@@ -379,6 +378,7 @@ export default function CourseAdminClient({ schoolId }: Props) {
 
       normalized.sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
       setCourses(normalized);
+      originalRef.current = normalized;
     } catch (e) {
       console.error(e);
       setError("通信エラーが発生しました。");
@@ -509,68 +509,23 @@ export default function CourseAdminClient({ schoolId }: Props) {
     }
   };
 
-  const handleUpdateField = async (
-    id: string,
-    field: keyof Pick<
-      Course,
-      | "label"
-      | "slug"
-      | "sortOrder"
-      | "isActive"
-      | "q2AnswerTags"
-      | "genreTags" // ✅
-      | "description"
-      | "youtubeVideoId"
-    >,
-    value: string | number | boolean | string[] | null,
-  ) => {
-    setSaving(true);
-    setSavingRowId(id);
-    setError(null);
-    try {
-      const res = await fetch(`/api/admin/diagnosis/courses/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ [field]: value }),
-      });
-      if (!res.ok) {
-        const data = await res.json().catch(() => null);
-        throw new Error(data?.message ?? "更新に失敗しました。");
-      }
-      await fetchCourses();
-    } catch (e: any) {
-      setError(e?.message ?? "通信エラーが発生しました。");
-    } finally {
-      setSaving(false);
-      setSavingRowId(null);
+  const isDirty = useMemo(() => {
+    if (courses.length !== originalRef.current.length) return true;
+    for (let i = 0; i < courses.length; i++) {
+      const c = courses[i];
+      const o = originalRef.current[i];
+      if (c.id !== o.id) return true;
+      if (c.label !== o.label) return true;
+      if (c.slug !== o.slug) return true;
+      if (c.isActive !== o.isActive) return true;
+      if (c.description !== o.description) return true;
+      if (c.youtubeVideoId !== o.youtubeVideoId) return true;
+      if (JSON.stringify(c.q2AnswerTags) !== JSON.stringify(o.q2AnswerTags)) return true;
+      if (JSON.stringify(c.genreTags) !== JSON.stringify(o.genreTags)) return true;
+      if (c.sortOrder !== o.sortOrder) return true;
     }
-  };
-
-  const handleUpdateMultiFields = async (
-    id: string,
-    updates: Partial<Course>,
-  ) => {
-    setSaving(true);
-    setSavingRowId(id);
-    setError(null);
-    try {
-      const res = await fetch(`/api/admin/diagnosis/courses/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(updates),
-      });
-      if (!res.ok) {
-        const data = await res.json().catch(() => null);
-        throw new Error(data?.message ?? "更新に失敗しました。");
-      }
-      await fetchCourses();
-    } catch (e: any) {
-      setError(e?.message ?? "通信エラーが発生しました。");
-    } finally {
-      setSaving(false);
-      setSavingRowId(null);
-    }
-  };
+    return false;
+  }, [courses]);
 
   const handleUploadRowPhoto = async (id: string) => {
     const file = pendingFiles[id];
@@ -584,14 +539,14 @@ export default function CourseAdminClient({ schoolId }: Props) {
       setPendingFiles((prev) => ({ ...prev, [id]: null }));
       await fetchCourses();
     } catch (e: any) {
-      setError(e?.message ?? "通信エラーが発生しました。");
+      setError(e?.message ?? "画像アップロードに失敗しました。");
     } finally {
       setSaving(false);
       setSavingRowId(null);
     }
   };
 
-  const handleDelete = async (id: string) => {
+  const confirmDelete = async (id: string) => {
     if (!window.confirm("このコースを削除しますか？")) return;
     setSaving(true);
     setSavingRowId(id);
@@ -605,6 +560,7 @@ export default function CourseAdminClient({ schoolId }: Props) {
         throw new Error(data?.message ?? "削除に失敗しました。");
       }
       setCourses((prev) => prev.filter((c) => c.id !== id));
+      originalRef.current = originalRef.current.filter((c) => c.id !== id);
     } catch (e: any) {
       setError(e?.message ?? "通信エラーが発生しました。");
     } finally {
@@ -613,72 +569,94 @@ export default function CourseAdminClient({ schoolId }: Props) {
     }
   };
 
-  const saveSortOrderForList = async (nextList: Course[]) => {
-    if (!schoolId) return;
-    setSavingSort(true);
+  const saveAll = async () => {
+    if (!isDirty || saving) return;
+    setSaving(true);
     setError(null);
 
-    const prevMap = new Map(courses.map((c) => [c.id, c.sortOrder]));
-    const payload = nextList.map((c, idx) => ({
-      id: c.id,
-      sortOrder: idx + 1,
-      prevSortOrder: prevMap.get(c.id) ?? 0,
-    }));
-
-    const changed = payload.filter((p) => p.sortOrder !== p.prevSortOrder);
-    if (changed.length === 0) {
-      setSavingSort(false);
-      return;
-    }
-
-    // optimistic
-    setCourses(nextList.map((c, idx) => ({ ...c, sortOrder: idx + 1 })));
-
     try {
-      await Promise.all(
-        changed.map((p) =>
-          fetch(`/api/admin/diagnosis/courses/${p.id}`, {
+      for (const cur of courses) {
+        const orig = originalRef.current.find((o) => o.id === cur.id);
+        if (!orig) continue;
+
+        if (
+          cur.label !== orig.label ||
+          cur.slug !== orig.slug ||
+          cur.isActive !== orig.isActive ||
+          cur.description !== orig.description ||
+          cur.youtubeVideoId !== orig.youtubeVideoId ||
+          JSON.stringify(cur.q2AnswerTags) !== JSON.stringify(orig.q2AnswerTags) ||
+          JSON.stringify(cur.genreTags) !== JSON.stringify(orig.genreTags) ||
+          cur.sortOrder !== orig.sortOrder
+        ) {
+          const res = await fetch(`/api/admin/diagnosis/courses/${cur.id}`, {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ sortOrder: p.sortOrder }),
-          }).then(async (r) => {
-            if (!r.ok) {
-              const data = await r.json().catch(() => null);
-              throw new Error(data?.message ?? "並び順の保存に失敗しました。");
-            }
-          }),
-        ),
-      );
+            body: JSON.stringify({
+              label: cur.label.trim(),
+              slug: cur.slug.trim(),
+              sortOrder: cur.sortOrder,
+              isActive: cur.isActive,
+              q2AnswerTags: cur.q2AnswerTags,
+              genreTags: cur.genreTags,
+              description: cur.description ? cur.description.trim() : null,
+              youtubeVideoId: cur.youtubeVideoId ? cur.youtubeVideoId.trim() : null,
+            }),
+          });
+          if (!res.ok) {
+             const data = await res.json().catch(() => null);
+             throw new Error(data?.message ?? `ID:${cur.id} の保存に失敗`);
+          }
+        }
+      }
       await fetchCourses();
     } catch (e: any) {
-      await fetchCourses();
-      setError(e?.message ?? "通信エラーが発生しました。");
+      console.error(e);
+      setError(e.message ?? "一括保存に失敗しました");
     } finally {
-      setSavingSort(false);
+      setSaving(false);
     }
+  };
+
+  const discardAll = () => {
+    if (!window.confirm("編集内容を破棄して元に戻しますか？")) return;
+    setCourses(originalRef.current);
+    setError(null);
   };
 
   const onDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     if (!over) return;
     if (active.id === over.id) return;
-    if (saving || savingSort) return;
+    if (saving) return;
 
     setCourses((prev) => {
       const oldIndex = prev.findIndex((c) => c.id === String(active.id));
       const newIndex = prev.findIndex((c) => c.id === String(over.id));
       if (oldIndex < 0 || newIndex < 0) return prev;
 
-      const next = arrayMove(prev, oldIndex, newIndex);
-      void saveSortOrderForList(next);
-      return next;
+      const moved = arrayMove(prev, oldIndex, newIndex);
+      return moved.map((item, index) => ({
+        ...item,
+        sortOrder: (index + 1) * 10,
+      }));
     });
   };
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
+      <AdminPageHeader
+        title="診断：コース管理"
+        description="コースの追加・編集・並び順（ドラッグ）の変更が可能です。変更後は「保存」を押してください。"
+        isDirty={isDirty}
+        saving={saving}
+        error={error}
+        onSave={saveAll}
+        onDiscard={discardAll}
+      />
+
       {/* 新規追加 */}
-      <div className="rounded-lg border border-gray-200 bg-white p-2 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+      <div className={card}>
         <div className="mb-2 flex items-center justify-between">
           <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
             新しいコースを追加
@@ -813,15 +791,15 @@ export default function CourseAdminClient({ schoolId }: Props) {
 
         <button
           onClick={handleCreate}
-          disabled={disabled || saving || savingSort}
-          className="mt-2 rounded-full bg-blue-600 px-4 py-1.5 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-40"
+          disabled={disabled || saving}
+          className={btnPrimary + " mt-4"}
         >
-          {saving ? "保存中..." : "コースを追加"}
+          {saving && !savingRowId ? "作成中..." : "コースを追加"}
         </button>
       </div>
 
       {/* 一覧 */}
-      <div className="rounded-lg border border-gray-200 bg-white p-2 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+      <div className={card}>
         <div className="mb-2 flex items-center justify-between">
           <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
             コース一覧
@@ -879,13 +857,10 @@ export default function CourseAdminClient({ schoolId }: Props) {
                             : p,
                         ),
                       );
-
-                      // ✅ DB保存（確定済みの normalized を送る）
-                      void handleUpdateField(c.id, "q2AnswerTags", normalized);
                     };
 
                     const rowSaving = savingRowId === c.id;
-                    const dndDisabled = saving || savingSort || rowSaving;
+                    const dndDisabled = saving || rowSaving;
 
                     const pending = pendingFiles[c.id] ?? null;
 
@@ -924,10 +899,7 @@ export default function CourseAdminClient({ schoolId }: Props) {
                                   ),
                                 )
                               }
-                              onBlur={(e) =>
-                                handleUpdateField(c.id, "label", e.target.value)
-                              }
-                              disabled={saving || savingSort}
+                              disabled={saving}
                             />
                           </div>
 
@@ -947,10 +919,7 @@ export default function CourseAdminClient({ schoolId }: Props) {
                                   ),
                                 )
                               }
-                              onBlur={(e) =>
-                                handleUpdateField(c.id, "slug", e.target.value)
-                              }
-                              disabled={saving || savingSort}
+                              disabled={saving}
                             />
                           </div>
 
@@ -989,14 +958,9 @@ export default function CourseAdminClient({ schoolId }: Props) {
                                       : p,
                                   ),
                                 );
-                                void handleUpdateField(
-                                  c.id,
-                                  "genreTags",
-                                  normalized,
-                                );
                               }}
-                              genres={genres} // ✅ 追加
-                              disabled={saving || savingSort}
+                              genres={genres}
+                              disabled={saving}
                               dense
                             />
                           </div>
@@ -1083,18 +1047,11 @@ export default function CourseAdminClient({ schoolId }: Props) {
                                   ),
                                 )
                               }
-                              onBlur={(e) =>
-                                handleUpdateField(
-                                  c.id,
-                                  "description",
-                                  e.target.value ? e.target.value : null,
-                                )
-                              }
-                              disabled={saving || savingSort}
+                              disabled={saving}
                               placeholder="例：初心者向けに基礎からゆっくり。リズムトレーニング〜振付まで丁寧に進めます。"
                             />
                             <div className="mt-1 text-[11px] text-gray-500 dark:text-gray-400">
-                              ※ 入力後、フォーカスを外すと保存（onBlur）
+                              ※ 診断結果に表示するなら 120〜200文字くらいが読みやすいです。
                             </div>
                           </div>
 
@@ -1127,12 +1084,6 @@ export default function CourseAdminClient({ schoolId }: Props) {
                               onBlur={(e) => {
                                 const url = e.target.value;
                                 const videoId = extractYouTubeId(url);
-                                handleUpdateField(
-                                  c.id,
-                                  "youtubeVideoId",
-                                  videoId ? videoId : null,
-                                );
-                                // onBlur時に正規化されたIDで上書き
                                 setCourses((prev) =>
                                   prev.map((p) =>
                                     p.id === c.id
@@ -1141,7 +1092,7 @@ export default function CourseAdminClient({ schoolId }: Props) {
                                   ),
                                 );
                               }}
-                              disabled={saving || savingSort}
+                              disabled={saving}
                             />
                             {c.youtubeVideoId && !c.youtubeVideoId.includes("http") && (
                               <div className="mt-2 w-full max-w-[320px] overflow-hidden rounded-md border border-gray-200">
@@ -1168,54 +1119,26 @@ export default function CourseAdminClient({ schoolId }: Props) {
                                   type="checkbox"
                                   checked={c.isActive}
                                   onChange={(e) =>
-                                    handleUpdateField(
-                                      c.id,
-                                      "isActive",
-                                      e.target.checked,
+                                    setCourses((prev) =>
+                                      prev.map((p) =>
+                                        p.id === c.id
+                                          ? { ...p, isActive: e.target.checked }
+                                          : p,
+                                      ),
                                     )
                                   }
-                                  disabled={saving || savingSort}
+                                  disabled={saving}
                                 />
                                 有効
                               </label>
 
-                              <div className="flex items-center gap-2">
-                                <button
-                                  onClick={() => {
-                                    const payload = {
-                                      q2AnswerTags: uniqStrings(
-                                        c.q2AnswerTags ?? [],
-                                      ),
-                                      genreTags: uniqStrings(c.genreTags ?? []),
-                                    };
-                                    // 個別に呼ぶか、API側でまとめて受け取れるなら1回で呼ぶ
-                                    // handleUpdateField は単一フィールド想定だが、
-                                    // 実装を見ると `body: JSON.stringify({ [field]: value })` なので
-                                    // 複数フィールドを一度に送るには改修が必要。
-                                    // ここでは既存の handleUpdateField を2回呼ぶか、
-                                    // そもそも Q2/Q4 は即時保存されているので「Save」ボタンは
-                                    // 「念のため保存」として機能させる。
-
-                                    // Q2/Q4 をまとめて保存
-                                    void handleUpdateMultiFields(
-                                      c.id,
-                                      payload,
-                                    );
-                                  }}
-                                  disabled={saving || savingSort || rowSaving}
-                                  className="rounded-full border border-gray-300 bg-white px-3 py-1 text-[11px] font-semibold text-gray-800 hover:bg-gray-50 disabled:opacity-40 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100 dark:hover:bg-gray-900"
-                                >
-                                  {rowSaving ? "保存中..." : "保存"}
-                                </button>
-
-                                <button
-                                  onClick={() => handleDelete(c.id)}
-                                  className="text-[11px] text-red-600 underline hover:text-red-700 disabled:opacity-40 dark:text-red-300 dark:hover:text-red-200"
-                                  disabled={saving || savingSort || rowSaving}
-                                >
-                                  削除
-                                </button>
-                              </div>
+                              <button
+                                onClick={() => confirmDelete(c.id)}
+                                className={btnDanger + " px-3 py-1 text-[11px]"}
+                                disabled={saving || rowSaving}
+                              >
+                                削除
+                              </button>
                             </div>
                           </div>
                         </div>
@@ -1227,9 +1150,8 @@ export default function CourseAdminClient({ schoolId }: Props) {
             </DndContext>
 
             <div className="mt-2 text-[11px] text-gray-500 dark:text-gray-400">
-              ※ 並び替えは「☰」をドラッグ → ドロップで自動保存 /
-              Q2はチップでON/OFF → 「保存」 / 画像は「画像アップロード」 /
-              説明文は入力後にフォーカスを外すと保存
+              ※ 並べ替えは「☰」をドラッグ＆ドロップ。 画像アップロード後は「画像アップロード」をクリック。
+              すべて編集したらページ上部の「保存」を押してください。
             </div>
           </>
         )}

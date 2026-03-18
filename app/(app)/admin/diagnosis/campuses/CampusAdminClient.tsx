@@ -2,6 +2,12 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import AdminPageHeader from "../_components/AdminPageHeader";
+import {
+  adminCard,
+  adminInput,
+  adminTextarea,
+} from "../_components/adminStyles";
 
 type Campus = {
   id: string;
@@ -29,16 +35,9 @@ type Draft = {
   googleMapEmbedUrl: string;
 };
 
-const inputBase =
-  "w-full rounded-md border px-2 py-1 text-xs text-gray-900 bg-white border-gray-300 " +
-  "placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 " +
-  "disabled:opacity-50 " +
-  "dark:bg-gray-950 dark:text-gray-100 dark:border-gray-700 dark:placeholder:text-gray-500";
+const inputBase = adminInput;
 
-const textareaBase =
-  "w-full rounded-md border px-2 py-1 text-xs text-gray-900 bg-white border-gray-300 " +
-  "focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 " +
-  "dark:bg-gray-950 dark:text-gray-100 dark:border-gray-700 dark:[color-scheme:dark]";
+const textareaBase = adminTextarea;
 
 /**
  * 入力値の正規化
@@ -494,10 +493,86 @@ export default function CampusAdminClient({ schoolId }: Props) {
     setDragOverId(null);
   };
 
+  // ───── 全行の変更を一括に保存する ─────
+  const anyDirty = useMemo(() => {
+    if (orderDirty) return true;
+    for (const c of campuses) {
+      const d = drafts[c.id];
+      if (d && !isSameDraftIgnoringOrder(d, c)) return true;
+    }
+    return false;
+  }, [campuses, drafts, orderDirty]);
+
+  const handleSaveAll = async () => {
+    if (busy) return;
+    setSavingId("__all__");
+    setError(null);
+    try {
+      const ordered = recomputeSortOrders(campuses);
+      for (const c of ordered) {
+        const d = drafts[c.id] ?? toDraft(c);
+        const nextLabel = d.label.trim();
+        const nextSlug = d.slug.trim();
+        if (!nextLabel || !nextSlug) throw new Error("校舎名とslugは必須です。");
+        const embedSrc = normalizeEmbedInput(d.googleMapEmbedUrl);
+
+        // 変更がない行はスキップ
+        const origCampus = campuses.find((x) => x.id === c.id);
+        if (origCampus && isSameDraftIgnoringOrder(d, origCampus) && c.sortOrder === origCampus.sortOrder) continue;
+
+        const res = await fetch(`/api/admin/diagnosis/campuses/${c.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          cache: "no-store",
+          body: JSON.stringify({
+            schoolId,
+            label: nextLabel,
+            slug: nextSlug,
+            sortOrder: c.sortOrder,
+            isActive: d.isActive,
+            address: d.address.trim() ? d.address.trim() : null,
+            access: d.access.trim() ? d.access.trim() : null,
+            googleMapUrl: d.googleMapUrl.trim() ? d.googleMapUrl.trim() : null,
+            googleMapEmbedUrl: embedSrc ? embedSrc : null,
+          }),
+        });
+        if (!res.ok) {
+          const data = await res.json().catch(() => null);
+          throw new Error(data?.message ?? "保存に失敗しました。");
+        }
+      }
+      await fetchCampuses();
+    } catch (e: any) {
+      console.error(e);
+      setError(e?.message ?? "通信エラーが発生しました。");
+    } finally {
+      setSavingId(null);
+    }
+  };
+
+  const handleDiscardAll = () => {
+    // draftsをオリジナルに戻す
+    const freshDrafts: Record<string, Draft> = {};
+    for (const c of campuses) freshDrafts[c.id] = toDraft(c);
+    setDrafts(freshDrafts);
+    setOrderDirty(false);
+    setError(null);
+  };
+
   return (
     <div className="space-y-4">
+      <AdminPageHeader
+        title="校舎管理"
+        description="校舎の追加・編集・並び替えが可能です。変更後は保存ボタンを押してください。"
+        isDirty={anyDirty}
+        saving={!!savingId}
+        error={error}
+        onSave={handleSaveAll}
+        onDiscard={handleDiscardAll}
+      />
+
       {/* 新規追加フォーム */}
-      <div className="rounded-xl border border-gray-200 bg-white p-3 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+      <div className={adminCard}>
         <h2 className="mb-2 text-sm font-semibold text-gray-900 dark:text-gray-100">
           新しい校舎を追加
         </h2>
@@ -611,7 +686,7 @@ export default function CampusAdminClient({ schoolId }: Props) {
       </div>
 
       {/* 一覧 */}
-      <div className="rounded-xl border border-gray-200 bg-white p-3 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+      <div className={adminCard}>
         <div className="mb-2 flex items-center justify-between">
           <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
             校舎一覧（ドラッグで並び替え）
@@ -634,35 +709,6 @@ export default function CampusAdminClient({ schoolId }: Props) {
             </button>
           </div>
         </div>
-
-        {(error || orderDirty) && (
-          <div
-            className={[
-              "mb-2 rounded-md border px-2 py-2 text-xs",
-              error
-                ? "border-red-200 bg-red-50 text-red-700 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-200"
-                : "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-200",
-            ].join(" ")}
-          >
-            {error ? (
-              error
-            ) : (
-              <div className="flex items-center justify-between gap-2">
-                <span>並び替えが未保存です。</span>
-                <button
-                  type="button"
-                  onClick={handleSaveOrder}
-                  disabled={busy}
-                  className="rounded-full bg-amber-600 px-3 py-1 text-[11px] font-semibold text-white
-                             hover:bg-amber-700 disabled:opacity-40
-                             dark:bg-amber-500 dark:hover:bg-amber-400"
-                >
-                  {savingId === "__order__" ? "保存中..." : "並び替えを保存"}
-                </button>
-              </div>
-            )}
-          </div>
-        )}
 
         {campuses.length === 0 ? (
           <p className="text-xs text-gray-500 dark:text-gray-400">
@@ -846,31 +892,9 @@ export default function CampusAdminClient({ schoolId }: Props) {
                     <div className="md:col-span-12 flex items-center justify-end gap-2">
                       <button
                         type="button"
-                        onClick={() => handleSave(c.id)}
-                        disabled={!dirty || busy}
-                        className="rounded-full bg-blue-600 px-3 py-1 text-[11px] font-semibold text-white
-                                   hover:bg-blue-700 disabled:opacity-40
-                                   dark:bg-blue-500 dark:hover:bg-blue-400"
-                      >
-                        {rowSaving ? "保存中..." : "保存"}
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => handleCancel(c.id)}
-                        disabled={!dirty || busy}
-                        className="rounded-full border border-gray-300 px-3 py-1 text-[11px] font-semibold text-gray-700
-                                   hover:bg-gray-100 disabled:opacity-40
-                                   dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
-                      >
-                        戻す
-                      </button>
-
-                      <button
-                        type="button"
                         onClick={() => handleDelete(c.id)}
                         disabled={busy}
-                        className="rounded-full border border-red-300 px-3 py-1 text-[11px] font-semibold text-red-600
+                        className="rounded-xl border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-600
                                    hover:bg-red-50 disabled:opacity-40
                                    dark:border-red-800 dark:text-red-200 dark:hover:bg-red-950/30"
                       >
