@@ -83,6 +83,7 @@ export default async function DiagnosisPage({
       courseOptions={courseOptions}
       instructorOptions={instructorOptions}
       genreOptions={genreOptions} // ✅ 追加
+      lifestyleOptions={lifestyleOptions} // ✅ 追加
       activeGenreTags={activeGenreTags}
       activeLifestyleTags={activeLifestyleTags}
     />

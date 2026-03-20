@@ -133,6 +133,7 @@ type Props = {
   courseOptions?: DiagnosisQuestionOption[];
   instructorOptions?: DiagnosisQuestionOption[];
   genreOptions?: DiagnosisQuestionOption[]; // ✅ 追加
+  lifestyleOptions?: DiagnosisQuestionOption[]; // ✅ 追加
   activeGenreTags?: string[];
   activeLifestyleTags?: string[];
 };
@@ -142,6 +143,7 @@ export default function DiagnosisEmbedClient({
   onClose,
   campusOptions: campusOptionsProp,
   genreOptions, // ✅ 追加
+  lifestyleOptions, // ✅ 追加
   activeGenreTags,
   activeLifestyleTags,
 }: Props) {
@@ -362,35 +364,30 @@ export default function DiagnosisEmbedClient({
         return q;
       }
 
-      // ✅ Q3: 年代フィルター
-      if (
-        q.id === "Q3" &&
-        activeLifestyleTags &&
-        activeLifestyleTags.length > 0
-      ) {
-        const filtered = q.options.filter((opt) => {
-          if (!opt.tag) return true;
-          return activeLifestyleTags.includes(opt.tag);
-        });
-
-        // DEBUG:
-        console.log("Q3 Filtering:", {
-          activeLifestyleTags,
-          allOptions: q.options.map((o) => o.tag),
-          filteredOptions: filtered.map((o) => o.tag),
-        });
-
-        // フィルタリング結果が0件になってしまう場合は、全表示に戻す（設定ミスの可能性への安全策）
-        if (filtered.length === 0) {
-          return q;
+      // ✅ Q3: 年代フィルター (管理画面設定を優先)
+      if (q.id === "Q3") {
+        if (lifestyleOptions && lifestyleOptions.length > 0) {
+          return { ...q, options: lifestyleOptions };
         }
+        
+        // フォールバック（APIから取れなかった場合等）
+        if (activeLifestyleTags && activeLifestyleTags.length > 0) {
+          const filtered = q.options.filter((opt) => {
+            if (!opt.tag) return true;
+            return activeLifestyleTags.includes(opt.tag);
+          });
 
-        return { ...q, options: filtered };
+          if (filtered.length !== 0) {
+            return { ...q, options: filtered };
+          }
+        }
+        
+        return q;
       }
 
       return q;
     });
-  }, [campusLoaded, campusOptions, activeGenreTags, activeLifestyleTags]);
+  }, [campusLoaded, campusOptions, activeGenreTags, activeLifestyleTags, genreOptions, lifestyleOptions]);
 
   const currentQuestion = questions[stepIndex];
   const totalSteps = questions.length;
