@@ -21,10 +21,16 @@ type Row = {
 };
 
 function normalizeRowsWithOrder(rows: Row[]) {
+  // DBから取得した初期状態等を sortOrder 順にする用途
   return rows
     .slice()
     .sort((a, b) => a.sortOrder - b.sortOrder)
     .map((r, i) => ({ ...r, sortOrder: i + 1 }));
+}
+
+// ドロップ時に呼ばれる: 配列の並びは既に変更済みなので、その並びのまま index + 1 を sortOrder として振り直す
+function reassignSortOrder(rows: Row[]) {
+  return rows.map((r, i) => ({ ...r, sortOrder: i + 1 }));
 }
 
 function isRowEqual(a: Row, b: Row) {
@@ -186,7 +192,7 @@ export default function LifestyleAdminClient({
       const [moved] = list.splice(from, 1);
       list.splice(to, 0, moved);
 
-      return normalizeRowsWithOrder(list);
+      return reassignSortOrder(list);
     });
   }
 
