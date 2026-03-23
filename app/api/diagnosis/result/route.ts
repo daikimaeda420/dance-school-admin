@@ -248,7 +248,7 @@ export async function POST(req: NextRequest) {
 
     // resultCopy の生成
     const q2Tag = getOptionTagFromAnswers("Q2", answers);
-    const q3Tag = getOptionTagFromAnswers("Q3", answers);
+    const q3Tag = getOptionTagFromAnswers("Q3", answers) || answers["Q3"];
     // const q4Tag = getOptionTagFromAnswers("Q4", answers); // ジャンルは一旦コピーに使わない？
     const q5Tag = getOptionTagFromAnswers("Q5", answers); // 先生 (旧Q4)
 
