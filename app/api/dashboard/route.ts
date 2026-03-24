@@ -141,16 +141,6 @@ export async function GET(req: NextRequest) {
         value: `${courseCount}`,
         note: "有効なコース数",
       },
-      {
-        label: "登録講師",
-        value: `${instructorCount}`,
-        note: "有効な講師数",
-      },
-      {
-        label: "FAQ登録数",
-        value: `${faqCount}`,
-        note: "Q&Aアイテム総数",
-      },
     ];
 
     // ── セットアップ状況 ──
@@ -186,8 +176,6 @@ export async function GET(req: NextRequest) {
           { label: "チャットセッション（7日）", value: "0", note: "ログ 0 件" },
           { label: "フォーム申込数", value: "0", note: "コンバージョン" },
           { label: "診断コース", value: "0", note: "-" },
-          { label: "登録講師", value: "0", note: "-" },
-          { label: "FAQ登録数", value: "0", note: "-" },
         ],
         setup: [],
         activities: [],

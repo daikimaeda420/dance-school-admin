@@ -697,54 +697,9 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* クイックアクション & セットアップ */}
+      {/* セットアップ状況 */}
       <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <div className="card p-5 lg:col-span-2">
-          <div className="mb-3 flex items-center gap-2">
-            <Rocket className="h-5 w-5" />
-            <h2 className="text-base font-semibold">クイックアクション</h2>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <a
-              href="/faq"
-              className="btn-ghost inline-flex items-center gap-2"
-            >
-              <PlusCircle className="h-4 w-4" /> Q&A編集{" "}
-              <ArrowUpRight className="h-4 w-4 opacity-60" />
-            </a>
-
-            <a
-              href={`/admin/diagnosis/campuses${
-                schoolId
-                  ? `?schoolId=${encodeURIComponent(schoolId)}`
-                  : ""
-              }`}
-              className="btn-ghost inline-flex items-center gap-2"
-            >
-              <ClipboardList className="h-4 w-4" /> 診断編集{" "}
-              <ArrowUpRight className="h-4 w-4 opacity-60" />
-            </a>
-
-            <button
-              onClick={onCopyEmbed}
-              className="btn-ghost inline-flex items-center gap-2"
-              disabled={!schoolId}
-              title={!schoolId ? "schoolId が必要です" : undefined}
-            >
-              <Copy className="h-4 w-4" /> 埋め込みコードをコピー
-            </button>
-
-            <button
-              onClick={onExportLogs}
-              className="btn-ghost inline-flex items-center gap-2"
-            >
-              <FileDown className="h-4 w-4" /> ログCSVをエクスポート（{range}
-              日）
-            </button>
-          </div>
-        </div>
-
-        <div className="card p-5">
+        <div className="card p-5 lg:col-span-1">
           <div className="mb-3 flex items-center gap-2">
             <AlertCircle className="h-5 w-5" />
             <h2 className="text-base font-semibold">セットアップ状況</h2>
