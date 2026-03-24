@@ -139,6 +139,21 @@ export async function POST(req: NextRequest) {
     }
 
     // =========
+    // DBに送信履歴（コンバージョン）を保存
+    // =========
+    try {
+      await prisma.diagnosisFormSubmission.create({
+        data: {
+          schoolId,
+          fields: { ...fields, ...hiddenValues },
+        },
+      });
+    } catch (dbErr) {
+      console.error("DiagnosisFormSubmission create error:", dbErr);
+      // 送信自体は止めずに続行する
+    }
+
+    // =========
     // 管理者通知
     // =========
     const adminSubject = applyTemplate(

@@ -54,6 +54,7 @@ export async function GET(req: NextRequest) {
       scheduleSlotCount,
       faqRow,
       formRow,
+      formSubmissionCount,
     ] = await Promise.all([
       // チャットセッション数（期間内）
       prisma.faqLog
@@ -112,6 +113,11 @@ export async function GET(req: NextRequest) {
             select: { isActive: true },
           })
         : prisma.diagnosisForm.findFirst({ select: { isActive: true } }),
+
+      // フォーム申込数（期間内）
+      prisma.diagnosisFormSubmission.count({
+        where: { ...schoolFilter, createdAt: { gte: since } },
+      }),
     ]);
 
     // FAQ件数
@@ -124,6 +130,11 @@ export async function GET(req: NextRequest) {
         label: `チャットセッション（${days}日）`,
         value: sessionCount.toLocaleString(),
         note: `ログ ${logCount.toLocaleString()} 件`,
+      },
+      {
+        label: "フォーム申込数",
+        value: `${formSubmissionCount.toLocaleString()}`,
+        note: `直近 ${days}日間のコンバージョン`,
       },
       {
         label: "診断コース",
@@ -173,6 +184,7 @@ export async function GET(req: NextRequest) {
       {
         kpis: [
           { label: "チャットセッション（7日）", value: "0", note: "ログ 0 件" },
+          { label: "フォーム申込数", value: "0", note: "コンバージョン" },
           { label: "診断コース", value: "0", note: "-" },
           { label: "登録講師", value: "0", note: "-" },
           { label: "FAQ登録数", value: "0", note: "-" },

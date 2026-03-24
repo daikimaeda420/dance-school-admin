@@ -446,3 +446,17 @@ model DiagnosisMedia {
   @@unique([schoolId, key])
   @@index([schoolId])
 }
+
+model DiagnosisFormSubmission {
+  id        String   @id @default(cuid())
+  schoolId  String
+  formId    String?
+
+  // フォーム送信内容をJSON形式で保存
+  fields    Json
+
+  createdAt DateTime @default(now())
+
+  @@index([schoolId])
+  @@index([createdAt])
+}
