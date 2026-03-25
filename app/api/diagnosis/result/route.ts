@@ -213,17 +213,20 @@ export async function POST(req: NextRequest) {
     let instructors: any[] = [];
     let instructorMatchedBy = "none";
 
-    // ⭐ 最優先：campus + concern
-    if (concernInstructorIds.length > 0) {
-      const ids = intersectIds(campusInstructorIds, concernInstructorIds);
+    // ⭐ 最優先：campus + course + concern
+    if (courseInstructorIds.length > 0 && concernInstructorIds.length > 0) {
+      const ids = intersectIds(
+        intersectIds(campusInstructorIds, courseInstructorIds),
+        concernInstructorIds,
+      );
       const got = await load(ids);
       if (got.length > 0) {
         instructors = got;
-        instructorMatchedBy = "campus+concern";
+        instructorMatchedBy = "campus+course+concern";
       }
     }
 
-    // 従来ロジック
+    // 2番目：campus + course
     if (instructors.length === 0 && courseInstructorIds.length > 0) {
       const ids = intersectIds(campusInstructorIds, courseInstructorIds);
       const got = await load(ids);
@@ -232,7 +235,18 @@ export async function POST(req: NextRequest) {
         instructorMatchedBy = "campus+course";
       }
     }
+    
+    // 3番目：campus + concern
+    if (instructors.length === 0 && concernInstructorIds.length > 0) {
+      const ids = intersectIds(campusInstructorIds, concernInstructorIds);
+      const got = await load(ids);
+      if (got.length > 0) {
+        instructors = got;
+        instructorMatchedBy = "campus+concern";
+      }
+    }
 
+    // 4番目：campus
     if (instructors.length === 0) {
       const got = await load(campusInstructorIds);
       if (got.length > 0) {
