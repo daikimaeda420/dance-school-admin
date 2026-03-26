@@ -153,6 +153,8 @@ function extractPayload(raw: unknown): {
   launcherText?: string | null;
   chatEnabled?: boolean;
   diagnosisEnabled?: boolean;
+  bottomOffsetPc?: number;
+  bottomOffsetSp?: number;
 } {
   if (Array.isArray(raw)) {
     return { items: raw };
@@ -173,6 +175,10 @@ function extractPayload(raw: unknown): {
       chatEnabled: typeof r.chatEnabled === "boolean" ? r.chatEnabled : undefined,
       diagnosisEnabled:
         typeof r.diagnosisEnabled === "boolean" ? r.diagnosisEnabled : undefined,
+      bottomOffsetPc:
+        typeof r.bottomOffsetPc === "number" ? r.bottomOffsetPc : undefined,
+      bottomOffsetSp:
+        typeof r.bottomOffsetSp === "number" ? r.bottomOffsetSp : undefined,
     };
   }
   return { items: [] };
@@ -214,6 +220,8 @@ export async function GET(req: NextRequest) {
         launcherText: true,
         chatEnabled: true, // ★ 追加
         diagnosisEnabled: true, // ★ 追加
+        bottomOffsetPc: true,
+        bottomOffsetSp: true,
         updatedAt: true,
         updatedBy: true,
       },
@@ -231,6 +239,8 @@ export async function GET(req: NextRequest) {
         launcherText: rec?.launcherText ?? null,
         chatEnabled: rec?.chatEnabled ?? true, // ★ 追加
         diagnosisEnabled: rec?.diagnosisEnabled ?? false, // ★ 追加
+        bottomOffsetPc: rec?.bottomOffsetPc ?? 24,
+        bottomOffsetSp: rec?.bottomOffsetSp ?? 16,
         updatedAt: rec?.updatedAt ?? null,
         updatedBy: rec?.updatedBy ?? null,
       },
@@ -264,6 +274,8 @@ export async function POST(req: NextRequest) {
       launcherText,
       chatEnabled, // ★ 追加
       diagnosisEnabled, // ★ 追加
+      bottomOffsetPc,
+      bottomOffsetSp,
     } = extractPayload(raw);
 
     // まず items 部分だけバリデーション
@@ -294,6 +306,8 @@ export async function POST(req: NextRequest) {
         launcherText: launcherText ?? null,
         chatEnabled: chatEnabled ?? true, // ★ 追加
         diagnosisEnabled: diagnosisEnabled ?? false, // ★ 追加
+        bottomOffsetPc: bottomOffsetPc ?? 24,
+        bottomOffsetSp: bottomOffsetSp ?? 16,
         updatedBy: "api",
       },
       create: {
@@ -305,6 +319,8 @@ export async function POST(req: NextRequest) {
         launcherText: launcherText ?? null,
         chatEnabled: chatEnabled ?? true, // ★ 追加
         diagnosisEnabled: diagnosisEnabled ?? false, // ★ 追加
+        bottomOffsetPc: bottomOffsetPc ?? 24,
+        bottomOffsetSp: bottomOffsetSp ?? 16,
         updatedBy: "api",
       },
       select: { id: true, schoolId: true, updatedAt: true },

@@ -122,6 +122,8 @@ export default function FAQPage() {
   // ▼ 表示設定
   const [chatEnabled, setChatEnabled] = useState(true);
   const [diagnosisEnabled, setDiagnosisEnabled] = useState(false);
+  const [bottomOffsetPc, setBottomOffsetPc] = useState(24);
+  const [bottomOffsetSp, setBottomOffsetSp] = useState(16);
 
   // 取得（FAQ + メタ）
   useEffect(() => {
@@ -137,6 +139,8 @@ export default function FAQPage() {
           let nextLauncherText = "質問はコチラ";
           let nextChatEnabled = true;
           let nextDiagnosisEnabled = false;
+          let nextBottomOffsetPc = 24;
+          let nextBottomOffsetSp = 16;
 
           if (data && typeof data === "object") {
             const d = data as any;
@@ -155,6 +159,8 @@ export default function FAQPage() {
             if (typeof d.diagnosisEnabled === "boolean") {
               nextDiagnosisEnabled = d.diagnosisEnabled;
             }
+            if (typeof d.bottomOffsetPc === "number") nextBottomOffsetPc = d.bottomOffsetPc;
+            if (typeof d.bottomOffsetSp === "number") nextBottomOffsetSp = d.bottomOffsetSp;
           }
 
           setFaq(arr);
@@ -164,6 +170,8 @@ export default function FAQPage() {
           setLauncherText(nextLauncherText);
           setChatEnabled(nextChatEnabled);
           setDiagnosisEnabled(nextDiagnosisEnabled);
+          setBottomOffsetPc(nextBottomOffsetPc);
+          setBottomOffsetSp(nextBottomOffsetSp);
           setDirty(false); // ← サーバーから読み込んだ直後は「保存済み」扱い
         })
         .catch(() => {
@@ -174,6 +182,8 @@ export default function FAQPage() {
           setLauncherText("質問はコチラ");
           setChatEnabled(true);
           setDiagnosisEnabled(false);
+          setBottomOffsetPc(24);
+          setBottomOffsetSp(16);
           setDirty(false); // 空データ読み込みも保存済み扱い
         });
     }
@@ -215,6 +225,8 @@ export default function FAQPage() {
       launcherText: launcherText.trim() || null,
       chatEnabled,
       diagnosisEnabled,
+      bottomOffsetPc,
+      bottomOffsetSp,
     };
 
     const res = await fetch(`/api/faq?school=${schoolId}`, {
@@ -464,6 +476,42 @@ export default function FAQPage() {
                   />
                   <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
                 </label>
+              </div>
+
+              {/* 下部からの位置 */}
+              <div className="flex items-center justify-between border p-4 rounded-lg">
+                <div className="flex-1">
+                  <h4 className="font-medium text-sm">下部からの位置（PC / スマホ）</h4>
+                  <p className="text-xs text-gray-500 mt-1 mb-2">
+                    既存のバナー等と重なる場合は数値を大きくしてください
+                  </p>
+                  <div className="flex items-center gap-4 text-sm mt-3">
+                    <div className="flex items-center gap-2">
+                      <label className="text-gray-600">PC (px):</label>
+                      <input
+                        type="number"
+                        className="input w-20 px-2 py-1 text-sm"
+                        value={bottomOffsetPc}
+                        onChange={(e) => {
+                          setBottomOffsetPc(Number(e.target.value));
+                          setDirty(true);
+                        }}
+                      />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <label className="text-gray-600">スマホ (px):</label>
+                      <input
+                        type="number"
+                        className="input w-20 px-2 py-1 text-sm"
+                        value={bottomOffsetSp}
+                        onChange={(e) => {
+                          setBottomOffsetSp(Number(e.target.value));
+                          setDirty(true);
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
