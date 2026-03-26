@@ -104,7 +104,6 @@ function StepItem(props: { step: number; text: ReactNode }) {
       <div className="text-[14px] font-semibold leading-7 text-[#7a4b1f]/90">
         {props.text}
       </div>
-      <div className="mt-4 rounded-[18px] bg-[#d9d9d9] h-[132px]" />
       <div className="relative mt-3">
         <div className="mx-auto h-px w-full bg-black/10" />
         <div className="mx-auto -mt-[1px] w-0 h-0 border-l-[12px] border-r-[12px] border-t-[10px] border-l-transparent border-r-transparent border-t-[#d9d9d9]" />
