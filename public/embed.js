@@ -48,6 +48,8 @@
     let launcherTextFromDb = "質問はコチラ";
     let chatEnabled = true;
     let diagnosisEnabled = false;
+    let bottomOffsetPc = parseInt(s.dataset.rizboBottom || s.dataset.bottom || "24", 10);
+    let bottomOffsetSp = parseInt(s.dataset.rizboBottomSp || s.dataset.bottomSp || "16", 10);
 
     try {
       const url = `${origin}/api/faq?${new URLSearchParams({
@@ -71,6 +73,12 @@
           if (typeof data.diagnosisEnabled === "boolean") {
             diagnosisEnabled = data.diagnosisEnabled;
           }
+          if (typeof data.bottomOffsetPc === "number") {
+            bottomOffsetPc = data.bottomOffsetPc;
+          }
+          if (typeof data.bottomOffsetSp === "number") {
+            bottomOffsetSp = data.bottomOffsetSp;
+          }
         }
       } else {
         console.warn("[rizbo] /api/faq 取得に失敗しました", res.status);
@@ -87,7 +95,7 @@
       .rzb-widget-container {
         position: fixed;
         z-index: 2147483000;
-        bottom: 24px;
+        bottom: ${bottomOffsetPc}px;
         display: flex;
         flex-direction: row;
         align-items: center;
@@ -227,8 +235,8 @@
         display: none;
       }
       .rzb-panel.rzb-open { display: block; }
-      .rzb-panel.rzb-right { right: 24px; bottom: 96px; }
-      .rzb-panel.rzb-left { left: 24px; bottom: 96px; }
+      .rzb-panel.rzb-right { right: 24px; bottom: calc(${bottomOffsetPc}px + 72px); }
+      .rzb-panel.rzb-left { left: 24px; bottom: calc(${bottomOffsetPc}px + 72px); }
       .rzb-iframe { width: 100%; height: 100%; border: none; display: block; }
 
       @media (max-width: 640px) {
@@ -237,7 +245,7 @@
           height: calc(100dvh - 16px)!important; border-radius: 12px 12px 0 0;
         }
         .rzb-widget-container {
-          right: 16px!important; left: auto!important; bottom: 16px!important;
+          right: 16px!important; left: auto!important; bottom: ${bottomOffsetSp}px!important;
           flex-direction: column-reverse; /* モバイルでは縦並び */
           align-items: flex-end;
           gap: 12px;
