@@ -9,19 +9,24 @@ export async function GET(req: NextRequest) {
   const schoolId = searchParams.get("schoolId");
   const courseId = searchParams.get("courseId");
 
-  if (!schoolId || !courseId) {
+  if (!schoolId) {
     return NextResponse.json(
-      { message: "schoolId と courseId が必要です" },
+      { message: "schoolId が必要です" },
       { status: 400 },
     );
   }
 
+  const whereClause: any = {
+    schoolId,
+    isActive: true,
+  };
+  
+  if (courseId) {
+    whereClause.courses = { some: { courseId } };
+  }
+
   const slots = await prisma.diagnosisScheduleSlot.findMany({
-    where: {
-      schoolId,
-      isActive: true,
-      courses: { some: { courseId } },
-    },
+    where: whereClause,
     orderBy: [{ weekday: "asc" }, { sortOrder: "asc" }, { createdAt: "asc" }],
   });
 

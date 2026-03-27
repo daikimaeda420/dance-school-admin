@@ -264,6 +264,29 @@ export default function DiagnosisEmbedClient({
   const [schedule, setSchedule] = useState<PublicSchedule | null>(null);
   const [scheduleError, setScheduleError] = useState<string | null>(null);
 
+  // ✅ 追加: 全スケジュール取得（フォームの選択肢用）
+  const [allSchedulesGrouped, setAllSchedulesGrouped] = useState<PublicSchedule | null>(null);
+  useEffect(() => {
+    if (!schoolId) return;
+    let cancelled = false;
+    fetch(`/api/diagnosis/schedule?schoolId=${encodeURIComponent(schoolId)}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (cancelled) return;
+        const resolved =
+          data?.schedule ??
+          data?.data?.schedule ??
+          data?.result?.schedule ??
+          null;
+        setAllSchedulesGrouped(resolved);
+      })
+      .catch((e) => console.error("Failed to load all schedules:", e));
+
+    return () => {
+      cancelled = true;
+    };
+  }, [schoolId]);
+
 
 
   // =========================================================
@@ -596,11 +619,28 @@ export default function DiagnosisEmbedClient({
   };
 
   const classOptions = useMemo(() => {
-    return fetchedCourses.map((c) => ({
-      value: c.label, // フォーム送信時にコース名として送るためlabelを使用
-      label: c.label,
-    }));
-  }, [fetchedCourses]);
+    const opts: { value: string; label: string }[] = [];
+
+    // コース
+    fetchedCourses.forEach((c) => {
+      opts.push({ value: c.label, label: c.label });
+    });
+
+    // スケジュール
+    if (allSchedulesGrouped) {
+      const dayOrder = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"] as const;
+      const dayLabels: Record<string, string> = { MON: "月曜", TUE: "火曜", WED: "水曜", THU: "木曜", FRI: "金曜", SAT: "土曜", SUN: "日曜" };
+      dayOrder.forEach((dayKey) => {
+        const slots = allSchedulesGrouped[dayKey] ?? [];
+        slots.forEach((s) => {
+          const text = `【${dayLabels[dayKey]}】${s.timeText} ${s.genreText} (${s.teacher})`;
+          opts.push({ value: text, label: text });
+        });
+      });
+    }
+
+    return opts;
+  }, [fetchedCourses, allSchedulesGrouped]);
 
   const dateOptions = useMemo(() => {
     const want = 12;
