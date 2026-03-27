@@ -17,6 +17,15 @@ import {
   Rocket,
   RefreshCw,
   Copy,
+  MessageSquare,
+  Sparkles,
+  BarChart3,
+  MousePointerClick,
+  Layers,
+  Settings,
+  Mail,
+  MapPin,
+  ChevronRight,
 } from "lucide-react";
 
 type UserWithSchool = {
@@ -188,390 +197,221 @@ export default function HomePage() {
   };
 
   // ==========================
-  // 未ログインLP（NURO風）
+  // 未ログインLP（モダンSaaS）
   // ==========================
   if (status === "unauthenticated") {
     return (
-      <main className="min-h-screen bg-white text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100">
+      <main className="min-h-screen bg-[#0a0a0a] text-zinc-100 selection:bg-indigo-500/30 font-sans">
         {/* Header */}
-        <header className="sticky top-0 z-30 border-b border-zinc-200/60 bg-white/80 backdrop-blur dark:border-zinc-800/60 dark:bg-zinc-950/70">
-          <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-4">
+        <header className="fixed inset-x-0 top-0 z-50 border-b border-white/5 bg-black/20 backdrop-blur-xl">
+          <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-6 py-4">
             <div className="flex items-center gap-3">
               <Image
                 src="/logo.svg"
                 alt="rizbo"
-                width={120}
-                height={32}
+                width={100}
+                height={28}
                 priority
-                className="h-8 w-auto dark:invert"
+                className="h-7 w-auto brightness-0 invert opacity-90 hover:opacity-100 transition-opacity"
               />
             </div>
-
-            <nav className="hidden items-center gap-5 text-sm text-zinc-600 dark:text-zinc-300 sm:flex">
-              <a
-                href="#issues"
-                className="hover:text-zinc-900 dark:hover:text-zinc-100"
-              >
-                課題
-              </a>
-              <a
-                href="#solution"
-                className="hover:text-zinc-900 dark:hover:text-zinc-100"
-              >
-                解決
-              </a>
-              <a
-                href="#functions"
-                className="hover:text-zinc-900 dark:hover:text-zinc-100"
-              >
-                主要機能
-              </a>
-              <a
-                href="#cv"
-                className="hover:text-zinc-900 dark:hover:text-zinc-100"
-              >
-                CV改善
-              </a>
-              <a
-                href="#contact"
-                className="hover:text-zinc-900 dark:hover:text-zinc-100"
-              >
-                お問い合わせ
-              </a>
-            </nav>
-
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-4">
               <Link
                 href="/api/auth/signin"
-                className="rounded-xl px-4 py-2 text-sm font-semibold ring-1 ring-orange-200 hover:bg-orange-50 dark:ring-orange-900/60 dark:hover:bg-orange-950/30"
+                className="group relative inline-flex items-center justify-center overflow-hidden rounded-full bg-white/10 px-5 py-2 text-sm font-medium text-white backdrop-blur-md transition-all hover:bg-white/20 border border-white/10"
               >
-                ログイン
+                <span>ログイン</span>
               </Link>
             </div>
           </div>
         </header>
 
         {/* Hero */}
-        <section className="mx-auto w-full max-w-6xl px-6 pt-12">
-          <div className="grid items-center gap-10 lg:grid-cols-2">
-            <div>
-              <div className="inline-flex items-center gap-2 rounded-full border border-orange-200 bg-orange-50 px-3 py-1 text-xs font-semibold text-orange-700 dark:border-orange-900/60 dark:bg-orange-950/30 dark:text-orange-200">
-                <span className="h-2 w-2 rounded-full bg-orange-500" />
-                ダンススクール向け AIチャットボット / ダンス診断 / CV改善
-              </div>
-
-              <h1 className="mt-5 text-3xl font-bold leading-tight tracking-tight sm:text-5xl">
-                問い合わせ対応を自動化し
-                <br />
-                体験予約のCVを伸ばす
-                <br />
-                オールインワン運用
-              </h1>
-
-              <p className="mt-4 max-w-xl text-base text-zinc-600 dark:text-zinc-300">
-                よくある質問はチャットで即解決。迷うユーザーは「ダンス診断」でおすすめに誘導。
-                さらにログ分析で、離脱ポイントと“刺さる質問”を見える化して改善できます。
-              </p>
-
-              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                <Link
-                  href="/api/auth/signin"
-                  className="inline-flex items-center justify-center rounded-2xl bg-orange-600 px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-orange-700"
-                >
-                  ログインして試す
-                </Link>
-                <a
-                  href="#functions"
-                  className="inline-flex items-center justify-center rounded-2xl px-6 py-3 text-sm font-semibold ring-1 ring-orange-200 hover:bg-orange-50 dark:ring-orange-900/60 dark:hover:bg-orange-950/30"
-                >
-                  主要機能を見る
-                </a>
-              </div>
-
-              <div className="mt-8 flex flex-wrap gap-2 text-xs text-zinc-600 dark:text-zinc-300">
-                <span className="rounded-full border border-orange-200 bg-orange-50 px-3 py-1 dark:border-orange-900/60 dark:bg-orange-950/30">
-                  script埋め込み
-                </span>
-                <span className="rounded-full border border-orange-200 bg-orange-50 px-3 py-1 dark:border-orange-900/60 dark:bg-orange-950/30">
-                  分岐FAQ/診断
-                </span>
-                <span className="rounded-full border border-orange-200 bg-orange-50 px-3 py-1 dark:border-orange-900/60 dark:bg-orange-950/30">
-                  ログ→改善
-                </span>
-                <span className="rounded-full border border-orange-200 bg-orange-50 px-3 py-1 dark:border-orange-900/60 dark:bg-orange-950/30">
-                  school別運用
-                </span>
-              </div>
-
-              <div className="mt-8 grid gap-3 sm:grid-cols-3">
-                <MiniStat
-                  label="導入"
-                  value="最短10分"
-                  note="script貼り付けで表示"
-                />
-                <MiniStat
-                  label="自動化"
-                  value="FAQ/診断"
-                  note="分岐で迷いを解消"
-                />
-                <MiniStat label="改善" value="ログ分析" note="CV導線を最適化" />
-              </div>
+        <section className="relative overflow-hidden pt-36 pb-20 lg:pt-48 lg:pb-32">
+          {/* Background Glow */}
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-indigo-600/20 blur-[120px] rounded-full pointer-events-none" />
+          <div className="absolute top-40 left-1/4 w-[400px] h-[400px] bg-purple-600/20 blur-[100px] rounded-full pointer-events-none" />
+          
+          <div className="relative mx-auto max-w-7xl px-6 text-center">
+            <div className="inline-flex items-center gap-2 rounded-full border border-indigo-500/30 bg-indigo-500/10 px-4 py-1.5 text-sm font-medium text-indigo-300 backdrop-blur-md mb-8">
+              <Sparkles className="h-4 w-4" />
+              <span>ダンススクール運営の次世代プラットフォーム</span>
             </div>
-
-            <div className="rounded-3xl border border-orange-200 bg-gradient-to-b from-orange-50 to-white p-4 shadow-sm dark:border-orange-900/60 dark:from-orange-950/20 dark:to-zinc-950">
-              <div className="overflow-hidden rounded-2xl border border-orange-200 bg-white dark:border-orange-900/60 dark:bg-zinc-950">
-                <Image
-                  src="/lp/mockup.png"
-                  alt="Rizbo 管理画面モックアップ"
-                  width={1200}
-                  height={800}
-                  priority
-                  className="h-auto w-full"
-                />
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Issues */}
-        <section id="issues" className="mx-auto w-full max-w-6xl px-6 py-14">
-          <h2 className="text-xl font-bold tracking-tight sm:text-2xl">
-            問い合わせ対応・予約導線で、こんな課題ありませんか？
-          </h2>
-
-          <div className="mt-6 grid gap-4 sm:grid-cols-3">
-            <LPProblem
-              title="問い合わせ対応に追われる"
-              desc="体験/料金/持ち物/予約/年齢制限など、同じ質問対応が積み上がり、現場が疲弊。"
-            />
-            <LPProblem
-              title="迷って離脱（CVが伸びない）"
-              desc="ジャンル・目的・レベルが決められないユーザーは、比較中に離脱しがち。"
-            />
-            <LPProblem
-              title="改善したいが“根拠”がない"
-              desc="どの質問が多い？どこで離脱？が見えないため、LPや導線改善が当て勘になる。"
-            />
-          </div>
-        </section>
-
-        {/* Solution */}
-        <section id="solution" className="mx-auto w-full max-w-6xl px-6 pb-14">
-          <div className="rounded-3xl border border-orange-200 bg-gradient-to-b from-orange-50 to-white p-8 shadow-sm dark:border-orange-900/60 dark:from-orange-950/20 dark:to-zinc-950">
-            <h2 className="text-xl font-bold tracking-tight sm:text-2xl">
-              Rizboなら「自動化」＋「診断」＋「改善」で解決
-            </h2>
-
-            <div className="mt-6 grid gap-4 sm:grid-cols-3">
-              <LPSolution
-                title="AIチャットで一次対応を自動化"
-                desc="営業時間外も即回答。料金/体験/アクセス/持ち物などを自動応答し、スタッフ稼働を削減。"
-              />
-              <LPSolution
-                title="ダンス診断で“迷い”を解消"
-                desc="目的・年齢・経験・好きなジャンルから最適なクラスへ誘導。迷い→予約へつなげます。"
-              />
-              <LPSolution
-                title="ログ分析でCV導線を改善"
-                desc="よく押される質問・未解決の相談・離脱ポイントを把握。改善の打ち手が明確になります。"
-              />
-            </div>
-
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+            
+            <h1 className="text-4xl font-extrabold tracking-tight text-white sm:text-6xl lg:text-7xl leading-[1.15]">
+              問い合わせ対応をゼロに。
+              <br className="hidden sm:block" />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 mt-2 inline-block">
+                体験予約のCVを最大化する。
+              </span>
+            </h1>
+            
+            <p className="mx-auto mt-6 max-w-2xl text-lg text-zinc-400 leading-relaxed">
+              AIチャットボットによる自動応答、最適なクラスへ導くダンス診断、
+              そしてそれらの効果を分析するダッシュボードまで。スクールの体験予約への導線を最適化するオールインワンシステムです。
+            </p>
+            
+            <div className="mt-10 flex flex-col justify-center gap-4 sm:flex-row">
               <Link
                 href="/api/auth/signin"
-                className="inline-flex items-center justify-center rounded-2xl bg-orange-600 px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-orange-700"
+                className="inline-flex items-center justify-center rounded-full bg-white px-8 py-3.5 text-sm font-bold text-zinc-950 transition-transform hover:scale-105 hover:bg-zinc-100"
               >
-                ログインして始める
+                システムにログインする
               </Link>
               <a
-                href="#functions"
-                className="inline-flex items-center justify-center rounded-2xl px-6 py-3 text-sm font-semibold ring-1 ring-orange-200 hover:bg-orange-50 dark:ring-orange-900/60 dark:hover:bg-orange-950/30"
+                href="#features"
+                className="inline-flex items-center justify-center rounded-full border border-white/10 bg-white/5 px-8 py-3.5 text-sm font-bold text-white backdrop-blur-md transition-colors hover:bg-white/10"
               >
-                主要機能を見る
+                機能を詳しく見る
               </a>
             </div>
           </div>
         </section>
 
-        {/* Functions */}
-        <section id="functions" className="mx-auto w-full max-w-6xl px-6 pb-14">
-          <div className="flex items-end justify-between gap-4">
-            <div>
-              <p className="text-sm font-semibold text-orange-600 dark:text-orange-300">
-                FEATURES
-              </p>
-              <h2 className="mt-2 text-xl font-bold tracking-tight sm:text-2xl">
-                チャットボット × ダンス診断 × 運用改善
+        {/* Bento Grid Features */}
+        <section id="features" className="relative mx-auto max-w-7xl px-6 py-20 z-10">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
+              スクール運営を加速させる強力な機能
+            </h2>
+            <p className="mt-4 text-zinc-400">
+              顧客の迷いをなくし、予約アクションへ直結させる設計。
+            </p>
+          </div>
+
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {/* Chatbot (Large) */}
+            <div className="group relative overflow-hidden rounded-3xl border border-white/10 bg-zinc-900/50 p-8 transition-all hover:bg-zinc-900/80 md:col-span-2">
+              <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-indigo-500/10 blur-[80px] transition-all group-hover:bg-indigo-500/20" />
+              <div className="relative z-10">
+                <div className="mb-4 inline-flex rounded-xl bg-indigo-500/20 p-3 text-indigo-300 ring-1 ring-indigo-500/30">
+                  <MessageSquare className="h-6 w-6" />
+                </div>
+                <h3 className="text-2xl font-bold text-white mb-2">AIチャットボット</h3>
+                <p className="text-zinc-400 max-w-md leading-relaxed">
+                  24時間365日、Webサイト上の疑問を自動で解決。料金やアクセス、持ち物などのよくある質問をツリー構造でご案内し、スクールへの問い合わせ対応コストを大幅に削減します。<br />
+                  <span className="text-indigo-300 mt-3 inline-flex items-center gap-1 text-sm font-medium bg-indigo-500/10 px-3 py-1 rounded-full"><CheckCircle2 className="h-4 w-4"/> 管理画面からスクリプト発行</span>
+                </p>
+              </div>
+            </div>
+
+            {/* Diagnosis (Tall) */}
+            <div className="group relative overflow-hidden rounded-3xl border border-white/10 bg-zinc-900/50 p-8 transition-all hover:bg-zinc-900/80 md:row-span-2 flex flex-col">
+              <div className="absolute -left-20 -bottom-20 h-64 w-64 rounded-full bg-purple-500/10 blur-[80px] transition-all group-hover:bg-purple-500/20" />
+              <div className="relative z-10 h-full flex flex-col flex-1">
+                <div className="mb-4 inline-flex rounded-xl bg-purple-500/20 p-3 text-purple-300 ring-1 ring-purple-500/30 w-fit">
+                  <MousePointerClick className="h-6 w-6" />
+                </div>
+                <h3 className="text-xl font-bold text-white mb-2">パーソナライズ診断</h3>
+                <p className="text-zinc-400 text-sm leading-relaxed mb-6">
+                  「どのクラスが合っているか分からない」という離脱の最大の原因を解消。年齢、目的、ダンス経験をヒアリングし、最適なクラスやインストラクターをピンポイントで提案します。結果画面からそのまま体験予約へ誘導し、コンバージョン率を劇的に引き上げます。
+                </p>
+                <div className="mt-auto p-5 rounded-2xl bg-white/5 border border-white/5 backdrop-blur-md">
+                  <div className="text-xs font-semibold text-white mb-4 tracking-wider">DIAGNOSIS FLOW</div>
+                  <div className="space-y-4 pb-1">
+                    <div className="flex items-center gap-3 text-sm text-zinc-300 font-medium">
+                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-purple-500/20 text-purple-300 text-xs font-bold border border-purple-500/30 shadow-inner">1</div>
+                      年齢・ライフスタイル
+                    </div>
+                    <div className="flex items-center gap-3 text-sm text-zinc-300 font-medium">
+                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-purple-500/20 text-purple-300 text-xs font-bold border border-purple-500/30 shadow-inner">2</div>
+                      ダンスの経験・レベル
+                    </div>
+                    <div className="flex items-center gap-3 text-sm text-zinc-300 font-medium">
+                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-purple-500/20 text-purple-300 text-xs font-bold border border-purple-500/30 shadow-inner">3</div>
+                      一番の目的・お悩み
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Dashboard */}
+            <div className="group relative overflow-hidden rounded-3xl border border-white/10 bg-zinc-900/50 p-8 transition-all hover:bg-zinc-900/80">
+              <div className="absolute -right-10 -bottom-10 h-40 w-40 rounded-full bg-pink-500/10 blur-[60px] transition-all group-hover:bg-pink-500/20" />
+              <div className="relative z-10">
+                <div className="mb-4 inline-flex rounded-xl bg-pink-500/20 p-3 text-pink-300 ring-1 ring-pink-500/30">
+                  <BarChart3 className="h-6 w-6" />
+                </div>
+                <h3 className="text-xl font-bold text-white mb-2">分析ダッシュボード</h3>
+                <p className="text-zinc-400 text-sm leading-relaxed">
+                  ユーザーがどこで迷っているか、どの質問が多くクリックされているかを可視化。効果測定とCVR改善のPDCAを根拠を持って回せます。
+                </p>
+              </div>
+            </div>
+
+            {/* Forms & Automation */}
+            <div className="group relative overflow-hidden rounded-3xl border border-white/10 bg-zinc-900/50 p-8 transition-all hover:bg-zinc-900/80">
+              <div className="absolute -left-10 -top-10 h-40 w-40 rounded-full bg-emerald-500/10 blur-[60px] transition-all group-hover:bg-emerald-500/20" />
+              <div className="relative z-10">
+                <div className="mb-4 inline-flex rounded-xl bg-emerald-500/20 p-3 text-emerald-300 ring-1 ring-emerald-500/30">
+                  <Mail className="h-6 w-6" />
+                </div>
+                <h3 className="text-xl font-bold text-white mb-2">フォーム & 自動化</h3>
+                <p className="text-zinc-400 text-sm leading-relaxed">
+                  システム内蔵の予約連携機能。予約完了時の自動サンクスメール送信や、管理者への即時通知で対応の漏れや遅れを完全に防ぎます。
+                </p>
+              </div>
+            </div>
+            
+            {/* Multi-School */}
+            <div className="group relative overflow-hidden rounded-3xl border border-white/10 bg-zinc-900/50 p-8 transition-all hover:bg-zinc-900/80 md:col-span-2 lg:col-span-3 flex flex-col md:flex-row md:items-center gap-8">
+              <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+              <div className="relative z-10 md:w-1/2">
+                <div className="mb-4 inline-flex rounded-xl bg-blue-500/20 p-3 text-blue-300 ring-1 ring-blue-500/30">
+                  <MapPin className="h-6 w-6" />
+                </div>
+                <h3 className="text-2xl font-bold text-white mb-2">多店舗・マルチ連携対応</h3>
+                <p className="text-zinc-400 leading-relaxed text-sm">
+                  複数校舎の管理も1つのプラットフォームで完結。校舎ごとのGoogleマップ表示、アクセス案内、独自スケジュールの設定が可能です。ビジネスの成長に合わせて柔軟に拡張できるスケーラブルな設計です。
+                </p>
+              </div>
+              <div className="relative z-10 md:w-1/2">
+                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                   <div className="p-5 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm transition-colors hover:bg-white/10">
+                     <Layers className="h-5 w-5 text-blue-400 mb-3" />
+                     <div className="font-semibold text-white">一元管理ダッシュボード</div>
+                     <div className="text-xs text-zinc-500 mt-1.5 leading-relaxed">全校舎の設定とログを1つのアカウントから安全に管理。</div>
+                   </div>
+                   <div className="p-5 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm transition-colors hover:bg-white/10">
+                     <Settings className="h-5 w-5 text-blue-400 mb-3" />
+                     <div className="font-semibold text-white">柔軟なカスタマイズ</div>
+                     <div className="text-xs text-zinc-500 mt-1.5 leading-relaxed">校舎ごとのテーマカラーや出力項目の出し分けに対応。</div>
+                   </div>
+                 </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* CTA */}
+        <section className="relative mx-auto mt-10 max-w-5xl px-6 pb-32 text-center z-10">
+          <div className="relative overflow-hidden rounded-3xl border border-indigo-500/20 bg-indigo-900/10 px-8 py-16 backdrop-blur-sm sm:px-16 sm:py-20 shadow-2xl">
+            <div className="absolute inset-0 bg-gradient-to-b from-indigo-500/10 to-transparent opacity-50" />
+            <div className="relative z-10">
+              <h2 className="text-3xl font-bold tracking-tight text-white mb-6">
+                次世代のスクール運営を、今すぐあなたのサイトに。
               </h2>
-              <p className="mt-3 max-w-2xl text-sm text-zinc-600 dark:text-zinc-300">
-                「答える」だけでなく、「選ばせる」「予約に導く」「改善する」まで一気通貫。
-                ダンススクールのCV導線に特化した運用を想定しています。
+              <p className="mx-auto max-w-xl text-zinc-400 mb-10 leading-relaxed">
+                1行のスクリプトをWebサイトに埋め込むだけで、すべての機能が稼働し始めます。
               </p>
-            </div>
-          </div>
-
-          <div className="mt-8 grid gap-8 lg:grid-cols-3">
-            <FeatureGroup
-              kicker="CHATBOT"
-              title="AIチャットボット機能"
-              items={[
-                {
-                  title: "FAQ/分岐（選択肢）で迷わせない",
-                  desc: "質問→回答に加えて、選択肢→次の質問（ツリー）で案内を最短化。",
-                },
-                {
-                  title: "URL誘導で予約ページへスムーズ導線",
-                  desc: "「体験申込」「料金表」「アクセス」など、該当ページへ自然に誘導。",
-                },
-                {
-                  title: "埋め込みが簡単（script）",
-                  desc: "サイトにタグを貼るだけ。テーマ/パレット/表示位置も属性で調整可能。",
-                },
-              ]}
-            />
-
-            <FeatureGroup
-              kicker="DIAGNOSIS"
-              title="ダンス診断機能"
-              items={[
-                {
-                  title: "目的・経験・年代からおすすめ提案",
-                  desc: "初心者/経験者、運動不足解消、K-POP/ヒップホップなどで最適化。",
-                },
-                {
-                  title: "診断結果から“次の行動”へ誘導",
-                  desc: "おすすめクラス・校舎・体験導線へ。迷いを減らしてCVにつなげます。",
-                },
-                {
-                  title: "診断編集を管理画面で完結",
-                  desc: "質問/選択肢/遷移先URLを編集して運用改善。季節キャンペーンにも対応。",
-                },
-              ]}
-            />
-
-            <FeatureGroup
-              kicker="CONVERSION"
-              title="コンバージョン改善"
-              items={[
-                {
-                  title: "ログで“よくある質問”と未解決を把握",
-                  desc: "どの質問が多いか、どこで止まるかを可視化。FAQ改善の根拠に。",
-                },
-                {
-                  title: "CSV出力で分析ツール連携",
-                  desc: "Looker Studio/スプレッドシート/BIへ。施策の検証が回しやすい。",
-                },
-                {
-                  title: "導線改善の打ち手が明確になる",
-                  desc: "離脱箇所に合わせてLP/CTA/文言/診断分岐を改善し、CVR向上を狙えます。",
-                },
-              ]}
-            />
-          </div>
-        </section>
-
-        {/* CV */}
-        <section id="cv" className="mx-auto w-full max-w-6xl px-6 pb-14">
-          <div className="grid gap-8 lg:grid-cols-2">
-            <div className="rounded-3xl border border-orange-200 bg-white p-7 shadow-sm dark:border-orange-900/60 dark:bg-zinc-950">
-              <p className="text-sm font-semibold text-orange-600 dark:text-orange-300">
-                HOW IT IMPROVES CV
-              </p>
-              <h3 className="mt-2 text-lg font-bold tracking-tight sm:text-xl">
-                “迷い”を減らし、予約までの距離を短くする
-              </h3>
-              <p className="mt-4 text-sm leading-7 text-zinc-600 dark:text-zinc-300">
-                ダンススクールのCVが伸びない原因は「情報不足」よりも「選べない」ことが多いです。
-                Rizboはチャットで疑問を解消し、診断で選択を補助し、ログで改善を回せる設計です。
-              </p>
-
-              <div className="mt-6 space-y-3">
-                <FlowRow
-                  left="ユーザー"
-                  right="チャットで質問（不安解消）"
-                  accent
-                />
-                <FlowRow
-                  left="Rizbo"
-                  right="診断でおすすめ提示（迷い解消）"
-                  accent
-                />
-                <FlowRow left="ユーザー" right="体験申込へ遷移（CV）" accent />
-                <FlowRow left="管理者" right="ログで改善（次回CV↑）" accent />
-              </div>
-
-              <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-                <a
-                  href="#contact"
-                  className="inline-flex items-center justify-center rounded-2xl px-6 py-3 text-sm font-semibold ring-1 ring-orange-200 hover:bg-orange-50 dark:ring-orange-900/60 dark:hover:bg-orange-950/30"
-                >
-                  相談する
-                </a>
-                <Link
-                  href="/api/auth/signin"
-                  className="inline-flex items-center justify-center rounded-2xl bg-orange-600 px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-orange-700"
-                >
-                  ログインして確認
-                </Link>
-              </div>
-            </div>
-
-            <div className="rounded-3xl border border-orange-200 bg-gradient-to-b from-orange-50 to-white p-7 shadow-sm dark:border-orange-900/60 dark:from-orange-950/20 dark:to-zinc-950">
-              <div className="text-sm font-semibold">
-                改善に使える“ログ”の例
-              </div>
-              <div className="mt-4 grid gap-3">
-                <InsightRow
-                  title="よく押される質問"
-                  desc="料金・体験・持ち物・年齢制限など"
-                />
-                <InsightRow
-                  title="未解決の相談"
-                  desc="校舎の空き/ジャンル迷い/レベル不安"
-                />
-                <InsightRow
-                  title="誘導先URLの反応"
-                  desc="予約ページへ遷移した質問を特定"
-                />
-                <InsightRow
-                  title="CSVで分析"
-                  desc="期間ごとの傾向を可視化して施策に反映"
-                />
-              </div>
-              <p className="mt-4 text-xs text-zinc-500 dark:text-zinc-400">
-                ※ログは管理画面で確認 / CSV出力できます
-              </p>
+              <Link
+                href="/api/auth/signin"
+                className="inline-flex items-center justify-center rounded-full bg-white px-8 py-4 text-sm font-bold text-zinc-950 transition-transform hover:scale-105"
+              >
+                システムにログインする
+                <ChevronRight className="ml-1 h-4 w-4" />
+              </Link>
             </div>
           </div>
         </section>
 
-        {/* Contact */}
-        <section id="contact" className="mx-auto w-full max-w-6xl px-6 pb-16">
-          <h2 className="text-xl font-bold tracking-tight sm:text-2xl">
-            お気軽にご相談ください
-          </h2>
-
-          <div className="mt-6 grid gap-4 lg:grid-cols-2">
-            <ContactBox
-              title="まずは管理画面・機能を確認したい"
-              desc="チャットボット/診断/ログ改善の流れを、実際の管理画面で確認できます。"
-              cta="ログインして確認"
-              href="/api/auth/signin"
-              primary
-            />
-            <ContactBox
-              title="導入やCV改善の相談がしたい"
-              desc="現状の導線・問い合わせ内容を踏まえて、運用設計（診断設計/FAQ設計）をご提案します。"
-              cta="お問い合わせ（仮）"
-              href="/help"
-            />
-          </div>
-
-          <footer className="mt-10 border-t border-zinc-200 pt-6 text-xs text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">
-            © {new Date().getFullYear()} Rizbo
-          </footer>
-        </section>
+        {/* Footer */}
+        <footer className="border-t border-white/10 bg-black/40 text-center py-8">
+          <p className="text-sm text-zinc-600">
+            © {new Date().getFullYear()} Rizbo Admin System. All rights reserved.
+          </p>
+        </footer>
       </main>
     );
   }
@@ -795,156 +635,6 @@ export default function HomePage() {
             </p>
           )}
         </div>
-      </div>
-    </div>
-  );
-}
-
-/* =========================
-   LP Parts (Fix: add missing components)
-========================= */
-
-function MiniStat({
-  label,
-  value,
-  note,
-}: {
-  label: string;
-  value: string;
-  note: string;
-}) {
-  return (
-    <div className="rounded-2xl border border-orange-200 bg-white p-4 shadow-sm dark:border-orange-900/60 dark:bg-zinc-950">
-      <div className="text-xs font-semibold text-orange-700 dark:text-orange-200">
-        {label}
-      </div>
-      <div className="mt-1 text-lg font-bold">{value}</div>
-      <div className="mt-1 text-xs text-zinc-600 dark:text-zinc-300">
-        {note}
-      </div>
-    </div>
-  );
-}
-
-function FeatureGroup({
-  kicker,
-  title,
-  items,
-}: {
-  kicker: string;
-  title: string;
-  items: { title: string; desc: string }[];
-}) {
-  return (
-    <div className="rounded-3xl border border-orange-200 bg-white p-6 shadow-sm dark:border-orange-900/60 dark:bg-zinc-950">
-      <div className="text-xs font-semibold text-orange-600 dark:text-orange-300">
-        {kicker}
-      </div>
-      <div className="mt-2 text-base font-semibold">{title}</div>
-
-      <div className="mt-4 space-y-4">
-        {items.map((it, idx) => (
-          <div
-            key={idx}
-            className="rounded-2xl border border-orange-200/60 bg-orange-50/40 p-4 dark:border-orange-900/40 dark:bg-orange-950/20"
-          >
-            <div className="text-sm font-semibold">{it.title}</div>
-            <div className="mt-2 text-sm text-zinc-600 dark:text-zinc-300">
-              {it.desc}
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function InsightRow({ title, desc }: { title: string; desc: string }) {
-  return (
-    <div className="rounded-2xl border border-orange-200 bg-white px-4 py-3 text-sm shadow-sm dark:border-orange-900/60 dark:bg-zinc-950">
-      <div className="font-semibold">{title}</div>
-      <div className="mt-1 text-zinc-600 dark:text-zinc-300">{desc}</div>
-    </div>
-  );
-}
-
-function LPProblem({ title, desc }: { title: string; desc: string }) {
-  return (
-    <div className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
-      <div className="text-sm font-semibold">{title}</div>
-      <div className="mt-2 text-sm text-zinc-600 dark:text-zinc-300">
-        {desc}
-      </div>
-    </div>
-  );
-}
-
-function LPSolution({ title, desc }: { title: string; desc: string }) {
-  return (
-    <div className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
-      <div className="text-sm font-semibold">{title}</div>
-      <div className="mt-2 text-sm text-zinc-600 dark:text-zinc-300">
-        {desc}
-      </div>
-    </div>
-  );
-}
-
-function FlowRow({
-  left,
-  right,
-  accent,
-}: {
-  left: string;
-  right: string;
-  accent?: boolean;
-}) {
-  return (
-    <div
-      className={
-        "flex items-center justify-between gap-3 rounded-2xl border px-4 py-3 text-sm " +
-        (accent
-          ? "border-orange-200 bg-orange-50 dark:border-orange-900/60 dark:bg-orange-950/20"
-          : "border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900/50")
-      }
-    >
-      <span className="text-zinc-600 dark:text-zinc-300">{left}</span>
-      <span className="font-semibold">{right}</span>
-    </div>
-  );
-}
-
-function ContactBox({
-  title,
-  desc,
-  cta,
-  href,
-  primary,
-}: {
-  title: string;
-  desc: string;
-  cta: string;
-  href: string;
-  primary?: boolean;
-}) {
-  return (
-    <div className="rounded-3xl border border-zinc-200 bg-white p-7 shadow-sm dark:border-zinc-800 dark:bg-zinc-950">
-      <div className="text-base font-semibold">{title}</div>
-      <div className="mt-2 text-sm text-zinc-600 dark:text-zinc-300">
-        {desc}
-      </div>
-      <div className="mt-5">
-        <Link
-          href={href}
-          className={
-            "inline-flex items-center justify-center rounded-2xl px-5 py-3 text-sm font-semibold transition " +
-            (primary
-              ? "bg-orange-600 text-white hover:bg-orange-700"
-              : "ring-1 ring-orange-200 hover:bg-orange-50 dark:ring-orange-900/60 dark:hover:bg-orange-950/30")
-          }
-        >
-          {cta}
-        </Link>
       </div>
     </div>
   );
