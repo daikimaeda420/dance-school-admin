@@ -204,7 +204,7 @@ export default function DiagnosisEmbedClient({
   const [bannerUrl, setBannerUrl] = useState<string | null>(null);
   useEffect(() => {
     if (!schoolId) return;
-    fetch(`/api/admin/diagnosis/media/banner?schoolId=${encodeURIComponent(schoolId)}`)
+    fetch(`/api/diagnosis/media/banner/info?schoolId=${encodeURIComponent(schoolId)}`)
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
         // 画像が存在する場合のみURLを設定
