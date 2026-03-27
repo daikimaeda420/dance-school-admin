@@ -207,12 +207,12 @@ export default function HomePage() {
           <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-6 py-4">
             <div className="flex items-center gap-3">
               <Image
-                src="/logo.svg"
+                src="/logo_w.svg"
                 alt="rizbo"
                 width={100}
                 height={28}
                 priority
-                className="h-7 w-auto brightness-0 invert opacity-90 hover:opacity-100 transition-opacity"
+                className="h-7 w-auto opacity-90 hover:opacity-100 transition-opacity"
               />
             </div>
             <div className="flex items-center gap-4">
