@@ -201,7 +201,7 @@ export default function HomePage() {
   // ==========================
   if (status === "unauthenticated") {
     return (
-      <main className="min-h-screen bg-[#0a0a0a] text-zinc-100 selection:bg-indigo-500/30 font-sans">
+      <main className="min-h-screen bg-[#0a0a0a] text-zinc-100 selection:bg-orange-500/30 font-sans">
         {/* Header */}
         <header className="fixed inset-x-0 top-0 z-50 border-b border-white/5 bg-black/20 backdrop-blur-xl">
           <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-6 py-4">
@@ -229,11 +229,11 @@ export default function HomePage() {
         {/* Hero */}
         <section className="relative overflow-hidden pt-36 pb-20 lg:pt-48 lg:pb-32">
           {/* Background Glow */}
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-indigo-600/20 blur-[120px] rounded-full pointer-events-none" />
-          <div className="absolute top-40 left-1/4 w-[400px] h-[400px] bg-purple-600/20 blur-[100px] rounded-full pointer-events-none" />
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-orange-600/20 blur-[120px] rounded-full pointer-events-none" />
+          <div className="absolute top-40 left-1/4 w-[400px] h-[400px] bg-amber-600/20 blur-[100px] rounded-full pointer-events-none" />
           
           <div className="relative mx-auto max-w-7xl px-6 text-center">
-            <div className="inline-flex items-center gap-2 rounded-full border border-indigo-500/30 bg-indigo-500/10 px-4 py-1.5 text-sm font-medium text-indigo-300 backdrop-blur-md mb-8">
+            <div className="inline-flex items-center gap-2 rounded-full border border-orange-500/30 bg-orange-500/10 px-4 py-1.5 text-sm font-medium text-orange-300 backdrop-blur-md mb-8">
               <Sparkles className="h-4 w-4" />
               <span>ダンススクール運営の次世代プラットフォーム</span>
             </div>
@@ -241,7 +241,7 @@ export default function HomePage() {
             <h1 className="text-4xl font-extrabold tracking-tight text-white sm:text-6xl lg:text-7xl leading-[1.15]">
               問い合わせ対応をゼロに。
               <br className="hidden sm:block" />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 mt-2 inline-block">
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 via-amber-400 to-yellow-400 mt-2 inline-block">
                 体験予約のCVを最大化する。
               </span>
             </h1>
@@ -282,24 +282,24 @@ export default function HomePage() {
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {/* Chatbot (Large) */}
             <div className="group relative overflow-hidden rounded-3xl border border-white/10 bg-zinc-900/50 p-8 transition-all hover:bg-zinc-900/80 md:col-span-2">
-              <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-indigo-500/10 blur-[80px] transition-all group-hover:bg-indigo-500/20" />
+              <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-orange-500/10 blur-[80px] transition-all group-hover:bg-orange-500/20" />
               <div className="relative z-10">
-                <div className="mb-4 inline-flex rounded-xl bg-indigo-500/20 p-3 text-indigo-300 ring-1 ring-indigo-500/30">
+                <div className="mb-4 inline-flex rounded-xl bg-orange-500/20 p-3 text-orange-300 ring-1 ring-orange-500/30">
                   <MessageSquare className="h-6 w-6" />
                 </div>
                 <h3 className="text-2xl font-bold text-white mb-2">AIチャットボット</h3>
                 <p className="text-zinc-400 max-w-md leading-relaxed">
                   24時間365日、Webサイト上の疑問を自動で解決。料金やアクセス、持ち物などのよくある質問をツリー構造でご案内し、スクールへの問い合わせ対応コストを大幅に削減します。<br />
-                  <span className="text-indigo-300 mt-3 inline-flex items-center gap-1 text-sm font-medium bg-indigo-500/10 px-3 py-1 rounded-full"><CheckCircle2 className="h-4 w-4"/> 管理画面からスクリプト発行</span>
+                  <span className="text-orange-300 mt-3 inline-flex items-center gap-1 text-sm font-medium bg-orange-500/10 px-3 py-1 rounded-full"><CheckCircle2 className="h-4 w-4"/> 管理画面からスクリプト発行</span>
                 </p>
               </div>
             </div>
 
             {/* Diagnosis (Tall) */}
             <div className="group relative overflow-hidden rounded-3xl border border-white/10 bg-zinc-900/50 p-8 transition-all hover:bg-zinc-900/80 md:row-span-2 flex flex-col">
-              <div className="absolute -left-20 -bottom-20 h-64 w-64 rounded-full bg-purple-500/10 blur-[80px] transition-all group-hover:bg-purple-500/20" />
+              <div className="absolute -left-20 -bottom-20 h-64 w-64 rounded-full bg-amber-500/10 blur-[80px] transition-all group-hover:bg-amber-500/20" />
               <div className="relative z-10 h-full flex flex-col flex-1">
-                <div className="mb-4 inline-flex rounded-xl bg-purple-500/20 p-3 text-purple-300 ring-1 ring-purple-500/30 w-fit">
+                <div className="mb-4 inline-flex rounded-xl bg-amber-500/20 p-3 text-amber-300 ring-1 ring-amber-500/30 w-fit">
                   <MousePointerClick className="h-6 w-6" />
                 </div>
                 <h3 className="text-xl font-bold text-white mb-2">パーソナライズ診断</h3>
@@ -310,15 +310,15 @@ export default function HomePage() {
                   <div className="text-xs font-semibold text-white mb-4 tracking-wider">DIAGNOSIS FLOW</div>
                   <div className="space-y-4 pb-1">
                     <div className="flex items-center gap-3 text-sm text-zinc-300 font-medium">
-                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-purple-500/20 text-purple-300 text-xs font-bold border border-purple-500/30 shadow-inner">1</div>
+                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-amber-500/20 text-amber-300 text-xs font-bold border border-amber-500/30 shadow-inner">1</div>
                       年齢・ライフスタイル
                     </div>
                     <div className="flex items-center gap-3 text-sm text-zinc-300 font-medium">
-                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-purple-500/20 text-purple-300 text-xs font-bold border border-purple-500/30 shadow-inner">2</div>
+                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-amber-500/20 text-amber-300 text-xs font-bold border border-amber-500/30 shadow-inner">2</div>
                       ダンスの経験・レベル
                     </div>
                     <div className="flex items-center gap-3 text-sm text-zinc-300 font-medium">
-                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-purple-500/20 text-purple-300 text-xs font-bold border border-purple-500/30 shadow-inner">3</div>
+                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-amber-500/20 text-amber-300 text-xs font-bold border border-amber-500/30 shadow-inner">3</div>
                       一番の目的・お悩み
                     </div>
                   </div>
@@ -328,9 +328,9 @@ export default function HomePage() {
 
             {/* Dashboard */}
             <div className="group relative overflow-hidden rounded-3xl border border-white/10 bg-zinc-900/50 p-8 transition-all hover:bg-zinc-900/80">
-              <div className="absolute -right-10 -bottom-10 h-40 w-40 rounded-full bg-pink-500/10 blur-[60px] transition-all group-hover:bg-pink-500/20" />
+              <div className="absolute -right-10 -bottom-10 h-40 w-40 rounded-full bg-rose-500/10 blur-[60px] transition-all group-hover:bg-rose-500/20" />
               <div className="relative z-10">
-                <div className="mb-4 inline-flex rounded-xl bg-pink-500/20 p-3 text-pink-300 ring-1 ring-pink-500/30">
+                <div className="mb-4 inline-flex rounded-xl bg-rose-500/20 p-3 text-rose-300 ring-1 ring-rose-500/30">
                   <BarChart3 className="h-6 w-6" />
                 </div>
                 <h3 className="text-xl font-bold text-white mb-2">分析ダッシュボード</h3>
@@ -342,9 +342,9 @@ export default function HomePage() {
 
             {/* Forms & Automation */}
             <div className="group relative overflow-hidden rounded-3xl border border-white/10 bg-zinc-900/50 p-8 transition-all hover:bg-zinc-900/80">
-              <div className="absolute -left-10 -top-10 h-40 w-40 rounded-full bg-emerald-500/10 blur-[60px] transition-all group-hover:bg-emerald-500/20" />
+              <div className="absolute -left-10 -top-10 h-40 w-40 rounded-full bg-yellow-500/10 blur-[60px] transition-all group-hover:bg-yellow-500/20" />
               <div className="relative z-10">
-                <div className="mb-4 inline-flex rounded-xl bg-emerald-500/20 p-3 text-emerald-300 ring-1 ring-emerald-500/30">
+                <div className="mb-4 inline-flex rounded-xl bg-yellow-500/20 p-3 text-yellow-300 ring-1 ring-yellow-500/30">
                   <Mail className="h-6 w-6" />
                 </div>
                 <h3 className="text-xl font-bold text-white mb-2">フォーム & 自動化</h3>
@@ -356,9 +356,9 @@ export default function HomePage() {
             
             {/* Multi-School */}
             <div className="group relative overflow-hidden rounded-3xl border border-white/10 bg-zinc-900/50 p-8 transition-all hover:bg-zinc-900/80 md:col-span-2 lg:col-span-3 flex flex-col md:flex-row md:items-center gap-8">
-              <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+              <div className="absolute inset-0 bg-gradient-to-r from-orange-500/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
               <div className="relative z-10 md:w-1/2">
-                <div className="mb-4 inline-flex rounded-xl bg-blue-500/20 p-3 text-blue-300 ring-1 ring-blue-500/30">
+                <div className="mb-4 inline-flex rounded-xl bg-orange-500/20 p-3 text-orange-300 ring-1 ring-orange-500/30">
                   <MapPin className="h-6 w-6" />
                 </div>
                 <h3 className="text-2xl font-bold text-white mb-2">多店舗・マルチ連携対応</h3>
@@ -369,12 +369,12 @@ export default function HomePage() {
               <div className="relative z-10 md:w-1/2">
                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                    <div className="p-5 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm transition-colors hover:bg-white/10">
-                     <Layers className="h-5 w-5 text-blue-400 mb-3" />
+                     <Layers className="h-5 w-5 text-orange-400 mb-3" />
                      <div className="font-semibold text-white">一元管理ダッシュボード</div>
                      <div className="text-xs text-zinc-500 mt-1.5 leading-relaxed">全校舎の設定とログを1つのアカウントから安全に管理。</div>
                    </div>
                    <div className="p-5 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm transition-colors hover:bg-white/10">
-                     <Settings className="h-5 w-5 text-blue-400 mb-3" />
+                     <Settings className="h-5 w-5 text-orange-400 mb-3" />
                      <div className="font-semibold text-white">柔軟なカスタマイズ</div>
                      <div className="text-xs text-zinc-500 mt-1.5 leading-relaxed">校舎ごとのテーマカラーや出力項目の出し分けに対応。</div>
                    </div>
@@ -386,8 +386,8 @@ export default function HomePage() {
 
         {/* CTA */}
         <section className="relative mx-auto mt-10 max-w-5xl px-6 pb-32 text-center z-10">
-          <div className="relative overflow-hidden rounded-3xl border border-indigo-500/20 bg-indigo-900/10 px-8 py-16 backdrop-blur-sm sm:px-16 sm:py-20 shadow-2xl">
-            <div className="absolute inset-0 bg-gradient-to-b from-indigo-500/10 to-transparent opacity-50" />
+          <div className="relative overflow-hidden rounded-3xl border border-orange-500/20 bg-orange-900/10 px-8 py-16 backdrop-blur-sm sm:px-16 sm:py-20 shadow-2xl">
+            <div className="absolute inset-0 bg-gradient-to-b from-orange-500/10 to-transparent opacity-50" />
             <div className="relative z-10">
               <h2 className="text-3xl font-bold tracking-tight text-white mb-6">
                 次世代のスクール運営を、今すぐあなたのサイトに。
