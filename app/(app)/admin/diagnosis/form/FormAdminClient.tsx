@@ -25,6 +25,7 @@ type FormData = {
   thanksType: string;
   thanksText?: string | null;
   thanksUrl?: string | null;
+  courseSelectType: string;
   fields: Field[];
 };
 
@@ -463,6 +464,20 @@ export default function FormAdminClient({ schoolId }: { schoolId: string }) {
             value={form.thanksUrl ?? ""}
             onChange={(e) => setForm({ ...form, thanksUrl: e.target.value })}
           />
+        </div>
+
+        <div>
+          <label className="block text-sm mb-1">体験コースの選択肢表示</label>
+          <select
+            className={INPUT_BASE}
+            value={form.courseSelectType ?? "BOTH"}
+            onChange={(e) => setForm({ ...form, courseSelectType: e.target.value })}
+          >
+            <option value="BOTH">コースとスケジュールの両方を表示</option>
+            <option value="COURSE">コースのみ表示</option>
+            <option value="SCHEDULE">スケジュールのみ表示</option>
+          </select>
+          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">体験予約フォームの「体験コース」の選択肢に表示される内容を切り替えられます。</p>
         </div>
       </section>
 

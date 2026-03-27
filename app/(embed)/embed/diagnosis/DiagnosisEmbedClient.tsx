@@ -620,14 +620,17 @@ export default function DiagnosisEmbedClient({
 
   const classOptions = useMemo(() => {
     const opts: { value: string; label: string }[] = [];
+    const selectType: string = (diagnosisForm as any)?.courseSelectType ?? "BOTH";
 
     // コース
-    fetchedCourses.forEach((c) => {
-      opts.push({ value: c.label, label: c.label });
-    });
+    if (selectType === "COURSE" || selectType === "BOTH") {
+      fetchedCourses.forEach((c) => {
+        opts.push({ value: c.label, label: c.label });
+      });
+    }
 
     // スケジュール
-    if (allSchedulesGrouped) {
+    if ((selectType === "SCHEDULE" || selectType === "BOTH") && allSchedulesGrouped) {
       const dayOrder = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"] as const;
       const dayLabels: Record<string, string> = { MON: "月曜", TUE: "火曜", WED: "水曜", THU: "木曜", FRI: "金曜", SAT: "土曜", SUN: "日曜" };
       dayOrder.forEach((dayKey) => {
@@ -640,7 +643,7 @@ export default function DiagnosisEmbedClient({
     }
 
     return opts;
-  }, [fetchedCourses, allSchedulesGrouped]);
+  }, [fetchedCourses, allSchedulesGrouped, diagnosisForm]);
 
   const dateOptions = useMemo(() => {
     const want = 12;

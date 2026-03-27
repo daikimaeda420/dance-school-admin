@@ -135,6 +135,7 @@ export async function PUT(req: NextRequest) {
       thanksType,
       thanksText,
       thanksUrl,
+      courseSelectType,
       fields,
     } = body ?? {};
 
@@ -157,6 +158,7 @@ export async function PUT(req: NextRequest) {
         thanksType,
         thanksText,
         thanksUrl,
+        ...(courseSelectType !== undefined && { courseSelectType }),
       },
     });
 
