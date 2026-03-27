@@ -367,11 +367,14 @@ export default function FormAdminClient({ schoolId }: { schoolId: string }) {
         if (!res.ok)
           throw new Error(data?.message ?? "フォームの保存に失敗しました");
 
-        // 返却がフォーム本体なら反映（{ok:true}でも害なし）
+        // 返却がフォーム本体なら反映（{ok:true}の場合は現在の form を正として originalForm を更新）
         if (data?.id && data?.fields) {
           const fd = ensureRequiredFields(data);
           setForm(fd);
           setOriginalForm(JSON.parse(JSON.stringify(fd)));
+        } else {
+          // {ok:true} のみ返ってきた場合も現在の state を「保存済み」とする
+          setOriginalForm(JSON.parse(JSON.stringify(form)));
         }
       }
 
