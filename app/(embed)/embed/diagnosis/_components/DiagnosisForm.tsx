@@ -359,15 +359,26 @@ export default function DiagnosisForm({
                   )}
                 </label>
 
-                {dateOptions.length > 0 ? (
-                  <SelectLike
-                    value={values[dateField.id] ?? ""}
-                    onChange={(v) => setVal(dateField.id, v)}
-                    required={dateField.required}
-                    placeholder="日程を選択してください"
-                    options={dateOptions}
-                  />
+                {onClassChange !== undefined ? (
+                  // 動的日付モード（info-dance-links-tokyo）
+                  dateOptions.length > 0 ? (
+                    <SelectLike
+                      value={values[dateField.id] ?? ""}
+                      onChange={(v) => setVal(dateField.id, v)}
+                      required={dateField.required}
+                      placeholder="日程を選択してください"
+                      options={dateOptions}
+                    />
+                  ) : (
+                    // コース未選択状態
+                    <div
+                      className={`mt-2 rounded-2xl bg-[#f1ede6] px-5 py-4 text-[14px] text-[#b5aa9a] min-h-[46px] flex items-center ring-1 ring-black/5`}
+                    >
+                      体験コースを選択してください
+                    </div>
+                  )
                 ) : (
+                  // 通常モード：カレンダー
                   <input
                     type="date"
                     className={`${INPUT} block appearance-none cursor-pointer w-full text-center min-h-[46px]`}
