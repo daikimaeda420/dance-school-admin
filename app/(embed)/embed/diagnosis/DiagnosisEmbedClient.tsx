@@ -687,8 +687,59 @@ export default function DiagnosisEmbedClient({
   // ★ info-dance-links-tokyo 専用：コース選択連動の日時セレクト
   const [dynamicDateOptions, setDynamicDateOptions] = useState<{ value: string; label: string }[]>([]);
 
+  // オプションテキスト → weekday の逆引きマップ
+  const scheduleOptionWeekdayMap = useMemo(() => {
+    const map = new Map<string, string>();
+    if (!allSchedulesGrouped) return map;
+    const dayLabels: Record<string, string> = {
+      MON: "月曜", TUE: "火曜", WED: "水曜", THU: "木曜",
+      FRI: "金曜", SAT: "土曜", SUN: "日曜",
+    };
+    (["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"] as const).forEach((dayKey) => {
+      const slots = allSchedulesGrouped[dayKey] ?? [];
+      slots.forEach((s) => {
+        const text = `【${dayLabels[dayKey]}】${s.timeText} ${s.genreText} (${s.teacher})`;
+        map.set(text, dayKey);
+      });
+    });
+    return map;
+  }, [allSchedulesGrouped]);
+
+  // 曜日キー配列 → 日付オプション生成ユーティリティ
+  const buildDateOptionsFromWeekdays = useCallback((weekdayKeys: string[]) => {
+    const DAY_NUM: Record<string, number> = {
+      MON: 1, TUE: 2, WED: 3, THU: 4, FRI: 5, SAT: 6, SUN: 0,
+    };
+    const JP = ["日", "月", "火", "水", "木", "金", "土"];
+    const targetDows = weekdayKeys.map((d) => DAY_NUM[d]).filter((n) => n !== undefined);
+    const today = new Date();
+    const opts: { value: string; label: string }[] = [];
+    for (let i = 1; i <= 28; i++) {
+      const d = new Date(today);
+      d.setDate(today.getDate() + i);
+      if (!targetDows.includes(d.getDay())) continue;
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, "0");
+      const dd = String(d.getDate()).padStart(2, "0");
+      opts.push({
+        value: `${y}-${m}-${dd}`,
+        label: `${y}/${m}/${dd}（${JP[d.getDay()]}）`,
+      });
+    }
+    return opts;
+  }, []);
+
   const handleClassChange = useCallback((label: string) => {
     if (schoolId !== "info-dance-links-tokyo") return;
+
+    // ① スケジュール形式オプションの場合：マップから weekday を直接取得
+    const weekday = scheduleOptionWeekdayMap.get(label);
+    if (weekday) {
+      setDynamicDateOptions(buildDateOptionsFromWeekdays([weekday]));
+      return;
+    }
+
+    // ② コース形式オプションの場合：courseId でスケジュールAPIを叩く
     const course = fetchedCourses.find((c) => c.label === label);
     if (!course) {
       setDynamicDateOptions([]);
@@ -701,32 +752,13 @@ export default function DiagnosisEmbedClient({
       .then((data) => {
         const sch = data?.schedule ?? null;
         if (!sch) { setDynamicDateOptions([]); return; }
-        const DAY_NUM: Record<string, number> = {
-          MON: 1, TUE: 2, WED: 3, THU: 4, FRI: 5, SAT: 6, SUN: 0,
-        };
-        const JP = ["日", "月", "火", "水", "木", "金", "土"];
         const activeDays = (["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"] as const).filter(
           (d) => (sch[d] ?? []).length > 0
         );
-        const targetDows = activeDays.map((d) => DAY_NUM[d]);
-        const today = new Date();
-        const opts: { value: string; label: string }[] = [];
-        for (let i = 1; i <= 28; i++) {
-          const d = new Date(today);
-          d.setDate(today.getDate() + i);
-          if (!targetDows.includes(d.getDay())) continue;
-          const y = d.getFullYear();
-          const m = String(d.getMonth() + 1).padStart(2, "0");
-          const dd = String(d.getDate()).padStart(2, "0");
-          opts.push({
-            value: `${y}-${m}-${dd}`,
-            label: `${y}/${m}/${dd}（${JP[d.getDay()]}）`,
-          });
-        }
-        setDynamicDateOptions(opts);
+        setDynamicDateOptions(buildDateOptionsFromWeekdays(activeDays));
       })
       .catch(() => setDynamicDateOptions([]));
-  }, [schoolId, fetchedCourses]);
+  }, [schoolId, fetchedCourses, scheduleOptionWeekdayMap, buildDateOptionsFromWeekdays]);
 
   // ==========================
   // ✅ CTAクリック（スクロール or 遷移）
