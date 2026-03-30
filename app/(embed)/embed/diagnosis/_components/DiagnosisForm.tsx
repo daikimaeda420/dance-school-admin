@@ -26,6 +26,7 @@ type Props = {
   classOptions?: SelectOption[];
   dateOptions?: SelectOption[];
   defaultClassValue?: string;
+  onClassChange?: (value: string) => void;
 };
 
 const BROWN = "text-[#6b4a2b]";
@@ -82,6 +83,7 @@ export default function DiagnosisForm({
   classOptions = [],
   dateOptions = [],
   defaultClassValue,
+  onClassChange,
 }: Props) {
   const schoolId = useMemo(() => hiddenValues?.schoolId ?? "", [hiddenValues]);
 
@@ -323,7 +325,10 @@ export default function DiagnosisForm({
                 {classOptions.length > 0 ? (
                   <SelectLike
                     value={values[classField.id] ?? ""}
-                    onChange={(v) => setVal(classField.id, v)}
+                    onChange={(v) => {
+                      setVal(classField.id, v);
+                      onClassChange?.(v);
+                    }}
                     required={classField.required}
                     placeholder={classField.placeholder ?? "選択してください"}
                     options={classOptions}
@@ -354,21 +359,31 @@ export default function DiagnosisForm({
                   )}
                 </label>
 
-                <input
-                  type="date"
-                  className={`${INPUT} block appearance-none cursor-pointer w-full text-center min-h-[46px]`}
-                  required={dateField.required}
-                  min={minDateString}
-                  placeholder={dateField.placeholder ?? "年/月/日"}
-                  value={values[dateField.id] ?? ""}
-                  onChange={(e) => setVal(dateField.id, e.target.value)}
-                  onClick={(e) => {
-                    // @ts-ignore: HTMLInputElement.showPicker() exists in modern browsers
-                    if (e.currentTarget.showPicker) {
-                      e.currentTarget.showPicker();
-                    }
-                  }}
-                />
+                {dateOptions.length > 0 ? (
+                  <SelectLike
+                    value={values[dateField.id] ?? ""}
+                    onChange={(v) => setVal(dateField.id, v)}
+                    required={dateField.required}
+                    placeholder="日程を選択してください"
+                    options={dateOptions}
+                  />
+                ) : (
+                  <input
+                    type="date"
+                    className={`${INPUT} block appearance-none cursor-pointer w-full text-center min-h-[46px]`}
+                    required={dateField.required}
+                    min={minDateString}
+                    placeholder={dateField.placeholder ?? "年/月/日"}
+                    value={values[dateField.id] ?? ""}
+                    onChange={(e) => setVal(dateField.id, e.target.value)}
+                    onClick={(e) => {
+                      // @ts-ignore: HTMLInputElement.showPicker() exists in modern browsers
+                      if (e.currentTarget.showPicker) {
+                        e.currentTarget.showPicker();
+                      }
+                    }}
+                  />
+                )}
               </div>
             )}
 

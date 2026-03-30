@@ -684,6 +684,50 @@ export default function DiagnosisEmbedClient({
     return out;
   }, [scheduleDay]);
 
+  // ★ info-dance-links-tokyo 専用：コース選択連動の日時セレクト
+  const [dynamicDateOptions, setDynamicDateOptions] = useState<{ value: string; label: string }[]>([]);
+
+  const handleClassChange = useCallback((label: string) => {
+    if (schoolId !== "info-dance-links-tokyo") return;
+    const course = fetchedCourses.find((c) => c.label === label);
+    if (!course) {
+      setDynamicDateOptions([]);
+      return;
+    }
+    fetch(
+      `/api/diagnosis/schedule?schoolId=${encodeURIComponent(schoolId)}&courseId=${encodeURIComponent(course.id)}`
+    )
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        const sch = data?.schedule ?? null;
+        if (!sch) { setDynamicDateOptions([]); return; }
+        const DAY_NUM: Record<string, number> = {
+          MON: 1, TUE: 2, WED: 3, THU: 4, FRI: 5, SAT: 6, SUN: 0,
+        };
+        const JP = ["日", "月", "火", "水", "木", "金", "土"];
+        const activeDays = (["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"] as const).filter(
+          (d) => (sch[d] ?? []).length > 0
+        );
+        const targetDows = activeDays.map((d) => DAY_NUM[d]);
+        const today = new Date();
+        const opts: { value: string; label: string }[] = [];
+        for (let i = 1; i <= 28; i++) {
+          const d = new Date(today);
+          d.setDate(today.getDate() + i);
+          if (!targetDows.includes(d.getDay())) continue;
+          const y = d.getFullYear();
+          const m = String(d.getMonth() + 1).padStart(2, "0");
+          const dd = String(d.getDate()).padStart(2, "0");
+          opts.push({
+            value: `${y}-${m}-${dd}`,
+            label: `${y}/${m}/${dd}（${JP[d.getDay()]}）`,
+          });
+        }
+        setDynamicDateOptions(opts);
+      })
+      .catch(() => setDynamicDateOptions([]));
+  }, [schoolId, fetchedCourses]);
+
   // ==========================
   // ✅ CTAクリック（スクロール or 遷移）
   // ==========================
@@ -797,12 +841,12 @@ export default function DiagnosisEmbedClient({
                         result.campus?.slug ??
                         result.selectedCampus?.slug ??
                         "",
-
                       score: String(result.score),
                       pattern: result.pattern,
                     }}
                     classOptions={classOptions}
-                    dateOptions={dateOptions}
+                    dateOptions={schoolId === "info-dance-links-tokyo" ? dynamicDateOptions : dateOptions}
+                    onClassChange={schoolId === "info-dance-links-tokyo" ? handleClassChange : undefined}
                     defaultClassValue={result.selectedCourse?.label ?? ""}
                   />
                 </div>
