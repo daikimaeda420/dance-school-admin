@@ -356,7 +356,7 @@ export default function DiagnosisForm({
 
                 <input
                   type="date"
-                  className={`${INPUT} cursor-pointer w-full text-center min-h-[46px]`}
+                  className={`${INPUT} block appearance-none cursor-pointer w-full text-center min-h-[46px]`}
                   required={dateField.required}
                   min={minDateString}
                   placeholder={dateField.placeholder ?? "年/月/日"}
