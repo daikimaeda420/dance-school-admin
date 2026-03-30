@@ -269,8 +269,18 @@ export default function DiagnosisForm({
                   required={nameField.required}
                   placeholder={
                     schoolId === "info-dance-links-tokyo"
-                      ? nameField.placeholder ?? "れい）さとう はなこ"
+                      ? "れい）さとう はなこ"
                       : nameField.placeholder ?? "だんす たろう"
+                  }
+                  pattern={
+                    schoolId === "info-dance-links-tokyo"
+                      ? "^[\\u3041-\\u3096\\u30FC\\s]*$"
+                      : undefined
+                  }
+                  title={
+                    schoolId === "info-dance-links-tokyo"
+                      ? "ひらがなで入力してください"
+                      : undefined
                   }
                   value={values[nameField.id] ?? ""}
                   onChange={(e) => {
