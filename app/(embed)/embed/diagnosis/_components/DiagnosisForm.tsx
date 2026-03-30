@@ -260,13 +260,27 @@ export default function DiagnosisForm({
                     <span className="ml-1 text-[#6b4a2b]/70">（必須）</span>
                   )}
                 </label>
+                {schoolId === "info-dance-links-tokyo" && (
+                  <div className={SUB}>※ひらがなでご入力ください</div>
+                )}
                 <input
                   className={INPUT}
                   type="text"
                   required={nameField.required}
-                  placeholder={nameField.placeholder ?? "だんす たろう"}
+                  placeholder={
+                    schoolId === "info-dance-links-tokyo"
+                      ? nameField.placeholder ?? "れい）さとう はなこ"
+                      : nameField.placeholder ?? "だんす たろう"
+                  }
                   value={values[nameField.id] ?? ""}
-                  onChange={(e) => setVal(nameField.id, e.target.value)}
+                  onChange={(e) => {
+                    const raw = e.target.value;
+                    const filtered =
+                      schoolId === "info-dance-links-tokyo"
+                        ? raw.replace(/[^\u3041-\u3096\u30FC\s]/g, "")
+                        : raw;
+                    setVal(nameField.id, filtered);
+                  }}
                 />
               </div>
             )}
