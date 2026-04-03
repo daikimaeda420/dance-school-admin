@@ -176,7 +176,7 @@ export async function GET(req: NextRequest) {
         kpis: [
           { label: "チャットセッション（7日）", value: "0", note: "ログ 0 件" },
           { label: "フォーム申込数", value: "0", note: "コンバージョン" },
-          { label: "診断コース", value: "0", note: "-" },
+          { label: "ダッシュボードエラー発生", value: "ERR", note: e?.message ? String(e.message).slice(0, 40) : "unknown error" },
         ],
         setup: [],
         activities: [],
@@ -185,7 +185,7 @@ export async function GET(req: NextRequest) {
           env: "Production",
           lastBackup: "-",
         },
-        error: e?.message ?? "unknown",
+        error: e?.stack ? String(e.stack) : (e?.message ?? "unknown"),
       },
       { status: 200 }
     );
