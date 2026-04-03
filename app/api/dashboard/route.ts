@@ -1,5 +1,6 @@
 // app/api/dashboard/route.ts
 import { NextRequest, NextResponse } from "next/server";
+export const dynamic = "force-dynamic";
 import { prisma } from "@/lib/prisma";
 
 function fmtDate(d: Date) {
