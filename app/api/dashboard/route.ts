@@ -34,6 +34,21 @@ function countFaqItems(items: FAQItem[]): number {
   return count;
 }
 
+/** フォーム送信フィールドから代表値を抽出するヘルパー */
+function extractFieldValue(
+  fields: Record<string, string>,
+  keywords: string[]
+): string {
+  for (const key of Object.keys(fields)) {
+    if (keywords.some((kw) => key.toLowerCase().includes(kw))) {
+      return String(fields[key] ?? "").slice(0, 60);
+    }
+  }
+  // キーワードにマッチしない場合、最初の値を返す
+  const firstVal = Object.values(fields)[0];
+  return firstVal ? String(firstVal).slice(0, 40) : "";
+}
+
 export async function GET(req: NextRequest) {
   try {
     const url = new URL(req.url);
@@ -46,9 +61,11 @@ export async function GET(req: NextRequest) {
 
     // ── Prisma 直接クエリで全データ取得 ──
     const [
-      sessionCount,
-      logCount,
+      // Q&A系
+      faqSessionCount,
+      faqLogCount,
       recentLogs,
+      // 診断系
       courseCount,
       instructorCount,
       campusCount,
@@ -56,8 +73,11 @@ export async function GET(req: NextRequest) {
       faqRow,
       formRow,
       formSubmissionCount,
+      recentSubmissions,
+      // 離脱ファネル（直近のセッション数）
+      sessionLogCount,
     ] = await Promise.all([
-      // チャットセッション数（期間内）
+      // [Q&A] チャットセッション数（期間内）
       prisma.faqLog
         .findMany({
           where: { ...schoolFilterStr, timestamp: { gte: since } },
@@ -66,12 +86,12 @@ export async function GET(req: NextRequest) {
         })
         .then((rows) => rows.length),
 
-      // ログ総件数（期間内）
+      // [Q&A] ログ総件数（期間内）
       prisma.faqLog.count({
         where: { ...schoolFilterStr, timestamp: { gte: since } },
       }),
 
-      // 最新のチャットログ5件
+      // [Q&A] 最新のチャットログ5件
       prisma.faqLog.findMany({
         where: { ...schoolFilterStr, timestamp: { gte: since } },
         orderBy: { timestamp: "desc" },
@@ -79,27 +99,27 @@ export async function GET(req: NextRequest) {
         select: { timestamp: true, question: true, sessionId: true },
       }),
 
-      // 診断コース数（有効）
+      // [診断] コース数（有効）
       prisma.diagnosisCourse.count({
         where: { ...schoolFilter, isActive: true },
       }),
 
-      // 診断講師数（有効）
+      // [診断] 講師数（有効）
       prisma.diagnosisInstructor.count({
         where: { ...schoolFilter, isActive: true },
       }),
 
-      // 診断校舎数（有効）
+      // [診断] 校舎数（有効）
       prisma.diagnosisCampus.count({
         where: { ...schoolFilter, isActive: true },
       }),
 
-      // スケジュールスロット数（有効）
+      // [診断] スケジュールスロット数（有効）
       prisma.diagnosisScheduleSlot.count({
         where: { ...schoolFilter, isActive: true },
       }),
 
-      // FAQ
+      // [診断] FAQ設定
       school
         ? prisma.faq.findUnique({
             where: { schoolId: school },
@@ -107,7 +127,7 @@ export async function GET(req: NextRequest) {
           })
         : prisma.faq.findFirst({ select: { items: true } }),
 
-      // 診断フォーム
+      // [診断] 診断フォーム
       school
         ? prisma.diagnosisForm.findUnique({
             where: { schoolId: school },
@@ -115,8 +135,21 @@ export async function GET(req: NextRequest) {
           })
         : prisma.diagnosisForm.findFirst({ select: { isActive: true } }),
 
-      // フォーム申込数（期間内）
+      // [診断] フォーム申込数（期間内）
       prisma.diagnosisFormSubmission.count({
+        where: { ...schoolFilter, createdAt: { gte: since } },
+      }),
+
+      // [診断] 直近のコンバージョンユーザー5件
+      prisma.diagnosisFormSubmission.findMany({
+        where: { ...schoolFilter, createdAt: { gte: since } },
+        orderBy: { createdAt: "desc" },
+        take: 5,
+        select: { id: true, fields: true, createdAt: true },
+      }),
+
+      // [診断] セッションログ数（離脱ファネル存在チェック）
+      prisma.diagnosisSessionLog.count({
         where: { ...schoolFilter, createdAt: { gte: since } },
       }),
     ]);
@@ -125,24 +158,58 @@ export async function GET(req: NextRequest) {
     const faqItems = (faqRow?.items as FAQItem[] | null) ?? [];
     const faqCount = Array.isArray(faqItems) ? countFaqItems(faqItems) : 0;
 
-    // ── KPIカード ──
-    const kpis = [
+    // ── Q&A KPI ──
+    const qaKpis = [
       {
-        label: `チャットセッション（${days}日）`,
-        value: sessionCount.toLocaleString(),
-        note: `ログ ${logCount.toLocaleString()} 件`,
+        label: `チャットセッション数`,
+        value: faqSessionCount.toLocaleString(),
+        note: `直近 ${days}日間`,
       },
       {
-        label: "フォーム申込数",
-        value: `${formSubmissionCount.toLocaleString()}`,
-        note: `直近 ${days}日間のコンバージョン`,
+        label: "Q&Aログ総件数",
+        value: faqLogCount.toLocaleString(),
+        note: `直近 ${days}日間`,
       },
       {
-        label: "診断コース",
-        value: `${courseCount}`,
-        note: "有効なコース数",
+        label: "Q&A登録数",
+        value: faqCount.toLocaleString(),
+        note: "チャットボットに登録された質問数",
       },
     ];
+
+    // ── 診断 KPI ──
+    const diagnosisKpis = [
+      {
+        label: "フォームコンバージョン数",
+        value: formSubmissionCount.toLocaleString(),
+        note: `直近 ${days}日間`,
+      },
+      {
+        label: "診断コース数",
+        value: courseCount.toLocaleString(),
+        note: "有効なコース",
+      },
+      {
+        label: "登録講師数",
+        value: instructorCount.toLocaleString(),
+        note: "有効な講師",
+      },
+    ];
+
+    // ── 直近のコンバージョンユーザー ──
+    const recentConversions = recentSubmissions.map((s) => {
+      const fields = (s.fields ?? {}) as Record<string, string>;
+      const name = extractFieldValue(fields, ["name", "お名前", "氏名", "名前"]);
+      const email = extractFieldValue(fields, ["email", "メール", "mail"]);
+      const tel = extractFieldValue(fields, ["tel", "phone", "電話"]);
+      return {
+        id: s.id,
+        name: name || "（不明）",
+        email: email || "",
+        tel: tel || "",
+        time: fmtDate(new Date(s.createdAt)),
+      };
+    });
 
     // ── セットアップ状況 ──
     const setup = [
@@ -154,7 +221,7 @@ export async function GET(req: NextRequest) {
       { label: "FAQ登録", done: faqCount > 0, href: "/faq" },
     ];
 
-    // ── 最近のアクティビティ ──
+    // ── Q&A 最近のアクティビティ ──
     const activities = recentLogs.map((l) => ({
       time: fmtDate(new Date(l.timestamp)),
       text: `「${String(l.question).slice(0, 60)}」`,
@@ -168,23 +235,41 @@ export async function GET(req: NextRequest) {
       lastBackup: "-",
     };
 
-    return NextResponse.json({ kpis, setup, activities, system });
+    return NextResponse.json({
+      // Q&A
+      qaKpis,
+      activities,
+      // 診断
+      diagnosisKpis,
+      recentConversions,
+      hasSessionLogs: sessionLogCount > 0,
+      // セットアップ
+      setup,
+      // システム
+      system,
+      // 後方互換性のために kpis も返す（既存コードが参照している場合）
+      kpis: [...qaKpis, ...diagnosisKpis],
+    });
   } catch (e: any) {
     console.error("[dashboard] error:", e);
     return NextResponse.json(
       {
-        kpis: [
-          { label: "チャットセッション（7日）", value: "0", note: "ログ 0 件" },
-          { label: "フォーム申込数", value: "0", note: "コンバージョン" },
-          { label: "ダッシュボードエラー発生", value: "ERR", note: e?.message ? String(e.message).slice(0, 40) : "unknown error" },
-        ],
-        setup: [],
+        qaKpis: [],
         activities: [],
+        diagnosisKpis: [],
+        recentConversions: [],
+        hasSessionLogs: false,
+        setup: [],
         system: {
           version: process.env.NEXT_PUBLIC_APP_VERSION || "v0.1.0",
           env: "Production",
           lastBackup: "-",
         },
+        kpis: [
+          { label: "チャットセッション（7日）", value: "0", note: "ログ 0 件" },
+          { label: "フォーム申込数", value: "0", note: "コンバージョン" },
+          { label: "ダッシュボードエラー発生", value: "ERR", note: e?.message ? String(e.message).slice(0, 40) : "unknown error" },
+        ],
         error: e?.stack ? String(e.stack) : (e?.message ?? "unknown"),
       },
       { status: 200 }

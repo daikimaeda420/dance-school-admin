@@ -155,6 +155,31 @@ export default function DiagnosisEmbedClient({
     return searchParams.get("schoolId") ?? searchParams.get("school") ?? "";
   }, [schoolIdProp, searchParams]);
 
+  // ── セッションID（ブラウザセッション単位で固定） ──
+  const sessionId = useMemo(() => {
+    if (typeof window === "undefined") return "";
+    const key = `rizbo_session_${schoolId}`;
+    let id = sessionStorage.getItem(key);
+    if (!id) {
+      id = `${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+      sessionStorage.setItem(key, id);
+    }
+    return id;
+  }, [schoolId]);
+
+  // ── ステップログ送信ユーティリティ ──
+  const logStep = useCallback(
+    (stepKey: string, stepLabel?: string) => {
+      if (!schoolId || !sessionId) return;
+      fetch("/api/diagnosis/session-log", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ schoolId, sessionId, stepKey, stepLabel }),
+      }).catch(() => {}); // ログ失敗は無視
+    },
+    [schoolId, sessionId]
+  );
+
   const [answers, setAnswers] = useState<AnswersState>({});
   const [stepIndex, setStepIndex] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -420,6 +445,13 @@ export default function DiagnosisEmbedClient({
     : undefined;
   const canGoNext = !!currentAnswer || !!result;
 
+  // ── ステップ表示のトラッキング ──
+  useEffect(() => {
+    if (!currentQuestion || result) return;
+    logStep(`${currentQuestion.id}_VIEW`, `${currentQuestion.id}: 表示`);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stepIndex, currentQuestion?.id]);
+
   // -----------------------
   // 診断実行
   // -----------------------
@@ -465,6 +497,8 @@ export default function DiagnosisEmbedClient({
 
       const data = (await res.json()) as DiagnosisResult;
       setResult(data);
+      // 結果表示のログ
+      logStep("RESULT_VIEW", "結果画面 表示");
     } catch (e) {
       console.error(e);
       setError("通信エラーが発生しました。時間をおいて再度お試しください。");
@@ -481,6 +515,9 @@ export default function DiagnosisEmbedClient({
 
     const isLastStep =
       qId === currentQuestion.id && stepIndex === totalSteps - 1;
+
+    // ── ステップログ送信 ──
+    logStep(`${qId}_ANSWER`, `${qId}: 回答（${optionId}）`);
 
     setAnswers((prev) => {
       const next = { ...prev, [qId]: optionId };
@@ -526,11 +563,13 @@ export default function DiagnosisEmbedClient({
       .then((data) => {
         if (!data) return;
         setDiagnosisForm(data);
+        // フォームが存在して表示されたらログ
+        logStep("FORM_OPEN", "申込フォーム 表示");
       })
       .catch(() => {
         setDiagnosisForm(null);
       });
-  }, [result, schoolId]);
+  }, [result, schoolId, logStep]);
 
   // ==========================
   // スケジュール取得

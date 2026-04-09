@@ -466,3 +466,18 @@ model DiagnosisFormSubmission {
   @@index([schoolId])
   @@index([createdAt])
 }
+
+/// 診断ステップの通過ログ（離脱トラッキング用）
+model DiagnosisSessionLog {
+  id         String   @id @default(cuid())
+  schoolId   String
+  sessionId  String   // ブラウザ側で生成するUUID（セッション単位）
+  stepKey    String   // 例: "Q1_VIEW", "Q1_ANSWER", "RESULT_VIEW", "FORM_OPEN", "FORM_SUBMIT"
+  stepLabel  String?  // 表示用ラベル 例: "Q1: 年齢・ライフスタイル"
+  createdAt  DateTime @default(now())
+
+  @@index([schoolId])
+  @@index([schoolId, stepKey])
+  @@index([sessionId])
+  @@index([createdAt])
+}
