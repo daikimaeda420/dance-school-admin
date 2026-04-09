@@ -7,22 +7,21 @@ import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
 
-// 診断ステップの定義（表示順）
+// 診断ステップの定義
+// ※ 「回答」したら通過とみなす（表示→回答をまとめて1行）
 const STEP_ORDER = [
-  { key: "Q1_VIEW",      label: "Q1 表示（年齢・ライフスタイル）" },
-  { key: "Q1_ANSWER",    label: "Q1 回答" },
-  { key: "Q2_VIEW",      label: "Q2 表示（ダンス経験・レベル）" },
-  { key: "Q2_ANSWER",    label: "Q2 回答" },
-  { key: "Q3_VIEW",      label: "Q3 表示（目的・お悩み）" },
-  { key: "Q3_ANSWER",    label: "Q3 回答" },
-  { key: "Q4_VIEW",      label: "Q4 表示（ジャンル・好み）" },
-  { key: "Q4_ANSWER",    label: "Q4 回答" },
-  { key: "Q5_VIEW",      label: "Q5 表示（不安・懸念）" },
-  { key: "Q5_ANSWER",    label: "Q5 回答" },
-  { key: "RESULT_VIEW",  label: "結果画面 表示" },
-  { key: "FORM_OPEN",    label: "申込フォーム 開く" },
-  { key: "FORM_SUBMIT",  label: "申込フォーム 送信（コンバージョン）" },
+  { key: "Q1_ANSWER",   label: "Q1（年齢・ライフスタイル）" },
+  { key: "Q2_ANSWER",   label: "Q2（ダンス経験・レベル）" },
+  { key: "Q3_ANSWER",   label: "Q3（目的・お悩み）" },
+  { key: "Q4_ANSWER",   label: "Q4（ジャンル・好み）" },
+  { key: "Q5_ANSWER",   label: "Q5（不安・懸念）" },
+  { key: "RESULT_VIEW", label: "結果画面 表示" },
+  { key: "FORM_OPEN",   label: "申込フォーム 開く" },
+  { key: "FORM_SUBMIT", label: "申込フォーム 送信（コンバージョン）" },
 ];
+
+// 母数の基準：Q1を表示したセッション数（= 診断を開いた人）
+const START_KEY = "Q1_VIEW";
 
 export async function GET(req: NextRequest) {
   try {
@@ -41,16 +40,7 @@ export async function GET(req: NextRequest) {
       createdAt: { gte: since },
     };
 
-    // 全stepsのユニークセッション数を一括取得
-    const stepCounts = await prisma.diagnosisSessionLog.groupBy({
-      by: ["stepKey"],
-      where,
-      _count: { sessionId: true },
-    });
-
-    // stepsのユニークセッション数（stepKeyごと）を集計
-    // ※ groupBy では distinct できないのでRawを使うか、全件取得してJSで集計する
-    // ここではJSで集計（データ量が多すぎる場合は要最適化）
+    // 全ログを取得してJSでユニークセッション数を集計
     const allLogs = await prisma.diagnosisSessionLog.findMany({
       where,
       select: { stepKey: true, sessionId: true },
@@ -65,19 +55,28 @@ export async function GET(req: NextRequest) {
       uniqueByStep.get(log.stepKey)!.add(log.sessionId);
     }
 
-    // 全セッション数（Q1_VIEWまたは最初のステップのユニーク数）
+    // 母数 = Q1_VIEW のユニークセッション数（診断を開いた人）
+    // Q1_VIEW がない場合は全セッション数をフォールバックとする
     const allSessions = new Set(allLogs.map((l) => l.sessionId));
-    const totalSessions = allSessions.size;
+    const totalSessions =
+      uniqueByStep.get(START_KEY)?.size ?? allSessions.size;
 
-    // STEP_ORDER に従って並べて、前ステップとの離脱率を計算
+    // STEP_ORDER に従って集計（前ステップ比で離脱率を計算）
     const steps = STEP_ORDER.map((step, i) => {
       const count = uniqueByStep.get(step.key)?.size ?? 0;
-      const prevKey = i > 0 ? STEP_ORDER[i - 1].key : null;
-      const prevCount = prevKey ? (uniqueByStep.get(prevKey)?.size ?? 0) : totalSessions;
+
+      // 前ステップの通過数（最初の行は母数=診断開始数を使う）
+      const prevCount =
+        i === 0
+          ? totalSessions
+          : uniqueByStep.get(STEP_ORDER[i - 1].key)?.size ?? 0;
+
       const retentionRate =
         prevCount > 0 ? Math.round((count / prevCount) * 100) : null;
       const dropoffRate =
-        prevCount > 0 ? Math.round(((prevCount - count) / prevCount) * 100) : null;
+        prevCount > 0
+          ? Math.round(((prevCount - count) / prevCount) * 100)
+          : null;
 
       return {
         stepKey: step.key,
@@ -92,8 +91,10 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       totalSessions,
       days,
-      steps: steps.filter((s) => s.count > 0), // データのあるステップのみ返す
-      allSteps: steps, // 全ステップも返す（フロントで切り替え可能に）
+      // データのあるステップのみ（フロントのデフォルト表示）
+      steps: steps.filter((s) => s.count > 0),
+      // 全ステップ（「全表示」ボタン用）
+      allSteps: steps,
     });
   } catch (e: any) {
     console.error("❌ /api/admin/diagnosis/dropoff GET error:", e);

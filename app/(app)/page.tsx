@@ -893,14 +893,6 @@ export default function HomePage() {
               <TrendingDown className="h-4 w-4 text-gray-400" />
               診断ステップ別 離脱ファネル
             </h3>
-            {dropoff && dropoff.allSteps && (
-              <button
-                onClick={() => setShowAllSteps(!showAllSteps)}
-                className="text-xs text-gray-500 hover:underline"
-              >
-                {showAllSteps ? "データあるステップのみ" : "全ステップ表示"}
-              </button>
-            )}
           </div>
 
           {dropoffLoading ? (
@@ -918,21 +910,21 @@ export default function HomePage() {
           ) : dropoff ? (
             <div>
               <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
-                直近 {range}日間 / 総セッション数: {dropoff.totalSessions.toLocaleString()}
+                直近 {range}日間 / 診断開始セッション数: {dropoff.totalSessions.toLocaleString()}
               </p>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="text-xs text-gray-500 dark:text-gray-400 border-b border-gray-100 dark:border-gray-800">
-                      <th className="pb-2 text-left font-medium">ステップ</th>
+                      <th className="pb-2 text-left font-medium">質問</th>
                       <th className="pb-2 text-right font-medium">通過数</th>
-                      <th className="pb-2 text-right font-medium">前ステップ比</th>
+                      <th className="pb-2 text-right font-medium">前ステップからの通過率</th>
                       <th className="pb-2 text-right font-medium">離脱率</th>
-                      <th className="pb-2 text-left font-medium pl-4">バー</th>
+                      <th className="pb-2 text-left font-medium pl-4">割合</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-                    {(showAllSteps ? dropoff.allSteps : dropoff.steps).map((step) => (
+                    {dropoff.allSteps.map((step) => (
                       <tr key={step.stepKey} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
                         <td className="py-2 pr-4">
                           <span className="font-medium text-xs">{step.label}</span>
