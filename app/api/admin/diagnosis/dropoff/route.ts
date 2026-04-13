@@ -23,6 +23,12 @@ const STEP_ORDER = [
 // 母数の基準：Q1を表示したセッション数（= 診断を開いた人）
 const START_KEY = "Q1_VIEW";
 
+// アイコンクリック集計対象キー
+const ICON_KEYS = [
+  { key: "CHAT_ICON_CLICK",        label: "チャットアイコン クリック" },
+  { key: "DIAGNOSIS_BANNER_CLICK", label: "診断バナー クリック" },
+];
+
 export async function GET(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
@@ -56,16 +62,13 @@ export async function GET(req: NextRequest) {
     }
 
     // 母数 = Q1_VIEW のユニークセッション数（診断を開いた人）
-    // Q1_VIEW がない場合は全セッション数をフォールバックとする
     const allSessions = new Set(allLogs.map((l) => l.sessionId));
     const totalSessions =
       uniqueByStep.get(START_KEY)?.size ?? allSessions.size;
 
-    // STEP_ORDER に従って集計（前ステップ比で離脱率を計算）
+    // ── メイン診断ファネル集計 ──
     const steps = STEP_ORDER.map((step, i) => {
       const count = uniqueByStep.get(step.key)?.size ?? 0;
-
-      // 前ステップの通過数（最初の行は母数=診断開始数を使う）
       const prevCount =
         i === 0
           ? totalSessions
@@ -88,6 +91,46 @@ export async function GET(req: NextRequest) {
       };
     });
 
+    // ── アイコンクリック集計 ──
+    // allowDuplicate=true のため totalClicks は延べ回数、uniqueSessions はユニーク人数
+    const iconClickStats = ICON_KEYS.map(({ key, label }) => ({
+      stepKey: key,
+      label,
+      totalClicks: allLogs.filter((l) => l.stepKey === key).length,
+      uniqueSessions: uniqueByStep.get(key)?.size ?? 0,
+    }));
+
+    // ── フォームフィールド別集計 ──
+    // FORM_FIELD_* : そのフィールドまで入力したユニーク人数
+    // FORM_ABANDON_* : そのフィールドで離脱したユニーク人数（最後にタッチして閉じた）
+    const formFieldKeys = Array.from(
+      new Set(
+        allLogs
+          .filter((l) => l.stepKey.startsWith("FORM_FIELD_"))
+          .map((l) => l.stepKey)
+      )
+    ).sort();
+
+    const formOpenCount = uniqueByStep.get("FORM_OPEN")?.size ?? 0;
+
+    const formFieldSteps = formFieldKeys.map((key) => {
+      const label = key.replace("FORM_FIELD_", "");
+      const reachedCount = uniqueByStep.get(key)?.size ?? 0;
+      const abandonKey = `FORM_ABANDON_${label}`;
+      const abandonCount = uniqueByStep.get(abandonKey)?.size ?? 0;
+      const reachedRate =
+        formOpenCount > 0
+          ? Math.round((reachedCount / formOpenCount) * 100)
+          : null;
+      return {
+        stepKey: key,
+        label,
+        reachedCount,
+        abandonCount,
+        reachedRate,
+      };
+    });
+
     return NextResponse.json({
       totalSessions,
       days,
@@ -95,6 +138,11 @@ export async function GET(req: NextRequest) {
       steps: steps.filter((s) => s.count > 0),
       // 全ステップ（「全表示」ボタン用）
       allSteps: steps,
+      // アイコン・バナークリック統計
+      iconClickStats,
+      // フォームフィールド別集計
+      formOpenCount,
+      formFieldSteps,
     });
   } catch (e: any) {
     console.error("❌ /api/admin/diagnosis/dropoff GET error:", e);

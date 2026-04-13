@@ -60,6 +60,21 @@ type DropoffStep = {
   dropoffRate: number | null;
 };
 
+type IconClickStat = {
+  stepKey: string;
+  label: string;
+  totalClicks: number;
+  uniqueSessions: number;
+};
+
+type FormFieldStep = {
+  stepKey: string;
+  label: string;
+  reachedCount: number;
+  abandonCount: number;
+  reachedRate: number | null;
+};
+
 type DashboardResponse = {
   qaKpis: KPI[];
   activities: Activity[];
@@ -76,6 +91,9 @@ type DropoffResponse = {
   days: number;
   steps: DropoffStep[];
   allSteps: DropoffStep[];
+  iconClickStats?: IconClickStat[];
+  formOpenCount?: number;
+  formFieldSteps?: FormFieldStep[];
 };
 
 const RANGES = [
@@ -908,88 +926,198 @@ export default function HomePage() {
               </p>
             </div>
           ) : dropoff ? (
-            <div>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
-                直近 {range}日間 / 診断開始セッション数: {dropoff.totalSessions.toLocaleString()}
-              </p>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="text-xs text-gray-500 dark:text-gray-400 border-b border-gray-100 dark:border-gray-800">
-                      <th className="pb-2 text-left font-medium">質問</th>
-                      <th className="pb-2 text-right font-medium">通過数</th>
-                      <th className="pb-2 text-right font-medium">前ステップからの通過率</th>
-                      <th className="pb-2 text-right font-medium">離脱率</th>
-                      <th className="pb-2 text-left font-medium pl-4">割合</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-                    {dropoff.allSteps.map((step) => (
-                      <tr key={step.stepKey} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
-                        <td className="py-2 pr-4">
-                          <span className="font-medium text-xs">{step.label}</span>
-                        </td>
-                        <td className="py-2 pr-4 text-right font-mono">
-                          {step.count.toLocaleString()}
-                        </td>
-                        <td className="py-2 pr-4 text-right">
-                          {step.retentionRate !== null ? (
-                            <span className={`text-xs font-medium ${
-                              step.retentionRate >= 80
-                                ? "text-emerald-600 dark:text-emerald-400"
-                                : step.retentionRate >= 50
-                                ? "text-yellow-600 dark:text-yellow-400"
-                                : "text-red-600 dark:text-red-400"
-                            }`}>
-                              {step.retentionRate}%
-                            </span>
-                          ) : (
-                            <span className="text-gray-400 text-xs">—</span>
-                          )}
-                        </td>
-                        <td className="py-2 pr-4 text-right">
-                          {step.dropoffRate !== null && step.dropoffRate > 0 ? (
-                            <span className={`text-xs font-medium ${
-                              step.dropoffRate >= 50
-                                ? "text-red-600 dark:text-red-400"
-                                : step.dropoffRate >= 20
-                                ? "text-yellow-600 dark:text-yellow-400"
-                                : "text-gray-500"
-                            }`}>
-                              -{step.dropoffRate}%
-                            </span>
-                          ) : (
-                            <span className="text-gray-400 text-xs">—</span>
-                          )}
-                        </td>
-                        <td className="py-2 pl-4">
-                          <div className="w-32 bg-gray-100 dark:bg-gray-800 rounded-full h-2">
-                            <div
-                              className={`h-2 rounded-full transition-all ${
-                                step.retentionRate !== null && step.retentionRate >= 80
-                                  ? "bg-emerald-500"
-                                  : step.retentionRate !== null && step.retentionRate >= 50
-                                  ? "bg-yellow-500"
-                                  : "bg-red-500"
-                              }`}
-                              style={{
-                                width: `${
-                                  dropoff.totalSessions > 0
-                                    ? Math.round((step.count / dropoff.totalSessions) * 100)
-                                    : 0
-                                }%`,
-                              }}
-                            />
-                          </div>
-                        </td>
-                      </tr>
+            <div className="space-y-6">
+
+              {/* ── ウィジェット クリック統計 ── */}
+              {dropoff.iconClickStats && dropoff.iconClickStats.some(s => s.totalClicks > 0) && (
+                <div>
+                  <h4 className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2 flex items-center gap-1.5">
+                    <MousePointerClick className="h-3.5 w-3.5" />
+                    ウィジェット クリック
+                  </h4>
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    {dropoff.iconClickStats.map((stat) => (
+                      <div
+                        key={stat.stepKey}
+                        className="rounded-lg border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/40 px-4 py-3 flex items-center justify-between"
+                      >
+                        <div className="text-xs font-medium text-gray-600 dark:text-gray-300">
+                          {stat.stepKey === "CHAT_ICON_CLICK" ? "💬" : "🎯"} {stat.label}
+                        </div>
+                        <div className="text-right">
+                          <div className="text-lg font-bold tabular-nums">{stat.totalClicks.toLocaleString()}</div>
+                          <div className="text-[10px] text-gray-400">延べ回数（ユニーク {stat.uniqueSessions} 人）</div>
+                        </div>
+                      </div>
                     ))}
-                  </tbody>
-                </table>
+                  </div>
+                </div>
+              )}
+
+              {/* ── 診断ステップ ファネルテーブル ── */}
+              <div>
+                <h4 className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2 flex items-center gap-1.5">
+                  <TrendingDown className="h-3.5 w-3.5" />
+                  診断ステップ別 離脱ファネル
+                  <span className="font-normal ml-1">（直近 {range}日間 / 診断開始セッション: {dropoff.totalSessions.toLocaleString()}）</span>
+                </h4>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="text-xs text-gray-500 dark:text-gray-400 border-b border-gray-100 dark:border-gray-800">
+                        <th className="pb-2 text-left font-medium">質問</th>
+                        <th className="pb-2 text-right font-medium">通過数</th>
+                        <th className="pb-2 text-right font-medium">前ステップからの通過率</th>
+                        <th className="pb-2 text-right font-medium">離脱率</th>
+                        <th className="pb-2 text-left font-medium pl-4">割合</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                      {dropoff.allSteps.map((step) => (
+                        <tr key={step.stepKey} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                          <td className="py-2 pr-4">
+                            <span className="font-medium text-xs">{step.label}</span>
+                          </td>
+                          <td className="py-2 pr-4 text-right font-mono">
+                            {step.count.toLocaleString()}
+                          </td>
+                          <td className="py-2 pr-4 text-right">
+                            {step.retentionRate !== null ? (
+                              <span className={`text-xs font-medium ${
+                                step.retentionRate >= 80
+                                  ? "text-emerald-600 dark:text-emerald-400"
+                                  : step.retentionRate >= 50
+                                  ? "text-yellow-600 dark:text-yellow-400"
+                                  : "text-red-600 dark:text-red-400"
+                              }`}>
+                                {step.retentionRate}%
+                              </span>
+                            ) : (
+                              <span className="text-gray-400 text-xs">—</span>
+                            )}
+                          </td>
+                          <td className="py-2 pr-4 text-right">
+                            {step.dropoffRate !== null && step.dropoffRate > 0 ? (
+                              <span className={`text-xs font-medium ${
+                                step.dropoffRate >= 50
+                                  ? "text-red-600 dark:text-red-400"
+                                  : step.dropoffRate >= 20
+                                  ? "text-yellow-600 dark:text-yellow-400"
+                                  : "text-gray-500"
+                              }`}>
+                                -{step.dropoffRate}%
+                              </span>
+                            ) : (
+                              <span className="text-gray-400 text-xs">—</span>
+                            )}
+                          </td>
+                          <td className="py-2 pl-4">
+                            <div className="w-32 bg-gray-100 dark:bg-gray-800 rounded-full h-2">
+                              <div
+                                className={`h-2 rounded-full transition-all ${
+                                  step.retentionRate !== null && step.retentionRate >= 80
+                                    ? "bg-emerald-500"
+                                    : step.retentionRate !== null && step.retentionRate >= 50
+                                    ? "bg-yellow-500"
+                                    : "bg-red-500"
+                                }`}
+                                style={{
+                                  width: `${
+                                    dropoff.totalSessions > 0
+                                      ? Math.round((step.count / dropoff.totalSessions) * 100)
+                                      : 0
+                                  }%`,
+                                }}
+                              />
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
+
+              {/* ── フォームフィールド別 入力・離脱分析 ── */}
+              {dropoff.formFieldSteps && dropoff.formFieldSteps.length > 0 && (
+                <div>
+                  <h4 className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2 flex items-center gap-1.5">
+                    <ClipboardList className="h-3.5 w-3.5" />
+                    フォームフィールド別 入力・離脱分析
+                    {dropoff.formOpenCount !== undefined && dropoff.formOpenCount > 0 && (
+                      <span className="font-normal">（フォーム到達 {dropoff.formOpenCount} 人）</span>
+                    )}
+                  </h4>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="text-xs text-gray-500 dark:text-gray-400 border-b border-gray-100 dark:border-gray-800">
+                          <th className="pb-2 text-left font-medium">フィールド名</th>
+                          <th className="pb-2 text-right font-medium">到達人数</th>
+                          <th className="pb-2 text-right font-medium">到達率</th>
+                          <th className="pb-2 text-right font-medium">ここで離脱</th>
+                          <th className="pb-2 text-left font-medium pl-4">到達バー</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                        {dropoff.formFieldSteps.map((step) => (
+                          <tr key={step.stepKey} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                            <td className="py-2 pr-4">
+                              <span className="font-medium text-xs">{step.label}</span>
+                            </td>
+                            <td className="py-2 pr-4 text-right font-mono text-xs">
+                              {step.reachedCount.toLocaleString()}
+                            </td>
+                            <td className="py-2 pr-4 text-right">
+                              {step.reachedRate !== null ? (
+                                <span className={`text-xs font-medium ${
+                                  step.reachedRate >= 80
+                                    ? "text-emerald-600 dark:text-emerald-400"
+                                    : step.reachedRate >= 50
+                                    ? "text-yellow-600 dark:text-yellow-400"
+                                    : "text-red-600 dark:text-red-400"
+                                }`}>
+                                  {step.reachedRate}%
+                                </span>
+                              ) : (
+                                <span className="text-gray-400 text-xs">—</span>
+                              )}
+                            </td>
+                            <td className="py-2 pr-4 text-right">
+                              {step.abandonCount > 0 ? (
+                                <span className="text-xs font-medium text-red-600 dark:text-red-400">
+                                  {step.abandonCount} 人
+                                </span>
+                              ) : (
+                                <span className="text-gray-400 text-xs">—</span>
+                              )}
+                            </td>
+                            <td className="py-2 pl-4">
+                              <div className="w-32 bg-gray-100 dark:bg-gray-800 rounded-full h-2">
+                                <div
+                                  className={`h-2 rounded-full transition-all ${
+                                    step.reachedRate !== null && step.reachedRate >= 80
+                                      ? "bg-emerald-500"
+                                      : step.reachedRate !== null && step.reachedRate >= 50
+                                      ? "bg-yellow-500"
+                                      : "bg-red-500"
+                                  }`}
+                                  style={{ width: `${step.reachedRate ?? 0}%` }}
+                                />
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
             </div>
           ) : null}
         </div>
+
       </section>
 
       {/* ────────────────────────────────────────
