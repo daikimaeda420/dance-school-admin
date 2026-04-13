@@ -929,12 +929,12 @@ export default function HomePage() {
             <div className="space-y-6">
 
               {/* ── ウィジェット クリック統計 ── */}
-              {dropoff.iconClickStats && dropoff.iconClickStats.some(s => s.totalClicks > 0) && (
-                <div>
-                  <h4 className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2 flex items-center gap-1.5">
-                    <MousePointerClick className="h-3.5 w-3.5" />
-                    ウィジェット クリック
-                  </h4>
+              <div>
+                <h4 className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2 flex items-center gap-1.5">
+                  <MousePointerClick className="h-3.5 w-3.5" />
+                  ウィジェット クリック
+                </h4>
+                {dropoff.iconClickStats && dropoff.iconClickStats.some(s => s.totalClicks > 0) ? (
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                     {dropoff.iconClickStats.map((stat) => (
                       <div
@@ -951,8 +951,12 @@ export default function HomePage() {
                       </div>
                     ))}
                   </div>
-                </div>
-              )}
+                ) : (
+                  <p className="text-xs text-gray-400 dark:text-gray-500 py-2">
+                    まだクリックデータがありません。ウィジェットが設置されたサイトでアイコンがクリックされると表示されます。
+                  </p>
+                )}
+              </div>
 
               {/* ── 診断ステップ ファネルテーブル ── */}
               <div>
@@ -1039,15 +1043,15 @@ export default function HomePage() {
               </div>
 
               {/* ── フォームフィールド別 入力・離脱分析 ── */}
-              {dropoff.formFieldSteps && dropoff.formFieldSteps.length > 0 && (
-                <div>
-                  <h4 className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2 flex items-center gap-1.5">
-                    <ClipboardList className="h-3.5 w-3.5" />
-                    フォームフィールド別 入力・離脱分析
-                    {dropoff.formOpenCount !== undefined && dropoff.formOpenCount > 0 && (
-                      <span className="font-normal">（フォーム到達 {dropoff.formOpenCount} 人）</span>
-                    )}
-                  </h4>
+              <div>
+                <h4 className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2 flex items-center gap-1.5">
+                  <ClipboardList className="h-3.5 w-3.5" />
+                  フォームフィールド別 入力・離脱分析
+                  {dropoff.formOpenCount !== undefined && dropoff.formOpenCount > 0 && (
+                    <span className="font-normal">（フォーム到達 {dropoff.formOpenCount} 人）</span>
+                  )}
+                </h4>
+                {dropoff.formFieldSteps && dropoff.formFieldSteps.length > 0 ? (
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
@@ -1111,8 +1115,12 @@ export default function HomePage() {
                       </tbody>
                     </table>
                   </div>
-                </div>
-              )}
+                ) : (
+                  <p className="text-xs text-gray-400 dark:text-gray-500 py-2">
+                    まだデータがありません。申し込みフォームへの入力が行われると表示されます。
+                  </p>
+                )}
+              </div>
 
             </div>
           ) : null}
