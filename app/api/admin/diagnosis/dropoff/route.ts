@@ -16,7 +16,7 @@ const STEP_ORDER = [
   { key: "Q4_ANSWER",   label: "Q4（ジャンル・好み）" },
   { key: "Q5_ANSWER",   label: "Q5（不安・懸念）" },
   { key: "RESULT_VIEW", label: "結果画面 表示" },
-  { key: "FORM_OPEN",   label: "申込フォーム 開く" },
+  { key: "FORM_OPEN",   label: "申込フォームまで到達" },
   { key: "FORM_SUBMIT", label: "申込フォーム 送信（コンバージョン）" },
 ];
 
