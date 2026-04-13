@@ -919,6 +919,7 @@ export default function DiagnosisEmbedClient({
                     dateOptions={schoolId === "info-dance-links-tokyo" ? dynamicDateOptions : dateOptions}
                     onClassChange={schoolId === "info-dance-links-tokyo" ? handleClassChange : undefined}
                     defaultClassValue={result.selectedCourse?.label ?? ""}
+                    onLogStep={logStep}
                   />
                 </div>
               )}

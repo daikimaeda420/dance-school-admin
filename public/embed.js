@@ -41,6 +41,40 @@
   const path = s.dataset.path || "/embed/chatbot";
   const diagnosisPath = "/embed/diagnosis"; // 診断ページのパス
 
+  // ── セッションID（localStorage に保持してサイト横断で再利用）──
+  const _getSessionId = () => {
+    try {
+      const key = `rizbo_session_${school}`;
+      let id = localStorage.getItem(key);
+      if (!id) {
+        id = `${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+        localStorage.setItem(key, id);
+      }
+      return id;
+    } catch {
+      return `${Date.now()}_fallback`;
+    }
+  };
+
+  // ── クリックイベントをサーバーに送信するユーティリティ ──
+  const trackClick = (stepKey, stepLabel) => {
+    try {
+      const sessionId = _getSessionId();
+      fetch(`${origin}/api/diagnosis/session-log`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          schoolId: school,
+          sessionId,
+          stepKey,
+          stepLabel,
+          allowDuplicate: true, // クリックは複数回カウント
+        }),
+        credentials: "omit",
+      }).catch(() => {}); // 失敗しても無視
+    } catch {}
+  };
+
   // メイン処理を async で定義
   const main = async () => {
     // DB から設定を取得
@@ -353,7 +387,13 @@
       };
 
       btn.addEventListener("click", () => {
-        panel.classList.contains("rzb-open") ? close() : open();
+        if (!panel.classList.contains("rzb-open")) {
+          // 開くとき（初回・再クリック問わず）カウント
+          trackClick("CHAT_ICON_CLICK", "チャットアイコン クリック");
+          open();
+        } else {
+          close();
+        }
       });
       window.addEventListener("keydown", (e) => {
         if (e.key === "Escape" && panel && panel.classList.contains("rzb-open")) close();
@@ -390,7 +430,12 @@
           <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
         </span>
       `;
-      
+
+      // 診断バナークリックをトラッキング
+      banner.addEventListener("click", () => {
+        trackClick("DIAGNOSIS_BANNER_CLICK", "診断バナー クリック");
+      });
+
       const bannerContainer = document.createElement("div");
       bannerContainer.className = "rzb-widget-container rzb-left";
       bannerContainer.appendChild(banner);

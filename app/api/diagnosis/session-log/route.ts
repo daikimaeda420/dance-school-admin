@@ -10,6 +10,8 @@ type SessionLogBody = {
   sessionId: string;
   stepKey: string;
   stepLabel?: string;
+  /** true の場合、同一 sessionId+stepKey の重複チェックをスキップして毎回記録する */
+  allowDuplicate?: boolean;
 };
 
 export async function POST(req: NextRequest) {
@@ -20,6 +22,7 @@ export async function POST(req: NextRequest) {
     const sessionId = String(body?.sessionId ?? "").trim();
     const stepKey = String(body?.stepKey ?? "").trim();
     const stepLabel = body?.stepLabel ? String(body.stepLabel).trim() : null;
+    const allowDuplicate = body?.allowDuplicate === true;
 
     if (!schoolId || !sessionId || !stepKey) {
       return NextResponse.json(
@@ -28,15 +31,21 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 同一セッションで同一stepKeyが既にあれば重複登録しない
-    const existing = await prisma.diagnosisSessionLog.findFirst({
-      where: { schoolId, sessionId, stepKey },
-    });
-
-    if (!existing) {
+    if (allowDuplicate) {
+      // 重複チェックなし：アイコンクリックなど複数回カウントしたいイベント用
       await prisma.diagnosisSessionLog.create({
         data: { schoolId, sessionId, stepKey, stepLabel },
       });
+    } else {
+      // 同一セッションで同一stepKeyが既にあれば重複登録しない
+      const existing = await prisma.diagnosisSessionLog.findFirst({
+        where: { schoolId, sessionId, stepKey },
+      });
+      if (!existing) {
+        await prisma.diagnosisSessionLog.create({
+          data: { schoolId, sessionId, stepKey, stepLabel },
+        });
+      }
     }
 
     return NextResponse.json({ ok: true });

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 type Field = {
   id: string;
@@ -27,6 +27,8 @@ type Props = {
   dateOptions?: SelectOption[];
   defaultClassValue?: string;
   onClassChange?: (value: string) => void;
+  /** フィールドブラー・離脱トラッキング用のコールバック */
+  onLogStep?: (stepKey: string, stepLabel?: string) => void;
 };
 
 const BROWN = "text-[#6b4a2b]";
@@ -84,6 +86,7 @@ export default function DiagnosisForm({
   dateOptions = [],
   defaultClassValue,
   onClassChange,
+  onLogStep,
 }: Props) {
   const schoolId = useMemo(() => hiddenValues?.schoolId ?? "", [hiddenValues]);
 
@@ -91,6 +94,33 @@ export default function DiagnosisForm({
   const [sending, setSending] = useState(false);
   const [done, setDone] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+
+  // ── 離脱トラッキング用：最後にフォーカスしたフィールド名を記憎 ──
+  const lastTouchedFieldRef = useRef<string | null>(null);
+
+  // フィールドブラー時に呼び出すユーティリティ
+  const logFormField = useCallback((label: string) => {
+    lastTouchedFieldRef.current = label;
+    onLogStep?.(`FORM_FIELD_${label}`, `フォーム: ${label} 入力`);
+  }, [onLogStep]);
+
+  // ページ離脱時に FORM_ABANDON を送信
+  useEffect(() => {
+    const handleAbandon = () => {
+      const label = lastTouchedFieldRef.current;
+      if (!label) return;
+      onLogStep?.(`FORM_ABANDON_${label}`, `フォーム離脱: ${label} 入力途中`);
+    };
+    // ブラウザタブを閉じた / ページ遷移時
+    window.addEventListener("beforeunload", handleAbandon);
+    // iOS Safariねどタブ関連でbeforeunloadが発火しない場合もカバー
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "hidden") handleAbandon();
+    });
+    return () => {
+      window.removeEventListener("beforeunload", handleAbandon);
+    };
+  }, [onLogStep]);
 
   const setVal = (fieldId: string, v: string) => {
     setValues((prev) => ({ ...prev, [fieldId]: v }));
@@ -274,6 +304,7 @@ export default function DiagnosisForm({
                   }
                   value={values[nameField.id] ?? ""}
                   onChange={(e) => setVal(nameField.id, e.target.value)}
+                  onBlur={() => logFormField(nameField.label)}
                 />
               </div>
             )}
@@ -293,6 +324,7 @@ export default function DiagnosisForm({
                   placeholder={emailField.placeholder ?? "xxx.xxxxx@sample.com"}
                   value={values[emailField.id] ?? ""}
                   onChange={(e) => setVal(emailField.id, e.target.value)}
+                  onBlur={() => logFormField(emailField.label)}
                 />
               </div>
             )}
@@ -313,6 +345,7 @@ export default function DiagnosisForm({
                   placeholder={telField.placeholder ?? "09011112222"}
                   value={values[telField.id] ?? ""}
                   onChange={(e) => setVal(telField.id, e.target.value)}
+                  onBlur={() => logFormField(telField.label)}
                 />
               </div>
             )}
@@ -335,6 +368,7 @@ export default function DiagnosisForm({
                     onChange={(v) => {
                       setVal(classField.id, v);
                       onClassChange?.(v);
+                      logFormField(classField.label);
                     }}
                     required={classField.required}
                     placeholder={classField.placeholder ?? "選択してください"}
@@ -349,6 +383,7 @@ export default function DiagnosisForm({
                     }
                     value={values[classField.id] ?? ""}
                     onChange={(e) => setVal(classField.id, e.target.value)}
+                    onBlur={() => logFormField(classField.label)}
                   />
                 )}
               </div>
@@ -371,7 +406,10 @@ export default function DiagnosisForm({
                   dateOptions.length > 0 ? (
                     <SelectLike
                       value={values[dateField.id] ?? ""}
-                      onChange={(v) => setVal(dateField.id, v)}
+                      onChange={(v) => {
+                        setVal(dateField.id, v);
+                        logFormField(dateField.label);
+                      }}
                       required={dateField.required}
                       placeholder="日程を選択してください"
                       options={dateOptions}
@@ -394,6 +432,7 @@ export default function DiagnosisForm({
                     placeholder={dateField.placeholder ?? "年/月/日"}
                     value={values[dateField.id] ?? ""}
                     onChange={(e) => setVal(dateField.id, e.target.value)}
+                    onBlur={() => logFormField(dateField.label)}
                     onClick={(e) => {
                       // @ts-ignore: HTMLInputElement.showPicker() exists in modern browsers
                       if (e.currentTarget.showPicker) {
@@ -423,6 +462,7 @@ export default function DiagnosisForm({
                   placeholder={msgField.placeholder ?? ""}
                   value={values[msgField.id] ?? ""}
                   onChange={(e) => setVal(msgField.id, e.target.value)}
+                  onBlur={() => logFormField(msgField.label)}
                 />
               </div>
             )}
