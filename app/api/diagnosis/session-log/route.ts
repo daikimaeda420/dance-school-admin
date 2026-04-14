@@ -14,6 +14,17 @@ type SessionLogBody = {
   allowDuplicate?: boolean;
 };
 
+function withCors(res: NextResponse) {
+  res.headers.set("Access-Control-Allow-Origin", "*");
+  res.headers.set("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
+  res.headers.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  return res;
+}
+
+export async function OPTIONS() {
+  return withCors(new NextResponse(null, { status: 204 }));
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body = (await req.json()) as SessionLogBody;
@@ -25,9 +36,11 @@ export async function POST(req: NextRequest) {
     const allowDuplicate = body?.allowDuplicate === true;
 
     if (!schoolId || !sessionId || !stepKey) {
-      return NextResponse.json(
-        { message: "schoolId, sessionId, stepKey は必須です" },
-        { status: 400 }
+      return withCors(
+        NextResponse.json(
+          { message: "schoolId, sessionId, stepKey は必須です" },
+          { status: 400 }
+        )
       );
     }
 
@@ -48,12 +61,14 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    return NextResponse.json({ ok: true });
+    return withCors(NextResponse.json({ ok: true }));
   } catch (e: any) {
     console.error("❌ /api/diagnosis/session-log POST error:", e);
-    return NextResponse.json(
-      { message: e?.message ?? "Internal Server Error" },
-      { status: 500 }
+    return withCors(
+      NextResponse.json(
+        { message: e?.message ?? "Internal Server Error" },
+        { status: 500 }
+      )
     );
   }
 }
