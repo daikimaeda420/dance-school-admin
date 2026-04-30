@@ -274,6 +274,10 @@ export default function DiagnosisForm({
                 const data = await res.json().catch(() => null);
                 if (!res.ok)
                   throw new Error(data?.message ?? "送信に失敗しました");
+                onLogStep?.(
+                  "FORM_SUBMIT",
+                  "申込フォーム 送信（コンバージョン）",
+                );
                 setDone(true);
               } catch (e: any) {
                 setErr(e?.message ?? "送信に失敗しました");

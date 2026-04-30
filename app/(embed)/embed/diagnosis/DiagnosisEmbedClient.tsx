@@ -190,6 +190,7 @@ export default function DiagnosisEmbedClient({
 
   // ✅ フォーム監視用
   const formRef = useRef<HTMLDivElement>(null);
+  const hasLoggedFormOpenRef = useRef(false);
   const [isFormVisible, setIsFormVisible] = useState(false);
 
   useEffect(() => {
@@ -197,12 +198,16 @@ export default function DiagnosisEmbedClient({
     const observer = new IntersectionObserver(
       ([entry]) => {
         setIsFormVisible(entry.isIntersecting);
+        if (entry.isIntersecting && !hasLoggedFormOpenRef.current) {
+          hasLoggedFormOpenRef.current = true;
+          logStep("FORM_OPEN", "申込フォームまで到達");
+        }
       },
       { threshold: 0.1 }
     );
     observer.observe(formRef.current);
     return () => observer.disconnect();
-  }, [diagnosisForm]); // diagnosisForm がロードされたら監視開始
+  }, [diagnosisForm, logStep]); // diagnosisForm がロードされたら監視開始
 
   // ✅ 診断専用FAQ取得（DiagnosisFaqテーブル）
   const [fetchedFaqs, setFetchedFaqs] = useState<{ q: string; a: string }[]>(
@@ -563,8 +568,6 @@ export default function DiagnosisEmbedClient({
       .then((data) => {
         if (!data) return;
         setDiagnosisForm(data);
-        // フォームが存在して表示されたらログ
-        logStep("FORM_OPEN", "申込フォーム 表示");
       })
       .catch(() => {
         setDiagnosisForm(null);
