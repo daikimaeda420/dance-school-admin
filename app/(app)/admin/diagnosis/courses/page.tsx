@@ -9,6 +9,9 @@ type Props = {
   };
 };
 
+// 管理画面はビルド時にDBへ接続せず、リクエスト時に描画する
+export const dynamic = "force-dynamic";
+
 export default async function DiagnosisCoursesPage({ searchParams }: Props) {
   let schoolId = searchParams.schoolId ?? "";
 

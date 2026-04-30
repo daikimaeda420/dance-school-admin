@@ -3,6 +3,9 @@ import LifestyleAdminClient from "./LifestyleAdminClient";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
 
+// 管理画面はビルド時にDBへ接続せず、リクエスト時に描画する
+export const dynamic = "force-dynamic";
+
 export default async function Page() {
   const session = await getServerSession(authOptions);
   const schoolId = (session?.user as any)?.schoolId ?? "daiki.maeda.web"; // ←既存仕様に合わせて置換

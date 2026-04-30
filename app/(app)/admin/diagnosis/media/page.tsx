@@ -7,6 +7,9 @@ export const metadata = {
   title: "画像・動画設定 | 診断設定",
 };
 
+// 管理画面はビルド時にDBへ接続せず、リクエスト時に描画する
+export const dynamic = "force-dynamic";
+
 export default async function MediaAdminPage({
   searchParams,
 }: {

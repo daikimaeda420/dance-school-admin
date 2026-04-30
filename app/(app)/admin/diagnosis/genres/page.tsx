@@ -7,6 +7,9 @@ export const metadata = {
   title: "ジャンル管理 | 診断設定",
 };
 
+// 管理画面はビルド時にDBへ接続せず、リクエスト時に描画する
+export const dynamic = "force-dynamic";
+
 export default async function GenreAdminPage({
   searchParams,
 }: {
