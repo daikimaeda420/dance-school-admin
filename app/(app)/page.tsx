@@ -49,9 +49,9 @@ type ConversionUser = {
   tel: string;
   time: string;
 };
-type DiagnosisReadinessStatus = "ok" | "warn" | "missing";
-type DiagnosisReadinessSummary = {
-  status: DiagnosisReadinessStatus;
+type ReadinessStatus = "ok" | "warn" | "missing";
+type ReadinessSummary = {
+  status: ReadinessStatus;
   statusLabel: string;
   completionPercent: number;
   okCount: number;
@@ -61,6 +61,8 @@ type DiagnosisReadinessSummary = {
   activeDataLabel: string;
   href: string;
 };
+type DiagnosisReadinessSummary = ReadinessSummary;
+type FaqReadinessSummary = ReadinessSummary;
 
 type DropoffStep = {
   stepKey: string;
@@ -114,7 +116,7 @@ const RANGES = [
 ];
 
 const READINESS_TONES: Record<
-  DiagnosisReadinessStatus,
+  ReadinessStatus,
   {
     iconClass: string;
     badgeClass: string;
@@ -195,6 +197,100 @@ function SectionHeader({
   );
 }
 
+function ReadinessCard({
+  summary,
+  title,
+  description,
+  icon,
+  activeDataLabel,
+}: {
+  summary: ReadinessSummary;
+  title: string;
+  description: string;
+  icon: React.ReactNode;
+  activeDataLabel: string;
+}) {
+  const tone = READINESS_TONES[summary.status];
+  const StatusIcon = summary.status === "ok" ? CheckCircle2 : AlertCircle;
+  const percent = Math.min(100, Math.max(0, summary.completionPercent));
+
+  return (
+    <section className="card p-5">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex min-w-0 gap-3">
+          <div
+            className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${tone.iconClass}`}
+          >
+            {icon}
+          </div>
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 className="text-base font-semibold">{title}</h2>
+              <span
+                className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${tone.badgeClass}`}
+              >
+                <StatusIcon className="mr-1 h-3.5 w-3.5" aria-hidden="true" />
+                {summary.statusLabel}
+              </span>
+            </div>
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+              {description}
+            </p>
+          </div>
+        </div>
+
+        <Link
+          href={summary.href}
+          className="btn-ghost inline-flex min-h-[40px] items-center justify-center gap-1 text-sm font-semibold lg:shrink-0"
+        >
+          詳細を確認
+          <ChevronRight className="h-4 w-4" aria-hidden="true" />
+        </Link>
+      </div>
+
+      <div className="mt-4">
+        <div className="mb-2 flex items-center justify-between gap-3 text-xs text-gray-500 dark:text-gray-400">
+          <span>
+            {summary.okCount}/{summary.totalCount}項目 OK
+          </span>
+          <span className="font-semibold text-gray-900 dark:text-gray-100">
+            {percent}%
+          </span>
+        </div>
+        <div className="h-2 overflow-hidden rounded-full bg-gray-100 dark:bg-gray-800">
+          <div
+            className={`h-full rounded-full ${tone.progressClass}`}
+            style={{ width: `${percent}%` }}
+          />
+        </div>
+      </div>
+
+      <dl className="mt-4 grid gap-3 sm:grid-cols-3">
+        <div className="rounded-lg border border-gray-100 px-3 py-2 dark:border-gray-800">
+          <dt className="text-xs text-gray-500 dark:text-gray-400">未設定</dt>
+          <dd className="mt-1 text-lg font-semibold tabular-nums">
+            {summary.blockingCount}
+          </dd>
+        </div>
+        <div className="rounded-lg border border-gray-100 px-3 py-2 dark:border-gray-800">
+          <dt className="text-xs text-gray-500 dark:text-gray-400">要確認</dt>
+          <dd className="mt-1 text-lg font-semibold tabular-nums">
+            {summary.warnCount}
+          </dd>
+        </div>
+        <div className="rounded-lg border border-gray-100 px-3 py-2 dark:border-gray-800">
+          <dt className="text-xs text-gray-500 dark:text-gray-400">
+            {activeDataLabel}
+          </dt>
+          <dd className="mt-1 text-lg font-semibold tabular-nums">
+            {summary.activeDataLabel}
+          </dd>
+        </div>
+      </dl>
+    </section>
+  );
+}
+
 // ── メインコンポーネント ──────────────────────────────────────
 
 export default function HomePage() {
@@ -212,6 +308,8 @@ export default function HomePage() {
   const [system, setSystem] = useState<SystemInfo | null>(null);
   const [recentConversions, setRecentConversions] = useState<ConversionUser[]>([]);
   const [hasSessionLogs, setHasSessionLogs] = useState(false);
+  const [qaReadiness, setQaReadiness] =
+    useState<FaqReadinessSummary | null>(null);
   const [diagnosisReadiness, setDiagnosisReadiness] =
     useState<DiagnosisReadinessSummary | null>(null);
   const [loading, setLoading] = useState(false);
@@ -305,6 +403,24 @@ export default function HomePage() {
     }
   }, [schoolId, status]);
 
+  const fetchQaReadiness = useCallback(async () => {
+    if (status !== "authenticated") return;
+    try {
+      const q = new URLSearchParams();
+      if (schoolId) q.set("schoolId", schoolId);
+
+      const res = await fetch(`/api/admin/qa/readiness?${q.toString()}`, {
+        cache: "no-store",
+      });
+      if (!res.ok) throw new Error(await res.text());
+
+      const data: FaqReadinessSummary = await res.json();
+      setQaReadiness(data);
+    } catch {
+      setQaReadiness(null);
+    }
+  }, [schoolId, status]);
+
   const fetchSubmissions = useCallback(
     async (page: number) => {
       if (status !== "authenticated") return;
@@ -339,8 +455,15 @@ export default function HomePage() {
       fetchDashboard();
       fetchDropoff();
       fetchDiagnosisReadiness();
+      fetchQaReadiness();
     }
-  }, [fetchDashboard, fetchDropoff, fetchDiagnosisReadiness, status]);
+  }, [
+    fetchDashboard,
+    fetchDropoff,
+    fetchDiagnosisReadiness,
+    fetchQaReadiness,
+    status,
+  ]);
 
   const subtitle = useMemo(() => {
     if (status === "authenticated" && schoolId)
@@ -351,14 +474,6 @@ export default function HomePage() {
 
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "";
   const embedScriptCode = `<script src="${baseUrl}/embed.js" data-rizbo-school="${schoolId ?? ""}"></script>`;
-  const readinessTone = diagnosisReadiness
-    ? READINESS_TONES[diagnosisReadiness.status]
-    : null;
-  const ReadinessIcon =
-    diagnosisReadiness?.status === "ok" ? CheckCircle2 : AlertCircle;
-  const readinessPercent = diagnosisReadiness
-    ? Math.min(100, Math.max(0, diagnosisReadiness.completionPercent))
-    : 0;
 
   const onCopyEmbed = async () => {
     try {
@@ -686,7 +801,12 @@ export default function HomePage() {
           </select>
 
           <button
-            onClick={() => { fetchDashboard(); fetchDropoff(); }}
+            onClick={() => {
+              fetchDashboard();
+              fetchDropoff();
+              fetchDiagnosisReadiness();
+              fetchQaReadiness();
+            }}
             className="btn-ghost inline-flex items-center gap-1"
           >
             <RefreshCw className="h-4 w-4" />
@@ -723,77 +843,27 @@ export default function HomePage() {
         </div>
       )}
 
-      {diagnosisReadiness && readinessTone && (
-        <section className="card p-5 mb-6">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex min-w-0 gap-3">
-              <div
-                className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${readinessTone.iconClass}`}
-              >
-                <ReadinessIcon className="h-5 w-5" aria-hidden="true" />
-              </div>
-              <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h2 className="text-base font-semibold">診断設定の完成度</h2>
-                  <span
-                    className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${readinessTone.badgeClass}`}
-                  >
-                    {diagnosisReadiness.statusLabel}
-                  </span>
-                </div>
-                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                  診断の公開・推薦精度・申込導線に必要な設定をまとめて確認できます。
-                </p>
-              </div>
-            </div>
-
-            <Link
-              href={diagnosisReadiness.href}
-              className="btn-ghost inline-flex min-h-[40px] items-center justify-center gap-1 text-sm font-semibold lg:shrink-0"
-            >
-              詳細を確認
-              <ChevronRight className="h-4 w-4" aria-hidden="true" />
-            </Link>
-          </div>
-
-          <div className="mt-4">
-            <div className="mb-2 flex items-center justify-between gap-3 text-xs text-gray-500 dark:text-gray-400">
-              <span>{diagnosisReadiness.okCount}/{diagnosisReadiness.totalCount}項目 OK</span>
-              <span className="font-semibold text-gray-900 dark:text-gray-100">
-                {readinessPercent}%
-              </span>
-            </div>
-            <div className="h-2 overflow-hidden rounded-full bg-gray-100 dark:bg-gray-800">
-              <div
-                className={`h-full rounded-full ${readinessTone.progressClass}`}
-                style={{ width: `${readinessPercent}%` }}
-              />
-            </div>
-          </div>
-
-          <dl className="mt-4 grid gap-3 sm:grid-cols-3">
-            <div className="rounded-lg border border-gray-100 px-3 py-2 dark:border-gray-800">
-              <dt className="text-xs text-gray-500 dark:text-gray-400">未設定</dt>
-              <dd className="mt-1 text-lg font-semibold tabular-nums">
-                {diagnosisReadiness.blockingCount}
-              </dd>
-            </div>
-            <div className="rounded-lg border border-gray-100 px-3 py-2 dark:border-gray-800">
-              <dt className="text-xs text-gray-500 dark:text-gray-400">要確認</dt>
-              <dd className="mt-1 text-lg font-semibold tabular-nums">
-                {diagnosisReadiness.warnCount}
-              </dd>
-            </div>
-            <div className="rounded-lg border border-gray-100 px-3 py-2 dark:border-gray-800">
-              <dt className="text-xs text-gray-500 dark:text-gray-400">
-                有効データ
-              </dt>
-              <dd className="mt-1 text-lg font-semibold tabular-nums">
-                {diagnosisReadiness.activeDataLabel}
-              </dd>
-            </div>
-          </dl>
-        </section>
+      {(qaReadiness || diagnosisReadiness) && (
+        <div className="mb-6 grid gap-4 xl:grid-cols-2">
+          {qaReadiness && (
+            <ReadinessCard
+              summary={qaReadiness}
+              title="Q&Aチャットボット完成度"
+              description="公開設定・回答内容・申込導線・運用ログをまとめて確認できます。"
+              icon={<MessageSquare className="h-5 w-5" aria-hidden="true" />}
+              activeDataLabel="FAQ構成"
+            />
+          )}
+          {diagnosisReadiness && (
+            <ReadinessCard
+              summary={diagnosisReadiness}
+              title="診断設定の完成度"
+              description="診断の公開・推薦精度・申込導線に必要な設定をまとめて確認できます。"
+              icon={<MousePointerClick className="h-5 w-5" aria-hidden="true" />}
+              activeDataLabel="有効データ"
+            />
+          )}
+        </div>
       )}
 
       {/* ────────────────────────────────────────
