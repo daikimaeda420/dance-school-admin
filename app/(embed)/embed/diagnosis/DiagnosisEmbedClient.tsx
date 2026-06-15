@@ -687,6 +687,27 @@ export default function DiagnosisEmbedClient({
     return opts;
   }, [fetchedCourses, allSchedulesGrouped, diagnosisForm]);
 
+  const defaultClassValueForForm = useMemo(() => {
+    const selectedLabel =
+      result?.selectedCourse?.label ?? result?.bestMatch?.className ?? "";
+    if (!selectedLabel || classOptions.length === 0) return selectedLabel;
+
+    const exact = classOptions.find((option) => option.value === selectedLabel);
+    if (exact) return exact.value;
+
+    const normalize = (value: string) =>
+      value
+        .replace(/[【】（）()\s]/g, "")
+        .replace(/ダンス|コース/g, "")
+        .toLowerCase();
+    const selectedKey = normalize(selectedLabel);
+    const matched = classOptions.find((option) =>
+      normalize(option.label).includes(selectedKey),
+    );
+
+    return matched?.value ?? selectedLabel;
+  }, [classOptions, result?.bestMatch?.className, result?.selectedCourse?.label]);
+
   const dateOptions = useMemo(() => {
     const want = 12;
 
@@ -921,7 +942,7 @@ export default function DiagnosisEmbedClient({
                     classOptions={classOptions}
                     dateOptions={schoolId === "info-dance-links-tokyo" ? dynamicDateOptions : dateOptions}
                     onClassChange={schoolId === "info-dance-links-tokyo" ? handleClassChange : undefined}
-                    defaultClassValue={result.selectedCourse?.label ?? ""}
+                    defaultClassValue={defaultClassValueForForm}
                     onLogStep={logStep}
                   />
                 </div>
