@@ -3,7 +3,6 @@ import { NextRequest, NextResponse } from "next/server";
 export const dynamic = "force-dynamic";
 import { prisma } from "@/lib/prisma";
 import { resolveAccessibleSchool } from "@/lib/authz";
-import { getDiagnosisReadinessReport } from "@/lib/diagnosis/readiness";
 
 function fmtDate(d: Date) {
   const p = (n: number) => String(n).padStart(2, "0");
@@ -81,7 +80,6 @@ export async function GET(req: NextRequest) {
       recentSubmissions,
       // 離脱ファネル（直近のセッション数）
       sessionLogCount,
-      diagnosisReadinessReport,
     ] = await Promise.all([
       // [Q&A] チャットセッション数（期間内）
       prisma.faqLog
@@ -153,11 +151,6 @@ export async function GET(req: NextRequest) {
       // [診断] セッションログ数（離脱ファネル存在チェック）
       prisma.diagnosisSessionLog.count({
         where: { ...schoolFilter, createdAt: { gte: since } },
-      }),
-
-      getDiagnosisReadinessReport(school).catch((error) => {
-        console.error("[dashboard] diagnosis readiness error:", error);
-        return null;
       }),
     ]);
 
@@ -250,12 +243,6 @@ export async function GET(req: NextRequest) {
       diagnosisKpis,
       recentConversions,
       hasSessionLogs: sessionLogCount > 0,
-      diagnosisReadiness: diagnosisReadinessReport
-        ? {
-            ...diagnosisReadinessReport.summary,
-            href: `/admin/diagnosis/checklist?schoolId=${encodeURIComponent(school)}`,
-          }
-        : null,
       // セットアップ
       setup,
       // システム
@@ -272,7 +259,6 @@ export async function GET(req: NextRequest) {
         diagnosisKpis: [],
         recentConversions: [],
         hasSessionLogs: false,
-        diagnosisReadiness: null,
         setup: [],
         system: {
           version: process.env.NEXT_PUBLIC_APP_VERSION || "v0.1.0",

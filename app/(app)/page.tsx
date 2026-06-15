@@ -92,7 +92,6 @@ type DashboardResponse = {
   diagnosisKpis: KPI[];
   recentConversions: ConversionUser[];
   hasSessionLogs: boolean;
-  diagnosisReadiness: DiagnosisReadinessSummary | null;
   setup: SetupItem[];
   system: SystemInfo | null;
   kpis: KPI[];
@@ -260,9 +259,7 @@ export default function HomePage() {
       setSystem(data.system ?? null);
       setRecentConversions(data.recentConversions ?? []);
       setHasSessionLogs(data.hasSessionLogs ?? false);
-      setDiagnosisReadiness(data.diagnosisReadiness ?? null);
     } catch {
-      setDiagnosisReadiness(null);
       showToast("err", "ダッシュボードの取得に失敗しました");
     } finally {
       setLoading(false);
@@ -289,6 +286,24 @@ export default function HomePage() {
       setDropoffLoading(false);
     }
   }, [schoolId, range, status]);
+
+  const fetchDiagnosisReadiness = useCallback(async () => {
+    if (status !== "authenticated") return;
+    try {
+      const q = new URLSearchParams();
+      if (schoolId) q.set("schoolId", schoolId);
+
+      const res = await fetch(`/api/admin/diagnosis/readiness?${q.toString()}`, {
+        cache: "no-store",
+      });
+      if (!res.ok) throw new Error(await res.text());
+
+      const data: DiagnosisReadinessSummary = await res.json();
+      setDiagnosisReadiness(data);
+    } catch {
+      setDiagnosisReadiness(null);
+    }
+  }, [schoolId, status]);
 
   const fetchSubmissions = useCallback(
     async (page: number) => {
@@ -323,8 +338,9 @@ export default function HomePage() {
     if (status === "authenticated") {
       fetchDashboard();
       fetchDropoff();
+      fetchDiagnosisReadiness();
     }
-  }, [fetchDashboard, fetchDropoff, status]);
+  }, [fetchDashboard, fetchDropoff, fetchDiagnosisReadiness, status]);
 
   const subtitle = useMemo(() => {
     if (status === "authenticated" && schoolId)
