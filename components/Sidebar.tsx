@@ -15,6 +15,7 @@ import {
   Settings,
   ListChecks, // 診断編集アイコン
   ClipboardList, // ← 追加（相性診断プレビュー用アイコン）
+  ClipboardCheck,
 } from "lucide-react";
 import { useEffect, MouseEvent } from "react";
 import { useSession } from "next-auth/react";
@@ -55,6 +56,10 @@ export default function Sidebar({
 
   // ★ 診断編集リンク（schoolId クエリ付き）
   const diagnosisHref = `/admin/diagnosis/campuses${
+    schoolId ? `?schoolId=${encodeURIComponent(schoolId)}` : ""
+  }`;
+
+  const qaChecklistHref = `/admin/qa/checklist${
     schoolId ? `?schoolId=${encodeURIComponent(schoolId)}` : ""
   }`;
 
@@ -150,22 +155,38 @@ export default function Sidebar({
                     <span>{label}</span>
                   </Link>
 
-                  {/* ★ Q&A編集の直後だけ診断編集リンクを追加 */}
+                  {/* ★ Q&A編集の直後に関連リンクを追加 */}
                   {href === "/faq" && (
-                    <Link
-                      href={diagnosisHref}
-                      aria-current={
-                        isActive("/admin/diagnosis") ? "page" : undefined
-                      }
-                      className={[
-                        baseLink,
-                        isActive("/admin/diagnosis") ? active : inactive,
-                        "ml-1",
-                      ].join(" ")}
-                    >
-                      <ListChecks size={18} />
-                      <span>診断編集</span>
-                    </Link>
+                    <>
+                      <Link
+                        href={qaChecklistHref}
+                        aria-current={
+                          isActive("/admin/qa") ? "page" : undefined
+                        }
+                        className={[
+                          baseLink,
+                          isActive("/admin/qa") ? active : inactive,
+                          "ml-1",
+                        ].join(" ")}
+                      >
+                        <ClipboardCheck size={18} />
+                        <span>Q&amp;A完成度</span>
+                      </Link>
+                      <Link
+                        href={diagnosisHref}
+                        aria-current={
+                          isActive("/admin/diagnosis") ? "page" : undefined
+                        }
+                        className={[
+                          baseLink,
+                          isActive("/admin/diagnosis") ? active : inactive,
+                          "ml-1",
+                        ].join(" ")}
+                      >
+                        <ListChecks size={18} />
+                        <span>診断編集</span>
+                      </Link>
+                    </>
                   )}
                 </div>
               );
@@ -259,23 +280,40 @@ export default function Sidebar({
                       <span>{label}</span>
                     </Link>
 
-                    {/* ★ モバイルでも Q&A編集の下に診断編集 */}
+                    {/* ★ モバイルでも Q&A編集の下に関連リンクを追加 */}
                     {href === "/faq" && (
-                      <Link
-                        href={diagnosisHref}
-                        onClick={onClose}
-                        aria-current={
-                          isActive("/admin/diagnosis") ? "page" : undefined
-                        }
-                        className={[
-                          baseLink,
-                          "w-full ml-1",
-                          isActive("/admin/diagnosis") ? active : inactive,
-                        ].join(" ")}
-                      >
-                        <ListChecks size={18} />
-                        <span>診断編集</span>
-                      </Link>
+                      <>
+                        <Link
+                          href={qaChecklistHref}
+                          onClick={onClose}
+                          aria-current={
+                            isActive("/admin/qa") ? "page" : undefined
+                          }
+                          className={[
+                            baseLink,
+                            "w-full ml-1",
+                            isActive("/admin/qa") ? active : inactive,
+                          ].join(" ")}
+                        >
+                          <ClipboardCheck size={18} />
+                          <span>Q&amp;A完成度</span>
+                        </Link>
+                        <Link
+                          href={diagnosisHref}
+                          onClick={onClose}
+                          aria-current={
+                            isActive("/admin/diagnosis") ? "page" : undefined
+                          }
+                          className={[
+                            baseLink,
+                            "w-full ml-1",
+                            isActive("/admin/diagnosis") ? active : inactive,
+                          ].join(" ")}
+                        >
+                          <ListChecks size={18} />
+                          <span>診断編集</span>
+                        </Link>
+                      </>
                     )}
                   </div>
                 );

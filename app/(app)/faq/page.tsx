@@ -1,6 +1,7 @@
 // app/faq/page.tsx — Q&A エディタ（1カラム版・プレビュー削除）
 "use client";
 
+import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { produce } from "immer";
@@ -300,6 +301,9 @@ export default function FAQPage() {
   const embedScriptCode = `<script ${attrs}></script>`;
 
   const empty = useMemo(() => faq.length === 0, [faq.length]);
+  const readinessHref = `/admin/qa/checklist${
+    schoolId ? `?schoolId=${encodeURIComponent(schoolId)}` : ""
+  }`;
 
   if (status === "loading") return <p className="p-6">読み込み中...</p>;
   if (status === "unauthenticated")
@@ -320,6 +324,10 @@ export default function FAQPage() {
       </div>
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-wrap gap-2">
+          <Link href={readinessHref} className="btn-ghost">
+            <BadgeCheck aria-hidden="true" className="h-4 w-4" />
+            完成度チェック
+          </Link>
           {dirty && (
             <span
               className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs
