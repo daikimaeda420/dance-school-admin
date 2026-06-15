@@ -250,15 +250,18 @@ function hasField(fd: FormData, key: string): boolean {
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
+    const schoolId = String(searchParams.get("schoolId") ?? "").trim();
+    const full = searchParams.get("full") === "1";
 
-    const access = await resolveAccessibleSchool(searchParams.get("schoolId"));
-    if (!access.ok) return access.response;
-
-    const schoolId = access.schoolId;
     if (!schoolId) return json("schoolId が必要です", 400);
 
+    if (full) {
+      const auth = await requireSchoolAccess(schoolId);
+      if (!auth.ok) return auth.response;
+    }
+
     const rows = await prisma.diagnosisInstructor.findMany({
-      where: { schoolId },
+      where: full ? { schoolId } : { schoolId, isActive: true },
       orderBy: { sortOrder: "asc" },
     });
 

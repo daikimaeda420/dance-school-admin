@@ -383,7 +383,7 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
     setError(null);
     try {
       const res = await fetch(
-        `/api/diagnosis/instructors?schoolId=${encodeURIComponent(schoolId)}`,
+        `/api/diagnosis/instructors?schoolId=${encodeURIComponent(schoolId)}&full=1`,
         { cache: "no-store" },
       );
       if (!res.ok) throw new Error("DiagnosisInstructor の取得に失敗しました");
