@@ -25,7 +25,13 @@ export default function ChatHistoryPage() {
       setError(null);
 
       try {
-        const res = await fetch("/api/logs");
+        const params = new URLSearchParams(window.location.search);
+        const schoolId = params.get("schoolId") ?? params.get("school") ?? "";
+        const query = new URLSearchParams();
+        if (schoolId) query.set("schoolId", schoolId);
+        const url = `/api/admin/faq-logs${query.toString() ? `?${query.toString()}` : ""}`;
+
+        const res = await fetch(url);
 
         if (!res.ok) {
           throw new Error(`${res.status} ${res.statusText}`);

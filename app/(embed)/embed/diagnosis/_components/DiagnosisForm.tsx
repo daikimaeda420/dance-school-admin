@@ -39,6 +39,11 @@ const INPUT =
 
 const LABEL = "block text-[13px] font-extrabold text-[#6b4a2b]";
 const SUB = "mt-1 text-[11px] font-semibold text-[#6b4a2b]/60";
+const TRUST_ITEMS = [
+  "入力は1分で完了",
+  "診断結果をもとに体験案内",
+  "送信後にメールで詳細を案内",
+];
 
 // ✅ select を画像寄せ（白＋影＋右に▾）
 function SelectLike(props: {
@@ -97,6 +102,7 @@ export default function DiagnosisForm({
 
   // ── 離脱トラッキング用：最後にフォーカスしたフィールド名を記憎 ──
   const lastTouchedFieldRef = useRef<string | null>(null);
+  const autoSelectedClassRef = useRef<string | null>(null);
 
   // フィールドブラー時に呼び出すユーティリティ
   const logFormField = useCallback((label: string) => {
@@ -111,14 +117,17 @@ export default function DiagnosisForm({
       if (!label) return;
       onLogStep?.(`FORM_ABANDON_${label}`, `フォーム離脱: ${label} 入力途中`);
     };
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden") handleAbandon();
+    };
+
     // ブラウザタブを閉じた / ページ遷移時
     window.addEventListener("beforeunload", handleAbandon);
     // iOS Safariねどタブ関連でbeforeunloadが発火しない場合もカバー
-    document.addEventListener("visibilitychange", () => {
-      if (document.visibilityState === "hidden") handleAbandon();
-    });
+    document.addEventListener("visibilitychange", handleVisibilityChange);
     return () => {
       window.removeEventListener("beforeunload", handleAbandon);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, [onLogStep]);
 
@@ -144,13 +153,18 @@ export default function DiagnosisForm({
 
   // ✅ options が入ってきたら、未入力時に先頭を自動選択（必須対策）
   useEffect(() => {
+    const classValue = classField ? (values[classField.id] ?? "") : "";
     if (
       classField &&
       classOptions.length > 0 &&
-      !(values[classField.id] ?? "")
+      !classValue
     ) {
       if (defaultClassValue && classOptions.some(o => o.value === defaultClassValue)) {
         setVal(classField.id, defaultClassValue);
+        if (autoSelectedClassRef.current !== defaultClassValue) {
+          autoSelectedClassRef.current = defaultClassValue;
+          onClassChange?.(defaultClassValue);
+        }
       } else {
         // placeholderを残したいならこの行は消してOK
         // setVal(classField.id, classOptions[0].value);
@@ -160,7 +174,15 @@ export default function DiagnosisForm({
       // setVal(dateField.id, dateOptions[0].value);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [classField?.id, dateField?.id, classOptions.length, dateOptions.length]);
+  }, [
+    classField?.id,
+    dateField?.id,
+    values[classField?.id ?? ""],
+    classOptions,
+    dateOptions.length,
+    defaultClassValue,
+    onClassChange,
+  ]);
 
   const usedIds = new Set(
     [nameField, emailField, telField, classField, dateField, msgField]
@@ -236,6 +258,22 @@ export default function DiagnosisForm({
                   {form.description}
                 </div>
               )}
+              <div className="mt-5 grid gap-2 text-left">
+                {TRUST_ITEMS.map((item) => (
+                  <div
+                    key={item}
+                    className="flex items-center gap-2 text-[12px] font-bold text-[#6b4a2b]/75"
+                  >
+                    <span
+                      className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-[#f5c400]/25 text-[11px] text-[#6b4a2b]"
+                      aria-hidden="true"
+                    >
+                      ✓
+                    </span>
+                    <span>{item}</span>
+                  </div>
+                ))}
+              </div>
             </div>
 
             <div className="my-7 h-px w-full bg-black/10" />
@@ -371,6 +409,7 @@ export default function DiagnosisForm({
                     value={values[classField.id] ?? ""}
                     onChange={(v) => {
                       setVal(classField.id, v);
+                      if (dateField) setVal(dateField.id, "");
                       onClassChange?.(v);
                       logFormField(classField.label);
                     }}
@@ -423,7 +462,9 @@ export default function DiagnosisForm({
                     <div
                       className={`mt-2 rounded-2xl bg-[#f1ede6] px-5 py-4 text-[14px] text-[#b5aa9a] min-h-[46px] flex items-center ring-1 ring-black/5`}
                     >
-                      体験コースを選択してください
+                      {classField && values[classField.id]
+                        ? "日程を読み込み中、または現在候補がありません"
+                        : "体験コースを選択してください"}
                     </div>
                   )
                 ) : (
@@ -486,7 +527,10 @@ export default function DiagnosisForm({
                     {f.type === "SELECT" ? (
                       <SelectLike
                         value={values[f.id] ?? ""}
-                        onChange={(v) => setVal(f.id, v)}
+                        onChange={(v) => {
+                          setVal(f.id, v);
+                          logFormField(f.label);
+                        }}
                         required={f.required}
                         placeholder={f.placeholder ?? "選択してください"}
                         options={
@@ -503,6 +547,7 @@ export default function DiagnosisForm({
                         placeholder={f.placeholder ?? undefined}
                         value={values[f.id] ?? ""}
                         onChange={(e) => setVal(f.id, e.target.value)}
+                        onBlur={() => logFormField(f.label)}
                       />
                     ) : (
                       <input
@@ -518,6 +563,7 @@ export default function DiagnosisForm({
                         placeholder={f.placeholder ?? undefined}
                         value={values[f.id] ?? ""}
                         onChange={(e) => setVal(f.id, e.target.value)}
+                        onBlur={() => logFormField(f.label)}
                       />
                     )}
                   </div>
@@ -526,7 +572,10 @@ export default function DiagnosisForm({
             )}
 
             {err && (
-              <div className="rounded-2xl bg-red-50 px-4 py-3 text-[12px] font-semibold text-red-700 ring-1 ring-red-200">
+              <div
+                className="rounded-2xl bg-red-50 px-4 py-3 text-[12px] font-semibold text-red-700 ring-1 ring-red-200"
+                aria-live="polite"
+              >
                 {err}
               </div>
             )}
@@ -541,8 +590,11 @@ export default function DiagnosisForm({
                 "active:scale-[0.99] disabled:opacity-60",
               ].join(" ")}
             >
-              {sending ? "送信中..." : "体験レッスンを申し込む"}
+              {sending ? "送信中..." : "この内容で体験レッスンを申し込む"}
             </button>
+            <p className="text-center text-[11px] font-semibold leading-5 text-[#6b4a2b]/55">
+              送信後、入力内容をもとに体験レッスンの詳細をご案内します。
+            </p>
           </form>
           </>
         )}

@@ -3,7 +3,15 @@
 
 import * as React from "react";
 import { useMemo, useState } from "react";
-import { ChevronDown, Trash2, Clock } from "lucide-react";
+import {
+  AlertTriangle,
+  BarChart3,
+  ChevronDown,
+  CircleHelp,
+  Clock,
+  MousePointerClick,
+  Trash2,
+} from "lucide-react";
 
 type SelectOption = { label: string; next?: any };
 type FaqQuestion =
@@ -18,6 +26,10 @@ type FaqLog = {
   url?: string;
 };
 type Props = { logs: FaqLog[] };
+type NormalizedQuestion = {
+  kind: "cta" | "select" | "question";
+  text: string;
+};
 
 const ITEMS_PER_PAGE_DEFAULT = 5;
 
@@ -30,6 +42,51 @@ const LEVEL_BG = [
   "bg-indigo-50 border-indigo-200 dark:bg-indigo-900/20 dark:border-indigo-700",
 ];
 const levelClass = (level: number) => `rounded-lg `;
+
+function parseStringPayload(value: string): unknown {
+  const trimmed = value.trim();
+  if (!trimmed.startsWith("{") && !trimmed.startsWith("[")) return value;
+  try {
+    return JSON.parse(trimmed);
+  } catch {
+    return value;
+  }
+}
+
+function normalizeQuestion(q: FaqQuestion): NormalizedQuestion {
+  const value = typeof q === "string" ? parseStringPayload(q) : q;
+
+  if (value && typeof value === "object") {
+    const obj = value as any;
+    if (obj.type === "cta") {
+      return {
+        kind: "cta",
+        text: obj.ctaLabel ? `CTAクリック: ${obj.ctaLabel}` : "CTAクリック",
+      };
+    }
+    if (obj.type === "select") {
+      return { kind: "select", text: String(obj.text ?? obj.question ?? "") };
+    }
+    if (typeof obj.question === "string") {
+      return { kind: "question", text: obj.question };
+    }
+    if (typeof obj.text === "string") {
+      return { kind: "question", text: obj.text };
+    }
+  }
+
+  return { kind: "question", text: String(value ?? "") };
+}
+
+function renderAnswerText(a: any): string {
+  if (a == null) return "";
+  if (typeof a === "string") return a;
+  try {
+    return JSON.stringify(a);
+  } catch {
+    return String(a);
+  }
+}
 
 export default function ChatLogTreeView({ logs }: Props) {
   // セッションにグルーピング＆最新順
@@ -62,14 +119,57 @@ export default function ChatLogTreeView({ logs }: Props) {
   const [pageSize, setPageSize] = useState(ITEMS_PER_PAGE_DEFAULT);
   const [currentPage, setCurrentPage] = useState(1);
 
+  const insights = useMemo(() => {
+    const topMap = new Map<string, number>();
+    const unanswered: FaqLog[] = [];
+    let ctaClicks = 0;
+    let selectViews = 0;
+    let answeredQuestions = 0;
+
+    (logs || []).forEach((log) => {
+      const normalized = normalizeQuestion(log.question);
+      const answer = renderAnswerText(log.answer).trim();
+      const isSelectView = normalized.kind === "select" || answer === "(選択肢)";
+
+      if (normalized.kind === "cta") {
+        ctaClicks += 1;
+        return;
+      }
+      if (isSelectView) {
+        selectViews += 1;
+        return;
+      }
+
+      const key = normalized.text.trim() || "(質問なし)";
+      topMap.set(key, (topMap.get(key) ?? 0) + 1);
+
+      if (answer) {
+        answeredQuestions += 1;
+      } else {
+        unanswered.push(log);
+      }
+    });
+
+    const topQuestions = Array.from(topMap.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5);
+
+    return {
+      answeredQuestions,
+      ctaClicks,
+      selectViews,
+      topQuestions,
+      unanswered: unanswered.slice(0, 5),
+    };
+  }, [logs]);
+
   const filteredSessions = useMemo(() => {
     if (!query) return sessionEntries;
     const q = query.toLowerCase();
     return sessionEntries.filter(([id, items]) => {
       if (id.toLowerCase().includes(q)) return true;
       return items.some((l) => {
-        const qs =
-          typeof l.question === "string" ? l.question : l.question?.text || "";
+        const qs = normalizeQuestion(l.question).text;
         return (
           (qs && qs.toLowerCase().includes(q)) ||
           (typeof l.answer === "string" && l.answer.toLowerCase().includes(q))
@@ -95,21 +195,21 @@ export default function ChatLogTreeView({ logs }: Props) {
 
   const formatDate = (d: string) =>
     new Date(d).toLocaleString(undefined, { hour12: false });
-  const renderAnswer = (a: any): string => {
-    if (a == null) return "-";
-    if (typeof a === "string") return a;
-    try {
-      return JSON.stringify(a);
-    } catch {
-      return String(a);
-    }
-  };
+  const renderAnswer = (a: any): string => renderAnswerText(a) || "-";
 
   const renderQuestion = (q: FaqQuestion, level = 0): React.ReactElement => {
     if (typeof q === "string") {
+      const normalized = normalizeQuestion(q);
+      if (normalized.kind === "cta") {
+        return (
+          <div className="rounded-md bg-yellow-50 p-3 text-yellow-900 dark:bg-yellow-900/20 dark:text-yellow-100">
+            <div className="font-semibold">{normalized.text}</div>
+          </div>
+        );
+      }
       return (
         <div className={`p-3 bg-gray-50 dark:bg-gray-800 rounded-md`}>
-          <div className="font-semibold">Q: {q}</div>
+          <div className="font-semibold">Q: {normalized.text}</div>
         </div>
       );
     }
@@ -158,7 +258,7 @@ export default function ChatLogTreeView({ logs }: Props) {
   const handleDelete = async (sessionId: string) => {
     if (!confirm(`セッション「${sessionId}」を削除しますか？`)) return;
     try {
-      const res = await fetch("/api/logs", {
+      const res = await fetch("/api/admin/faq-logs", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ sessionId }),
@@ -176,6 +276,103 @@ export default function ChatLogTreeView({ logs }: Props) {
 
   return (
     <div className="p-4">
+      <div className="mb-4 grid gap-3 md:grid-cols-4">
+        <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900">
+          <div className="flex items-center gap-2 text-xs font-bold text-gray-500 dark:text-gray-400">
+            <BarChart3 className="h-4 w-4" aria-hidden />
+            回答済み質問
+          </div>
+          <div className="mt-2 text-2xl font-bold text-gray-900 dark:text-gray-100">
+            {insights.answeredQuestions}
+          </div>
+        </div>
+        <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900">
+          <div className="flex items-center gap-2 text-xs font-bold text-gray-500 dark:text-gray-400">
+            <CircleHelp className="h-4 w-4" aria-hidden />
+            選択肢表示
+          </div>
+          <div className="mt-2 text-2xl font-bold text-gray-900 dark:text-gray-100">
+            {insights.selectViews}
+          </div>
+        </div>
+        <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900">
+          <div className="flex items-center gap-2 text-xs font-bold text-gray-500 dark:text-gray-400">
+            <MousePointerClick className="h-4 w-4" aria-hidden />
+            CTAクリック
+          </div>
+          <div className="mt-2 text-2xl font-bold text-gray-900 dark:text-gray-100">
+            {insights.ctaClicks}
+          </div>
+        </div>
+        <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900">
+          <div className="flex items-center gap-2 text-xs font-bold text-gray-500 dark:text-gray-400">
+            <AlertTriangle className="h-4 w-4" aria-hidden />
+            未回答候補
+          </div>
+          <div className="mt-2 text-2xl font-bold text-gray-900 dark:text-gray-100">
+            {insights.unanswered.length}
+          </div>
+        </div>
+      </div>
+
+      {(insights.topQuestions.length > 0 || insights.unanswered.length > 0) && (
+        <div className="mb-4 grid gap-4 lg:grid-cols-2">
+          <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900">
+            <h2 className="text-sm font-bold text-gray-900 dark:text-gray-100">
+              よく聞かれた質問
+            </h2>
+            {insights.topQuestions.length === 0 ? (
+              <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">
+                まだ質問ログがありません
+              </p>
+            ) : (
+              <ol className="mt-3 space-y-2">
+                {insights.topQuestions.map(([question, count], index) => (
+                  <li
+                    key={question}
+                    className="flex items-start justify-between gap-3 rounded-lg bg-gray-50 px-3 py-2 text-sm dark:bg-gray-800"
+                  >
+                    <span className="font-medium text-gray-900 dark:text-gray-100">
+                      {index + 1}. {question}
+                    </span>
+                    <span className="shrink-0 rounded-full bg-gray-200 px-2 py-0.5 text-xs font-bold text-gray-700 dark:bg-gray-700 dark:text-gray-200">
+                      {count}件
+                    </span>
+                  </li>
+                ))}
+              </ol>
+            )}
+          </div>
+
+          <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900">
+            <h2 className="text-sm font-bold text-gray-900 dark:text-gray-100">
+              未回答・要確認候補
+            </h2>
+            {insights.unanswered.length === 0 ? (
+              <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">
+                未回答候補はありません
+              </p>
+            ) : (
+              <ul className="mt-3 space-y-2">
+                {insights.unanswered.map((log, index) => (
+                  <li
+                    key={`${log.sessionId ?? "unknown"}-${log.timestamp}-${index}`}
+                    className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-900 dark:bg-red-900/20 dark:text-red-100"
+                  >
+                    <div className="font-medium">
+                      {normalizeQuestion(log.question).text || "(質問なし)"}
+                    </div>
+                    <div className="mt-1 text-xs opacity-80">
+                      {formatDate(log.timestamp)}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* コントロールバー */}
       <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between ">
         <div className="flex items-center gap-2">

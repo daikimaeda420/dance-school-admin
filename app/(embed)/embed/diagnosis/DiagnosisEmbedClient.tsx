@@ -756,7 +756,7 @@ export default function DiagnosisEmbedClient({
     const targetDows = weekdayKeys.map((d) => DAY_NUM[d]).filter((n) => n !== undefined);
     const today = new Date();
     const opts: { value: string; label: string }[] = [];
-    for (let i = 1; i <= 28; i++) {
+    for (let i = 2; i <= 28; i++) {
       const d = new Date(today);
       d.setDate(today.getDate() + i);
       if (!targetDows.includes(d.getDay())) continue;
