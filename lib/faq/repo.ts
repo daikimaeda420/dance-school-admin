@@ -1,11 +1,59 @@
 // lib/faq/repo.ts
 import crypto from "crypto";
-import { FAQDocument } from "./types";
+import { prisma } from "@/lib/prisma";
+import { FAQDocument, FAQItem } from "./types";
 
-// 今後 Prisma / Supabase など DB から取得する処理をここに実装する
-async function fetchFromDb(_school: string): Promise<FAQDocument | null> {
-  // TODO: 後で実装（いまは一旦 null を返すだけ）
-  return null;
+function normalizeQuestion(item: any): FAQItem {
+  return {
+    type: "question",
+    question:
+      typeof item?.question === "string"
+        ? item.question
+        : String(item?.question ?? ""),
+    answer:
+      typeof item?.answer === "string" ? item.answer : String(item?.answer ?? ""),
+    ...(typeof item?.url === "string" && item.url.trim()
+      ? { url: item.url.trim() }
+      : {}),
+  };
+}
+
+function normalizeItem(item: any): FAQItem {
+  if (item?.type === "select") {
+    const options = Array.isArray(item.options) ? item.options : [];
+    return {
+      type: "select",
+      question:
+        typeof item?.question === "string"
+          ? item.question
+          : String(item?.question ?? ""),
+      options: options.map((opt: any) => ({
+        label: typeof opt?.label === "string" ? opt.label : "",
+        next: normalizeItem(opt?.next ?? {}),
+      })),
+    };
+  }
+
+  return normalizeQuestion(item);
+}
+
+async function fetchFromDb(school: string): Promise<FAQDocument | null> {
+  const rec = await prisma.faq.findUnique({
+    where: { schoolId: school },
+    select: { items: true, updatedAt: true },
+  });
+  if (!rec) return null;
+
+  const items = Array.isArray(rec.items) ? rec.items : [];
+  const root = items[0] ? normalizeItem(items[0]) : null;
+  if (!root) return null;
+
+  return {
+    school,
+    version: Math.floor(rec.updatedAt.getTime() / 1000),
+    updatedAt: rec.updatedAt.toISOString(),
+    root,
+  };
 }
 
 export async function getFaqDocument(school: string) {
