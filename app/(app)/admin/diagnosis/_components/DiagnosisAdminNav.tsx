@@ -8,6 +8,7 @@ import { adminCard } from "./adminStyles";
 type Tab = { href: string; label: string };
 
 const TABS: Tab[] = [
+  { href: "/admin/diagnosis/checklist", label: "完成度" },
   { href: "/admin/diagnosis/campuses", label: "校舎" },
   { href: "/admin/diagnosis/courses", label: "コース" },
   { href: "/admin/diagnosis/lifestyles", label: "年代・ライフスタイル" },
