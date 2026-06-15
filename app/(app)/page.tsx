@@ -156,27 +156,77 @@ const LP_PROOF = [
 ];
 
 const LP_HERO_METRICS = [
-  { value: "24h", label: "問い合わせ自動応答" },
-  { value: "1導線", label: "診断から予約まで統合" },
-  { value: "30日", label: "ログを見て改善" },
+  {
+    value: "24h",
+    label: "問い合わせ自動応答",
+    icon: MessageSquare,
+    color: "text-[#fe6147] bg-[#fff0ec]",
+  },
+  {
+    value: "1導線",
+    label: "診断から予約まで統合",
+    icon: MousePointerClick,
+    color: "text-emerald-700 bg-emerald-50",
+  },
+  {
+    value: "30日",
+    label: "ログを見て改善",
+    icon: BarChart3,
+    color: "text-blue-700 bg-blue-50",
+  },
 ];
 
 const LP_PROBLEMS = [
   {
     title: "同じ質問への対応に時間が取られる",
     text: "営業時間外の問い合わせや体験前の不安に、スタッフが個別対応している。",
+    icon: MessageSquare,
+    color: "text-[#fe6147] bg-[#fff0ec]",
   },
   {
     title: "どのクラスが合うか分からず離脱する",
     text: "初心者・経験者・年齢・目的ごとの案内が難しく、予約前の迷いが残る。",
+    icon: MousePointerClick,
+    color: "text-emerald-700 bg-emerald-50",
   },
   {
     title: "フォーム後の対応が属人化する",
     text: "申込内容の確認、通知、返信、日程調整が手作業になりやすい。",
+    icon: Mail,
+    color: "text-blue-700 bg-blue-50",
   },
   {
     title: "改善すべきポイントが見えない",
     text: "どこで迷われたか、どの質問が多いか、予約につながったかを追えない。",
+    icon: BarChart3,
+    color: "text-amber-700 bg-amber-50",
+  },
+];
+
+const LP_HERO_FLOW = [
+  {
+    title: "Q&A",
+    text: "質問に即答",
+    icon: MessageSquare,
+    color: "text-[#fe6147] bg-[#fff0ec] border-[#ffd5cc]",
+  },
+  {
+    title: "診断",
+    text: "相性を提案",
+    icon: MousePointerClick,
+    color: "text-emerald-700 bg-emerald-50 border-emerald-100",
+  },
+  {
+    title: "フォーム",
+    text: "申込を受付",
+    icon: Mail,
+    color: "text-blue-700 bg-blue-50 border-blue-100",
+  },
+  {
+    title: "レポート",
+    text: "改善点を表示",
+    icon: BarChart3,
+    color: "text-amber-700 bg-amber-50 border-amber-100",
   },
 ];
 
@@ -412,7 +462,7 @@ function LandingPage() {
   return (
     <main className="min-h-screen overflow-x-hidden bg-white text-slate-950 selection:bg-[#fe6147]/20">
       <header className="fixed inset-x-0 top-0 z-50 border-b border-slate-200/70 bg-white/90 backdrop-blur-xl">
-        <div className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between px-4 sm:px-6">
+        <div className="mx-auto flex h-16 w-full max-w-[1680px] items-center justify-between px-4 sm:px-6 lg:px-10 xl:px-16 2xl:px-20">
           <a href="/" className="flex items-center" aria-label="rizbo home">
             <img
               src="/logo.svg"
@@ -453,74 +503,41 @@ function LandingPage() {
         </div>
       </header>
 
-      <section className="relative min-h-[700px] overflow-hidden border-b border-slate-200 pt-20 sm:pt-24 lg:min-h-[660px]">
-        <div className="absolute inset-0 bg-[linear-gradient(115deg,#ffffff_0%,#ffffff_42%,#f8fafc_42%,#f8fafc_100%)]" />
-        <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-white to-white/0" />
-        <div className="absolute right-[-350px] top-24 hidden w-[980px] max-w-none opacity-95 lg:block xl:right-[-300px] 2xl:right-[-220px]">
-          <div className="rounded-[28px] border border-slate-200 bg-white p-3 shadow-[0_32px_90px_rgba(15,23,42,0.16)]">
-            <img
-              src="/lp/mockup.png"
-              alt="rizboの管理画面"
-              width={1478}
-              height={782}
-              className="h-auto w-full rounded-[18px]"
-            />
-          </div>
-        </div>
-        <div className="absolute right-6 top-[400px] hidden w-[360px] rounded-2xl border border-slate-200 bg-white/95 p-4 shadow-[0_24px_70px_rgba(15,23,42,0.18)] backdrop-blur lg:block xl:right-16 2xl:right-36">
-          <div className="mb-4 flex items-center justify-between">
-            <div>
-              <div className="text-xs font-bold text-slate-500">運用レポート</div>
-              <div className="mt-1 text-sm font-extrabold text-slate-950">
-                次に直すポイントを自動で見える化
-              </div>
-            </div>
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#fff0ec] text-[#fe6147]">
-              <BarChart3 className="h-5 w-5" aria-hidden="true" />
-            </div>
-          </div>
-          <div className="grid gap-3">
-            {LP_FUNNEL_STEPS.slice(2).map((step) => (
-              <div
-                key={step.label}
-                className="grid grid-cols-[86px_1fr_48px] items-center gap-3"
-              >
-                <div className="text-xs font-semibold text-slate-500">
-                  {step.label}
-                </div>
-                <div className="h-2 overflow-hidden rounded-full bg-slate-100">
-                  <div
-                    className="h-full rounded-full bg-[#fe6147]"
-                    style={{ width: `${step.rate}%` }}
-                  />
-                </div>
-                <div className="text-right text-sm font-extrabold text-slate-950">
-                  {step.rate}%
-                </div>
-              </div>
-            ))}
-          </div>
-          <div className="mt-4 rounded-xl border border-[#ffd5cc] bg-[#fff6f3] p-3">
-            <div className="flex items-center gap-2 text-xs font-bold text-[#c84732]">
-              <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
-              改善候補
-            </div>
-            <p className="mt-1 text-xs leading-5 text-slate-600">
-              結果画面の予約CTAと未回答FAQを優先して更新します。
-            </p>
-          </div>
-        </div>
+      <section className="relative overflow-hidden border-b border-slate-200 bg-white">
+        <div className="absolute inset-0 bg-[linear-gradient(115deg,#ffffff_0%,#ffffff_48%,#f8fafc_48%,#f8fafc_100%)]" />
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 opacity-80"
+          style={{
+            backgroundImage:
+              "radial-gradient(circle at 1px 1px, rgba(254,97,71,0.18) 1px, transparent 0)",
+            backgroundSize: "28px 28px",
+            maskImage:
+              "linear-gradient(90deg, rgba(0,0,0,0.38), rgba(0,0,0,0.18) 48%, transparent 78%)",
+            WebkitMaskImage:
+              "linear-gradient(90deg, rgba(0,0,0,0.38), rgba(0,0,0,0.18) 48%, transparent 78%)",
+          }}
+        />
+        <div
+          aria-hidden="true"
+          className="absolute left-0 top-16 h-[620px] w-[54%] opacity-40"
+          style={{
+            backgroundImage:
+              "repeating-linear-gradient(135deg, rgba(254,97,71,0.11) 0px, rgba(254,97,71,0.11) 1px, transparent 1px, transparent 18px)",
+          }}
+        />
+        <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-white to-white/0" />
 
-        <div className="relative mx-auto flex min-h-[600px] max-w-7xl flex-col justify-center px-4 pb-6 sm:px-6 lg:min-h-[540px]">
-          <div className="max-w-[560px] pt-8 lg:pt-0">
-            <h1 className="text-[42px] font-extrabold leading-[1.06] tracking-normal text-slate-950 sm:text-[56px] lg:text-[64px]">
-              ダンススクールの
-              <span className="block text-[#fe6147]">
+        <div className="relative mx-auto grid min-h-[700px] max-w-[1680px] items-center gap-8 px-4 pb-8 pt-20 sm:px-6 sm:pt-24 lg:min-h-[660px] lg:grid-cols-[minmax(520px,0.86fr)_minmax(560px,1.14fr)] lg:gap-10 lg:px-10 lg:pt-20 xl:px-16 2xl:px-20">
+          <div className="relative z-10 max-w-[620px] lg:pt-2">
+            <h1 className="text-[42px] font-extrabold leading-[1.06] tracking-normal text-slate-950 sm:text-[56px] lg:text-[52px] xl:text-[70px]">
+              <span className="block whitespace-nowrap">ダンススクールの</span>
+              <span className="block whitespace-nowrap text-[#fe6147]">
                 体験予約を増やす
               </span>
-              運用システム
+              <span className="block whitespace-nowrap">運用システム</span>
             </h1>
-            <p className="mt-6 max-w-[540px] text-base leading-8 text-slate-600 sm:text-lg">
+            <p className="mt-6 max-w-[560px] text-base leading-8 text-slate-600 sm:text-lg">
               Q&amp;Aチャットボット、相性診断、予約フォーム、運用レポートをひとつに。
               問い合わせ対応を減らしながら、迷っている見込み客を体験予約へつなげます。
             </p>
@@ -542,33 +559,33 @@ function LandingPage() {
               </a>
             </div>
 
-            <div className="mt-7 rounded-2xl border border-slate-200 bg-white p-2 shadow-[0_22px_60px_rgba(15,23,42,0.12)] lg:hidden">
-              <img
-                src="/lp/mockup.png"
-                alt="rizboの管理画面"
-                width={1478}
-                height={782}
-                className="h-[150px] w-full rounded-xl object-cover object-left-top sm:h-auto"
-              />
-            </div>
-
-            <div className="mt-7 hidden max-w-[560px] gap-3 sm:grid sm:grid-cols-3">
-              {LP_HERO_METRICS.map((item) => (
+            <div className="mt-7 hidden max-w-[620px] gap-3 sm:grid sm:grid-cols-3">
+              {LP_HERO_METRICS.map(({ value, label, icon: Icon, color }) => (
                 <div
-                  key={item.label}
-                  className="rounded-xl border border-slate-200 bg-white/85 px-4 py-3 shadow-sm backdrop-blur"
+                  key={label}
+                  className="rounded-xl border border-slate-200 bg-white/90 px-4 py-3 shadow-sm backdrop-blur"
                 >
-                  <div className="text-2xl font-extrabold text-slate-950">
-                    {item.value}
+                  <div className="mb-3 flex items-center justify-between gap-3">
+                    <div className="text-2xl font-extrabold text-slate-950">
+                      {value}
+                    </div>
+                    <div
+                      className={[
+                        "flex h-9 w-9 items-center justify-center rounded-lg",
+                        color,
+                      ].join(" ")}
+                    >
+                      <Icon className="h-4 w-4" aria-hidden="true" />
+                    </div>
                   </div>
-                  <div className="mt-1 text-xs font-semibold leading-5 text-slate-500">
-                    {item.label}
+                  <div className="text-xs font-semibold leading-5 text-slate-500">
+                    {label}
                   </div>
                 </div>
               ))}
             </div>
 
-            <div className="mt-5 hidden max-w-[560px] gap-3 text-sm font-semibold text-slate-700 sm:grid sm:grid-cols-3">
+            <div className="mt-5 hidden max-w-[620px] gap-3 text-sm font-semibold text-slate-700 md:grid md:grid-cols-3">
               {LP_PROOF.map((item) => (
                 <div key={item} className="flex items-start gap-2">
                   <CheckCircle2
@@ -578,6 +595,86 @@ function LandingPage() {
                   <span>{item}</span>
                 </div>
               ))}
+            </div>
+          </div>
+
+          <div className="relative z-10 min-h-[220px] lg:min-h-[560px]">
+            <div className="absolute -left-8 top-12 z-20 hidden w-[170px] space-y-3 2xl:block">
+              {LP_HERO_FLOW.map(({ title, text, icon: Icon, color }) => (
+                <div
+                  key={title}
+                  className={[
+                    "flex items-center gap-3 rounded-2xl border bg-white/90 px-3 py-2.5 shadow-sm backdrop-blur",
+                    color,
+                  ].join(" ")}
+                >
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/80">
+                    <Icon className="h-4 w-4" aria-hidden="true" />
+                  </div>
+                  <div>
+                    <div className="text-xs font-extrabold text-slate-950">
+                      {title}
+                    </div>
+                    <div className="mt-0.5 text-[11px] font-semibold text-slate-500">
+                      {text}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="relative ml-auto w-full max-w-[1040px] rounded-[24px] border border-slate-200 bg-white/95 p-2.5 shadow-[0_32px_90px_rgba(15,23,42,0.14)] backdrop-blur lg:rounded-[30px] lg:p-3">
+              <img
+                src="/lp/mockup.png"
+                alt="rizboの管理画面"
+                width={1478}
+                height={782}
+                className="h-[150px] w-full rounded-[16px] object-cover object-left-top sm:h-[260px] lg:h-auto lg:rounded-[20px]"
+              />
+            </div>
+
+            <div className="absolute bottom-[-8px] right-3 z-30 hidden w-[360px] rounded-2xl border border-slate-200 bg-white/95 p-4 shadow-[0_24px_70px_rgba(15,23,42,0.18)] backdrop-blur lg:block xl:bottom-2 xl:right-10">
+              <div className="mb-4 flex items-center justify-between">
+                <div>
+                  <div className="text-xs font-bold text-slate-500">運用レポート</div>
+                  <div className="mt-1 text-sm font-extrabold text-slate-950">
+                    次に直すポイントを自動で見える化
+                  </div>
+                </div>
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#fff0ec] text-[#fe6147]">
+                  <BarChart3 className="h-5 w-5" aria-hidden="true" />
+                </div>
+              </div>
+              <div className="grid gap-3">
+                {LP_FUNNEL_STEPS.slice(2).map((step) => (
+                  <div
+                    key={step.label}
+                    className="grid grid-cols-[86px_1fr_48px] items-center gap-3"
+                  >
+                    <div className="text-xs font-semibold text-slate-500">
+                      {step.label}
+                    </div>
+                    <div className="h-2 overflow-hidden rounded-full bg-slate-100">
+                      <div
+                        className="h-full rounded-full bg-[#fe6147]"
+                        style={{ width: `${step.rate}%` }}
+                      />
+                    </div>
+                    <div className="text-right text-sm font-extrabold text-slate-950">
+                      {step.rate}%
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-4 rounded-xl border border-[#ffd5cc] bg-[#fff6f3] p-3">
+                <div className="flex items-center gap-2 text-xs font-bold text-[#c84732]">
+                  <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
+                  改善候補
+                </div>
+                <p className="mt-1 text-xs leading-5 text-slate-600">
+                  結果画面の予約CTAと未回答FAQを優先して更新します。
+                </p>
+              </div>
             </div>
           </div>
         </div>
@@ -591,18 +688,22 @@ function LandingPage() {
             ありませんか？
           </h2>
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            {LP_PROBLEMS.map((item) => (
-              <div key={item.title} className="flex gap-3">
-                <AlertCircle
-                  className="mt-0.5 h-5 w-5 shrink-0 text-[#fe6147]"
-                  aria-hidden="true"
-                />
+            {LP_PROBLEMS.map(({ title, text, icon: Icon, color }) => (
+              <div key={title} className="flex gap-3">
+                <div
+                  className={[
+                    "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl",
+                    color,
+                  ].join(" ")}
+                >
+                  <Icon className="h-4 w-4" aria-hidden="true" />
+                </div>
                 <div>
                   <h3 className="text-sm font-bold text-slate-950">
-                    {item.title}
+                    {title}
                   </h3>
                   <p className="mt-1 text-xs leading-5 text-slate-500">
-                    {item.text}
+                    {text}
                   </p>
                 </div>
               </div>
