@@ -1,24 +1,10 @@
 // app/api/admin/diagnosis/form/route.ts
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/authOptions";
-
-/**
- * 認証チェック（管理画面用）
- */
-async function ensureLoggedIn() {
-  try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.email) return null;
-    return session;
-  } catch (e) {
-    console.error("❌ getServerSession error:", e);
-    return null;
-  }
-}
+import { requireRecordSchoolAccess, requireSchoolAccess } from "@/lib/authz";
 
 /**
  * GET /api/admin/diagnosis/form?schoolId=xxx
@@ -27,11 +13,6 @@ async function ensureLoggedIn() {
  */
 export async function GET(req: NextRequest) {
   try {
-    const session = await ensureLoggedIn();
-    if (!session) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    }
-
     const { searchParams } = new URL(req.url);
     const schoolId = searchParams.get("schoolId");
 
@@ -41,6 +22,9 @@ export async function GET(req: NextRequest) {
         { status: 400 },
       );
     }
+
+    const auth = await requireSchoolAccess(schoolId);
+    if (!auth.ok) return auth.response;
 
     // 既存フォームを取得
     const existing = await prisma.diagnosisForm.findUnique({
@@ -118,11 +102,6 @@ export async function GET(req: NextRequest) {
  */
 export async function PUT(req: NextRequest) {
   try {
-    const session = await ensureLoggedIn();
-    if (!session) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    }
-
     const body = await req.json();
 
     const {
@@ -145,6 +124,16 @@ export async function PUT(req: NextRequest) {
         { status: 400 },
       );
     }
+
+    const access = await requireRecordSchoolAccess(
+      () =>
+        prisma.diagnosisForm.findUnique({
+          where: { id },
+          select: { schoolId: true },
+        }),
+      "対象のフォームが見つかりません",
+    );
+    if (!access.ok) return access.response;
 
     // フォーム本体更新
     await prisma.diagnosisForm.update({

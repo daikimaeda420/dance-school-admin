@@ -1,16 +1,10 @@
 // app/api/admin/diagnosis/faqs/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/authOptions";
+import { requireSchoolAccess } from "@/lib/authz";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-async function ensureLoggedIn() {
-  const session = await getServerSession(authOptions);
-  return session?.user?.email ? session : null;
-}
 
 function json(message: string, status = 400, extra?: Record<string, any>) {
   return NextResponse.json({ message, ...(extra ?? {}) }, { status });
@@ -19,12 +13,12 @@ function json(message: string, status = 400, extra?: Record<string, any>) {
 // GET /api/admin/diagnosis/faqs?schoolId=xxx
 export async function GET(req: NextRequest) {
   try {
-    const session = await ensureLoggedIn();
-    if (!session) return json("Unauthorized", 401);
-
     const { searchParams } = new URL(req.url);
     const schoolId = searchParams.get("schoolId");
     if (!schoolId) return json("schoolId が必要です", 400);
+
+    const auth = await requireSchoolAccess(schoolId);
+    if (!auth.ok) return auth.response;
 
     const rows = await prisma.diagnosisFaq.findMany({
       where: { schoolId },
@@ -40,15 +34,15 @@ export async function GET(req: NextRequest) {
 // POST /api/admin/diagnosis/faqs
 export async function POST(req: NextRequest) {
   try {
-    const session = await ensureLoggedIn();
-    if (!session) return json("Unauthorized", 401);
-
     const body = await req.json().catch(() => null);
     if (!body?.schoolId) return json("schoolId が必要です", 400);
     if (!body?.question?.trim()) return json("question が必要です", 400);
     if (!body?.answer?.trim()) return json("answer が必要です", 400);
 
     const schoolId = String(body.schoolId);
+    const auth = await requireSchoolAccess(schoolId);
+    if (!auth.ok) return auth.response;
+
     const question = String(body.question).trim();
     const answer = String(body.answer).trim();
     const sortOrder = Number.isFinite(Number(body.sortOrder))

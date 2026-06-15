@@ -1,7 +1,6 @@
-// tailwind.config.ts
-import type { Config } from "tailwindcss";
-
-export default {
+// tailwind.config.js
+/** @type {import("tailwindcss").Config} */
+module.exports = {
   darkMode: "class", // ← 念のため明示
   content: [
     "./app/**/*.{js,ts,jsx,tsx}",
@@ -25,6 +24,6 @@ export default {
     "dark:bg-emerald-900/30","dark:bg-sky-900/30","dark:bg-rose-900/30","dark:bg-indigo-900/30","dark:bg-amber-900/30",
 
     // dark 枠線
-    "dark:border-emerald-700","dark:border-sky-700","dark:border-rose-700","dark:border-indigo-700","dark:border-amber-700",,
+    "dark:border-emerald-700","dark:border-sky-700","dark:border-rose-700","dark:border-indigo-700","dark:border-amber-700",
   ],
-} satisfies Config;
+};

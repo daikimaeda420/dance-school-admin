@@ -1,15 +1,9 @@
 // app/api/admin/diagnosis/faqs/[id]/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/authOptions";
+import { requireRecordSchoolAccess } from "@/lib/authz";
 
 export const runtime = "nodejs";
-
-async function ensureLoggedIn() {
-  const session = await getServerSession(authOptions);
-  return session?.user?.email ? session : null;
-}
 
 function json(message: string, status = 400, extra?: Record<string, any>) {
   return NextResponse.json({ message, ...(extra ?? {}) }, { status });
@@ -18,13 +12,20 @@ function json(message: string, status = 400, extra?: Record<string, any>) {
 // PATCH /api/admin/diagnosis/faqs/[id]
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const session = await ensureLoggedIn();
-    if (!session) return json("Unauthorized", 401);
+    const { id } = await params;
+    const access = await requireRecordSchoolAccess(
+      () =>
+        prisma.diagnosisFaq.findUnique({
+          where: { id },
+          select: { schoolId: true },
+        }),
+      "対象のFAQが見つかりません",
+    );
+    if (!access.ok) return access.response;
 
-    const id = params.id;
     const body = await req.json().catch(() => null);
 
     const data: Record<string, any> = {};
@@ -48,13 +49,21 @@ export async function PATCH(
 // DELETE /api/admin/diagnosis/faqs/[id]
 export async function DELETE(
   _req: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const session = await ensureLoggedIn();
-    if (!session) return json("Unauthorized", 401);
+    const { id } = await params;
+    const access = await requireRecordSchoolAccess(
+      () =>
+        prisma.diagnosisFaq.findUnique({
+          where: { id },
+          select: { schoolId: true },
+        }),
+      "対象のFAQが見つかりません",
+    );
+    if (!access.ok) return access.response;
 
-    await prisma.diagnosisFaq.delete({ where: { id: params.id } });
+    await prisma.diagnosisFaq.delete({ where: { id } });
 
     return NextResponse.json({ ok: true });
   } catch (e: any) {

@@ -1,8 +1,7 @@
 // app/api/admin/diagnosis/media/banner/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/authOptions";
+import { requireSchoolAccess } from "@/lib/authz";
 
 export const runtime = "nodejs";
 
@@ -11,20 +10,15 @@ function json(message: string, status = 400) {
   return NextResponse.json({ message }, { status });
 }
 
-async function ensureLoggedIn() {
-  const session = await getServerSession(authOptions);
-  return session?.user?.email ? session : null;
-}
-
 // GET /api/admin/diagnosis/media/banner?schoolId=xxx
 export async function GET(req: NextRequest) {
   try {
-    const session = await ensureLoggedIn();
-    if (!session) return json("Unauthorized", 401);
-
     const { searchParams } = new URL(req.url);
     const schoolId = searchParams.get("schoolId");
     if (!schoolId) return json("schoolId が必要です", 400);
+
+    const auth = await requireSchoolAccess(schoolId);
+    if (!auth.ok) return auth.response;
 
     const row = await prisma.diagnosisMedia.findUnique({
       where: { schoolId_key: { schoolId, key: "campaign_banner" } },
@@ -44,9 +38,6 @@ export async function GET(req: NextRequest) {
 // POST /api/admin/diagnosis/media/banner (multipart/form-data: schoolId, file)
 export async function POST(req: NextRequest) {
   try {
-    const session = await ensureLoggedIn();
-    if (!session) return json("Unauthorized", 401);
-
     const ct = req.headers.get("content-type") || "";
     if (!ct.includes("multipart/form-data"))
       return json("multipart/form-data が必要です", 400);
@@ -56,6 +47,9 @@ export async function POST(req: NextRequest) {
     const file = fd.get("file");
 
     if (!schoolId) return json("schoolId は必須です", 400);
+    const auth = await requireSchoolAccess(schoolId);
+    if (!auth.ok) return auth.response;
+
     if (!file || !(file instanceof File) || file.size === 0)
       return json("file は必須です", 400);
 
@@ -89,11 +83,11 @@ export async function POST(req: NextRequest) {
 // DELETE /api/admin/diagnosis/media/banner
 export async function DELETE(req: NextRequest) {
   try {
-    const session = await ensureLoggedIn();
-    if (!session) return json("Unauthorized", 401);
-
     const body = await req.json().catch(() => null);
     if (!body?.schoolId) return json("schoolId が必要です", 400);
+
+    const auth = await requireSchoolAccess(body.schoolId);
+    if (!auth.ok) return auth.response;
 
     await prisma.diagnosisMedia.delete({
        where: { schoolId_key: { schoolId: body.schoolId, key: "campaign_banner" } }

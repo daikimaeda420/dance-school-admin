@@ -1,14 +1,7 @@
 // app/api/admin/diagnosis/schedule-slots/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/authOptions";
-
-async function ensureLoggedIn() {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.email) return null;
-  return session;
-}
+import { requireSchoolAccess } from "@/lib/authz";
 
 function bad(message: string, status = 400) {
   return NextResponse.json({ message }, { status });
@@ -47,13 +40,13 @@ type Body = {
 
 // GET /api/admin/diagnosis/schedule-slots?schoolId=xxx
 export async function GET(req: NextRequest) {
-  const session = await ensureLoggedIn();
-  if (!session) return bad("Unauthorized", 401);
-
   try {
     const { searchParams } = new URL(req.url);
     const schoolId = searchParams.get("schoolId");
     if (!schoolId) return bad("schoolId が必要です");
+
+    const auth = await requireSchoolAccess(schoolId);
+    if (!auth.ok) return auth.response;
 
     const slots = await prisma.diagnosisScheduleSlot.findMany({
       where: { schoolId },
@@ -83,14 +76,15 @@ export async function GET(req: NextRequest) {
 
 // POST /api/admin/diagnosis/schedule-slots
 export async function POST(req: NextRequest) {
-  const session = await ensureLoggedIn();
-  if (!session) return bad("Unauthorized", 401);
-
   try {
     const body = (await req.json().catch(() => null)) as Partial<Body> | null;
     if (!body) return bad("リクエストJSONが不正です", 400);
 
     if (!body.schoolId) return bad("schoolId が必要です");
+    const schoolId = String(body.schoolId);
+    const auth = await requireSchoolAccess(schoolId);
+    if (!auth.ok) return auth.response;
+
     if (!body.weekday || !WEEKDAYS.includes(body.weekday))
       return bad("weekday が不正です");
 
@@ -113,10 +107,16 @@ export async function POST(req: NextRequest) {
 
     // ✅ 念のため重複排除（複合PK(slotId,courseId) で落ちるのを防ぐ）
     const uniqCourseIds = Array.from(new Set(courseIds));
+    const ownedCourses = await prisma.diagnosisCourse.count({
+      where: { schoolId, id: { in: uniqCourseIds } },
+    });
+    if (ownedCourses !== uniqCourseIds.length) {
+      return bad("対応コースに不正なIDが含まれています", 400);
+    }
 
     const created = await prisma.diagnosisScheduleSlot.create({
       data: {
-        schoolId: String(body.schoolId),
+        schoolId,
         weekday: body.weekday,
         genreText,
         timeText,

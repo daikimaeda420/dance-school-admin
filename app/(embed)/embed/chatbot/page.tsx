@@ -1,13 +1,19 @@
 // app/(embed)/embed/chatbot/page.tsx
+import { Suspense } from "react";
 import ChatbotEmbedClient from "./ChatbotEmbedClient";
 
 type PageProps = {
-  searchParams?: {
+  searchParams: Promise<{
     school?: string;
-  };
+  }>;
 };
 
-export default function Page({ searchParams }: PageProps) {
-  const school = searchParams?.school ?? "";
-  return <ChatbotEmbedClient school={school} />;
+export default async function Page({ searchParams }: PageProps) {
+  const sp = await searchParams;
+  const school = sp?.school ?? "";
+  return (
+    <Suspense fallback={null}>
+      <ChatbotEmbedClient school={school} />
+    </Suspense>
+  );
 }

@@ -1,18 +1,12 @@
 // app/api/admin/diagnosis/media/video/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/authOptions";
+import { requireSchoolAccess } from "@/lib/authz";
 
 export const runtime = "nodejs";
 
 function json(message: string, status = 400) {
   return NextResponse.json({ message }, { status });
-}
-
-async function ensureLoggedIn() {
-  const session = await getServerSession(authOptions);
-  return session?.user?.email ? session : null;
 }
 
 // 簡単なYouTube URLのパース処理
@@ -40,12 +34,12 @@ function extractYouTubeId(urlStr: string): string | null {
 // GET /api/admin/diagnosis/media/video?schoolId=xxx
 export async function GET(req: NextRequest) {
   try {
-    const session = await ensureLoggedIn();
-    if (!session) return json("Unauthorized", 401);
-
     const { searchParams } = new URL(req.url);
     const schoolId = searchParams.get("schoolId");
     if (!schoolId) return json("schoolId が必要です", 400);
+
+    const auth = await requireSchoolAccess(schoolId);
+    if (!auth.ok) return auth.response;
 
     const row = await prisma.diagnosisMedia.findUnique({
       where: { schoolId_key: { schoolId, key: "youtube_video" } },
@@ -63,12 +57,12 @@ export async function GET(req: NextRequest) {
 // POST /api/admin/diagnosis/media/video
 export async function POST(req: NextRequest) {
   try {
-    const session = await ensureLoggedIn();
-    if (!session) return json("Unauthorized", 401);
-
     const body = await req.json().catch(() => null);
     if (!body?.schoolId) return json("schoolId は必須です", 400);
     if (!body?.url) return json("YouTubeのURLを入力してください", 400);
+
+    const auth = await requireSchoolAccess(body.schoolId);
+    if (!auth.ok) return auth.response;
 
     const videoId = extractYouTubeId(body.url);
     if (!videoId) return json("無効なYouTube URLです", 400);
@@ -93,11 +87,11 @@ export async function POST(req: NextRequest) {
 // DELETE /api/admin/diagnosis/media/video
 export async function DELETE(req: NextRequest) {
   try {
-    const session = await ensureLoggedIn();
-    if (!session) return json("Unauthorized", 401);
-
     const body = await req.json().catch(() => null);
     if (!body?.schoolId) return json("schoolId が必要です", 400);
+
+    const auth = await requireSchoolAccess(body.schoolId);
+    if (!auth.ok) return auth.response;
 
     await prisma.diagnosisMedia.delete({
        where: { schoolId_key: { schoolId: body.schoolId, key: "youtube_video" } }

@@ -12,6 +12,7 @@ import {
   X,
   Bot,
   ExternalLink,
+  Settings,
   ListChecks, // 診断編集アイコン
   ClipboardList, // ← 追加（相性診断プレビュー用アイコン）
 } from "lucide-react";
@@ -30,6 +31,7 @@ const NAV = [
   // ← ★ この下に診断編集を追加する（NAV には入れない）
   { href: "/admin/chat-history", label: "ユーザーログ", icon: TimerReset },
   { href: "/superadmin", label: "アカウント管理", icon: UserCog },
+  { href: "/admin/system", label: "システム設定", icon: Settings, superOnly: true },
   { href: "/help", label: "ヘルプ", icon: HelpCircle },
 ];
 
@@ -41,6 +43,8 @@ export default function Sidebar({
   const pathname = usePathname();
   const { data: session } = useSession();
   const schoolId = (session?.user as any)?.schoolId as string | undefined;
+  const role = String((session?.user as any)?.role ?? "");
+  const isSuperAdmin = role === "SUPERADMIN" || role === "superadmin";
 
   // /embed はサイドバー非表示
   if (pathname.startsWith("/embed")) return null;
@@ -129,7 +133,7 @@ export default function Sidebar({
         >
           <nav className="p-3 space-y-1">
             {/* NAV のループ（ホーム〜Q&A編集） */}
-            {NAV.map(({ href, label, icon: Icon }) => {
+            {NAV.filter((item) => !item.superOnly || isSuperAdmin).map(({ href, label, icon: Icon }) => {
               // Q&A編集の直後に診断編集を差し込むための処理
               const selected = isActive(href);
 
@@ -236,7 +240,7 @@ export default function Sidebar({
             </div>
 
             <nav className="p-2 space-y-1">
-              {NAV.map(({ href, label, icon: Icon }) => {
+              {NAV.filter((item) => !item.superOnly || isSuperAdmin).map(({ href, label, icon: Icon }) => {
                 const selected = isActive(href);
 
                 return (

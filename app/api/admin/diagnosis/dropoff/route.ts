@@ -1,11 +1,11 @@
 // app/api/admin/diagnosis/dropoff/route.ts
 // 診断ステップ別の通過数・離脱率を集計して返すAPI（管理者認証必要）
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/authOptions";
+import { resolveAccessibleSchool } from "@/lib/authz";
 
 // 診断ステップの定義
 // ※ 「回答」したら通過とみなす（表示→回答をまとめて1行）
@@ -31,18 +31,16 @@ const ICON_KEYS = [
 
 export async function GET(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.email) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    }
-
     const { searchParams } = new URL(req.url);
-    const schoolId = searchParams.get("schoolId") ?? "";
-    const days = Math.max(1, Number(searchParams.get("days") || 30));
+    const access = await resolveAccessibleSchool(searchParams.get("schoolId"));
+    if (!access.ok) return access.response;
+
+    const schoolId = access.schoolId;
+    const days = Math.min(365, Math.max(1, Number(searchParams.get("days") || 30)));
     const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
 
     const where = {
-      ...(schoolId ? { schoolId } : {}),
+      schoolId,
       createdAt: { gte: since },
     };
 

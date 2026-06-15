@@ -21,6 +21,10 @@ function withCors(res: NextResponse) {
   return res;
 }
 
+function clamp(input: unknown, max: number) {
+  return String(input ?? "").trim().slice(0, max);
+}
+
 export async function OPTIONS() {
   return withCors(new NextResponse(null, { status: 204 }));
 }
@@ -29,10 +33,10 @@ export async function POST(req: NextRequest) {
   try {
     const body = (await req.json()) as SessionLogBody;
 
-    const schoolId = String(body?.schoolId ?? "").trim();
-    const sessionId = String(body?.sessionId ?? "").trim();
-    const stepKey = String(body?.stepKey ?? "").trim();
-    const stepLabel = body?.stepLabel ? String(body.stepLabel).trim() : null;
+    const schoolId = clamp(body?.schoolId, 120);
+    const sessionId = clamp(body?.sessionId, 200);
+    const stepKey = clamp(body?.stepKey, 120);
+    const stepLabel = body?.stepLabel ? clamp(body.stepLabel, 200) : null;
     const allowDuplicate = body?.allowDuplicate === true;
 
     if (!schoolId || !sessionId || !stepKey) {
@@ -41,6 +45,16 @@ export async function POST(req: NextRequest) {
           { message: "schoolId, sessionId, stepKey は必須です" },
           { status: 400 }
         )
+      );
+    }
+
+    const schoolExists = await prisma.faq.findUnique({
+      where: { schoolId },
+      select: { id: true },
+    });
+    if (!schoolExists) {
+      return withCors(
+        NextResponse.json({ message: "schoolId が見つかりません" }, { status: 404 }),
       );
     }
 

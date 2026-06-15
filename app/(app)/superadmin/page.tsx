@@ -1,13 +1,6 @@
-// app/superadmin/page.tsx
-import dynamic from "next/dynamic";
 import { UserCog } from "lucide-react";
-
-const UsersEditor = dynamic(() => import("@/components/UsersEditor"), {
-  ssr: false,
-});
-const SuperAdminEditor = dynamic(() => import("./SuperAdminEditor"), {
-  ssr: false,
-});
+import UsersEditor from "@/components/UsersEditor";
+import SuperAdminEditor from "./SuperAdminEditor";
 
 export default function SuperadminPage() {
   return (

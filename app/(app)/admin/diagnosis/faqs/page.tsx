@@ -1,6 +1,6 @@
 // app/(app)/admin/diagnosis/faqs/page.tsx
 import { Suspense } from "react";
-import { prisma } from "@/lib/prisma";
+import { getAccessiblePageSchoolId } from "@/lib/authz";
 import FaqAdminClient from "./FaqAdminClient";
 
 export const metadata = {
@@ -13,17 +13,13 @@ export const dynamic = "force-dynamic";
 export default async function FaqAdminPage({
   searchParams,
 }: {
-  searchParams: { [key: string]: string | string[] | undefined };
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
-  const spSchoolId = searchParams?.schoolId;
-  let schoolId = "";
-
-  if (typeof spSchoolId === "string" && spSchoolId) {
-    schoolId = spSchoolId;
-  } else {
-    const school = await prisma.faq.findFirst({ select: { schoolId: true } });
-    schoolId = school?.schoolId ?? "";
-  }
+  const sp = await searchParams;
+  const spSchoolId = sp?.schoolId;
+  const schoolId = await getAccessiblePageSchoolId(
+    typeof spSchoolId === "string" ? spSchoolId : "",
+  );
 
   return (
     <div className="mx-auto max-w-3xl p-4 md:p-8">

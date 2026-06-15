@@ -1,16 +1,10 @@
 // app/api/admin/diagnosis/genres/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/authOptions";
+import { requireRecordSchoolAccess, requireSchoolAccess } from "@/lib/authz";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-async function ensureLoggedIn() {
-  const session = await getServerSession(authOptions);
-  return session?.user?.email ? session : null;
-}
 
 function json(message: string, status = 400, extra?: Record<string, any>) {
   return NextResponse.json({ message, ...(extra ?? {}) }, { status });
@@ -39,12 +33,12 @@ async function ensureDefaults(schoolId: string) {
 // GET /api/admin/diagnosis/genres?schoolId=xxx
 export async function GET(req: NextRequest) {
   try {
-    const session = await ensureLoggedIn();
-    if (!session) return json("Unauthorized", 401);
-
     const { searchParams } = new URL(req.url);
     const schoolId = searchParams.get("schoolId");
     if (!schoolId) return json("schoolId が必要です", 400);
+
+    const auth = await requireSchoolAccess(schoolId);
+    if (!auth.ok) return auth.response;
 
     await ensureDefaults(schoolId);
 
@@ -53,14 +47,7 @@ export async function GET(req: NextRequest) {
       orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
     });
 
-    return NextResponse.json({ 
-      genres: rows,
-      debug: {
-        schoolId,
-        count: rows.length,
-        ts: Date.now()
-      }
-    });
+    return NextResponse.json({ genres: rows });
   } catch (e: any) {
     return json("genres取得でエラー", 500, {
       detail: e?.message ?? String(e),
@@ -74,14 +61,14 @@ export async function GET(req: NextRequest) {
 // POST /api/admin/diagnosis/genres
 export async function POST(req: NextRequest) {
   try {
-    const session = await ensureLoggedIn();
-    if (!session) return json("Unauthorized", 401);
-
     const body = await req.json().catch(() => null);
     if (!body?.schoolId) return json("schoolId が必要です", 400);
     if (!body?.label) return json("label が必要です", 400);
 
     const schoolId = String(body.schoolId);
+    const auth = await requireSchoolAccess(schoolId);
+    if (!auth.ok) return auth.response;
+
     const label = String(body.label).trim();
 
     // slugは Genre_XXX 形式を推奨するが、通常のフォーマットでもOK
@@ -112,13 +99,20 @@ export async function POST(req: NextRequest) {
 // PATCH /api/admin/diagnosis/genres
 export async function PATCH(req: NextRequest) {
   try {
-    const session = await ensureLoggedIn();
-    if (!session) return json("Unauthorized", 401);
-
     const body = await req.json().catch(() => null);
     if (!body?.id) return json("id が必要です", 400);
 
     const id = String(body.id);
+    const access = await requireRecordSchoolAccess(
+      () =>
+        prisma.diagnosisGenre.findUnique({
+          where: { id },
+          select: { schoolId: true },
+        }),
+      "対象のジャンルが見つかりません",
+    );
+    if (!access.ok) return access.response;
+
     const data: Record<string, any> = {};
 
     if (body.label != null) data.label = String(body.label).trim();
@@ -144,13 +138,21 @@ export async function PATCH(req: NextRequest) {
 // DELETE /api/admin/diagnosis/genres
 export async function DELETE(req: NextRequest) {
   try {
-    const session = await ensureLoggedIn();
-    if (!session) return json("Unauthorized", 401);
-
     const body = await req.json().catch(() => null);
     if (!body?.id) return json("id が必要です", 400);
 
-    await prisma.diagnosisGenre.delete({ where: { id: String(body.id) } });
+    const id = String(body.id);
+    const access = await requireRecordSchoolAccess(
+      () =>
+        prisma.diagnosisGenre.findUnique({
+          where: { id },
+          select: { schoolId: true },
+        }),
+      "対象のジャンルが見つかりません",
+    );
+    if (!access.ok) return access.response;
+
+    await prisma.diagnosisGenre.delete({ where: { id } });
 
     return NextResponse.json({ ok: true });
   } catch (e: any) {

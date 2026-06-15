@@ -1,16 +1,10 @@
 // app/api/diagnosis/instructors/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/authOptions";
 import { QUESTIONS } from "@/lib/diagnosis/config";
+import { requireSchoolAccess, resolveAccessibleSchool } from "@/lib/authz";
 
 export const runtime = "nodejs";
-
-async function ensureLoggedIn() {
-  const session = await getServerSession(authOptions);
-  return session?.user?.email ? session : null;
-}
 
 function toBool(v: any, fallback: boolean) {
   if (typeof v === "boolean") return v;
@@ -255,15 +249,12 @@ function hasField(fd: FormData, key: string): boolean {
 // =========================
 export async function GET(req: NextRequest) {
   try {
-    const session = await ensureLoggedIn();
-    if (!session) return json("Unauthorized", 401);
-
     const { searchParams } = new URL(req.url);
 
-    const schoolId =
-      searchParams.get("schoolId")?.trim() ||
-      String((session.user as any)?.schoolId ?? "").trim();
+    const access = await resolveAccessibleSchool(searchParams.get("schoolId"));
+    if (!access.ok) return access.response;
 
+    const schoolId = access.schoolId;
     if (!schoolId) return json("schoolId が必要です", 400);
 
     const rows = await prisma.diagnosisInstructor.findMany({
@@ -331,9 +322,6 @@ export async function GET(req: NextRequest) {
 // =========================
 export async function POST(req: NextRequest) {
   try {
-    const session = await ensureLoggedIn();
-    if (!session) return json("Unauthorized", 401);
-
     const ct = req.headers.get("content-type") || "";
     if (!ct.includes("multipart/form-data")) {
       return json("multipart/form-data が必要です", 400);
@@ -363,6 +351,9 @@ export async function POST(req: NextRequest) {
     if (!id || !schoolId || !label || !slug) {
       return json("id / schoolId / label / slug は必須です", 400);
     }
+
+    const auth = await requireSchoolAccess(schoolId);
+    if (!auth.ok) return auth.response;
 
     const file = fd.get("file");
     let photoMime: string | null = null;
@@ -492,9 +483,6 @@ export async function POST(req: NextRequest) {
 // =========================
 export async function PUT(req: NextRequest) {
   try {
-    const session = await ensureLoggedIn();
-    if (!session) return json("Unauthorized", 401);
-
     const ct = req.headers.get("content-type") || "";
     if (!ct.includes("multipart/form-data")) {
       return json("multipart/form-data が必要です", 400);
@@ -528,6 +516,9 @@ export async function PUT(req: NextRequest) {
     if (!id || !schoolId || !label || !slug) {
       return json("id / schoolId / label / slug は必須です", 400);
     }
+
+    const auth = await requireSchoolAccess(schoolId);
+    if (!auth.ok) return auth.response;
 
     const existing = await prisma.diagnosisInstructor.findFirst({
       where: { id, schoolId },
@@ -676,16 +667,13 @@ export async function PUT(req: NextRequest) {
 // =========================
 export async function DELETE(req: NextRequest) {
   try {
-    const session = await ensureLoggedIn();
-    if (!session) return json("Unauthorized", 401);
-
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id")?.trim();
 
-    const schoolId =
-      searchParams.get("schoolId")?.trim() ||
-      String((session.user as any)?.schoolId ?? "").trim();
+    const access = await resolveAccessibleSchool(searchParams.get("schoolId"));
+    if (!access.ok) return access.response;
 
+    const schoolId = access.schoolId;
     if (!id || !schoolId) return json("id / schoolId が必要です", 400);
 
     const existing = await prisma.diagnosisInstructor.findFirst({

@@ -387,8 +387,6 @@ export default function CourseAdminClient({ schoolId }: Props) {
     }
   };
 
-  const [debugInfo, setDebugInfo] = useState<string>(""); // ✅ Debug info
-
   const fetchGenres = async () => {
     if (!schoolId) return;
     setGenresLoading(true);
@@ -403,13 +401,7 @@ export default function CourseAdminClient({ schoolId }: Props) {
           (g: { label: string; slug: string; isActive?: boolean }) =>
             g.isActive !== false,
         );
-        console.log("DEBUG fetchGenres active:", activeGenres.length, "件", activeGenres.map((g: any) => g.label));
         setGenres(activeGenres);
-        
-        // Debug info from server
-        if (data.debug) {
-            setDebugInfo(`Count:${data.debug.count}, ID:${data.debug.schoolId}`);
-        }
       } else {
         console.error("fetchGenres: HTTP", res.status, await res.text().catch(() => ""));
       }
@@ -771,7 +763,7 @@ export default function CourseAdminClient({ schoolId }: Props) {
         {/* ✅ ジャンル (Q4) */}
         <div className="mt-2">
           <div className="mb-1 text-[11px] font-semibold text-gray-600 dark:text-gray-300">
-            Q4 ジャンル（複数OK）{!genresLoading && `— 取得: ${genres.length}件 (SRV: ${debugInfo})`}
+            Q4 ジャンル（複数OK）{!genresLoading && ` - 取得: ${genres.length}件`}
           </div>
 
           {/* genres取得完了後にジャンルが0件の場合のみ警告 */}

@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic";
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireSchoolAccess, requireSuperAdmin } from "@/lib/authz";
 
 type FaqQuestion = {
   type: "question";
@@ -100,6 +101,9 @@ export async function GET(req: NextRequest) {
 
     // 特定スクール指定あり → 1件だけ返す
     if (school) {
+      const auth = await requireSchoolAccess(school);
+      if (!auth.ok) return auth.response;
+
       const rec = await prisma.faq.findUnique({
         where: { schoolId: school },
         select: {
@@ -137,6 +141,9 @@ export async function GET(req: NextRequest) {
     }
 
     // school 指定なし → 全件一覧
+    const auth = await requireSuperAdmin();
+    if (!auth.ok) return auth.response;
+
     const recs = await prisma.faq.findMany({
       orderBy: { updatedAt: "desc" },
       select: {

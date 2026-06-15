@@ -1,16 +1,9 @@
 // app/api/admin/diagnosis/campuses/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/authOptions";
+import { requireSchoolAccess } from "@/lib/authz";
 
 export const runtime = "nodejs";
-
-async function ensureLoggedIn() {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.email) return null;
-  return session;
-}
 
 function norm(v: unknown): string {
   return String(v ?? "").trim();
@@ -27,11 +20,6 @@ function toBool(v: any, fallback = false) {
 
 // GET /api/admin/diagnosis/campuses?schoolId=xxx&full=1
 export async function GET(req: NextRequest) {
-  const session = await ensureLoggedIn();
-  if (!session) {
-    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-  }
-
   try {
     const { searchParams } = new URL(req.url);
 
@@ -46,6 +34,9 @@ export async function GET(req: NextRequest) {
         { status: 400 }
       );
     }
+
+    const auth = await requireSchoolAccess(schoolId);
+    if (!auth.ok) return auth.response;
 
     const campuses = await prisma.diagnosisCampus.findMany({
       where: full ? { schoolId } : { schoolId, isActive: true },
@@ -77,11 +68,6 @@ export async function GET(req: NextRequest) {
 
 // POST /api/admin/diagnosis/campuses
 export async function POST(req: NextRequest) {
-  const session = await ensureLoggedIn();
-  if (!session) {
-    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-  }
-
   try {
     const body = await req.json().catch(() => null);
 
@@ -95,6 +81,9 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
+
+    const auth = await requireSchoolAccess(schoolId);
+    if (!auth.ok) return auth.response;
 
     const sortOrder = toNum(body?.sortOrder, 0);
     const isActive =

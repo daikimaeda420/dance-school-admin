@@ -35,6 +35,21 @@ function applyTemplate(template: string, vars: Record<string, string>) {
   return out;
 }
 
+function cleanHeaderText(value: string, maxLength = 200) {
+  return String(value ?? "")
+    .replace(/[\r\n]+/g, " ")
+    .trim()
+    .slice(0, maxLength);
+}
+
+function assertHeaderValue(value: string | null | undefined, label: string) {
+  const v = String(value ?? "").trim();
+  if (/[\r\n]/.test(v)) {
+    throw new Error(`${label} に不正な改行が含まれています`);
+  }
+  return v;
+}
+
 async function sendMail({
   fromName,
   fromEmail,
@@ -59,7 +74,11 @@ async function sendMail({
   const user = env("SMTP_USER");
   const pass = env("SMTP_PASS");
 
-  if (!host || !port || !user || !pass || !fromEmail) {
+  if (!Number.isInteger(port) || port < 1 || port > 65535) {
+    throw new Error("SMTP_PORT が不正です");
+  }
+
+  if (!host || !user || !pass || !fromEmail) {
     throw new Error(
       "メール送信の環境変数が不足しています（SMTP_HOST/SMTP_PORT/SMTP_USER/SMTP_PASS/FromEmail）",
     );
@@ -68,20 +87,32 @@ async function sendMail({
   const transporter = nodemailer.createTransport({
     host,
     port,
+    name: "rizbo",
     secure: port === 465,
     auth: { user, pass },
   });
 
-  const from = fromName ? `"${fromName}" <${fromEmail}>` : fromEmail;
+  const safeFromEmail = assertHeaderValue(fromEmail, "fromEmail");
+  const safeTo = assertHeaderValue(to, "to");
+  const safeCc = cc ? assertHeaderValue(cc, "cc") : "";
+  const safeBcc = bcc ? assertHeaderValue(bcc, "bcc") : "";
+  const safeReplyTo = replyTo ? assertHeaderValue(replyTo, "replyTo") : "";
+  const safeSubject = cleanHeaderText(subject);
+  const safeFromName = cleanHeaderText(fromName, 120);
+  const from = safeFromName
+    ? { name: safeFromName, address: safeFromEmail }
+    : safeFromEmail;
 
   await transporter.sendMail({
     from,
-    to,
-    cc: cc ?? undefined,
-    bcc: bcc ?? undefined,
-    replyTo: replyTo || undefined,
-    subject,
+    to: safeTo,
+    cc: safeCc || undefined,
+    bcc: safeBcc || undefined,
+    replyTo: safeReplyTo || undefined,
+    subject: safeSubject,
     text,
+    disableFileAccess: true,
+    disableUrlAccess: true,
   });
 }
 

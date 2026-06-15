@@ -185,12 +185,10 @@ export default function ChatbotEmbedClient({
     let aborted = false;
     const run = async () => {
       const base = getApiBase();
-      console.log("[rizbo-chatbot] FAQ fetch start", { base, schoolId });
 
       try {
         const url1 = `${base}/api/faq?school=${encodeURIComponent(schoolId)}`;
         const r1 = await fetch(url1, { cache: "no-store", mode: "cors" });
-        console.log("[rizbo-chatbot] /api/faq?school= status", r1.status);
 
         if (r1.ok) {
           const d1 = await r1.json();
@@ -216,7 +214,6 @@ export default function ChatbotEmbedClient({
 
         const url2 = `${base}/api/faq/${encodeURIComponent(schoolId)}`;
         const r2 = await fetch(url2, { cache: "no-store", mode: "cors" });
-        console.log("[rizbo-chatbot] /api/faq/:school status", r2.status);
 
         const d2 = r2.ok ? await r2.json() : null;
         if (!aborted) {

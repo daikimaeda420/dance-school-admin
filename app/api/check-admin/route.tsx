@@ -1,6 +1,7 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { UserRole } from "@prisma/client";
 
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -8,6 +9,7 @@ export async function GET(req: NextRequest) {
   // 型を明示する（TypeScriptにroleがあると伝える）
   const user = session?.user as { role?: string };
 
-  const isSchoolAdmin = user?.role === "school-admin";
-  return new Response(JSON.stringify({ ok: isSchoolAdmin }), { status: 200 });
+  const isSchoolAdmin =
+    user?.role === UserRole.SCHOOL_ADMIN || user?.role === "school-admin";
+  return NextResponse.json({ ok: isSchoolAdmin }, { status: 200 });
 }

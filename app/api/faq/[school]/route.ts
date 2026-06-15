@@ -1,12 +1,12 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getFaqDocument } from "@/lib/faq/repo";
 import { isValidFAQ } from "@/lib/faq/validate";
 
 export async function GET(
-  _req: Request,
-  { params }: { params: { school: string } }
+  _req: NextRequest,
+  { params }: { params: Promise<{ school: string }> }
 ) {
-  const school = params.school;
+  const { school } = await params;
   const result = await getFaqDocument(school);
 
   if (!result) {

@@ -1,16 +1,18 @@
 // app/admin/diagnosis/campuses/page.tsx
 import { Suspense } from "react";
 import CampusAdminClient from "./CampusAdminClient";
+import { getAccessiblePageSchoolId } from "@/lib/authz";
 
 // 管理画面は静的生成させない（SSG/Export時のprerender事故を防ぐ）
 export const dynamic = "force-dynamic";
 
-export default function DiagnosisCampusesPage({
+export default async function DiagnosisCampusesPage({
   searchParams,
 }: {
-  searchParams: { schoolId?: string };
+  searchParams: Promise<{ schoolId?: string }>;
 }) {
-  const schoolId = searchParams.schoolId ?? "";
+  const sp = await searchParams;
+  const schoolId = await getAccessiblePageSchoolId(sp.schoolId);
 
   return (
     <div className="mx-auto p-6 text-gray-900 dark:text-gray-100">

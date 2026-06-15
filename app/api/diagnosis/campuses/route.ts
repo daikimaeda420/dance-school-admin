@@ -1,9 +1,8 @@
 // app/api/diagnosis/campuses/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/authOptions";
 import { DiagnosisQuestionOption } from "@/lib/diagnosis/config";
+import { requireSchoolAccess } from "@/lib/authz";
 
 export const runtime = "nodejs";
 
@@ -18,11 +17,6 @@ function toBool(v: any, fallback = false) {
   if (typeof v === "boolean") return v;
   if (typeof v === "string") return v === "true";
   return fallback;
-}
-
-async function ensureLoggedIn() {
-  const session = await getServerSession(authOptions);
-  return session?.user?.email ? session : null;
 }
 
 /**
@@ -46,14 +40,6 @@ export async function GET(req: NextRequest) {
   const { searchParams: sp } = new URL(req.url);
   const isFull = sp.get("full") === "1";
 
-  // 管理画面用フル取得は認証が必要
-  if (isFull) {
-    const session = await ensureLoggedIn();
-    if (!session) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    }
-  }
-
   const { searchParams } = new URL(req.url);
 
   // 後方互換：schoolId / school
@@ -67,6 +53,11 @@ export async function GET(req: NextRequest) {
       { message: "schoolId が必要です" },
       { status: 400 },
     );
+  }
+
+  if (isFull) {
+    const auth = await requireSchoolAccess(schoolId);
+    if (!auth.ok) return auth.response;
   }
 
   const campuses = await prisma.diagnosisCampus.findMany({
@@ -111,11 +102,6 @@ export async function GET(req: NextRequest) {
 
 // POST /api/diagnosis/campuses
 export async function POST(req: NextRequest) {
-  const session = await ensureLoggedIn();
-  if (!session) {
-    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-  }
-
   const body = await req.json().catch(() => ({}) as any);
 
   // 後方互換：schoolId / school
@@ -153,6 +139,9 @@ export async function POST(req: NextRequest) {
   if (!slug) {
     return NextResponse.json({ message: "slug が必要です" }, { status: 400 });
   }
+
+  const auth = await requireSchoolAccess(schoolId);
+  if (!auth.ok) return auth.response;
 
   const dup = await prisma.diagnosisCampus.findFirst({
     where: { schoolId, slug },

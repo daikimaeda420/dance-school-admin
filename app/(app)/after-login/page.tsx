@@ -12,8 +12,6 @@ export default function AfterLoginPage() {
   useEffect(() => {
     if (status === "loading") return;
 
-    console.log("✅ セッション状態:", session);
-
     if (status === "authenticated" && session?.user) {
       router.replace("/"); // ← 初期リダイレクト先を明示しておくと◎
     } else {

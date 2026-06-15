@@ -2,9 +2,10 @@
 import DiagnosisEmbedClient from "./DiagnosisEmbedClient";
 import { DiagnosisQuestionOption } from "@/lib/diagnosis/config";
 import { headers } from "next/headers";
+import { Suspense } from "react";
 
-function getOriginFromHeaders() {
-  const h = headers();
+async function getOriginFromHeaders() {
+  const h = await headers();
   const proto = h.get("x-forwarded-proto") ?? "https";
   const host = h.get("x-forwarded-host") ?? h.get("host");
   if (!host) return null;
@@ -19,7 +20,7 @@ async function fetchOptions(
 // ... (omitted for brevity in search but should be full)
 
   try {
-    const origin = getOriginFromHeaders();
+    const origin = await getOriginFromHeaders();
     if (!origin) {
       console.error("Failed to resolve origin from request headers");
       return [];
@@ -47,10 +48,11 @@ async function fetchOptions(
 export default async function DiagnosisPage({
   searchParams,
 }: {
-  searchParams: { school?: string; schoolId?: string };
+  searchParams: Promise<{ school?: string; schoolId?: string }>;
 }) {
+  const sp = await searchParams;
   // ★ 両対応（schoolId 優先）
-  const schoolId = searchParams.schoolId ?? searchParams.school ?? "";
+  const schoolId = sp.schoolId ?? sp.school ?? "";
 
   const [
     campusOptions,
@@ -77,15 +79,17 @@ export default async function DiagnosisPage({
   ) as string[];
 
   return (
-    <DiagnosisEmbedClient
-      schoolIdProp={schoolId}
-      campusOptions={campusOptions}
-      courseOptions={courseOptions}
-      instructorOptions={instructorOptions}
-      genreOptions={genreOptions} // ✅ 追加
-      lifestyleOptions={lifestyleOptions} // ✅ 追加
-      activeGenreTags={activeGenreTags}
-      activeLifestyleTags={activeLifestyleTags}
-    />
+    <Suspense fallback={null}>
+      <DiagnosisEmbedClient
+        schoolIdProp={schoolId}
+        campusOptions={campusOptions}
+        courseOptions={courseOptions}
+        instructorOptions={instructorOptions}
+        genreOptions={genreOptions} // ✅ 追加
+        lifestyleOptions={lifestyleOptions} // ✅ 追加
+        activeGenreTags={activeGenreTags}
+        activeLifestyleTags={activeLifestyleTags}
+      />
+    </Suspense>
   );
 }

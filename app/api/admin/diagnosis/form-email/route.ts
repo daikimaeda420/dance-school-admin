@@ -1,19 +1,10 @@
 // app/api/admin/diagnosis/form-email/route.ts
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/authOptions";
-
-/**
- * 認証チェック（管理画面用）
- */
-async function ensureLoggedIn() {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.email) return null;
-  return session;
-}
+import { requireRecordSchoolAccess, requireSchoolAccess } from "@/lib/authz";
 
 function json(message: string, status = 400, extra?: any) {
   return NextResponse.json({ message, ...extra }, { status });
@@ -37,13 +28,13 @@ function normalizeCsvEmails(input: unknown): string {
  * - なければテンプレで自動作成して返す
  */
 export async function GET(req: NextRequest) {
-  const session = await ensureLoggedIn();
-  if (!session) return json("Unauthorized", 401);
-
   try {
     const { searchParams } = new URL(req.url);
     const schoolId = searchParams.get("schoolId")?.trim();
     if (!schoolId) return json("schoolId が必要です", 400);
+
+    const auth = await requireSchoolAccess(schoolId);
+    if (!auth.ok) return auth.response;
 
     const existing = await prisma.diagnosisFormEmailSetting.findUnique({
       where: { schoolId },
@@ -61,7 +52,7 @@ export async function GET(req: NextRequest) {
         fromEmail: null,
         replyTo: null,
 
-        adminTo: String(session.user.email), // 仮To（後で管理画面で変更）
+        adminTo: auth.principal.email, // 仮To（後で管理画面で変更）
         adminCc: null,
         adminBcc: null,
 
@@ -92,9 +83,6 @@ export async function GET(req: NextRequest) {
  * 管理画面からメール設定を保存
  */
 export async function PUT(req: NextRequest) {
-  const session = await ensureLoggedIn();
-  if (!session) return json("Unauthorized", 401);
-
   try {
     const body = await req.json().catch(() => null);
     if (!body) return json("Invalid JSON body", 400);
@@ -130,6 +118,21 @@ export async function PUT(req: NextRequest) {
           : null;
 
     if (!where) return json("id もしくは schoolId が必要です", 400);
+
+    if ("id" in where) {
+      const access = await requireRecordSchoolAccess(
+        () =>
+          prisma.diagnosisFormEmailSetting.findUnique({
+            where,
+            select: { schoolId: true },
+          }),
+        "対象のメール設定が見つかりません",
+      );
+      if (!access.ok) return access.response;
+    } else {
+      const auth = await requireSchoolAccess((where as any).schoolId);
+      if (!auth.ok) return auth.response;
+    }
 
     const adminToNorm = normalizeCsvEmails(adminTo);
     if (!adminToNorm) return json("adminTo（管理者To）が必須です", 400);

@@ -1,6 +1,7 @@
 // app/api/faq/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma"; // ← lib/prisma.ts は named export を推奨
+import { requireSchoolAccess } from "@/lib/authz";
 
 type FaqQuestion = {
   type: "question";
@@ -261,6 +262,9 @@ export async function POST(req: NextRequest) {
         { error: 'query param "school" is required' },
         { status: 400 }
       );
+
+    const auth = await requireSchoolAccess(school);
+    if (!auth.ok) return auth.response;
 
     // 本文をパース
     const raw = await req.json();

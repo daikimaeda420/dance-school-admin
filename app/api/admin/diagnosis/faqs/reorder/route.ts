@@ -1,16 +1,10 @@
 // app/api/admin/diagnosis/faqs/reorder/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/authOptions";
+import { requireSchoolAccess } from "@/lib/authz";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-async function ensureLoggedIn() {
-  const session = await getServerSession(authOptions);
-  return session?.user?.email ? session : null;
-}
 
 function json(message: string, status = 400, extra?: Record<string, any>) {
   return NextResponse.json({ message, ...(extra ?? {}) }, { status });
@@ -20,15 +14,15 @@ function json(message: string, status = 400, extra?: Record<string, any>) {
 // body: { schoolId: string; orderedIds: string[] }
 export async function POST(req: NextRequest) {
   try {
-    const session = await ensureLoggedIn();
-    if (!session) return json("Unauthorized", 401);
-
     const body = await req.json().catch(() => null);
     if (!body?.schoolId) return json("schoolId が必要です", 400);
     if (!Array.isArray(body?.orderedIds) || body.orderedIds.length === 0)
       return json("orderedIds が必要です", 400);
 
     const schoolId = String(body.schoolId);
+    const auth = await requireSchoolAccess(schoolId);
+    if (!auth.ok) return auth.response;
+
     const orderedIds: string[] = body.orderedIds.map(String);
 
     await prisma.$transaction(

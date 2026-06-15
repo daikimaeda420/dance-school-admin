@@ -1,8 +1,7 @@
 // app/api/diagnosis/instructors/photo/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/authOptions";
+import { requireSchoolAccess } from "@/lib/authz";
 
 export const runtime = "nodejs";
 
@@ -47,9 +46,6 @@ export async function GET(req: NextRequest) {
 // ✅ アップロードは管理画面だけにしたいので、認証必須のまま
 export async function POST(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.email) return json("Unauthorized", 401);
-
     const ct = req.headers.get("content-type") || "";
     if (!ct.includes("multipart/form-data"))
       return json("multipart/form-data が必要です", 400);
@@ -60,6 +56,9 @@ export async function POST(req: NextRequest) {
     const file = fd.get("file");
 
     if (!id || !schoolId) return json("id / schoolId は必須です", 400);
+    const auth = await requireSchoolAccess(schoolId);
+    if (!auth.ok) return auth.response;
+
     if (!file || !(file instanceof File) || file.size === 0)
       return json("file は必須です", 400);
 

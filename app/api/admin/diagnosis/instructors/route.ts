@@ -1,23 +1,12 @@
 // app/api/diagnosis/instructors/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/authOptions";
+import { requireSchoolAccess } from "@/lib/authz";
 
 export const runtime = "nodejs";
 
-async function ensureLoggedIn() {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.email) return null;
-  return session;
-}
-
 // GET /api/diagnosis/instructors?schoolId=xxx
 export async function GET(req: NextRequest) {
-  const session = await ensureLoggedIn();
-  if (!session)
-    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-
   const { searchParams } = new URL(req.url);
   const schoolId = searchParams.get("schoolId")?.trim();
 
@@ -27,6 +16,9 @@ export async function GET(req: NextRequest) {
       { status: 400 }
     );
   }
+
+  const auth = await requireSchoolAccess(schoolId);
+  if (!auth.ok) return auth.response;
 
   const rows = await prisma.diagnosisInstructor.findMany({
     where: { schoolId },
@@ -38,10 +30,6 @@ export async function GET(req: NextRequest) {
 
 // POST /api/diagnosis/instructors
 export async function POST(req: NextRequest) {
-  const session = await ensureLoggedIn();
-  if (!session)
-    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-
   const body = await req.json().catch(() => null);
 
   if (
@@ -57,13 +45,17 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  const schoolId = body.schoolId.trim();
+  const auth = await requireSchoolAccess(schoolId);
+  if (!auth.ok) return auth.response;
+
   const sortOrder = typeof body.sortOrder === "number" ? body.sortOrder : 0;
   const isActive = body.isActive !== false;
 
   const created = await prisma.diagnosisInstructor.create({
     data: {
       id: body.id.trim(),
-      schoolId: body.schoolId.trim(),
+      schoolId,
       label: body.label.trim(),
       slug: body.slug.trim(),
       sortOrder,
@@ -76,10 +68,6 @@ export async function POST(req: NextRequest) {
 
 // PUT /api/diagnosis/instructors
 export async function PUT(req: NextRequest) {
-  const session = await ensureLoggedIn();
-  if (!session)
-    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-
   const body = await req.json().catch(() => null);
 
   if (
@@ -97,11 +85,15 @@ export async function PUT(req: NextRequest) {
 
   const sortOrder = typeof body.sortOrder === "number" ? body.sortOrder : 0;
   const isActive = body.isActive !== false;
+  const schoolId = body.schoolId.trim();
+
+  const auth = await requireSchoolAccess(schoolId);
+  if (!auth.ok) return auth.response;
 
   const existing = await prisma.diagnosisInstructor.findFirst({
     where: {
       id: body.id.trim(),
-      schoolId: body.schoolId.trim(),
+      schoolId,
     },
   });
 
@@ -127,10 +119,6 @@ export async function PUT(req: NextRequest) {
 
 // DELETE /api/diagnosis/instructors?id=xxx&schoolId=yyy（論理削除）
 export async function DELETE(req: NextRequest) {
-  const session = await ensureLoggedIn();
-  if (!session)
-    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-
   const { searchParams } = new URL(req.url);
   const id = searchParams.get("id")?.trim();
   const schoolId = searchParams.get("schoolId")?.trim();
@@ -141,6 +129,9 @@ export async function DELETE(req: NextRequest) {
       { status: 400 }
     );
   }
+
+  const auth = await requireSchoolAccess(schoolId);
+  if (!auth.ok) return auth.response;
 
   const existing = await prisma.diagnosisInstructor.findFirst({
     where: { id, schoolId },

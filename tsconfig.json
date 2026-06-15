@@ -18,10 +18,10 @@
     "incremental": true,
     "esModuleInterop": true,
     "module": "esnext",
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "jsx": "preserve",
+    "jsx": "react-jsx",
     "types": [
       "next-auth"
     ], // ✅ 追加: 型定義を使うために必要
@@ -29,7 +29,8 @@
       {
         "name": "next"
       }
-    ]
+    ],
+    "target": "ES2017"
   },
   "include": [
     "next-env.d.ts",
@@ -45,7 +46,8 @@
     ".next/types/app/api/auth/[...nextauth]/route.tsx",
     ".next/types/app/page.tsx",
     ".next/types/app/layout.tsx",
-    "app/schools/manage/page.tsx"
+    "app/schools/manage/page.tsx",
+    ".next/dev/types/**/*.ts"
   ],
   "exclude": [
     "node_modules"

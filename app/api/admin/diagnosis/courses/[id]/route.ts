@@ -1,14 +1,7 @@
 // app/api/admin/diagnosis/courses/[id]/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/authOptions";
-
-async function ensureLoggedIn() {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.email) return null;
-  return session;
-}
+import { requireRecordSchoolAccess } from "@/lib/authz";
 
 function normalizeStringArray(v: any): string[] {
   if (!Array.isArray(v)) return [];
@@ -29,9 +22,6 @@ type PatchBody = {
   isActive?: boolean;
   q2AnswerTags?: string[];
 
-  // ✅ 既存
-  answerTag?: string | null;
-
   // ✅ 追加：コース説明文
   description?: string | null;
 
@@ -51,21 +41,25 @@ function normalizeNullableText(v: unknown): string | null {
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
-  const session = await ensureLoggedIn();
-  if (!session) {
-    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-  }
-
   try {
-    const id = params.id;
+    const { id } = await params;
     if (!id) {
       return NextResponse.json({ error: "Missing id" }, { status: 400 });
     }
 
-    const body = (await req.json()) as PatchBody;
+    const access = await requireRecordSchoolAccess(
+      () =>
+        prisma.diagnosisCourse.findUnique({
+          where: { id },
+          select: { schoolId: true },
+        }),
+      "対象のコースが見つかりません",
+    );
+    if (!access.ok) return access.response;
 
+    const body = (await req.json()) as PatchBody;
 
     const q2 =
       body.q2AnswerTags === undefined
@@ -77,15 +71,6 @@ export async function PATCH(
       body.genreTags === undefined
         ? undefined
         : normalizeStringArray(body.genreTags);
-
-    const nextAnswerTag =
-      body.answerTag === undefined
-        ? undefined
-        : body.answerTag === null
-          ? null
-          : typeof body.answerTag === "string" && body.answerTag.trim()
-            ? body.answerTag.trim()
-            : null;
 
     // ✅ 追加：description（undefined=更新しない / null or string=更新する）
     const nextDescription =
@@ -113,8 +98,6 @@ export async function PATCH(
         // ✅ 追加
         ...(genreTags !== undefined ? { genreTags } : {}),
 
-        ...(nextAnswerTag !== undefined ? { answerTag: nextAnswerTag } : {}),
-
         // ✅ 追加
         ...(nextDescription !== undefined
           ? { description: nextDescription }
@@ -131,7 +114,7 @@ export async function PATCH(
   } catch (e: any) {
     console.error("[PATCH /admin/diagnosis/courses/:id] error:", e);
     return NextResponse.json(
-      { ok: false, error: e?.message ?? "Unknown error" },
+      { ok: false, error: "更新に失敗しました" },
       { status: 500 },
     );
   }
@@ -140,18 +123,23 @@ export async function PATCH(
 // ✅ DELETE /api/admin/diagnosis/courses/:id
 export async function DELETE(
   _req: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
-  const session = await ensureLoggedIn();
-  if (!session) {
-    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-  }
-
   try {
-    const id = params.id;
+    const { id } = await params;
     if (!id) {
       return NextResponse.json({ error: "Missing id" }, { status: 400 });
     }
+
+    const access = await requireRecordSchoolAccess(
+      () =>
+        prisma.diagnosisCourse.findUnique({
+          where: { id },
+          select: { schoolId: true },
+        }),
+      "対象のコースが見つかりません",
+    );
+    if (!access.ok) return access.response;
 
     await prisma.diagnosisCourse.delete({ where: { id } });
 
@@ -160,7 +148,7 @@ export async function DELETE(
     console.error("[DELETE /admin/diagnosis/courses/:id] error:", e);
 
     return NextResponse.json(
-      { ok: false, error: e?.message ?? "Delete failed" },
+      { ok: false, error: "削除に失敗しました" },
       { status: 500 },
     );
   }

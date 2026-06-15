@@ -1,16 +1,9 @@
 // app/api/admin/diagnosis/courses/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/authOptions";
+import { requireSchoolAccess } from "@/lib/authz";
 
 export const runtime = "nodejs";
-
-async function ensureLoggedIn() {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.email) return null;
-  return session;
-}
 
 function normalizeStringArray(v: any): string[] {
   if (!Array.isArray(v)) return [];
@@ -33,11 +26,6 @@ function normalizeNullableText(v: unknown): string | null {
 
 // GET /api/admin/diagnosis/courses?schoolId=xxx
 export async function GET(req: NextRequest) {
-  const session = await ensureLoggedIn();
-  if (!session) {
-    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-  }
-
   const { searchParams } = new URL(req.url);
   const schoolId = searchParams.get("schoolId");
 
@@ -47,6 +35,9 @@ export async function GET(req: NextRequest) {
       { status: 400 },
     );
   }
+
+  const auth = await requireSchoolAccess(schoolId);
+  if (!auth.ok) return auth.response;
 
   const courses = await prisma.diagnosisCourse.findMany({
     where: { schoolId },
@@ -100,11 +91,6 @@ export async function GET(req: NextRequest) {
 
 // POST /api/admin/diagnosis/courses
 export async function POST(req: NextRequest) {
-  const session = await ensureLoggedIn();
-  if (!session) {
-    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-  }
-
   const body = await req.json().catch(() => null);
 
   if (
@@ -122,6 +108,9 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  const schoolId = body.schoolId.trim();
+  const auth = await requireSchoolAccess(schoolId);
+  if (!auth.ok) return auth.response;
 
   const sortOrder = typeof body.sortOrder === "number" ? body.sortOrder : 0;
 
@@ -138,7 +127,7 @@ export async function POST(req: NextRequest) {
 
   const course = await prisma.diagnosisCourse.create({
     data: {
-      schoolId: body.schoolId,
+      schoolId,
       label: body.label.trim(),
       slug: body.slug.trim(),
       sortOrder,

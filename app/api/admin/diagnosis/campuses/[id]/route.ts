@@ -1,16 +1,9 @@
 // app/api/admin/diagnosis/campuses/[id]/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/authOptions";
+import { requireSchoolAccess } from "@/lib/authz";
 
 export const runtime = "nodejs";
-
-async function ensureLoggedIn() {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.email) return null;
-  return session;
-}
 
 function norm(v: unknown): string {
   return String(v ?? "").trim();
@@ -28,14 +21,10 @@ function toBool(v: any, fallback = false) {
 // PATCH /api/admin/diagnosis/campuses/:id
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await ensureLoggedIn();
-  if (!session) {
-    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-  }
-
-  const id = norm(params.id);
+  const { id: rawId } = await params;
+  const id = norm(rawId);
   const body = await req.json().catch(() => null);
 
   if (!id) {
@@ -55,6 +44,9 @@ export async function PATCH(
       { status: 400 }
     );
   }
+
+  const auth = await requireSchoolAccess(schoolId);
+  if (!auth.ok) return auth.response;
 
   const existing = await prisma.diagnosisCampus.findFirst({
     where: { id, schoolId },
@@ -178,14 +170,10 @@ export async function PATCH(
 // DELETE はそのままでOK（貼ってくれた既存のままで問題なし）
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await ensureLoggedIn();
-  if (!session) {
-    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-  }
-
-  const id = norm(params.id);
+  const { id: rawId } = await params;
+  const id = norm(rawId);
   const { searchParams } = new URL(req.url);
   const schoolId = norm(
     searchParams.get("schoolId") ?? searchParams.get("school")
@@ -200,6 +188,9 @@ export async function DELETE(
       { status: 400 }
     );
   }
+
+  const auth = await requireSchoolAccess(schoolId);
+  if (!auth.ok) return auth.response;
 
   const existing = await prisma.diagnosisCampus.findFirst({
     where: { id, schoolId },

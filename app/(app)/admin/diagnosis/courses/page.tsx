@@ -1,25 +1,20 @@
 // app/admin/diagnosis/courses/page.tsx
 import { Suspense } from "react";
-import { prisma } from "@/lib/prisma";
+import { getAccessiblePageSchoolId } from "@/lib/authz";
 import CourseAdminClient from "./CourseAdminClient";
 
 type Props = {
-  searchParams: {
+  searchParams: Promise<{
     schoolId?: string;
-  };
+  }>;
 };
 
 // 管理画面はビルド時にDBへ接続せず、リクエスト時に描画する
 export const dynamic = "force-dynamic";
 
 export default async function DiagnosisCoursesPage({ searchParams }: Props) {
-  let schoolId = searchParams.schoolId ?? "";
-
-  // schoolIdがない場合、DBから取得（GenreAdminPageと同じロジック）
-  if (!schoolId) {
-    const school = await prisma.faq.findFirst({ select: { schoolId: true } });
-    schoolId = school?.schoolId ?? "";
-  }
+  const sp = await searchParams;
+  const schoolId = await getAccessiblePageSchoolId(sp.schoolId);
 
   return (
     <div className="mx-auto p-6 text-gray-900 dark:text-gray-100">

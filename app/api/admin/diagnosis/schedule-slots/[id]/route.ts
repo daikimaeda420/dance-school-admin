@@ -1,14 +1,7 @@
 // app/api/admin/diagnosis/schedule-slots/[id]/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/authOptions";
-
-async function ensureLoggedIn() {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.email) return null;
-  return session;
-}
+import { requireRecordSchoolAccess } from "@/lib/authz";
 
 function bad(message: string, status = 400) {
   return NextResponse.json({ message }, { status });
@@ -46,23 +39,25 @@ type PatchBody = {
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
-  const session = await ensureLoggedIn();
-  if (!session) return bad("Unauthorized", 401);
-
   try {
-    const id = String(params.id || "");
+    const { id: rawId } = await params;
+    const id = String(rawId || "");
     if (!id) return bad("id が不正です", 400);
+
+    const access = await requireRecordSchoolAccess(
+      () =>
+        prisma.diagnosisScheduleSlot.findUnique({
+          where: { id },
+          select: { schoolId: true },
+        }),
+      "対象のスケジュールが見つかりません",
+    );
+    if (!access.ok) return access.response;
 
     const body = (await req.json().catch(() => null)) as PatchBody | null;
     if (!body) return bad("リクエストJSONが不正です", 400);
-
-    const exists = await prisma.diagnosisScheduleSlot.findUnique({
-      where: { id },
-      select: { id: true },
-    });
-    if (!exists) return bad("Not found", 404);
 
     const data: any = {};
 
@@ -97,6 +92,13 @@ export async function PATCH(
       if (nextCourseIds.length === 0) {
         return bad("対応コースを1つ以上選択してください");
       }
+
+      const ownedCourses = await prisma.diagnosisCourse.count({
+        where: { schoolId: access.record.schoolId, id: { in: nextCourseIds } },
+      });
+      if (ownedCourses !== nextCourseIds.length) {
+        return bad("対応コースに不正なIDが含まれています", 400);
+      }
     }
 
     await prisma.$transaction(async (tx) => {
@@ -128,6 +130,7 @@ export async function PATCH(
     return NextResponse.json({
       slot: {
         id: updated.id,
+        schoolId: updated.schoolId,
         weekday: updated.weekday,
         genreText: updated.genreText,
         timeText: updated.timeText,
@@ -146,14 +149,22 @@ export async function PATCH(
 
 export async function DELETE(
   _req: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
-  const session = await ensureLoggedIn();
-  if (!session) return bad("Unauthorized", 401);
-
   try {
-    const id = String(params.id || "");
+    const { id: rawId } = await params;
+    const id = String(rawId || "");
     if (!id) return bad("id が不正です", 400);
+
+    const access = await requireRecordSchoolAccess(
+      () =>
+        prisma.diagnosisScheduleSlot.findUnique({
+          where: { id },
+          select: { schoolId: true },
+        }),
+      "対象のスケジュールが見つかりません",
+    );
+    if (!access.ok) return access.response;
 
     // 論理削除（運用安定）
     const updated = await prisma.diagnosisScheduleSlot.update({

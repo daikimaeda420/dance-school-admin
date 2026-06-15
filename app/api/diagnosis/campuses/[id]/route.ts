@@ -1,8 +1,7 @@
 // app/api/admin/diagnosis/campuses/[id]/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/authOptions";
+import { requireSchoolAccess } from "@/lib/authz";
 
 export const runtime = "nodejs";
 
@@ -17,11 +16,6 @@ function toBool(v: any, fallback = false) {
   if (typeof v === "boolean") return v;
   if (typeof v === "string") return v === "true";
   return fallback;
-}
-
-async function ensureLoggedIn() {
-  const session = await getServerSession(authOptions);
-  return session?.user?.email ? session : null;
 }
 
 /**
@@ -42,14 +36,10 @@ function addAliases<
 // PATCH /api/admin/diagnosis/campuses/:id
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await ensureLoggedIn();
-  if (!session) {
-    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-  }
-
-  const id = norm(params.id);
+  const { id: rawId } = await params;
+  const id = norm(rawId);
   if (!id) {
     return NextResponse.json({ message: "id が必要です" }, { status: 400 });
   }
@@ -64,6 +54,9 @@ export async function PATCH(
       { status: 400 }
     );
   }
+
+  const auth = await requireSchoolAccess(schoolId);
+  if (!auth.ok) return auth.response;
 
   const existing = await prisma.diagnosisCampus.findFirst({
     where: { id, schoolId },
@@ -148,14 +141,10 @@ export async function PATCH(
 // DELETE /api/admin/diagnosis/campuses/:id?schoolId=xxx
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await ensureLoggedIn();
-  if (!session) {
-    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-  }
-
-  const id = norm(params.id);
+  const { id: rawId } = await params;
+  const id = norm(rawId);
   if (!id) {
     return NextResponse.json({ message: "id が必要です" }, { status: 400 });
   }
@@ -170,6 +159,9 @@ export async function DELETE(
       { status: 400 }
     );
   }
+
+  const auth = await requireSchoolAccess(schoolId);
+  if (!auth.ok) return auth.response;
 
   const existing = await prisma.diagnosisCampus.findFirst({
     where: { id, schoolId },

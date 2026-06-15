@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 export const dynamic = "force-dynamic";
 import { prisma } from "@/lib/prisma";
+import { resolveAccessibleSchool } from "@/lib/authz";
 
 function fmtDate(d: Date) {
   const p = (n: number) => String(n).padStart(2, "0");
@@ -52,12 +53,15 @@ function extractFieldValue(
 export async function GET(req: NextRequest) {
   try {
     const url = new URL(req.url);
-    const school = url.searchParams.get("school") || "";
+    const access = await resolveAccessibleSchool(url.searchParams.get("school"));
+    if (!access.ok) return access.response;
+
+    const school = access.schoolId;
     const days = Math.max(1, Number(url.searchParams.get("days") || 7));
     const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
 
-    const schoolFilter = school ? { schoolId: school } : {};
-    const schoolFilterStr = school ? { school } : {};
+    const schoolFilter = { schoolId: school };
+    const schoolFilterStr = { school };
 
     // ── Prisma 直接クエリで全データ取得 ──
     const [
@@ -120,20 +124,16 @@ export async function GET(req: NextRequest) {
       }),
 
       // [診断] FAQ設定
-      school
-        ? prisma.faq.findUnique({
-            where: { schoolId: school },
-            select: { items: true },
-          })
-        : prisma.faq.findFirst({ select: { items: true } }),
+      prisma.faq.findUnique({
+        where: { schoolId: school },
+        select: { items: true },
+      }),
 
       // [診断] 診断フォーム
-      school
-        ? prisma.diagnosisForm.findUnique({
-            where: { schoolId: school },
-            select: { isActive: true },
-          })
-        : prisma.diagnosisForm.findFirst({ select: { isActive: true } }),
+      prisma.diagnosisForm.findUnique({
+        where: { schoolId: school },
+        select: { isActive: true },
+      }),
 
       // [診断] フォーム申込数（期間内）
       prisma.diagnosisFormSubmission.count({
@@ -268,11 +268,11 @@ export async function GET(req: NextRequest) {
         kpis: [
           { label: "チャットセッション（7日）", value: "0", note: "ログ 0 件" },
           { label: "フォーム申込数", value: "0", note: "コンバージョン" },
-          { label: "ダッシュボードエラー発生", value: "ERR", note: e?.message ? String(e.message).slice(0, 40) : "unknown error" },
+          { label: "ダッシュボードエラー発生", value: "ERR", note: "管理者に確認してください" },
         ],
-        error: e?.stack ? String(e.stack) : (e?.message ?? "unknown"),
+        error: "Internal Server Error",
       },
-      { status: 200 }
+      { status: 500 }
     );
   }
 }
