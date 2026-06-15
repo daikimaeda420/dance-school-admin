@@ -15,13 +15,10 @@ import {
   RefreshCw,
   Copy,
   MessageSquare,
-  Sparkles,
   BarChart3,
   MousePointerClick,
-  Layers,
   Settings,
   Mail,
-  MapPin,
   ChevronRight,
   Users,
   TrendingDown,
@@ -142,6 +139,90 @@ const READINESS_TONES: Record<
     progressClass: "bg-red-500",
   },
 };
+
+const LOGIN_HREF = "/login";
+
+const LP_NAV = [
+  { href: "#features", label: "機能" },
+  { href: "#workflow", label: "導入の流れ" },
+  { href: "#reports", label: "運用レポート" },
+  { href: "#cta", label: "始める" },
+];
+
+const LP_PROOF = [
+  "24時間自動応答で問い合わせ対応を削減",
+  "診断で最適なクラスへ案内",
+  "フォーム送信とメール通知を自動化",
+];
+
+const LP_PROBLEMS = [
+  {
+    title: "同じ質問への対応に時間が取られる",
+    text: "営業時間外の問い合わせや体験前の不安に、スタッフが個別対応している。",
+  },
+  {
+    title: "どのクラスが合うか分からず離脱する",
+    text: "初心者・経験者・年齢・目的ごとの案内が難しく、予約前の迷いが残る。",
+  },
+  {
+    title: "フォーム後の対応が属人化する",
+    text: "申込内容の確認、通知、返信、日程調整が手作業になりやすい。",
+  },
+  {
+    title: "改善すべきポイントが見えない",
+    text: "どこで迷われたか、どの質問が多いか、予約につながったかを追えない。",
+  },
+];
+
+const LP_FEATURES = [
+  {
+    title: "AIチャットボット",
+    text: "料金、アクセス、持ち物、体験の流れなどをサイト上で即時回答。よくある質問は管理画面から更新できます。",
+    icon: MessageSquare,
+    color: "text-[#fe6147] bg-[#fff0ec]",
+  },
+  {
+    title: "パーソナル診断",
+    text: "年齢、目的、経験、ジャンルの好みから、来校前のユーザーに合うクラスや講師を提案します。",
+    icon: MousePointerClick,
+    color: "text-emerald-700 bg-emerald-50",
+  },
+  {
+    title: "フォーム自動化",
+    text: "体験予約フォーム、管理者通知、自動返信メールを連携。申込後の対応漏れを防ぎます。",
+    icon: Mail,
+    color: "text-blue-700 bg-blue-50",
+  },
+  {
+    title: "運用レポート",
+    text: "Q&Aログ、診断ファネル、フォーム到達率、申込数を確認し、改善の優先順位を判断できます。",
+    icon: BarChart3,
+    color: "text-slate-800 bg-slate-100",
+  },
+];
+
+const LP_WORKFLOW = [
+  {
+    title: "埋め込み",
+    text: "発行されたスクリプトを既存サイトへ追加します。",
+    icon: Copy,
+  },
+  {
+    title: "設定・公開",
+    text: "FAQ、診断、フォーム、通知メールを管理画面で整えます。",
+    icon: Settings,
+  },
+  {
+    title: "自動対応",
+    text: "サイト訪問者の疑問や迷いを、その場で予約導線へつなげます。",
+    icon: Activity,
+  },
+  {
+    title: "分析・改善",
+    text: "ログとファネルから、次に直すべき箇所を把握します。",
+    icon: TrendingDown,
+  },
+];
 
 // ── サブコンポーネント ──────────────────────────────────────
 
@@ -288,6 +369,363 @@ function ReadinessCard({
         </div>
       </dl>
     </section>
+  );
+}
+
+function LandingPage() {
+  return (
+    <main className="min-h-screen overflow-x-hidden bg-white text-slate-950 selection:bg-[#fe6147]/20">
+      <header className="fixed inset-x-0 top-0 z-50 border-b border-slate-200/70 bg-white/90 backdrop-blur-xl">
+        <div className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between px-4 sm:px-6">
+          <a href="#" className="flex items-center">
+            <img
+              src="/logo.svg"
+              alt="rizbo"
+              width={118}
+              height={37}
+              className="h-9 w-auto"
+            />
+          </a>
+
+          <nav className="hidden items-center gap-7 text-sm font-semibold text-slate-700 lg:flex">
+            {LP_NAV.map((item) => (
+              <a
+                key={item.href}
+                href={item.href}
+                className="transition hover:text-[#fe6147]"
+              >
+                {item.label}
+              </a>
+            ))}
+          </nav>
+
+          <div className="flex items-center gap-2">
+            <Link
+              href={LOGIN_HREF}
+              className="hidden min-h-[40px] items-center justify-center rounded-lg border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-800 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 sm:inline-flex"
+            >
+              ログイン
+            </Link>
+            <Link
+              href={LOGIN_HREF}
+              className="inline-flex min-h-[40px] items-center justify-center gap-2 rounded-lg bg-[#fe6147] px-4 text-sm font-bold text-white shadow-sm shadow-[#fe6147]/25 transition hover:bg-[#e94f36] sm:px-5"
+            >
+              管理画面へ
+              <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
+            </Link>
+          </div>
+        </div>
+      </header>
+
+      <section className="relative min-h-[720px] overflow-hidden border-b border-slate-200 pt-24 sm:pt-28 lg:min-h-[680px]">
+        <div className="absolute inset-0 bg-[linear-gradient(115deg,#ffffff_0%,#ffffff_42%,#f8fafc_42%,#f8fafc_100%)]" />
+        <div className="absolute right-[-350px] top-24 hidden w-[980px] max-w-none opacity-95 lg:block xl:right-[-300px] 2xl:right-[-220px]">
+          <div className="rounded-[28px] border border-slate-200 bg-white p-3 shadow-[0_32px_90px_rgba(15,23,42,0.16)]">
+            <img
+              src="/lp/mockup.png"
+              alt="rizboの管理画面"
+              width={1478}
+              height={782}
+              className="h-auto w-full rounded-[18px]"
+            />
+          </div>
+        </div>
+
+        <div className="relative mx-auto flex min-h-[620px] max-w-7xl flex-col justify-center px-4 pb-6 sm:px-6 lg:min-h-[560px]">
+          <div className="max-w-[560px] pt-8 lg:pt-0">
+            <h1 className="text-[42px] font-extrabold leading-[1.06] tracking-normal text-slate-950 sm:text-[56px] lg:text-[64px]">
+              ダンススクールの
+              <span className="block text-[#fe6147]">
+                体験予約を増やす
+              </span>
+              運用システム
+            </h1>
+            <p className="mt-6 max-w-[540px] text-base leading-8 text-slate-600 sm:text-lg">
+              Q&amp;Aチャットボット、相性診断、予約フォーム、運用レポートをひとつに。
+              問い合わせ対応を減らしながら、迷っている見込み客を体験予約へつなげます。
+            </p>
+
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+              <Link
+                href={LOGIN_HREF}
+                className="inline-flex min-h-[52px] items-center justify-center gap-2 rounded-xl bg-[#fe6147] px-6 text-sm font-bold text-white shadow-lg shadow-[#fe6147]/25 transition hover:bg-[#e94f36]"
+              >
+                管理画面にログイン
+                <ChevronRight className="h-4 w-4" aria-hidden="true" />
+              </Link>
+              <a
+                href="#features"
+                className="inline-flex min-h-[52px] items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-6 text-sm font-bold text-slate-900 shadow-sm transition hover:border-slate-300 hover:bg-slate-50"
+              >
+                機能を見る
+                <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
+              </a>
+            </div>
+
+            <div className="mt-7 grid max-w-[560px] gap-3 text-sm font-semibold text-slate-700 sm:grid-cols-3">
+              {LP_PROOF.map((item) => (
+                <div key={item} className="flex items-start gap-2">
+                  <CheckCircle2
+                    className="mt-0.5 h-4 w-4 shrink-0 text-[#fe6147]"
+                    aria-hidden="true"
+                  />
+                  <span>{item}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="mt-10 rounded-2xl border border-slate-200 bg-white p-2 shadow-[0_22px_60px_rgba(15,23,42,0.12)] lg:hidden">
+            <img
+              src="/lp/mockup.png"
+              alt="rizboの管理画面"
+              width={1478}
+              height={782}
+              className="h-auto w-full rounded-xl"
+            />
+          </div>
+        </div>
+      </section>
+
+      <section className="border-b border-slate-200 bg-white">
+        <div className="mx-auto grid max-w-7xl gap-5 px-4 py-8 sm:px-6 lg:grid-cols-[190px_1fr_220px] lg:items-center">
+          <h2 className="text-xl font-bold leading-8 text-slate-950">
+            こんなお悩み、
+            <br className="hidden lg:block" />
+            ありませんか？
+          </h2>
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            {LP_PROBLEMS.map((item) => (
+              <div key={item.title} className="flex gap-3">
+                <AlertCircle
+                  className="mt-0.5 h-5 w-5 shrink-0 text-[#fe6147]"
+                  aria-hidden="true"
+                />
+                <div>
+                  <h3 className="text-sm font-bold text-slate-950">
+                    {item.title}
+                  </h3>
+                  <p className="mt-1 text-xs leading-5 text-slate-500">
+                    {item.text}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="flex items-center gap-2 rounded-xl bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-800">
+            <CheckCircle2 className="h-5 w-5 shrink-0" aria-hidden="true" />
+            rizboがまとめて解決
+          </div>
+        </div>
+      </section>
+
+      <section id="features" className="bg-white py-20 sm:py-24">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6">
+          <div className="grid gap-10 lg:grid-cols-[0.85fr_1.15fr] lg:items-start">
+            <div>
+              <h2 className="text-3xl font-extrabold tracking-normal text-slate-950 sm:text-4xl">
+                問い合わせから予約後対応まで、ひとつの導線で管理
+              </h2>
+              <p className="mt-4 text-base leading-8 text-slate-600">
+                サイト訪問者が迷うポイントを先回りして解消し、予約フォームまでの流れをデータで改善できます。
+              </p>
+              <div className="mt-7 rounded-2xl border border-slate-200 bg-slate-50 p-5">
+                <div className="text-sm font-bold text-slate-950">
+                  予約につながる導線
+                </div>
+                <div className="mt-4 space-y-3">
+                  {["疑問にすぐ答える", "合うクラスを提案する", "申込後の通知を自動化する", "ログから改善する"].map(
+                    (item, index) => (
+                      <div key={item} className="flex items-center gap-3">
+                        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white text-xs font-bold text-[#fe6147] ring-1 ring-slate-200">
+                          {index + 1}
+                        </span>
+                        <span className="text-sm font-semibold text-slate-700">
+                          {item}
+                        </span>
+                      </div>
+                    ),
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              {LP_FEATURES.map(({ title, text, icon: Icon, color }) => (
+                <article
+                  key={title}
+                  className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
+                >
+                  <div
+                    className={[
+                      "mb-5 flex h-11 w-11 items-center justify-center rounded-xl",
+                      color,
+                    ].join(" ")}
+                  >
+                    <Icon className="h-5 w-5" aria-hidden="true" />
+                  </div>
+                  <h3 className="text-lg font-bold text-slate-950">{title}</h3>
+                  <p className="mt-3 text-sm leading-7 text-slate-600">
+                    {text}
+                  </p>
+                </article>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="workflow" className="border-y border-slate-200 bg-slate-50 py-20">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6">
+          <div className="mb-10 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+            <div>
+              <h2 className="text-3xl font-extrabold tracking-normal text-slate-950">
+                導入から改善までの流れ
+              </h2>
+              <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-600">
+                既存サイトに埋め込み、管理画面で設定し、運用ログを見ながら改善します。
+              </p>
+            </div>
+            <a
+              href="#cta"
+              className="inline-flex min-h-[42px] items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-sm font-bold text-slate-900 shadow-sm transition hover:border-slate-300 hover:bg-slate-50"
+            >
+              利用を始める
+              <ChevronRight className="h-4 w-4" aria-hidden="true" />
+            </a>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-4">
+            {LP_WORKFLOW.map(({ title, text, icon: Icon }, index) => (
+              <article
+                key={title}
+                className="relative rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
+              >
+                <div className="mb-5 flex items-center justify-between">
+                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#fe6147] text-sm font-bold text-white">
+                    {index + 1}
+                  </span>
+                  <Icon className="h-5 w-5 text-slate-400" aria-hidden="true" />
+                </div>
+                <h3 className="text-base font-bold text-slate-950">{title}</h3>
+                <p className="mt-2 text-sm leading-6 text-slate-600">{text}</p>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section id="reports" className="bg-white py-20 sm:py-24">
+        <div className="mx-auto grid max-w-7xl gap-10 px-4 sm:px-6 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
+          <div>
+            <h2 className="text-3xl font-extrabold tracking-normal text-slate-950 sm:text-4xl">
+              勘ではなく、ログで改善できます
+            </h2>
+            <p className="mt-4 text-base leading-8 text-slate-600">
+              未回答ログ、診断ファネル、フォーム到達率、申込数をまとめて確認。
+              次に直すべきFAQ、診断、フォーム項目が分かります。
+            </p>
+            <div className="mt-7 grid gap-3 sm:grid-cols-3">
+              {[
+                ["Q&Aログ", "よく見られる質問を確認"],
+                ["診断ファネル", "離脱ステップを把握"],
+                ["申込状況", "体験予約の成果を追跡"],
+              ].map(([title, text]) => (
+                <div
+                  key={title}
+                  className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+                >
+                  <div className="text-sm font-bold text-slate-950">{title}</div>
+                  <div className="mt-1 text-xs leading-5 text-slate-500">
+                    {text}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4 shadow-[0_22px_70px_rgba(15,23,42,0.12)]">
+            <div className="rounded-2xl bg-white p-5 shadow-sm">
+              <div className="mb-5 flex items-center justify-between">
+                <div>
+                  <div className="text-sm font-bold text-slate-950">
+                    運用レポート
+                  </div>
+                  <div className="text-xs text-slate-500">直近30日の状況</div>
+                </div>
+                <BarChart3 className="h-5 w-5 text-[#fe6147]" aria-hidden="true" />
+              </div>
+              <div className="grid gap-3 sm:grid-cols-3">
+                {[
+                  ["Q&Aセッション", "142"],
+                  ["フォーム到達率", "38%"],
+                  ["申込数", "16"],
+                ].map(([label, value]) => (
+                  <div key={label} className="rounded-xl bg-slate-50 p-4">
+                    <div className="text-xs font-semibold text-slate-500">
+                      {label}
+                    </div>
+                    <div className="mt-2 text-2xl font-extrabold text-slate-950">
+                      {value}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-5 space-y-3">
+                {[
+                  ["診断開始", 100],
+                  ["結果表示", 78],
+                  ["フォーム到達", 38],
+                  ["申込完了", 16],
+                ].map(([label, width]) => (
+                  <div key={label} className="grid grid-cols-[92px_1fr_44px] items-center gap-3">
+                    <div className="text-xs font-semibold text-slate-600">
+                      {label}
+                    </div>
+                    <div className="h-2.5 overflow-hidden rounded-full bg-slate-100">
+                      <div
+                        className="h-full rounded-full bg-[#fe6147]"
+                        style={{ width: `${width}%` }}
+                      />
+                    </div>
+                    <div className="text-right text-xs font-bold text-slate-700">
+                      {width}%
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="cta" className="bg-slate-950 px-4 py-16 text-white sm:px-6">
+        <div className="mx-auto flex max-w-5xl flex-col gap-8 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h2 className="text-3xl font-extrabold tracking-normal sm:text-4xl">
+              今日から、体験予約の導線を改善しましょう
+            </h2>
+            <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-300">
+              1行のスクリプトを既存サイトに埋め込むだけで、Q&amp;A、診断、フォーム、分析をまとめて運用できます。
+            </p>
+          </div>
+          <Link
+            href={LOGIN_HREF}
+            className="inline-flex min-h-[52px] shrink-0 items-center justify-center gap-2 rounded-xl bg-[#fe6147] px-6 text-sm font-bold text-white shadow-lg shadow-[#fe6147]/25 transition hover:bg-[#e94f36]"
+          >
+            管理画面にログイン
+            <ChevronRight className="h-4 w-4" aria-hidden="true" />
+          </Link>
+        </div>
+      </section>
+
+      <footer className="border-t border-slate-200 bg-white py-8">
+        <div className="mx-auto flex max-w-7xl flex-col gap-3 px-4 text-sm text-slate-500 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+          <img src="/logo.svg" alt="rizbo" width={92} height={29} className="h-7 w-auto" />
+          <p>© {new Date().getFullYear()} Rizbo Admin System.</p>
+        </div>
+      </footer>
+    </main>
   );
 }
 
@@ -550,206 +988,7 @@ export default function HomePage() {
   // 未ログインLP（モダンSaaS）
   // ==========================
   if (status === "unauthenticated") {
-    return (
-      <main className="min-h-screen bg-[#0a0a0a] text-zinc-100 selection:bg-indigo-500/30 font-sans">
-        {/* Header */}
-        <header className="fixed inset-x-0 top-0 z-50 border-b border-white/5 bg-black/20 backdrop-blur-xl">
-          <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-6 py-4">
-            <div className="flex items-center gap-3">
-              <img
-                src="/logo_w.svg"
-                alt="rizbo"
-                width={100}
-                height={28}
-                className="opacity-90 hover:opacity-100 transition-opacity"
-              />
-            </div>
-            <div className="flex items-center gap-4">
-              <Link
-                href="/api/auth/signin"
-                className="group relative inline-flex items-center justify-center overflow-hidden rounded-full bg-white/10 px-5 py-2 text-sm font-medium text-white backdrop-blur-md transition-all hover:bg-white/20 border border-white/10"
-              >
-                <span>ログイン</span>
-              </Link>
-            </div>
-          </div>
-        </header>
-
-        {/* Hero */}
-        <section className="relative overflow-hidden pt-36 pb-20 lg:pt-48 lg:pb-32">
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-indigo-600/20 blur-[120px] rounded-full pointer-events-none" />
-          <div className="absolute top-40 left-1/4 w-[400px] h-[400px] bg-purple-600/20 blur-[100px] rounded-full pointer-events-none" />
-
-          <div className="relative mx-auto max-w-7xl px-6 text-center">
-            <div className="inline-flex items-center gap-2 rounded-full border border-indigo-500/30 bg-indigo-500/10 px-4 py-1.5 text-sm font-medium text-indigo-300 backdrop-blur-md mb-8">
-              <Sparkles className="h-4 w-4" />
-              <span>ダンススクール運営の次世代プラットフォーム</span>
-            </div>
-
-            <h1 className="text-4xl font-extrabold tracking-tight text-white sm:text-6xl lg:text-7xl leading-[1.15]">
-              問い合わせ対応をゼロに。
-              <br className="hidden sm:block" />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 mt-2 inline-block">
-                体験予約のCVを最大化する。
-              </span>
-            </h1>
-
-            <p className="mx-auto mt-6 max-w-2xl text-lg text-zinc-400 leading-relaxed">
-              AIチャットボットによる自動応答、最適なクラスへ導くダンス診断、
-              そしてそれらの効果を分析するダッシュボードまで。スクールの体験予約への導線を最適化するオールインワンシステムです。
-            </p>
-
-            <div className="mt-10 flex flex-col justify-center gap-4 sm:flex-row">
-              <Link
-                href="/api/auth/signin"
-                className="inline-flex items-center justify-center rounded-full bg-white px-8 py-3.5 text-sm font-bold text-zinc-950 transition-transform hover:scale-105 hover:bg-zinc-100"
-              >
-                システムにログインする
-              </Link>
-              <a
-                href="#features"
-                className="inline-flex items-center justify-center rounded-full border border-white/10 bg-white/5 px-8 py-3.5 text-sm font-bold text-white backdrop-blur-md transition-colors hover:bg-white/10"
-              >
-                機能を詳しく見る
-              </a>
-            </div>
-          </div>
-        </section>
-
-        {/* Features */}
-        <section id="features" className="relative mx-auto max-w-7xl px-6 py-20 z-10">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
-              スクール運営を加速させる強力な機能
-            </h2>
-            <p className="mt-4 text-zinc-400">
-              顧客の迷いをなくし、予約アクションへ直結させる設計。
-            </p>
-          </div>
-
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            <div className="group relative overflow-hidden rounded-3xl border border-white/10 bg-zinc-900/50 p-8 transition-all hover:bg-zinc-900/80 md:col-span-2">
-              <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-indigo-500/10 blur-[80px] transition-all group-hover:bg-indigo-500/20" />
-              <div className="relative z-10">
-                <div className="mb-4 inline-flex rounded-xl bg-indigo-500/20 p-3 text-indigo-300 ring-1 ring-indigo-500/30">
-                  <MessageSquare className="h-6 w-6" />
-                </div>
-                <h3 className="text-2xl font-bold text-white mb-2">AIチャットボット</h3>
-                <p className="text-zinc-400 max-w-md leading-relaxed">
-                  24時間365日、Webサイト上の疑問を自動で解決。料金やアクセス、持ち物などのよくある質問をツリー構造でご案内し、スクールへの問い合わせ対応コストを大幅に削減します。
-                  <span className="text-indigo-300 mt-3 inline-flex items-center gap-1 text-sm font-medium bg-indigo-500/10 px-3 py-1 rounded-full"><CheckCircle2 className="h-4 w-4"/> 管理画面からスクリプト発行</span>
-                </p>
-              </div>
-            </div>
-
-            <div className="group relative overflow-hidden rounded-3xl border border-white/10 bg-zinc-900/50 p-8 transition-all hover:bg-zinc-900/80 md:row-span-2 flex flex-col">
-              <div className="absolute -left-20 -bottom-20 h-64 w-64 rounded-full bg-purple-500/10 blur-[80px] transition-all group-hover:bg-purple-500/20" />
-              <div className="relative z-10 h-full flex flex-col flex-1">
-                <div className="mb-4 inline-flex rounded-xl bg-purple-500/20 p-3 text-purple-300 ring-1 ring-purple-500/30 w-fit">
-                  <MousePointerClick className="h-6 w-6" />
-                </div>
-                <h3 className="text-xl font-bold text-white mb-2">パーソナライズ診断</h3>
-                <p className="text-zinc-400 text-sm leading-relaxed mb-6">
-                  「どのクラスが合っているか分からない」という離脱の最大の原因を解消。年齢、目的、ダンス経験をヒアリングし、最適なクラスやインストラクターをピンポイントで提案します。
-                </p>
-                <div className="mt-auto p-5 rounded-2xl bg-white/5 border border-white/5 backdrop-blur-md">
-                  <div className="text-xs font-semibold text-white mb-4 tracking-wider">DIAGNOSIS FLOW</div>
-                  <div className="space-y-4 pb-1">
-                    {["年齢・ライフスタイル", "ダンスの経験・レベル", "一番の目的・お悩み"].map((label, i) => (
-                      <div key={i} className="flex items-center gap-3 text-sm text-zinc-300 font-medium">
-                        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-purple-500/20 text-purple-300 text-xs font-bold border border-purple-500/30 shadow-inner">{i + 1}</div>
-                        {label}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="group relative overflow-hidden rounded-3xl border border-white/10 bg-zinc-900/50 p-8 transition-all hover:bg-zinc-900/80">
-              <div className="absolute -right-10 -bottom-10 h-40 w-40 rounded-full bg-pink-500/10 blur-[60px] transition-all group-hover:bg-pink-500/20" />
-              <div className="relative z-10">
-                <div className="mb-4 inline-flex rounded-xl bg-pink-500/20 p-3 text-pink-300 ring-1 ring-pink-500/30">
-                  <BarChart3 className="h-6 w-6" />
-                </div>
-                <h3 className="text-xl font-bold text-white mb-2">分析ダッシュボード</h3>
-                <p className="text-zinc-400 text-sm leading-relaxed">
-                  ユーザーがどこで迷っているか、どの質問が多くクリックされているかを可視化。効果測定とCVR改善のPDCAを根拠を持って回せます。
-                </p>
-              </div>
-            </div>
-
-            <div className="group relative overflow-hidden rounded-3xl border border-white/10 bg-zinc-900/50 p-8 transition-all hover:bg-zinc-900/80">
-              <div className="absolute -left-10 -top-10 h-40 w-40 rounded-full bg-emerald-500/10 blur-[60px] transition-all group-hover:bg-emerald-500/20" />
-              <div className="relative z-10">
-                <div className="mb-4 inline-flex rounded-xl bg-emerald-500/20 p-3 text-emerald-300 ring-1 ring-emerald-500/30">
-                  <Mail className="h-6 w-6" />
-                </div>
-                <h3 className="text-xl font-bold text-white mb-2">フォーム & 自動化</h3>
-                <p className="text-zinc-400 text-sm leading-relaxed">
-                  システム内蔵の予約連携機能。予約完了時の自動サンクスメール送信や、管理者への即時通知で対応の漏れや遅れを完全に防ぎます。
-                </p>
-              </div>
-            </div>
-
-            <div className="group relative overflow-hidden rounded-3xl border border-white/10 bg-zinc-900/50 p-8 transition-all hover:bg-zinc-900/80 md:col-span-2 lg:col-span-3 flex flex-col md:flex-row md:items-center gap-8">
-              <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-              <div className="relative z-10 md:w-1/2">
-                <div className="mb-4 inline-flex rounded-xl bg-blue-500/20 p-3 text-blue-300 ring-1 ring-blue-500/30">
-                  <MapPin className="h-6 w-6" />
-                </div>
-                <h3 className="text-2xl font-bold text-white mb-2">多店舗・マルチ連携対応</h3>
-                <p className="text-zinc-400 leading-relaxed text-sm">
-                  複数校舎の管理も1つのプラットフォームで完結。校舎ごとのGoogleマップ表示、アクセス案内、独自スケジュールの設定が可能です。
-                </p>
-              </div>
-              <div className="relative z-10 md:w-1/2">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="p-5 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm transition-colors hover:bg-white/10">
-                    <Layers className="h-5 w-5 text-blue-400 mb-3" />
-                    <div className="font-semibold text-white">一元管理ダッシュボード</div>
-                    <div className="text-xs text-zinc-500 mt-1.5 leading-relaxed">全校舎の設定とログを1つのアカウントから安全に管理。</div>
-                  </div>
-                  <div className="p-5 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm transition-colors hover:bg-white/10">
-                    <Settings className="h-5 w-5 text-blue-400 mb-3" />
-                    <div className="font-semibold text-white">柔軟なカスタマイズ</div>
-                    <div className="text-xs text-zinc-500 mt-1.5 leading-relaxed">校舎ごとのテーマカラーや出力項目の出し分けに対応。</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* CTA */}
-        <section className="relative mx-auto mt-10 max-w-5xl px-6 pb-32 text-center z-10">
-          <div className="relative overflow-hidden rounded-3xl border border-indigo-500/20 bg-indigo-900/10 px-8 py-16 backdrop-blur-sm sm:px-16 sm:py-20 shadow-2xl">
-            <div className="absolute inset-0 bg-gradient-to-b from-indigo-500/10 to-transparent opacity-50" />
-            <div className="relative z-10">
-              <h2 className="text-3xl font-bold tracking-tight text-white mb-6">
-                次世代のスクール運営を、今すぐあなたのサイトに。
-              </h2>
-              <p className="mx-auto max-w-xl text-zinc-400 mb-10 leading-relaxed">
-                1行のスクリプトをWebサイトに埋め込むだけで、すべての機能が稼働し始めます。
-              </p>
-              <Link
-                href="/api/auth/signin"
-                className="inline-flex items-center justify-center rounded-full bg-white px-8 py-4 text-sm font-bold text-zinc-950 transition-transform hover:scale-105"
-              >
-                システムにログインする
-                <ChevronRight className="ml-1 h-4 w-4" />
-              </Link>
-            </div>
-          </div>
-        </section>
-
-        <footer className="border-t border-white/10 bg-black/40 text-center py-8">
-          <p className="text-sm text-zinc-600">
-            © {new Date().getFullYear()} Rizbo Admin System. All rights reserved.
-          </p>
-        </footer>
-      </main>
-    );
+    return <LandingPage />;
   }
 
   // 認証状態ロード中

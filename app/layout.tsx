@@ -5,10 +5,11 @@ import type { Metadata, Viewport } from "next";
 
 export const metadata: Metadata = {
   title: {
-    default: "rizbo - ダンススクール専用チャットボットシステム",
+    default: "rizbo - ダンススクールの体験予約を増やす運用システム",
     template: "%s | rizbo",
   },
-  description: "ダンススクール専用チャットボットシステム",
+  description:
+    "rizboは、Q&Aチャットボット、相性診断、予約フォーム、運用レポートをまとめて管理し、ダンススクールの体験予約導線を改善するシステムです。",
   icons: {
     icon: [
       { url: "/favicon.ico", sizes: "any" },
