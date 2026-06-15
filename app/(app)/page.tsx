@@ -1,7 +1,6 @@
 // app/(app)/page.tsx — Home (未ログインLP + ログイン後 統合ダッシュボード)
 "use client";
 
-import Image from "next/image";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -50,6 +49,18 @@ type ConversionUser = {
   tel: string;
   time: string;
 };
+type DiagnosisReadinessStatus = "ok" | "warn" | "missing";
+type DiagnosisReadinessSummary = {
+  status: DiagnosisReadinessStatus;
+  statusLabel: string;
+  completionPercent: number;
+  okCount: number;
+  warnCount: number;
+  blockingCount: number;
+  totalCount: number;
+  activeDataLabel: string;
+  href: string;
+};
 
 type DropoffStep = {
   stepKey: string;
@@ -81,6 +92,7 @@ type DashboardResponse = {
   diagnosisKpis: KPI[];
   recentConversions: ConversionUser[];
   hasSessionLogs: boolean;
+  diagnosisReadiness: DiagnosisReadinessSummary | null;
   setup: SetupItem[];
   system: SystemInfo | null;
   kpis: KPI[];
@@ -101,6 +113,34 @@ const RANGES = [
   { key: 14, label: "直近14日" },
   { key: 30, label: "直近30日" },
 ];
+
+const READINESS_TONES: Record<
+  DiagnosisReadinessStatus,
+  {
+    iconClass: string;
+    badgeClass: string;
+    progressClass: string;
+  }
+> = {
+  ok: {
+    iconClass: "bg-emerald-50 text-emerald-600 dark:bg-emerald-900/25 dark:text-emerald-300",
+    badgeClass:
+      "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-200 dark:border-emerald-700",
+    progressClass: "bg-emerald-500",
+  },
+  warn: {
+    iconClass: "bg-amber-50 text-amber-600 dark:bg-amber-900/25 dark:text-amber-300",
+    badgeClass:
+      "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-100 dark:border-amber-700",
+    progressClass: "bg-amber-500",
+  },
+  missing: {
+    iconClass: "bg-red-50 text-red-600 dark:bg-red-900/25 dark:text-red-300",
+    badgeClass:
+      "bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-200 dark:border-red-700",
+    progressClass: "bg-red-500",
+  },
+};
 
 // ── サブコンポーネント ──────────────────────────────────────
 
@@ -173,6 +213,8 @@ export default function HomePage() {
   const [system, setSystem] = useState<SystemInfo | null>(null);
   const [recentConversions, setRecentConversions] = useState<ConversionUser[]>([]);
   const [hasSessionLogs, setHasSessionLogs] = useState(false);
+  const [diagnosisReadiness, setDiagnosisReadiness] =
+    useState<DiagnosisReadinessSummary | null>(null);
   const [loading, setLoading] = useState(false);
 
   // 離脱ファネルデータ
@@ -218,7 +260,9 @@ export default function HomePage() {
       setSystem(data.system ?? null);
       setRecentConversions(data.recentConversions ?? []);
       setHasSessionLogs(data.hasSessionLogs ?? false);
+      setDiagnosisReadiness(data.diagnosisReadiness ?? null);
     } catch {
+      setDiagnosisReadiness(null);
       showToast("err", "ダッシュボードの取得に失敗しました");
     } finally {
       setLoading(false);
@@ -291,6 +335,14 @@ export default function HomePage() {
 
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "";
   const embedScriptCode = `<script src="${baseUrl}/embed.js" data-rizbo-school="${schoolId ?? ""}"></script>`;
+  const readinessTone = diagnosisReadiness
+    ? READINESS_TONES[diagnosisReadiness.status]
+    : null;
+  const ReadinessIcon =
+    diagnosisReadiness?.status === "ok" ? CheckCircle2 : AlertCircle;
+  const readinessPercent = diagnosisReadiness
+    ? Math.min(100, Math.max(0, diagnosisReadiness.completionPercent))
+    : 0;
 
   const onCopyEmbed = async () => {
     try {
@@ -373,13 +425,12 @@ export default function HomePage() {
         <header className="fixed inset-x-0 top-0 z-50 border-b border-white/5 bg-black/20 backdrop-blur-xl">
           <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-6 py-4">
             <div className="flex items-center gap-3">
-              <Image
+              <img
                 src="/logo_w.svg"
                 alt="rizbo"
                 width={100}
                 height={28}
-                priority
-                className="h-7 w-auto opacity-90 hover:opacity-100 transition-opacity"
+                className="opacity-90 hover:opacity-100 transition-opacity"
               />
             </div>
             <div className="flex items-center gap-4">
@@ -654,6 +705,79 @@ export default function HomePage() {
         >
           {toast.text}
         </div>
+      )}
+
+      {diagnosisReadiness && readinessTone && (
+        <section className="card p-5 mb-6">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex min-w-0 gap-3">
+              <div
+                className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${readinessTone.iconClass}`}
+              >
+                <ReadinessIcon className="h-5 w-5" aria-hidden="true" />
+              </div>
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h2 className="text-base font-semibold">診断設定の完成度</h2>
+                  <span
+                    className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${readinessTone.badgeClass}`}
+                  >
+                    {diagnosisReadiness.statusLabel}
+                  </span>
+                </div>
+                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                  診断の公開・推薦精度・申込導線に必要な設定をまとめて確認できます。
+                </p>
+              </div>
+            </div>
+
+            <Link
+              href={diagnosisReadiness.href}
+              className="btn-ghost inline-flex min-h-[40px] items-center justify-center gap-1 text-sm font-semibold lg:shrink-0"
+            >
+              詳細を確認
+              <ChevronRight className="h-4 w-4" aria-hidden="true" />
+            </Link>
+          </div>
+
+          <div className="mt-4">
+            <div className="mb-2 flex items-center justify-between gap-3 text-xs text-gray-500 dark:text-gray-400">
+              <span>{diagnosisReadiness.okCount}/{diagnosisReadiness.totalCount}項目 OK</span>
+              <span className="font-semibold text-gray-900 dark:text-gray-100">
+                {readinessPercent}%
+              </span>
+            </div>
+            <div className="h-2 overflow-hidden rounded-full bg-gray-100 dark:bg-gray-800">
+              <div
+                className={`h-full rounded-full ${readinessTone.progressClass}`}
+                style={{ width: `${readinessPercent}%` }}
+              />
+            </div>
+          </div>
+
+          <dl className="mt-4 grid gap-3 sm:grid-cols-3">
+            <div className="rounded-lg border border-gray-100 px-3 py-2 dark:border-gray-800">
+              <dt className="text-xs text-gray-500 dark:text-gray-400">未設定</dt>
+              <dd className="mt-1 text-lg font-semibold tabular-nums">
+                {diagnosisReadiness.blockingCount}
+              </dd>
+            </div>
+            <div className="rounded-lg border border-gray-100 px-3 py-2 dark:border-gray-800">
+              <dt className="text-xs text-gray-500 dark:text-gray-400">要確認</dt>
+              <dd className="mt-1 text-lg font-semibold tabular-nums">
+                {diagnosisReadiness.warnCount}
+              </dd>
+            </div>
+            <div className="rounded-lg border border-gray-100 px-3 py-2 dark:border-gray-800">
+              <dt className="text-xs text-gray-500 dark:text-gray-400">
+                有効データ
+              </dt>
+              <dd className="mt-1 text-lg font-semibold tabular-nums">
+                {diagnosisReadiness.activeDataLabel}
+              </dd>
+            </div>
+          </dl>
+        </section>
       )}
 
       {/* ────────────────────────────────────────
