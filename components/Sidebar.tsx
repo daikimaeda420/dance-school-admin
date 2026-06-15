@@ -4,6 +4,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  BarChart3,
   Home,
   TimerReset,
   UserCog,
@@ -28,6 +29,7 @@ type Props = {
 
 const NAV = [
   { href: "/", label: "ホーム", icon: Home },
+  { href: "/admin/reports", label: "運用レポート", icon: BarChart3 },
   { href: "/faq", label: "Q&A編集", icon: MessagesSquare },
   // ← ★ この下に診断編集を追加する（NAV には入れない）
   { href: "/admin/chat-history", label: "ユーザーログ", icon: TimerReset },
