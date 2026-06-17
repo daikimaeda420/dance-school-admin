@@ -1686,8 +1686,15 @@ function LandingPageDesigned() {
         </div>
       </section>
 
-      <section id="cta" className="bg-white px-5 py-9 sm:px-8">
-        <div className="relative mx-auto grid max-w-[1280px] gap-6 overflow-hidden rounded-xl border border-[#ffe0d8] bg-[#fff5f2] px-5 py-7 sm:px-7 sm:py-9 lg:grid-cols-[0.78fr_1.22fr] lg:px-10">
+      <section
+        id="cta"
+        className="relative overflow-hidden border-t border-pink-100 bg-[#fff8f7] px-5 py-9 sm:px-8"
+        style={{
+          backgroundImage:
+            "radial-gradient(circle at 18% 18%, rgba(255,225,215,0.72) 0%, rgba(255,225,215,0) 34%), radial-gradient(circle at 86% 22%, rgba(255,228,238,0.78) 0%, rgba(255,228,238,0) 36%), linear-gradient(135deg, #ffffff 0%, #fff7f1 48%, #ffeef4 100%)",
+        }}
+      >
+        <div className="relative mx-auto grid max-w-[1280px] gap-6 overflow-hidden rounded-xl border border-white/80 bg-white/68 px-5 py-7 shadow-[0_18px_50px_rgba(254,97,71,0.10)] backdrop-blur sm:px-7 sm:py-9 lg:grid-cols-[0.78fr_1.22fr] lg:px-10">
           <div
             aria-hidden="true"
             className="absolute left-7 top-7 h-20 w-20 opacity-55"
