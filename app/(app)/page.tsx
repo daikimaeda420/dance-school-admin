@@ -150,159 +150,211 @@ const LOGIN_HREF = "/login";
 
 const LP_NAV = [
   { href: "#features", label: "機能" },
-  { href: "#reports", label: "運用レポート" },
   { href: "#workflow", label: "導入の流れ" },
-  { href: "#cta", label: "導入事例" },
-  { href: "#cta", label: "よくあるご質問" },
+  { href: "#reports", label: "運用レポート" },
+  { href: "#cta", label: "始める" },
+];
+
+const LP_VALUE_CARDS = [
+  {
+    value: "24h",
+    label: "問い合わせ自動応答",
+    text: "24時間自動応答で問い合わせ対応を削減",
+    icon: MessageSquare,
+    tone: "text-[#fe6147] bg-[#fff0ec] border-[#ffd7cf]",
+  },
+  {
+    value: "1導線",
+    label: "診断から予約まで統合",
+    text: "診断で最適なクラスへ案内",
+    icon: RefreshCw,
+    tone: "text-emerald-600 bg-emerald-50 border-emerald-100",
+  },
+  {
+    value: "30日",
+    label: "ログを見て改善",
+    text: "フォーム送信とメール通知を自動化",
+    icon: BarChart3,
+    tone: "text-blue-600 bg-blue-50 border-blue-100",
+  },
 ];
 
 const LP_HERO_CHECKS = [
-  {
-    text: "Q&Aチャットボットで24時間自動対応",
-    icon: MessageSquare,
-  },
-  {
-    text: "診断コンテンツで興味・関心を可視化",
-    icon: MousePointerClick,
-  },
-  {
-    text: "フォーム一体管理で取りこぼしゼロ",
-    icon: Mail,
-  },
-  {
-    text: "運用レポートで改善点を明確化",
-    icon: LineChart,
-  },
+  { text: "24時間自動応答で問い合わせ対応を削減", icon: MessageSquare },
+  { text: "診断で最適なクラスへ案内", icon: Target },
+  { text: "フォーム送信とメール通知を自動化", icon: Mail },
+  { text: "ログを見て改善", icon: BarChart3 },
+];
+
+const LP_DASHBOARD_METRICS = [
+  { label: "セッション（7日）", value: "2,456", delta: "+18%" },
+  { label: "人気の質問シェア", value: "22%", delta: "+4%" },
+  { label: "未解決/要修正", value: "8件", delta: "-3件" },
+  { label: "ログ作成", value: "12", delta: "+5" },
 ];
 
 const LP_PROBLEMS = [
   {
-    title: "問い合わせ対応に時間がかかりスタッフの負担が大きい",
-    text: "よくある質問や体験前の不安に毎回個別対応している。",
+    title: "同じ質問への対応に時間が取られる",
+    text: "営業時間外の問い合わせや体験前の不安に、スタッフが個別対応している。",
     icon: MessageSquare,
+    tone: "text-[#fe6147] bg-[#fff0ec]",
   },
   {
-    title: "体験予約までの導線で多くの人が離脱してしまう",
-    text: "興味を持った見込み客が予約フォームに進む前に迷ってしまう。",
-    icon: Filter,
+    title: "どのクラスが合うか分からず離脱する",
+    text: "初心者・経験者・年齢・目的ごとの案内が難しく、予約前の迷いが残る。",
+    icon: Users,
+    tone: "text-[#fe6147] bg-[#fff0ec]",
   },
   {
-    title: "どこを改善すべきか分からず施策の効果も見えない",
-    text: "質問、診断、フォーム、予約のデータが分散している。",
-    icon: LineChart,
+    title: "フォーム後の対応が属人化する",
+    text: "申込内容の確認、通知、返信、日程調整が手作業になりやすい。",
+    icon: Mail,
+    tone: "text-[#fe6147] bg-[#fff0ec]",
   },
   {
-    title: "レポート作成が手作業で時間がかかる",
-    text: "週次・月次の確認に時間がかかり、改善実行が後回しになる。",
-    icon: FileText,
+    title: "改善すべきポイントが見えない",
+    text: "どこで迷われたか、どの質問が多いか、予約につながったかを追えない。",
+    icon: Search,
+    tone: "text-emerald-600 bg-emerald-50",
   },
 ];
 
 const LP_FEATURES = [
   {
-    title: "Q&Aチャットボット",
-    text: "よくある質問に自動で回答し、疑問を解消。回答ログからニーズを把握できます。",
-    icon: Bot,
-    miniTitle: "よくある質問",
-    miniValue: "体験レッスンの持ち物は？",
+    title: "AIチャットボット",
+    text: "料金、アクセス、持ち物、体験の流れなどをサイト上で即時回答。よくある質問は管理画面から更新できます。",
+    icon: MessageSquare,
+    preview: "chat",
+    miniTitle: "自動回答",
+    miniValue: "24時間対応",
   },
   {
-    title: "診断コンテンツ",
-    text: "目的やレベルに合わせて最適なクラスを提案。体験予約の確度を高めます。",
+    title: "パーソナル診断",
+    text: "年齢、目的、経験、ジャンルの好みから、来校前のユーザーに合うクラスや講師を提案します。",
     icon: MousePointerClick,
-    miniTitle: "あなたにおすすめ",
-    miniValue: "K-POPダンス 92%",
+    preview: "diagnosis",
+    miniTitle: "おすすめクラス",
+    miniValue: "HIPHOP 初級",
   },
   {
-    title: "フォーム一体管理",
-    text: "入力完了までの離脱ポイントを可視化し、通知まで一気通貫で運用できます。",
+    title: "予約フォーム",
+    text: "シンプルで入力しやすいフォームで離脱を防止。送信内容は自動で集計・通知されます。",
     icon: Mail,
-    miniTitle: "入力ステップ",
-    miniValue: "離脱率 27.4%",
+    preview: "form",
+    miniTitle: "フォーム到達",
+    miniValue: "1,734",
   },
   {
     title: "運用レポート",
-    text: "ファネル、CVR、Q&Aログなど成果指標を自動集計し、改善アクションを提示します。",
+    text: "ファネル、FAQランキング、未解決質問などを可視化。改善提案も自動で表示します。",
     icon: BarChart3,
-    miniTitle: "体験予約CVR",
-    miniValue: "2.74%",
+    preview: "report",
+    miniTitle: "改善候補",
+    miniValue: "4件",
+  },
+];
+
+const LP_MANAGEMENT_STEPS = [
+  {
+    title: "疑問にすぐ答える",
+    text: "AIチャットボットが24時間自動で回答",
+    icon: MessageSquare,
+    tone: "text-[#fe6147]",
   },
   {
-    title: "改善アクション提案",
-    text: "データに基づき、優先度の高い改善施策をレコメンド。PDCAを回しやすくします。",
-    icon: Target,
-    miniTitle: "次にやること",
-    miniValue: "フォーム項目を見直す",
+    title: "合うクラスを提案する",
+    text: "パーソナル診断で最適なクラスを案内",
+    icon: CheckCircle2,
+    tone: "text-emerald-500",
+  },
+  {
+    title: "申込後の通知を自動化する",
+    text: "受付完了メールや社内通知を自動送信",
+    icon: Mail,
+    tone: "text-blue-500",
+  },
+  {
+    title: "ログから改善する",
+    text: "データを可視化し、次の改善につなげる",
+    icon: BarChart3,
+    tone: "text-blue-600",
+  },
+];
+
+const LP_REPORT_FUNNEL = [
+  { label: "サイト訪問", value: "4,562", rate: "100%", color: "#4f7df0" },
+  { label: "フォーム到達", value: "1,734", rate: "27%", color: "#3fc7a0" },
+  { label: "申込完了", value: "721", rate: "10%", color: "#f7bf45" },
+  { label: "体験予約確定", value: "512", rate: "11%", color: "#fe6147" },
+];
+
+const LP_FUNNEL_STEPS = [
+  { label: "サイト訪問", value: "4,562", rate: 100 },
+  { label: "フォーム到達", value: "1,734", rate: 38 },
+  { label: "申込完了", value: "721", rate: 16 },
+  { label: "体験予約確定", value: "512", rate: 11 },
+];
+
+const LP_QA_RANKING = [
+  { question: "体験レッスンの流れは？", count: "812", rate: "96%" },
+  { question: "料金はいくらですか？", count: "643", rate: "94%" },
+  { question: "持ち物は何が必要ですか？", count: "531", rate: "91%" },
+  { question: "初心者でも大丈夫？", count: "498", rate: "89%" },
+  { question: "キャンセルや変更はできますか？", count: "312", rate: "88%" },
+];
+
+const LP_CHANNEL_ROWS = [
+  { channel: "Q&Aチャット", bookings: "168", cvr: "12.4%" },
+  { channel: "パーソナル診断", bookings: "102", cvr: "18.7%" },
+  { channel: "予約フォーム", bookings: "56", cvr: "8.9%" },
+  { channel: "直接流入", bookings: "26", cvr: "5.4%" },
+];
+
+const LP_UNRESOLVED_QUESTIONS = [
+  { text: "入会金はいくら必要ですか？", tag: "未解決" },
+  { text: "クラスのレベル分けは？", tag: "要確認" },
+  { text: "発表会の参加について", tag: "要修正" },
+];
+
+const LP_REPORT_INSIGHTS = [
+  {
+    title: "結果画面の予約CTAを目立つ位置に配置する",
+    text: "診断後の次アクションを迷わず選べる状態にします。",
+    tone: "text-[#fe6147]",
+  },
+  {
+    title: "未回答FAQ（8件）を追加する",
+    text: "よく聞かれる質問を事前に解消します。",
+    tone: "text-emerald-600",
+  },
+  {
+    title: "体験後のフォローメールをパーソナライズする",
+    text: "目的別の案内で再来校につなげます。",
+    tone: "text-emerald-600",
+  },
+  {
+    title: "フォームの入力項目を最適化する",
+    text: "離脱が多い入力欄を見直します。",
+    tone: "text-emerald-600",
   },
 ];
 
 const LP_WORKFLOW = [
   {
-    title: "導入・初期設定",
-    text: "Q&A、診断、フォームを簡単に設定。最短翌日で運用を開始できます。",
-    icon: Settings,
+    title: "初期設定",
+    text: "基本情報の登録、Q&A・診断・フォームの初期設定を行います。",
+    icon: ClipboardList,
   },
   {
-    title: "データ収集・可視化",
-    text: "ユーザー行動を自動で計測し、ダッシュボードでリアルタイムに可視化。",
-    icon: Activity,
+    title: "サイトに設置",
+    text: "タグや埋め込みコードを設置して、すぐに公開できます。",
+    icon: Copy,
   },
   {
-    title: "分析・改善提案",
-    text: "データから課題を特定し、優先度の高い改善施策をレコメンド。",
-    icon: Search,
-  },
-  {
-    title: "改善実行・成果向上",
-    text: "施策を実行し、成果を検証。継続的にCVRを高めて体験予約を増やします。",
-    icon: Target,
-  },
-];
-
-const LP_DASHBOARD_METRICS = [
-  { label: "体験予約数", value: "352", delta: "+24.3%" },
-  { label: "体験予約CVR", value: "2.74%", delta: "+0.56pt" },
-  { label: "Q&A解決率", value: "56.2%", delta: "+6.1pt" },
-  { label: "診断完了率", value: "53.8%", delta: "+5.3pt" },
-];
-
-const LP_FUNNEL_STEPS = [
-  { label: "セッション", value: "12,842", rate: 100 },
-  { label: "Q&A開始", value: "7,216", rate: 56.2 },
-  { label: "診断開始", value: "2,467", rate: 19.2 },
-  { label: "診断完了", value: "1,326", rate: 10.3 },
-  { label: "フォーム送信", value: "538", rate: 4.2 },
-  { label: "体験予約", value: "352", rate: 2.7 },
-];
-
-const LP_QA_RANKING = [
-  { question: "体験レッスンの持ち物は？", count: "1,246", rate: "92%" },
-  { question: "料金はいくらですか？", count: "987", rate: "85%" },
-  { question: "初心者でも大丈夫？", count: "812", rate: "93%" },
-  { question: "レッスンのスケジュールは？", count: "623", rate: "88%" },
-  { question: "駐車場はありますか？", count: "512", rate: "90%" },
-];
-
-const LP_CHANNEL_ROWS = [
-  { channel: "オーガニック検索", bookings: "168", cvr: "2.91%" },
-  { channel: "ダイレクト", bookings: "102", cvr: "3.21%" },
-  { channel: "Instagram", bookings: "56", cvr: "2.18%" },
-  { channel: "Googleビジネスプロフィール", bookings: "19", cvr: "3.04%" },
-  { channel: "その他", bookings: "7", cvr: "1.63%" },
-];
-
-const LP_REPORT_INSIGHTS = [
-  {
-    title: "診断の離脱改善",
-    text: "Q&A導線の最適化 / フォーム項目の見直し",
-  },
-  {
-    title: "Q&A回答率を改善",
-    text: "未回答の多い質問をFAQへ追加",
-  },
-  {
-    title: "予約導線を強化",
-    text: "結果画面のCTA配置を上部へ移動",
+    title: "運用・改善",
+    text: "レポートを見ながら改善を重ね、体験予約を増やしていきます。",
+    icon: BarChart3,
   },
 ];
 
@@ -943,6 +995,565 @@ function LandingPage() {
   );
 }
 
+function LandingSectionTitle({
+  title,
+  subtitle,
+  className = "",
+}: {
+  title: string;
+  subtitle?: string;
+  className?: string;
+}) {
+  return (
+    <div className={`mx-auto max-w-3xl text-center ${className}`}>
+      <h2 className="text-[24px] font-extrabold leading-tight tracking-normal text-slate-950 sm:text-[30px]">
+        {title}
+      </h2>
+      {subtitle && (
+        <p className="mt-3 text-sm font-semibold leading-7 text-slate-600 sm:text-base">
+          {subtitle}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function LandingHeroMockup() {
+  return (
+    <div className="relative min-w-0 max-w-full lg:-mr-2">
+      <div
+        aria-hidden="true"
+        className="absolute -right-16 top-12 h-[280px] w-[390px] -skew-x-12 bg-sky-100/80"
+      />
+      <div className="relative min-w-0 overflow-hidden rounded-[22px] border border-slate-200 bg-white p-2 shadow-[0_24px_76px_rgba(15,23,42,0.13)]">
+        <img
+          src="/lp/mockup.png"
+          alt="rizbo管理画面のプレビュー"
+          width={1182}
+          height={626}
+          className="aspect-[1.88/1] w-full rounded-[16px] object-cover object-left-top"
+        />
+      </div>
+
+      <div className="absolute -bottom-7 right-5 hidden w-[270px] rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_20px_60px_rgba(15,23,42,0.18)] md:block xl:right-12">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <div className="text-xs font-extrabold text-slate-500">運用レポート</div>
+            <p className="mt-1 text-base font-extrabold leading-6 text-slate-950">
+              次に直すポイントを自動で見える化
+            </p>
+          </div>
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#fff0ec] text-[#fe6147]">
+            <BarChart3 className="h-6 w-6" aria-hidden="true" />
+          </div>
+        </div>
+        <div className="mt-4 space-y-3">
+          {[
+            { label: "フォーム到達", value: "38%", width: "38%" },
+            { label: "申込完了", value: "16%", width: "16%" },
+          ].map((row) => (
+            <div
+              key={row.label}
+              className="grid grid-cols-[74px_1fr_38px] items-center gap-3"
+            >
+              <span className="text-xs font-extrabold text-slate-600">{row.label}</span>
+              <div className="h-2.5 overflow-hidden rounded-full bg-slate-100">
+                <div className="h-full rounded-full bg-[#fe6147]" style={{ width: row.width }} />
+              </div>
+              <span className="text-right text-sm font-extrabold tabular-nums text-slate-950">
+                {row.value}
+              </span>
+            </div>
+          ))}
+        </div>
+        <div className="mt-4 rounded-xl border border-[#ffd4c9] bg-[#fff4f1] p-4">
+          <div className="flex items-center gap-2 text-xs font-extrabold text-[#fe6147]">
+            <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
+            改善候補
+          </div>
+          <p className="mt-2 text-xs font-semibold leading-5 text-slate-600">
+            結果画面の予約CTAと未回答FAQを優先して更新します。
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function LandingFeaturePreview({ preview }: { preview: string }) {
+  if (preview === "chat") {
+    return (
+      <div className="flex items-end gap-2">
+        <div className="flex-1 space-y-2">
+          <div className="w-4/5 rounded-lg bg-slate-100 px-3 py-2 text-[10px] font-semibold text-slate-500">
+            体験に必要な持ち物は？
+          </div>
+          <div className="ml-auto w-3/4 rounded-lg bg-emerald-500 px-3 py-2 text-[10px] font-bold text-white">
+            動きやすい服装でOKです
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (preview === "diagnosis") {
+    return (
+      <div className="grid grid-cols-2 gap-2">
+        {["小学生", "大人", "はじめて", "経験者"].map((item, index) => (
+          <div
+            key={item}
+            className={[
+              "rounded-lg border px-3 py-2 text-center text-[10px] font-bold",
+              index === 0
+                ? "border-[#fe6147] bg-[#fff0ec] text-[#fe6147]"
+                : "border-slate-200 bg-white text-slate-500",
+            ].join(" ")}
+          >
+            {item}
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (preview === "form") {
+    return (
+      <div className="space-y-2">
+        {["お名前", "メールアドレス", "希望日時"].map((item) => (
+          <div key={item} className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-[10px] font-bold text-slate-400">
+            {item}
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex h-24 items-end justify-end gap-2">
+      {[34, 52, 74, 45].map((height, index) => (
+        <div key={height} className="w-5 rounded-t-md bg-blue-400/80" style={{ height: `${height}%` }}>
+          <span className="sr-only">{index + 1}</span>
+        </div>
+      ))}
+      <div className="ml-2 h-12 w-12 rounded-full bg-[conic-gradient(#fe6147_0_35%,#4f7df0_35%_72%,#3fc7a0_72%_100%)]" />
+    </div>
+  );
+}
+
+function LandingReportPanel() {
+  return (
+    <div className="grid gap-4 lg:grid-cols-[1.1fr_1fr_1fr_0.92fr]">
+      <article className="rounded-xl border border-slate-200 bg-white p-5 shadow-[0_14px_40px_rgba(15,23,42,0.05)]">
+        <h3 className="text-sm font-extrabold text-slate-950">予約ファネル（7日間）</h3>
+        <div className="mt-5 flex justify-center">
+          <div className="flex w-[132px] flex-col items-center gap-1">
+            {LP_REPORT_FUNNEL.map((step, index) => (
+              <div
+                key={step.label}
+                className="h-8"
+                style={{
+                  width: `${112 - index * 18}px`,
+                  backgroundColor: step.color,
+                  clipPath: "polygon(0 0, 100% 0, 84% 100%, 16% 100%)",
+                }}
+              />
+            ))}
+          </div>
+        </div>
+        <div className="mt-5 space-y-3">
+          {LP_REPORT_FUNNEL.map((step) => (
+            <div key={step.label} className="grid grid-cols-[1fr_auto_auto] items-center gap-2 text-xs">
+              <span className="whitespace-nowrap font-bold text-slate-600">{step.label}</span>
+              <span className="font-extrabold tabular-nums text-slate-950">{step.value}</span>
+              <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-extrabold text-slate-500">
+                {step.rate}
+              </span>
+            </div>
+          ))}
+        </div>
+      </article>
+
+      <article className="rounded-xl border border-slate-200 bg-white p-5 shadow-[0_14px_40px_rgba(15,23,42,0.05)]">
+        <h3 className="text-sm font-extrabold text-slate-950">FAQランキング</h3>
+        <div className="mt-4 space-y-3">
+          {LP_QA_RANKING.map((row, index) => (
+            <div key={row.question} className="grid grid-cols-[24px_1fr_auto] items-center gap-2 text-xs">
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-blue-100 text-[10px] font-extrabold text-blue-600">
+                {index + 1}
+              </span>
+              <span className="truncate font-bold text-slate-600">{row.question}</span>
+              <span className="font-extrabold tabular-nums text-slate-950">{row.count}</span>
+            </div>
+          ))}
+        </div>
+        <a
+          href={LOGIN_HREF}
+          className="mt-5 inline-flex min-h-[38px] w-full items-center justify-center rounded-lg border border-slate-200 text-xs font-extrabold text-slate-700 transition hover:border-[#fe6147] hover:text-[#fe6147]"
+        >
+          すべてのFAQを見る
+        </a>
+      </article>
+
+      <article className="rounded-xl border border-slate-200 bg-white p-5 shadow-[0_14px_40px_rgba(15,23,42,0.05)]">
+        <h3 className="text-sm font-extrabold text-slate-950">未解決・要修正の質問</h3>
+        <div className="mt-4 space-y-3">
+          {LP_UNRESOLVED_QUESTIONS.map((row) => (
+            <div key={row.text} className="flex items-center justify-between gap-3 rounded-lg border border-slate-100 px-3 py-3">
+              <span className="text-xs font-bold text-slate-600">{row.text}</span>
+              <span className="shrink-0 rounded-full bg-[#fff0ec] px-2 py-1 text-[10px] font-extrabold text-[#fe6147]">
+                {row.tag}
+              </span>
+            </div>
+          ))}
+        </div>
+        <a
+          href={LOGIN_HREF}
+          className="mt-5 inline-flex min-h-[38px] w-full items-center justify-center rounded-lg border border-slate-200 text-xs font-extrabold text-slate-700 transition hover:border-[#fe6147] hover:text-[#fe6147]"
+        >
+          質問を管理する
+        </a>
+      </article>
+
+      <article className="rounded-xl border border-[#ffd8cf] bg-[#fff5f2] p-5 shadow-[0_14px_40px_rgba(254,97,71,0.07)]">
+        <h3 className="text-sm font-extrabold text-[#fe6147]">おすすめの改善アクション</h3>
+        <div className="mt-4 space-y-3">
+          {LP_REPORT_INSIGHTS.map(({ title, tone }) => (
+            <div key={title} className="flex gap-2 text-xs font-bold leading-5 text-slate-700">
+              <CheckCircle2 className={`mt-0.5 h-4 w-4 shrink-0 ${tone}`} aria-hidden="true" />
+              <span>{title}</span>
+            </div>
+          ))}
+        </div>
+        <a
+          href={LOGIN_HREF}
+          className="mt-5 inline-flex min-h-[40px] w-full items-center justify-center gap-2 rounded-lg bg-[#fe6147] text-xs font-extrabold text-white shadow-[0_12px_26px_rgba(254,97,71,0.2)] transition hover:bg-[#e94f36]"
+        >
+          レポートを詳しく見る
+          <ChevronRight className="h-4 w-4" aria-hidden="true" />
+        </a>
+      </article>
+    </div>
+  );
+}
+
+function LandingPageDesigned() {
+  return (
+    <main className="min-h-screen overflow-x-hidden bg-white text-slate-950 selection:bg-[#fe6147]/20">
+      <header className="fixed inset-x-0 top-0 z-50 border-b border-slate-200/80 bg-white/95 backdrop-blur-xl">
+        <div className="mx-auto flex h-[62px] w-full max-w-[1180px] items-center justify-between px-5 sm:px-8">
+          <a href="/" aria-label="rizbo home" className="flex items-center">
+            <img src="/logo.svg" alt="rizbo" width={98} height={31} className="h-7 w-auto sm:h-8" />
+          </a>
+          <nav className="hidden items-center gap-8 text-[13px] font-extrabold text-slate-800 lg:flex">
+            {LP_NAV.map((item) => (
+              <a key={item.href} href={item.href} className="transition hover:text-[#fe6147]">
+                {item.label}
+              </a>
+            ))}
+          </nav>
+          <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+            <Link
+              href={LOGIN_HREF}
+              className="hidden min-h-[40px] items-center justify-center rounded-lg border border-slate-200 bg-white px-5 text-sm font-extrabold text-slate-800 transition hover:border-[#fe6147] hover:text-[#fe6147] sm:inline-flex"
+            >
+              ログイン
+            </Link>
+            <Link
+              href={LOGIN_HREF}
+              className="inline-flex min-h-[38px] shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg bg-[#fe6147] px-3 text-xs font-extrabold text-white shadow-[0_12px_24px_rgba(254,97,71,0.2)] transition hover:bg-[#e94f36] sm:min-h-[40px] sm:gap-2 sm:px-5 sm:text-sm"
+            >
+              管理画面へ
+              <ChevronRight className="h-4 w-4" aria-hidden="true" />
+            </Link>
+          </div>
+        </div>
+      </header>
+
+      <section className="relative overflow-hidden border-b border-slate-200 pt-[62px]">
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 opacity-75"
+          style={{
+            backgroundImage:
+              "repeating-linear-gradient(135deg, rgba(254,97,71,0.09) 0px, rgba(254,97,71,0.09) 1px, transparent 1px, transparent 18px)",
+            maskImage: "linear-gradient(90deg, rgba(0,0,0,0.7), transparent 58%)",
+            WebkitMaskImage: "linear-gradient(90deg, rgba(0,0,0,0.7), transparent 58%)",
+          }}
+        />
+        <div
+          aria-hidden="true"
+          className="absolute -right-20 bottom-0 h-[360px] w-[440px] bg-sky-100/70"
+          style={{ clipPath: "polygon(34% 0, 100% 0, 100% 100%, 0 100%)" }}
+        />
+
+        <div className="relative mx-auto grid max-w-[1180px] items-center gap-10 px-5 py-16 sm:px-8 lg:grid-cols-[0.42fr_0.58fr] lg:py-14">
+          <div className="min-w-0">
+            <h1 className="text-[39px] font-extrabold leading-[1.12] tracking-normal text-slate-950 sm:text-[56px] lg:text-[50px] xl:text-[56px]">
+              <span className="block">ダンススクールの</span>
+              <span className="block text-[#fe6147]">体験予約を増やす</span>
+              <span className="block">運用システム</span>
+            </h1>
+            <p className="mt-6 max-w-[520px] text-base font-semibold leading-8 text-slate-700">
+              Q&amp;Aチャットボット、相性診断、予約フォーム、運用レポートをひとつに。
+              問い合わせ対応を減らしながら、迷っている見込み客を体験予約へつなげます。
+            </p>
+            <div className="mt-7 flex flex-col gap-3 sm:flex-row">
+              <Link
+                href={LOGIN_HREF}
+                className="inline-flex min-h-[52px] items-center justify-center gap-3 rounded-lg bg-[#fe6147] px-7 text-sm font-extrabold text-white shadow-[0_14px_30px_rgba(254,97,71,0.24)] transition hover:bg-[#e94f36]"
+              >
+                管理画面にログイン
+                <ChevronRight className="h-4 w-4" aria-hidden="true" />
+              </Link>
+              <a
+                href="#features"
+                className="inline-flex min-h-[52px] items-center justify-center gap-3 rounded-lg border border-slate-200 bg-white px-7 text-sm font-extrabold text-slate-950 shadow-sm transition hover:border-[#fe6147] hover:text-[#fe6147]"
+              >
+                機能を見る
+                <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
+              </a>
+            </div>
+          </div>
+
+          <LandingHeroMockup />
+        </div>
+      </section>
+
+      <section className="relative border-b border-slate-200 bg-white py-12 sm:py-14">
+        <div
+          aria-hidden="true"
+          className="absolute left-0 top-0 h-44 w-48 opacity-60"
+          style={{
+            backgroundImage: "radial-gradient(circle, rgba(79,125,240,0.32) 1.2px, transparent 1.2px)",
+            backgroundSize: "12px 12px",
+          }}
+        />
+        <div
+          aria-hidden="true"
+          className="absolute right-0 top-28 h-44 w-48 opacity-55"
+          style={{
+            backgroundImage: "radial-gradient(circle, rgba(254,97,71,0.30) 1.2px, transparent 1.2px)",
+            backgroundSize: "12px 12px",
+          }}
+        />
+        <div className="relative mx-auto max-w-[1040px] px-5 sm:px-8">
+          <LandingSectionTitle
+            title="予約につながる導線を、下支えします"
+            subtitle="問い合わせ対応、診断案内、フォーム後の通知までをひとつの流れで整えます。"
+          />
+          <div className="mt-8 grid gap-5 md:grid-cols-3">
+            {LP_VALUE_CARDS.map(({ value, label, text, icon: Icon, tone }) => (
+              <article
+                key={value}
+                className="rounded-xl border border-slate-200 bg-white p-6 shadow-[0_12px_36px_rgba(15,23,42,0.06)]"
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <div className="text-[32px] font-extrabold leading-none text-slate-950">{value}</div>
+                    <div className="mt-3 text-sm font-extrabold text-slate-700">{label}</div>
+                  </div>
+                  <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border ${tone}`}>
+                    <Icon className="h-7 w-7" aria-hidden="true" />
+                  </div>
+                </div>
+                <div className="mt-5 flex items-start gap-2 text-sm font-extrabold leading-6 text-slate-800">
+                  <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-[#fe6147]" aria-hidden="true" />
+                  <span>{text}</span>
+                </div>
+              </article>
+            ))}
+          </div>
+          <ChevronDown className="mx-auto mt-5 h-6 w-6 text-slate-500" aria-hidden="true" />
+        </div>
+      </section>
+
+      <section className="border-b border-slate-100 bg-white py-12">
+        <div className="mx-auto max-w-[1060px] px-5 sm:px-8">
+          <LandingSectionTitle title="こんなお悩み、ありませんか？" />
+          <div className="mt-8 grid gap-5 md:grid-cols-4">
+            {LP_PROBLEMS.map(({ title, text, icon: Icon, tone }) => (
+              <article key={title} className="rounded-xl border border-slate-200 bg-white p-5 shadow-[0_12px_36px_rgba(15,23,42,0.05)]">
+                <div className={`flex h-11 w-11 items-center justify-center rounded-xl ${tone}`}>
+                  <Icon className="h-6 w-6" aria-hidden="true" />
+                </div>
+                <h3 className="mt-4 text-sm font-extrabold leading-6 text-slate-950">{title}</h3>
+                <p className="mt-3 text-xs font-semibold leading-6 text-slate-500">{text}</p>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section id="features" className="border-b border-slate-100 bg-white py-12 sm:py-14">
+        <div className="mx-auto max-w-[1060px] px-5 sm:px-8">
+          <LandingSectionTitle
+            title="問い合わせから予約後対応まで、ひとつの導線で管理"
+            subtitle="サイト訪問者が迷うポイントを先回りして解消し、予約フォームまでの流れをデータで改善できます。"
+          />
+          <div className="mt-9 grid gap-5 lg:grid-cols-[0.88fr_1.55fr]">
+            <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-[0_12px_36px_rgba(15,23,42,0.05)]">
+              <div className="space-y-7">
+                {LP_MANAGEMENT_STEPS.map(({ title, text, icon: Icon, tone }, index) => (
+                  <div key={title} className="relative flex gap-4">
+                    {index < LP_MANAGEMENT_STEPS.length - 1 && (
+                      <div className="absolute left-[21px] top-11 h-[calc(100%+10px)] border-l border-dashed border-slate-300" />
+                    )}
+                    <div className={`relative z-10 flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white ${tone}`}>
+                      <Icon className="h-7 w-7" aria-hidden="true" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-3">
+                        <span className="text-sm font-extrabold text-slate-500">{index + 1}</span>
+                        <h3 className="text-sm font-extrabold text-slate-950">{title}</h3>
+                      </div>
+                      <p className="mt-2 text-xs font-semibold leading-5 text-slate-500">{text}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              {LP_FEATURES.map(({ title, text, icon: Icon, preview }) => (
+                <article key={title} className="rounded-xl border border-slate-200 bg-white p-5 shadow-[0_12px_36px_rgba(15,23,42,0.05)]">
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#fff0ec] text-[#fe6147]">
+                      <Icon className="h-5 w-5" aria-hidden="true" />
+                    </div>
+                    <div>
+                      <h3 className="text-base font-extrabold text-slate-950">{title}</h3>
+                      <p className="mt-2 text-xs font-semibold leading-6 text-slate-600">{text}</p>
+                    </div>
+                  </div>
+                  <div className="mt-4 min-h-[118px] rounded-xl border border-slate-100 bg-slate-50 p-4">
+                    <LandingFeaturePreview preview={preview} />
+                  </div>
+                </article>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="reports" className="border-b border-slate-100 bg-white py-12 sm:py-14">
+        <div className="mx-auto max-w-[1060px] px-5 sm:px-8">
+          <LandingSectionTitle
+            title="データで現状を把握し、改善アクションへ"
+            subtitle="運用レポートで成果と課題を可視化し、次にやるべきことを明確にします。"
+          />
+          <div className="mt-9">
+            <LandingReportPanel />
+          </div>
+        </div>
+      </section>
+
+      <section id="workflow" className="border-b border-slate-100 bg-white py-12 sm:py-14">
+        <div className="mx-auto max-w-[900px] px-5 sm:px-8">
+          <LandingSectionTitle title="導入の流れ" />
+          <div className="mt-9 grid gap-7 md:grid-cols-[1fr_auto_1fr_auto_1fr] md:items-center">
+            {LP_WORKFLOW.map(({ title, text, icon: Icon }, index) => (
+              <div key={title} className="contents">
+                <article className="relative rounded-xl border border-slate-200 bg-white p-5 shadow-[0_12px_36px_rgba(15,23,42,0.05)]">
+                  <span className="absolute -left-3 -top-3 flex h-8 w-8 items-center justify-center rounded-full bg-slate-700 text-sm font-extrabold text-white">
+                    {index + 1}
+                  </span>
+                  <div className="flex items-center gap-4">
+                    <Icon className="h-9 w-9 shrink-0 text-slate-600" aria-hidden="true" />
+                    <div>
+                      <h3 className="text-base font-extrabold text-slate-950">{title}</h3>
+                      <p className="mt-2 text-xs font-semibold leading-5 text-slate-500">{text}</p>
+                    </div>
+                  </div>
+                </article>
+                {index < LP_WORKFLOW.length - 1 && (
+                  <ChevronRight className="mx-auto hidden h-6 w-6 text-slate-400 md:block" aria-hidden="true" />
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section id="cta" className="bg-white px-5 py-9 sm:px-8">
+        <div className="relative mx-auto flex max-w-[1120px] flex-col items-center justify-between gap-6 overflow-hidden rounded-xl border border-[#ffe0d8] bg-[#fff5f2] px-7 py-9 text-center sm:flex-row sm:px-12 sm:text-left">
+          <div
+            aria-hidden="true"
+            className="absolute left-7 top-7 h-20 w-20 opacity-55"
+            style={{
+              backgroundImage: "radial-gradient(circle, rgba(254,97,71,0.38) 1.2px, transparent 1.2px)",
+              backgroundSize: "12px 12px",
+            }}
+          />
+          <div className="relative">
+            <h2 className="text-2xl font-extrabold tracking-normal text-slate-950 sm:text-[28px]">
+              迷っている見込み客を、体験予約へ
+            </h2>
+            <p className="mt-3 text-sm font-semibold text-slate-600">
+              まずは管理画面から、今の状況をチェックしてみましょう。
+            </p>
+          </div>
+          <div className="relative flex flex-col gap-3 sm:flex-row">
+            <Link
+              href={LOGIN_HREF}
+              className="inline-flex min-h-[50px] items-center justify-center gap-3 rounded-lg bg-[#fe6147] px-8 text-sm font-extrabold text-white shadow-[0_14px_30px_rgba(254,97,71,0.22)] transition hover:bg-[#e94f36]"
+            >
+              管理画面にログイン
+              <ChevronRight className="h-4 w-4" aria-hidden="true" />
+            </Link>
+            <Link
+              href={LOGIN_HREF}
+              className="inline-flex min-h-[50px] items-center justify-center gap-3 rounded-lg border border-slate-200 bg-white px-8 text-sm font-extrabold text-slate-950 transition hover:border-[#fe6147] hover:text-[#fe6147]"
+            >
+              ログイン
+              <ChevronRight className="h-4 w-4" aria-hidden="true" />
+            </Link>
+          </div>
+          <ArrowUpRight className="absolute -bottom-4 right-8 h-24 w-24 text-[#fe6147]/20" aria-hidden="true" />
+        </div>
+      </section>
+
+      <footer className="border-t border-slate-200 bg-white py-10">
+        <div className="mx-auto grid max-w-[1120px] gap-8 px-5 text-sm sm:px-8 md:grid-cols-[1.4fr_0.7fr_0.7fr_0.7fr_1.1fr]">
+          <div>
+            <img src="/logo.svg" alt="rizbo" width={94} height={30} className="h-7 w-auto" />
+            <p className="mt-4 max-w-[260px] text-xs font-semibold leading-6 text-slate-500">
+              ダンススクールの運用を、もっとシンプルに。問い合わせ対応を減らし、体験予約を増やす運用システムです。
+            </p>
+          </div>
+          {[
+            { title: "プロダクト", links: ["機能一覧", "導入の流れ", "運用レポート"] },
+            { title: "サポート", links: ["ヘルプセンター", "お問い合わせ", "利用規約"] },
+            { title: "会社情報", links: ["運営会社", "プライバシーポリシー"] },
+          ].map((column) => (
+            <div key={column.title}>
+              <h3 className="text-xs font-extrabold text-slate-950">{column.title}</h3>
+              <div className="mt-4 space-y-3">
+                {column.links.map((link) => (
+                  <a key={link} href={LOGIN_HREF} className="block text-xs font-bold text-slate-500 hover:text-[#fe6147]">
+                    {link}
+                  </a>
+                ))}
+              </div>
+            </div>
+          ))}
+          <div>
+            <div className="rounded-xl border border-slate-200 bg-white p-5">
+              <p className="text-xs font-bold text-slate-500">ご不明な点はお気軽にご相談ください</p>
+              <a href="mailto:support@rizbo.jp" className="mt-3 flex items-center gap-2 text-sm font-extrabold text-slate-950">
+                <Mail className="h-4 w-4 text-slate-500" aria-hidden="true" />
+                support@rizbo.jp
+              </a>
+            </div>
+            <p className="mt-5 text-xs font-semibold text-slate-400">
+              © 2025 rizbo. All rights reserved.
+            </p>
+          </div>
+        </div>
+      </footer>
+    </main>
+  );
+}
+
 // ── メインコンポーネント ──────────────────────────────────────
 
 export default function HomePage() {
@@ -1202,7 +1813,7 @@ export default function HomePage() {
   // 未ログインLP（モダンSaaS）
   // ==========================
   if (status === "unauthenticated") {
-    return <LandingPage />;
+    return <LandingPageDesigned />;
   }
 
   // 認証状態ロード中
