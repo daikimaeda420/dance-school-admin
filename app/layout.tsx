@@ -5,11 +5,11 @@ import type { Metadata, Viewport } from "next";
 
 export const metadata: Metadata = {
   title: {
-    default: "rizbo - ダンススクールの体験予約を増やす運用システム",
+    default: "rizbo - ダンススクールの体験予約を増やす管理ツール",
     template: "%s | rizbo",
   },
   description:
-    "rizboは、Q&Aチャットボット、相性診断、予約フォーム、運用レポートをまとめて管理し、ダンススクールの体験予約導線を改善するシステムです。",
+    "rizboは、Q&Aチャット、相性診断、予約フォーム、運用レポートをまとめて管理し、問い合わせ対応を減らしながら体験予約につながる流れを整えるツールです。",
   icons: {
     icon: [
       { url: "/favicon.ico", sizes: "any" },

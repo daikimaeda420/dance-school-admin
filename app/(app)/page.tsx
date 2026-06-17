@@ -150,71 +150,71 @@ const LOGIN_HREF = "/login";
 
 const LP_NAV = [
   { href: "#features", label: "機能" },
-  { href: "#workflow", label: "導入の流れ" },
+  { href: "#workflow", label: "はじめ方" },
   { href: "#reports", label: "運用レポート" },
-  { href: "#cta", label: "始める" },
+  { href: "#cta", label: "ログイン" },
 ];
 
 const LP_VALUE_CARDS = [
   {
     value: "24h",
-    label: "問い合わせ自動応答",
-    text: "24時間自動応答で問い合わせ対応を削減",
+    label: "問い合わせに自動回答",
+    text: "営業時間外の質問にも自動で対応",
     icon: MessageSquare,
     tone: "text-[#fe6147] bg-[#fff0ec] border-[#ffd7cf]",
   },
   {
-    value: "1導線",
-    label: "診断から予約まで統合",
-    text: "診断で最適なクラスへ案内",
+    value: "1つ",
+    label: "診断から予約までつなぐ",
+    text: "回答に合わせてクラスを案内",
     icon: RefreshCw,
     tone: "text-emerald-600 bg-emerald-50 border-emerald-100",
   },
   {
     value: "30日",
-    label: "ログを見て改善",
-    text: "フォーム送信とメール通知を自動化",
+    label: "レポートで改善",
+    text: "申込や質問の傾向を確認",
     icon: BarChart3,
     tone: "text-blue-600 bg-blue-50 border-blue-100",
   },
 ];
 
 const LP_HERO_CHECKS = [
-  { text: "24時間自動応答で問い合わせ対応を削減", icon: MessageSquare },
-  { text: "診断で最適なクラスへ案内", icon: Target },
-  { text: "フォーム送信とメール通知を自動化", icon: Mail },
-  { text: "ログを見て改善", icon: BarChart3 },
+  { text: "よくある質問にいつでも自動回答", icon: MessageSquare },
+  { text: "回答に合わせてクラスを案内", icon: Target },
+  { text: "申込後のメール通知を自動化", icon: Mail },
+  { text: "質問や申込の傾向をレポートで確認", icon: BarChart3 },
 ];
 
 const LP_DASHBOARD_METRICS = [
   { label: "セッション（7日）", value: "2,456", delta: "+18%" },
-  { label: "人気の質問シェア", value: "22%", delta: "+4%" },
+  { label: "よく見られる質問", value: "22%", delta: "+4%" },
   { label: "未解決/要修正", value: "8件", delta: "-3件" },
-  { label: "ログ作成", value: "12", delta: "+5" },
+  { label: "新規ログ", value: "12", delta: "+5" },
 ];
 
 const LP_PROBLEMS = [
   {
-    title: "同じ質問への対応に時間が取られる",
-    text: "営業時間外の問い合わせや体験前の不安に、スタッフが個別対応している。",
+    title: "同じ質問に何度も対応している",
+    text: "営業時間外の質問や体験前の不安に、スタッフが毎回個別で返信している。",
     icon: MessageSquare,
     tone: "text-[#fe6147] bg-[#fff0ec]",
   },
   {
-    title: "どのクラスが合うか分からず離脱する",
-    text: "初心者・経験者・年齢・目的ごとの案内が難しく、予約前の迷いが残る。",
+    title: "自分に合うクラスが分からない",
+    text: "初心者・経験者、年齢や目的によって案内が変わり、予約前に迷いが残りやすい。",
     icon: Users,
     tone: "text-[#fe6147] bg-[#fff0ec]",
   },
   {
-    title: "フォーム後の対応が属人化する",
-    text: "申込内容の確認、通知、返信、日程調整が手作業になりやすい。",
+    title: "申込後の対応が人に依存している",
+    text: "申込内容の確認、通知、返信、日程調整が手作業になり、抜け漏れが起きやすい。",
     icon: Mail,
     tone: "text-[#fe6147] bg-[#fff0ec]",
   },
   {
-    title: "改善すべきポイントが見えない",
-    text: "どこで迷われたか、どの質問が多いか、予約につながったかを追えない。",
+    title: "どこを改善すべきか分からない",
+    text: "どこで迷ったのか、どの質問が多いのか、予約につながったのかを追いにくい。",
     icon: Search,
     tone: "text-emerald-600 bg-emerald-50",
   },
@@ -223,15 +223,15 @@ const LP_PROBLEMS = [
 const LP_FEATURES = [
   {
     title: "AIチャットボット",
-    text: "料金、アクセス、持ち物、体験の流れなどをサイト上で即時回答。よくある質問は管理画面から更新できます。",
+    text: "料金、アクセス、持ち物、体験の流れなどにサイト上ですぐ回答。よくある質問は管理画面からかんたんに更新できます。",
     icon: MessageSquare,
     preview: "chat",
     miniTitle: "自動回答",
-    miniValue: "24時間対応",
+    miniValue: "いつでも対応",
   },
   {
-    title: "パーソナル診断",
-    text: "年齢、目的、経験、ジャンルの好みから、来校前のユーザーに合うクラスや講師を提案します。",
+    title: "おすすめ診断",
+    text: "年齢、目的、経験、ジャンルの好みに合わせて、体験前のお客様に合うクラスや講師を案内します。",
     icon: MousePointerClick,
     preview: "diagnosis",
     miniTitle: "おすすめクラス",
@@ -239,7 +239,7 @@ const LP_FEATURES = [
   },
   {
     title: "予約フォーム",
-    text: "シンプルで入力しやすいフォームで離脱を防止。送信内容は自動で集計・通知されます。",
+    text: "入力しやすいフォームで離脱を防ぎます。申込内容は自動で集計され、通知メールも送れます。",
     icon: Mail,
     preview: "form",
     miniTitle: "フォーム到達",
@@ -247,7 +247,7 @@ const LP_FEATURES = [
   },
   {
     title: "運用レポート",
-    text: "ファネル、FAQランキング、未解決質問などを可視化。改善提案も自動で表示します。",
+    text: "申込までの流れ、よくある質問、未解決の問い合わせをまとめて確認。次に見直すポイントも表示します。",
     icon: BarChart3,
     preview: "report",
     miniTitle: "改善候補",
@@ -257,26 +257,26 @@ const LP_FEATURES = [
 
 const LP_MANAGEMENT_STEPS = [
   {
-    title: "疑問にすぐ答える",
-    text: "AIチャットボットが24時間自動で回答",
+    title: "よくある質問にすぐ答える",
+    text: "AIチャットボットがいつでも自動回答",
     icon: MessageSquare,
     tone: "text-[#fe6147]",
   },
   {
-    title: "合うクラスを提案する",
-    text: "パーソナル診断で最適なクラスを案内",
+    title: "ぴったりのクラスを案内する",
+    text: "診断結果に合わせておすすめクラスを表示",
     icon: CheckCircle2,
     tone: "text-emerald-500",
   },
   {
-    title: "申込後の通知を自動化する",
-    text: "受付完了メールや社内通知を自動送信",
+    title: "申込後の連絡を自動化する",
+    text: "受付メールやスタッフ向け通知を自動送信",
     icon: Mail,
     tone: "text-blue-500",
   },
   {
-    title: "ログから改善する",
-    text: "データを可視化し、次の改善につなげる",
+    title: "データを見ながら改善する",
+    text: "申込や質問の傾向から次の打ち手を決める",
     icon: BarChart3,
     tone: "text-blue-600",
   },
@@ -300,41 +300,41 @@ const LP_QA_RANKING = [
   { question: "体験レッスンの流れは？", count: "812", rate: "96%" },
   { question: "料金はいくらですか？", count: "643", rate: "94%" },
   { question: "持ち物は何が必要ですか？", count: "531", rate: "91%" },
-  { question: "初心者でも大丈夫？", count: "498", rate: "89%" },
+  { question: "初心者でも大丈夫ですか？", count: "498", rate: "89%" },
   { question: "キャンセルや変更はできますか？", count: "312", rate: "88%" },
 ];
 
 const LP_CHANNEL_ROWS = [
   { channel: "Q&Aチャット", bookings: "168", cvr: "12.4%" },
-  { channel: "パーソナル診断", bookings: "102", cvr: "18.7%" },
+  { channel: "おすすめ診断", bookings: "102", cvr: "18.7%" },
   { channel: "予約フォーム", bookings: "56", cvr: "8.9%" },
-  { channel: "直接流入", bookings: "26", cvr: "5.4%" },
+  { channel: "直接アクセス", bookings: "26", cvr: "5.4%" },
 ];
 
 const LP_UNRESOLVED_QUESTIONS = [
   { text: "入会金はいくら必要ですか？", tag: "未解決" },
-  { text: "クラスのレベル分けは？", tag: "要確認" },
-  { text: "発表会の参加について", tag: "要修正" },
+  { text: "レベル別のクラスはありますか？", tag: "要確認" },
+  { text: "発表会には参加できますか？", tag: "要修正" },
 ];
 
 const LP_REPORT_INSIGHTS = [
   {
-    title: "結果画面の予約CTAを目立つ位置に配置する",
-    text: "診断後の次アクションを迷わず選べる状態にします。",
+    title: "診断結果ページの予約ボタンを見直す",
+    text: "診断後にそのまま体験予約へ進めるようにします。",
     tone: "text-[#fe6147]",
   },
   {
-    title: "未回答FAQ（8件）を追加する",
-    text: "よく聞かれる質問を事前に解消します。",
+    title: "未回答の質問をFAQに追加する",
+    text: "よくある不安を予約前に解消します。",
     tone: "text-emerald-600",
   },
   {
-    title: "体験後のフォローメールをパーソナライズする",
-    text: "目的別の案内で再来校につなげます。",
+    title: "体験後のフォローメールを目的別に送る",
+    text: "目的に合わせた案内で、次の来校につなげます。",
     tone: "text-emerald-600",
   },
   {
-    title: "フォームの入力項目を最適化する",
+    title: "フォームの入力項目を絞り込む",
     text: "離脱が多い入力欄を見直します。",
     tone: "text-emerald-600",
   },
@@ -343,17 +343,17 @@ const LP_REPORT_INSIGHTS = [
 const LP_WORKFLOW = [
   {
     title: "初期設定",
-    text: "基本情報の登録、Q&A・診断・フォームの初期設定を行います。",
+    text: "基本情報と、Q&A・診断・フォームの内容を登録します。",
     icon: ClipboardList,
   },
   {
     title: "サイトに設置",
-    text: "タグや埋め込みコードを設置して、すぐに公開できます。",
+    text: "サイトにタグを貼るだけで、すぐに公開できます。",
     icon: Copy,
   },
   {
     title: "運用・改善",
-    text: "レポートを見ながら改善を重ね、体験予約を増やしていきます。",
+    text: "レポートを見ながら見直し、体験予約につながる流れを育てます。",
     icon: BarChart3,
   },
 ];
@@ -694,13 +694,13 @@ function ReportTablePanel() {
             ))}
           </div>
           <a href="#cta" className="mt-3 inline-flex items-center gap-1 text-xs font-bold text-[#fe6147]">
-            すべて見る
+            すべて確認する
             <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
           </a>
         </div>
 
         <div className="p-5">
-          <div className="mb-4 text-sm font-extrabold text-slate-950">チャネル別 体験予約CVR</div>
+          <div className="mb-4 text-sm font-extrabold text-slate-950">流入元別の体験予約CVR</div>
           <div className="divide-y divide-slate-100">
             {LP_CHANNEL_ROWS.map((row) => (
               <div key={row.channel} className="grid grid-cols-[1fr_58px_54px] gap-3 py-2 text-xs">
@@ -715,7 +715,7 @@ function ReportTablePanel() {
 
       <div className="grid gap-0 border-t border-slate-100 lg:grid-cols-[1fr_0.68fr]">
         <div className="p-5">
-          <div className="mb-4 text-sm font-extrabold text-slate-950">期間ハイライト（2026/06/01 - 2026/06/14）</div>
+          <div className="mb-4 text-sm font-extrabold text-slate-950">期間サマリー（2026/06/01 - 2026/06/14）</div>
           <div className="grid gap-3 sm:grid-cols-4">
             {LP_DASHBOARD_METRICS.map((metric) => (
               <div key={metric.label} className="rounded-xl border border-slate-100 bg-slate-50 px-4 py-3">
@@ -730,7 +730,7 @@ function ReportTablePanel() {
         </div>
 
         <div className="border-t border-slate-100 p-5 lg:border-l lg:border-t-0">
-          <div className="mb-3 text-sm font-extrabold text-slate-950">主な改善アクション</div>
+          <div className="mb-3 text-sm font-extrabold text-slate-950">主な改善ポイント</div>
           <div className="space-y-2">
             {LP_REPORT_INSIGHTS.map((item) => (
               <div key={item.title} className="flex gap-2 text-xs leading-5 text-slate-600">
@@ -742,7 +742,7 @@ function ReportTablePanel() {
             ))}
           </div>
           <a href="#reports" className="mt-4 inline-flex items-center gap-1 text-xs font-bold text-[#fe6147]">
-            詳細レポートを見る
+            詳しいレポートを見る
             <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
           </a>
         </div>
@@ -807,11 +807,11 @@ function LandingPage() {
           <div className="max-w-[520px]">
             <h1 className="text-[42px] font-extrabold leading-[1.12] tracking-normal text-slate-950 sm:text-[58px] lg:text-[56px] xl:text-[58px]">
               <span className="block whitespace-nowrap">体験予約を増やす</span>
-              <span className="block whitespace-nowrap">運用システム</span>
+              <span className="block whitespace-nowrap">管理ツール</span>
             </h1>
             <p className="mt-6 text-base font-medium leading-8 text-slate-700 sm:text-lg">
-              Q&amp;Aで疑問を解消し、診断で興味を高め、フォームで申し込みへ。
-              すべての接点をデータで可視化し、成果を最大化します。
+              Q&amp;Aで不安を解消し、診断でぴったりのクラスを案内して、フォームから体験予約へ。
+              お客様との接点をまとめて管理し、改善まで進められます。
             </p>
 
             <div className="mt-7 grid gap-4 sm:grid-cols-2">
@@ -835,7 +835,7 @@ function LandingPage() {
                 <ChevronRight className="h-5 w-5" aria-hidden="true" />
               </Link>
               <p className="mt-3 text-xs font-semibold text-slate-400">
-                ログインが必要です
+                管理画面に移動します
               </p>
             </div>
           </div>
@@ -905,7 +905,7 @@ function LandingPage() {
                   {index === 3 && <MiniLineChart className="mt-1 h-12 w-full" />}
                   {index === 4 && (
                     <div className="mt-2 space-y-1">
-                      {["診断の設問を見直す", "Q&A回答率に導線を設置"].map((item) => (
+                      {["診断の設問を見直す", "Q&Aから予約ページへつなげる"].map((item) => (
                         <div key={item} className="flex items-center gap-1 text-[10px] font-semibold text-slate-500">
                           <CheckCircle2 className="h-3 w-3 text-[#fe6147]" aria-hidden="true" />
                           {item}
@@ -923,11 +923,11 @@ function LandingPage() {
       <section id="reports" className="border-b border-slate-200 bg-white py-14 sm:py-16">
         <div className="mx-auto max-w-[1440px] px-5 sm:px-8 lg:px-12">
           <h2 className="text-center text-3xl font-extrabold tracking-normal text-slate-950">
-            運用レポートで、施策の成果と改善点がすぐわかる
+            運用レポートで、成果と改善点がすぐわかる
           </h2>
           <p className="mx-auto mt-4 max-w-3xl text-center text-sm leading-7 text-slate-600">
-            ファネル、Q&amp;A、流入チャネル、期間ハイライトをひとつの画面で確認。
-            次に直すべきポイントまで運用者がすぐ判断できます。
+            申込までの流れ、Q&amp;A、流入元、期間ごとの変化をひとつの画面で確認。
+            次に見直すべきポイントもすぐ判断できます。
           </p>
           <div className="mt-9">
             <ReportTablePanel />
@@ -938,7 +938,7 @@ function LandingPage() {
       <section id="workflow" className="border-b border-slate-200 bg-white py-14 sm:py-16">
         <div className="mx-auto max-w-[1240px] px-5 sm:px-8">
           <h2 className="text-center text-3xl font-extrabold tracking-normal text-slate-950">
-            導入から改善までの流れ
+            はじめ方
           </h2>
           <div className="mt-10 grid gap-7 md:grid-cols-4">
             {LP_WORKFLOW.map(({ title, text, icon: Icon }, index) => (
@@ -970,7 +970,7 @@ function LandingPage() {
       <section id="cta" className="bg-white px-5 py-10 sm:px-8">
         <div className="mx-auto flex max-w-[1240px] flex-col items-center justify-between gap-5 rounded-xl border border-[#fe6147] bg-white px-6 py-7 text-center sm:flex-row sm:text-left">
           <h2 className="text-xl font-extrabold tracking-normal text-slate-950 sm:text-2xl">
-            データで運用を最適化し、体験予約を増やしましょう
+            データを見ながら、体験予約につながる流れを整えましょう
           </h2>
           <div className="flex shrink-0 flex-col items-center gap-2">
             <Link
@@ -980,7 +980,7 @@ function LandingPage() {
               管理画面にログイン
               <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
             </Link>
-            <span className="text-[11px] font-semibold text-slate-400">ログインが必要です</span>
+            <span className="text-[11px] font-semibold text-slate-400">管理画面に移動します</span>
           </div>
         </div>
       </section>
@@ -1030,7 +1030,7 @@ function LandingHeroMockup() {
   ];
   const metrics = [
     { label: "セッション（7日）", value: "0" },
-    { label: "人気の質問シェア", value: "0%" },
+    { label: "よく見られる質問", value: "0%" },
     { label: "未解決/要修正", value: "0件" },
     { label: "ログ件数", value: "0" },
   ];
@@ -1191,7 +1191,7 @@ function LandingFeaturePreview({ preview }: { preview: string }) {
             体験に必要な持ち物は？
           </div>
           <div className="ml-auto w-3/4 rounded-lg bg-emerald-500 px-3 py-2 text-[10px] font-bold text-white">
-            動きやすい服装でOKです
+            動きやすい服装でお越しください
           </div>
         </div>
       </div>
@@ -1276,7 +1276,7 @@ function LandingReportPanel() {
       </article>
 
       <article className="rounded-xl border border-slate-200 bg-white p-5 shadow-[0_14px_40px_rgba(15,23,42,0.05)]">
-        <h3 className="text-sm font-extrabold text-slate-950">FAQランキング</h3>
+        <h3 className="text-sm font-extrabold text-slate-950">よく見られているQ&A</h3>
         <div className="mt-4 space-y-3">
           {LP_QA_RANKING.map((row, index) => (
             <div key={row.question} className="grid grid-cols-[24px_1fr_auto] items-center gap-2 text-xs">
@@ -1317,7 +1317,7 @@ function LandingReportPanel() {
       </article>
 
       <article className="rounded-xl border border-[#ffd8cf] bg-[#fff5f2] p-5 shadow-[0_14px_40px_rgba(254,97,71,0.07)]">
-        <h3 className="text-sm font-extrabold text-[#fe6147]">おすすめの改善アクション</h3>
+        <h3 className="text-sm font-extrabold text-[#fe6147]">おすすめの改善ポイント</h3>
         <div className="mt-4 space-y-3">
           {LP_REPORT_INSIGHTS.map(({ title, tone }) => (
             <div key={title} className="flex gap-2 text-xs font-bold leading-5 text-slate-700">
@@ -1330,7 +1330,7 @@ function LandingReportPanel() {
           href={LOGIN_HREF}
           className="mt-5 inline-flex min-h-[40px] w-full items-center justify-center gap-2 rounded-lg bg-[#fe6147] text-xs font-extrabold text-white shadow-[0_12px_26px_rgba(254,97,71,0.2)] transition hover:bg-[#e94f36]"
         >
-          レポートを詳しく見る
+          レポートを見る
           <ChevronRight className="h-4 w-4" aria-hidden="true" />
         </a>
       </article>
@@ -1383,11 +1383,11 @@ function LandingPageDesigned() {
             <h1 className="text-[39px] font-extrabold leading-[1.12] tracking-normal text-slate-950 sm:text-[56px] lg:text-[50px] xl:text-[56px]">
               <span className="block">ダンススクールの</span>
               <span className="block text-[#fe6147]">体験予約を増やす</span>
-              <span className="block">運用システム</span>
+              <span className="block">管理ツール</span>
             </h1>
             <p className="mt-6 max-w-[520px] text-base font-semibold leading-8 text-slate-700">
               Q&amp;Aチャットボット、相性診断、予約フォーム、運用レポートをひとつに。
-              問い合わせ対応を減らしながら、迷っている見込み客を体験予約へつなげます。
+              問い合わせ対応の手間を減らしながら、体験予約まで迷わず進める流れをつくります。
             </p>
             <div className="mt-7 flex flex-col gap-3 sm:flex-row">
               <Link
@@ -1414,8 +1414,8 @@ function LandingPageDesigned() {
       <section className="relative border-b border-slate-200 bg-white py-12 sm:py-14">
         <div className="relative mx-auto max-w-[1220px] px-5 sm:px-8">
           <LandingSectionTitle
-            title="予約につながる導線を、下支えします"
-            subtitle="問い合わせ対応、診断案内、フォーム後の通知までをひとつの流れで整えます。"
+            title="問い合わせから体験予約まで、スムーズにつなげます"
+            subtitle="問い合わせ対応、診断案内、申込後の連絡までをひとつの流れで整えます。"
           />
           <div className="mt-8 grid gap-5 md:grid-cols-3">
             {LP_VALUE_CARDS.map(({ value, label, text, icon: Icon, tone }) => (
@@ -1445,7 +1445,7 @@ function LandingPageDesigned() {
 
       <section className="border-b border-slate-100 bg-white py-12">
         <div className="mx-auto max-w-[1220px] px-5 sm:px-8">
-          <LandingSectionTitle title="こんなお悩み、ありませんか？" />
+          <LandingSectionTitle title="こんなお悩みはありませんか？" />
           <div className="mt-8 grid gap-5 md:grid-cols-4">
             {LP_PROBLEMS.map(({ title, text, icon: Icon, tone }) => (
               <article key={title} className="rounded-xl border border-slate-200 bg-white p-5 shadow-[0_12px_36px_rgba(15,23,42,0.05)]">
@@ -1463,8 +1463,8 @@ function LandingPageDesigned() {
       <section id="features" className="border-b border-slate-100 bg-white py-12 sm:py-14">
         <div className="mx-auto max-w-[1220px] px-5 sm:px-8">
           <LandingSectionTitle
-            title="問い合わせから予約後対応まで、ひとつの導線で管理"
-            subtitle="サイト訪問者が迷うポイントを先回りして解消し、予約フォームまでの流れをデータで改善できます。"
+            title="問い合わせから申込後の連絡まで、まとめて管理"
+            subtitle="サイト訪問者が迷いやすいポイントを先回りして解消し、体験予約までの流れをデータで改善できます。"
           />
           <div className="mt-9 grid gap-5 lg:grid-cols-[0.88fr_1.55fr]">
             <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-[0_12px_36px_rgba(15,23,42,0.05)]">
@@ -1514,8 +1514,8 @@ function LandingPageDesigned() {
       <section id="reports" className="border-b border-slate-100 bg-white py-12 sm:py-14">
         <div className="mx-auto max-w-[1220px] px-5 sm:px-8">
           <LandingSectionTitle
-            title="データで現状を把握し、改善アクションへ"
-            subtitle="運用レポートで成果と課題を可視化し、次にやるべきことを明確にします。"
+            title="データで現状を把握し、次の改善へ"
+            subtitle="運用レポートで成果と課題を確認し、次にやるべきことを明確にします。"
           />
           <div className="mt-9">
             <LandingReportPanel />
@@ -1525,7 +1525,7 @@ function LandingPageDesigned() {
 
       <section id="workflow" className="border-b border-slate-100 bg-white py-12 sm:py-14">
         <div className="mx-auto max-w-[1120px] px-5 sm:px-8">
-          <LandingSectionTitle title="導入の流れ" />
+          <LandingSectionTitle title="はじめ方" />
           <div className="mt-9 grid gap-7 md:grid-cols-[1fr_auto_1fr_auto_1fr] md:items-center">
             {LP_WORKFLOW.map(({ title, text, icon: Icon }, index) => (
               <div key={title} className="contents">
@@ -1562,10 +1562,10 @@ function LandingPageDesigned() {
           />
           <div className="relative">
             <h2 className="text-2xl font-extrabold tracking-normal text-slate-950 sm:text-[28px]">
-              迷っている見込み客を、体験予約へ
+              迷っているお客様を、体験予約へ
             </h2>
             <p className="mt-3 text-sm font-semibold text-slate-600">
-              まずは管理画面から、今の状況をチェックしてみましょう。
+              まずは管理画面で、今の状況を確認しましょう。
             </p>
           </div>
           <div className="relative flex flex-col gap-3 sm:flex-row">
@@ -1593,11 +1593,11 @@ function LandingPageDesigned() {
           <div>
             <img src="/logo.svg" alt="rizbo" width={94} height={30} className="h-7 w-auto" />
             <p className="mt-4 max-w-[260px] text-xs font-semibold leading-6 text-slate-500">
-              ダンススクールの運用を、もっとシンプルに。問い合わせ対応を減らし、体験予約を増やす運用システムです。
+              ダンススクールの運用を、もっとシンプルに。問い合わせ対応を減らし、体験予約につながる流れを整える管理ツールです。
             </p>
           </div>
           {[
-            { title: "プロダクト", links: ["機能一覧", "導入の流れ", "運用レポート"] },
+            { title: "プロダクト", links: ["機能一覧", "はじめ方", "運用レポート"] },
             { title: "サポート", links: ["ヘルプセンター", "お問い合わせ", "利用規約"] },
             { title: "会社情報", links: ["運営会社", "プライバシーポリシー"] },
           ].map((column) => (
