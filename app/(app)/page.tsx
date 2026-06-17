@@ -16,6 +16,10 @@ import {
   Copy,
   MessageSquare,
   BarChart3,
+  Bot,
+  FileText,
+  Filter,
+  LineChart,
   MousePointerClick,
   Settings,
   Mail,
@@ -26,6 +30,8 @@ import {
   ChevronDown,
   ChevronUp,
   Phone,
+  Search,
+  Target,
 } from "lucide-react";
 
 type UserWithSchool = {
@@ -144,166 +150,159 @@ const LOGIN_HREF = "/login";
 
 const LP_NAV = [
   { href: "#features", label: "機能" },
-  { href: "#workflow", label: "導入の流れ" },
   { href: "#reports", label: "運用レポート" },
-  { href: "#cta", label: "始める" },
+  { href: "#workflow", label: "導入の流れ" },
+  { href: "#cta", label: "導入事例" },
+  { href: "#cta", label: "よくあるご質問" },
 ];
 
-const LP_HERO_METRICS = [
+const LP_HERO_CHECKS = [
   {
-    value: "24h",
-    label: "問い合わせ自動応答",
-    text: "24時間自動応答で問い合わせ対応を削減",
+    text: "Q&Aチャットボットで24時間自動対応",
     icon: MessageSquare,
-    color: "text-[#fe6147] bg-[#fff0ec]",
   },
   {
-    value: "1導線",
-    label: "診断から予約まで統合",
-    text: "診断で最適なクラスへ案内",
+    text: "診断コンテンツで興味・関心を可視化",
     icon: MousePointerClick,
-    color: "text-emerald-700 bg-emerald-50",
   },
   {
-    value: "30日",
-    label: "ログを見て改善",
-    text: "フォーム送信とメール通知を自動化",
-    icon: BarChart3,
-    color: "text-blue-700 bg-blue-50",
+    text: "フォーム一体管理で取りこぼしゼロ",
+    icon: Mail,
+  },
+  {
+    text: "運用レポートで改善点を明確化",
+    icon: LineChart,
   },
 ];
 
 const LP_PROBLEMS = [
   {
-    title: "同じ質問への対応に時間が取られる",
-    text: "営業時間外の問い合わせや体験前の不安に、スタッフが個別対応している。",
+    title: "問い合わせ対応に時間がかかりスタッフの負担が大きい",
+    text: "よくある質問や体験前の不安に毎回個別対応している。",
     icon: MessageSquare,
-    color: "text-[#fe6147] bg-[#fff0ec]",
   },
   {
-    title: "どのクラスが合うか分からず離脱する",
-    text: "初心者・経験者・年齢・目的ごとの案内が難しく、予約前の迷いが残る。",
-    icon: MousePointerClick,
-    color: "text-emerald-700 bg-emerald-50",
+    title: "体験予約までの導線で多くの人が離脱してしまう",
+    text: "興味を持った見込み客が予約フォームに進む前に迷ってしまう。",
+    icon: Filter,
   },
   {
-    title: "フォーム後の対応が属人化する",
-    text: "申込内容の確認、通知、返信、日程調整が手作業になりやすい。",
-    icon: Mail,
-    color: "text-blue-700 bg-blue-50",
+    title: "どこを改善すべきか分からず施策の効果も見えない",
+    text: "質問、診断、フォーム、予約のデータが分散している。",
+    icon: LineChart,
   },
   {
-    title: "改善すべきポイントが見えない",
-    text: "どこで迷われたか、どの質問が多いか、予約につながったかを追えない。",
-    icon: BarChart3,
-    color: "text-amber-700 bg-amber-50",
-  },
-];
-
-const LP_HERO_FLOW = [
-  {
-    title: "Q&A",
-    text: "質問に即答",
-    icon: MessageSquare,
-    color: "text-[#fe6147] bg-[#fff0ec] border-[#ffd5cc]",
-  },
-  {
-    title: "診断",
-    text: "相性を提案",
-    icon: MousePointerClick,
-    color: "text-emerald-700 bg-emerald-50 border-emerald-100",
-  },
-  {
-    title: "フォーム",
-    text: "申込を受付",
-    icon: Mail,
-    color: "text-blue-700 bg-blue-50 border-blue-100",
-  },
-  {
-    title: "レポート",
-    text: "改善点を表示",
-    icon: BarChart3,
-    color: "text-amber-700 bg-amber-50 border-amber-100",
+    title: "レポート作成が手作業で時間がかかる",
+    text: "週次・月次の確認に時間がかかり、改善実行が後回しになる。",
+    icon: FileText,
   },
 ];
 
 const LP_FEATURES = [
   {
-    title: "AIチャットボット",
-    text: "料金、アクセス、持ち物、体験の流れなどをサイト上で即時回答。よくある質問は管理画面から更新できます。",
-    icon: MessageSquare,
-    color: "text-[#fe6147] bg-[#fff0ec]",
+    title: "Q&Aチャットボット",
+    text: "よくある質問に自動で回答し、疑問を解消。回答ログからニーズを把握できます。",
+    icon: Bot,
+    miniTitle: "よくある質問",
+    miniValue: "体験レッスンの持ち物は？",
   },
   {
-    title: "パーソナル診断",
-    text: "年齢、目的、経験、ジャンルの好みから、来校前のユーザーに合うクラスや講師を提案します。",
+    title: "診断コンテンツ",
+    text: "目的やレベルに合わせて最適なクラスを提案。体験予約の確度を高めます。",
     icon: MousePointerClick,
-    color: "text-emerald-700 bg-emerald-50",
+    miniTitle: "あなたにおすすめ",
+    miniValue: "K-POPダンス 92%",
   },
   {
-    title: "フォーム自動化",
-    text: "体験予約フォーム、管理者通知、自動返信メールを連携。申込後の対応漏れを防ぎます。",
+    title: "フォーム一体管理",
+    text: "入力完了までの離脱ポイントを可視化し、通知まで一気通貫で運用できます。",
     icon: Mail,
-    color: "text-blue-700 bg-blue-50",
+    miniTitle: "入力ステップ",
+    miniValue: "離脱率 27.4%",
   },
   {
     title: "運用レポート",
-    text: "Q&Aログ、診断ファネル、フォーム到達率、申込数を確認し、改善の優先順位を判断できます。",
+    text: "ファネル、CVR、Q&Aログなど成果指標を自動集計し、改善アクションを提示します。",
     icon: BarChart3,
-    color: "text-slate-800 bg-slate-100",
+    miniTitle: "体験予約CVR",
+    miniValue: "2.74%",
+  },
+  {
+    title: "改善アクション提案",
+    text: "データに基づき、優先度の高い改善施策をレコメンド。PDCAを回しやすくします。",
+    icon: Target,
+    miniTitle: "次にやること",
+    miniValue: "フォーム項目を見直す",
   },
 ];
 
 const LP_WORKFLOW = [
   {
-    title: "埋め込み",
-    text: "発行されたスクリプトを既存サイトへ追加します。",
-    icon: Copy,
-  },
-  {
-    title: "設定・公開",
-    text: "FAQ、診断、フォーム、通知メールを管理画面で整えます。",
+    title: "導入・初期設定",
+    text: "Q&A、診断、フォームを簡単に設定。最短翌日で運用を開始できます。",
     icon: Settings,
   },
   {
-    title: "自動対応",
-    text: "サイト訪問者の疑問や迷いを、その場で予約導線へつなげます。",
+    title: "データ収集・可視化",
+    text: "ユーザー行動を自動で計測し、ダッシュボードでリアルタイムに可視化。",
     icon: Activity,
   },
   {
-    title: "分析・改善",
-    text: "ログとファネルから、次に直すべき箇所を把握します。",
-    icon: TrendingDown,
+    title: "分析・改善提案",
+    text: "データから課題を特定し、優先度の高い改善施策をレコメンド。",
+    icon: Search,
+  },
+  {
+    title: "改善実行・成果向上",
+    text: "施策を実行し、成果を検証。継続的にCVRを高めて体験予約を増やします。",
+    icon: Target,
   },
 ];
 
-const LP_REPORT_CARDS = [
-  ["Q&Aログ", "よく見られる質問と未回答を確認"],
-  ["診断ファネル", "離脱ステップとフォーム到達を把握"],
-  ["申込状況", "体験予約の成果を追跡"],
-];
-
-const LP_REPORT_METRICS = [
-  { label: "Q&Aセッション", value: "142", note: "質問傾向を集計" },
-  { label: "フォーム到達率", value: "38%", note: "結果画面からの移動" },
-  { label: "申込数", value: "16", note: "直近30日" },
+const LP_DASHBOARD_METRICS = [
+  { label: "体験予約数", value: "352", delta: "+24.3%" },
+  { label: "体験予約CVR", value: "2.74%", delta: "+0.56pt" },
+  { label: "Q&A解決率", value: "56.2%", delta: "+6.1pt" },
+  { label: "診断完了率", value: "53.8%", delta: "+5.3pt" },
 ];
 
 const LP_FUNNEL_STEPS = [
-  { label: "診断開始", rate: 100 },
-  { label: "結果表示", rate: 78 },
-  { label: "フォーム到達", rate: 38 },
-  { label: "申込完了", rate: 16 },
+  { label: "セッション", value: "12,842", rate: 100 },
+  { label: "Q&A開始", value: "7,216", rate: 56.2 },
+  { label: "診断開始", value: "2,467", rate: 19.2 },
+  { label: "診断完了", value: "1,326", rate: 10.3 },
+  { label: "フォーム送信", value: "538", rate: 4.2 },
+  { label: "体験予約", value: "352", rate: 2.7 },
+];
+
+const LP_QA_RANKING = [
+  { question: "体験レッスンの持ち物は？", count: "1,246", rate: "92%" },
+  { question: "料金はいくらですか？", count: "987", rate: "85%" },
+  { question: "初心者でも大丈夫？", count: "812", rate: "93%" },
+  { question: "レッスンのスケジュールは？", count: "623", rate: "88%" },
+  { question: "駐車場はありますか？", count: "512", rate: "90%" },
+];
+
+const LP_CHANNEL_ROWS = [
+  { channel: "オーガニック検索", bookings: "168", cvr: "2.91%" },
+  { channel: "ダイレクト", bookings: "102", cvr: "3.21%" },
+  { channel: "Instagram", bookings: "56", cvr: "2.18%" },
+  { channel: "Googleビジネスプロフィール", bookings: "19", cvr: "3.04%" },
+  { channel: "その他", bookings: "7", cvr: "1.63%" },
 ];
 
 const LP_REPORT_INSIGHTS = [
   {
-    title: "未回答FAQを追加",
-    text: "料金・振替・体験時の持ち物に関する質問が増えています。",
+    title: "診断の離脱改善",
+    text: "Q&A導線の最適化 / フォーム項目の見直し",
   },
   {
-    title: "結果画面のCTAを見直し",
-    text: "フォーム到達前の離脱が大きいステップを優先的に改善します。",
+    title: "Q&A回答率を改善",
+    text: "未回答の多い質問をFAQへ追加",
+  },
+  {
+    title: "予約導線を強化",
+    text: "結果画面のCTA配置を上部へ移動",
   },
 ];
 
@@ -455,25 +454,264 @@ function ReadinessCard({
   );
 }
 
+function MiniLineChart({ className = "" }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 220 92"
+      className={className}
+      role="img"
+      aria-label="体験予約数の推移"
+    >
+      <path d="M8 70H212" stroke="#eef2f7" strokeWidth="1" />
+      <path d="M8 46H212" stroke="#eef2f7" strokeWidth="1" />
+      <path d="M8 22H212" stroke="#eef2f7" strokeWidth="1" />
+      <path
+        d="M10 70 C28 62 32 38 48 44 S75 64 91 48 111 22 130 28 151 54 169 42 189 20 211 16"
+        fill="none"
+        stroke="#fe6147"
+        strokeLinecap="round"
+        strokeWidth="4"
+      />
+      <path
+        d="M10 76 C31 68 44 64 58 66 S84 70 102 62 134 62 155 58 185 44 211 46"
+        fill="none"
+        stroke="#94a3b8"
+        strokeDasharray="4 5"
+        strokeLinecap="round"
+        strokeWidth="2"
+      />
+    </svg>
+  );
+}
+
+function HeroDashboardPreview() {
+  const nav = ["ダッシュボード", "Q&Aチャット", "診断管理", "フォーム管理", "リード管理", "運用レポート"];
+
+  return (
+    <div className="relative rounded-[18px] border border-slate-200 bg-white shadow-[0_26px_80px_rgba(15,23,42,0.12)]">
+      <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
+        <div className="flex items-center gap-2">
+          <img src="/logo.svg" alt="rizbo" width={86} height={27} className="h-6 w-auto" />
+          <span className="rounded-full bg-slate-100 px-2 py-1 text-[10px] font-bold text-slate-500">
+            dashboard
+          </span>
+        </div>
+        <div className="hidden items-center gap-2 text-[10px] font-semibold text-slate-500 sm:flex">
+          <span className="rounded-md border border-slate-200 px-2 py-1">2026/06/01 - 2026/06/14</span>
+          <span className="rounded-full bg-slate-950 px-2 py-1 text-white">ログアウト</span>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:min-h-[360px] sm:grid-cols-[150px_1fr]">
+        <aside className="hidden border-r border-slate-100 bg-slate-50/80 p-3 sm:block">
+          <div className="space-y-1">
+            {nav.map((item, index) => (
+              <div
+                key={item}
+                className={[
+                  "flex items-center gap-2 rounded-lg px-3 py-2 text-[11px] font-bold",
+                  index === 0
+                    ? "bg-[#fe6147] text-white"
+                    : "text-slate-500",
+                ].join(" ")}
+              >
+                <span className="h-1.5 w-1.5 rounded-full bg-current opacity-70" />
+                {item}
+              </div>
+            ))}
+          </div>
+        </aside>
+
+        <div className="p-4 sm:p-5">
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <div>
+              <div className="text-base font-extrabold text-slate-950">ダッシュボード</div>
+              <div className="mt-1 text-[11px] font-semibold text-slate-400">rizbo dance studio</div>
+            </div>
+            <div className="hidden rounded-lg border border-slate-200 px-3 py-2 text-[11px] font-bold text-slate-500 md:block">
+              直近14日
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2 md:grid-cols-4 md:gap-3">
+            {LP_DASHBOARD_METRICS.map((metric) => (
+              <div key={metric.label} className="rounded-xl border border-slate-100 bg-white p-3 shadow-sm">
+                <div className="text-[10px] font-bold text-slate-400">{metric.label}</div>
+                <div className="mt-2 text-lg font-extrabold tabular-nums text-slate-950 md:text-xl">
+                  {metric.value}
+                </div>
+                <div className="mt-1 text-[10px] font-bold text-emerald-600">
+                  前月比 {metric.delta}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-4 hidden gap-3 sm:grid lg:grid-cols-[1fr_0.84fr]">
+            <div className="rounded-xl border border-slate-100 bg-white p-4 shadow-sm">
+              <div className="mb-3 flex items-center justify-between">
+                <div className="text-xs font-extrabold text-slate-950">体験予約数の推移</div>
+                <LineChart className="h-4 w-4 text-[#fe6147]" aria-hidden="true" />
+              </div>
+              <MiniLineChart className="h-[112px] w-full" />
+            </div>
+
+            <div className="rounded-xl border border-slate-100 bg-white p-4 shadow-sm">
+              <div className="mb-3 text-xs font-extrabold text-slate-950">流入チャネル別 体験予約数</div>
+              <div className="grid grid-cols-[88px_1fr] items-center gap-3">
+                <div className="relative h-20 w-20 rounded-full bg-[conic-gradient(#fe6147_0_34%,#69d3c5_34%_58%,#6b8cff_58%_80%,#e5e7eb_80%_100%)]">
+                  <div className="absolute inset-4 flex items-center justify-center rounded-full bg-white text-lg font-extrabold text-slate-950">
+                    352
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  {["Q&Aチャット", "診断", "フォーム", "その他"].map((item, index) => (
+                    <div key={item} className="grid grid-cols-[8px_1fr_auto] items-center gap-2 text-[10px] font-semibold text-slate-500">
+                      <span
+                        className={[
+                          "h-2 w-2 rounded-full",
+                          ["bg-[#fe6147]", "bg-[#69d3c5]", "bg-[#6b8cff]", "bg-slate-300"][index],
+                        ].join(" ")}
+                      />
+                      <span>{item}</span>
+                      <span>{[168, 102, 56, 26][index]}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-4 hidden gap-3 lg:grid lg:grid-cols-3">
+            {LP_REPORT_INSIGHTS.map((item) => (
+              <div key={item.title} className="rounded-xl border border-slate-100 bg-slate-50 p-3">
+                <div className="text-[11px] font-extrabold text-slate-950">{item.title}</div>
+                <p className="mt-1 text-[10px] leading-4 text-slate-500">{item.text}</p>
+                <a href="#reports" className="mt-2 inline-flex items-center gap-1 text-[10px] font-bold text-[#fe6147]">
+                  詳細を見る
+                  <ChevronRight className="h-3 w-3" aria-hidden="true" />
+                </a>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ReportTablePanel() {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white shadow-[0_18px_55px_rgba(15,23,42,0.08)]">
+      <div className="grid gap-0 lg:grid-cols-[0.88fr_1fr_1fr]">
+        <div className="border-b border-slate-100 p-5 lg:border-b-0 lg:border-r">
+          <div className="mb-4 text-sm font-extrabold text-slate-950">ファネルサマリー</div>
+          <div className="space-y-3">
+            {LP_FUNNEL_STEPS.map((step) => (
+              <div key={step.label} className="grid grid-cols-[92px_1fr_54px] items-center gap-3">
+                <span className="text-xs font-semibold text-slate-500">{step.label}</span>
+                <div className="h-2.5 overflow-hidden rounded-full bg-slate-100">
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-[#fe6147] to-slate-800"
+                    style={{ width: `${Math.max(step.rate, 5)}%` }}
+                  />
+                </div>
+                <span className="text-right text-xs font-bold tabular-nums text-slate-700">
+                  {step.value}
+                </span>
+              </div>
+            ))}
+          </div>
+          <p className="mt-4 text-[11px] leading-5 text-slate-400">
+            CVRはセッションに対する割合
+          </p>
+        </div>
+
+        <div className="border-b border-slate-100 p-5 lg:border-b-0 lg:border-r">
+          <div className="mb-4 flex items-center justify-between">
+            <div className="text-sm font-extrabold text-slate-950">Q&A人気ランキング</div>
+            <span className="text-[11px] font-bold text-slate-400">回答率</span>
+          </div>
+          <div className="divide-y divide-slate-100">
+            {LP_QA_RANKING.map((row) => (
+              <div key={row.question} className="grid grid-cols-[1fr_56px_44px] gap-3 py-2 text-xs">
+                <span className="font-semibold text-slate-700">{row.question}</span>
+                <span className="text-right tabular-nums text-slate-500">{row.count}</span>
+                <span className="text-right font-bold text-slate-700">{row.rate}</span>
+              </div>
+            ))}
+          </div>
+          <a href="#cta" className="mt-3 inline-flex items-center gap-1 text-xs font-bold text-[#fe6147]">
+            すべて見る
+            <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
+          </a>
+        </div>
+
+        <div className="p-5">
+          <div className="mb-4 text-sm font-extrabold text-slate-950">チャネル別 体験予約CVR</div>
+          <div className="divide-y divide-slate-100">
+            {LP_CHANNEL_ROWS.map((row) => (
+              <div key={row.channel} className="grid grid-cols-[1fr_58px_54px] gap-3 py-2 text-xs">
+                <span className="font-semibold text-slate-700">{row.channel}</span>
+                <span className="text-right tabular-nums text-slate-500">{row.bookings}</span>
+                <span className="text-right font-bold text-slate-700">{row.cvr}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="grid gap-0 border-t border-slate-100 lg:grid-cols-[1fr_0.68fr]">
+        <div className="p-5">
+          <div className="mb-4 text-sm font-extrabold text-slate-950">期間ハイライト（2026/06/01 - 2026/06/14）</div>
+          <div className="grid gap-3 sm:grid-cols-4">
+            {LP_DASHBOARD_METRICS.map((metric) => (
+              <div key={metric.label} className="rounded-xl border border-slate-100 bg-slate-50 px-4 py-3">
+                <div className="text-[11px] font-bold text-slate-500">{metric.label}</div>
+                <div className="mt-2 text-2xl font-extrabold tabular-nums text-slate-950">
+                  {metric.value}
+                  <span className="ml-1 text-xs font-bold text-emerald-600">({metric.delta})</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="border-t border-slate-100 p-5 lg:border-l lg:border-t-0">
+          <div className="mb-3 text-sm font-extrabold text-slate-950">主な改善アクション</div>
+          <div className="space-y-2">
+            {LP_REPORT_INSIGHTS.map((item) => (
+              <div key={item.title} className="flex gap-2 text-xs leading-5 text-slate-600">
+                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[#fe6147]" aria-hidden="true" />
+                <span>
+                  <strong className="text-slate-950">{item.title}</strong> / {item.text}
+                </span>
+              </div>
+            ))}
+          </div>
+          <a href="#reports" className="mt-4 inline-flex items-center gap-1 text-xs font-bold text-[#fe6147]">
+            詳細レポートを見る
+            <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
+          </a>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function LandingPage() {
   return (
     <main className="min-h-screen overflow-x-hidden bg-white text-slate-950 selection:bg-[#fe6147]/20">
-      <header className="fixed inset-x-0 top-0 z-50 border-b border-slate-200/70 bg-white/90 backdrop-blur-xl">
-        <div className="mx-auto flex h-16 w-full max-w-[1680px] items-center justify-between px-4 sm:px-6 lg:px-10 xl:px-16 2xl:px-20">
+      <header className="fixed inset-x-0 top-0 z-50 border-b border-slate-200/80 bg-white/95 backdrop-blur-xl">
+        <div className="mx-auto flex h-[70px] w-full max-w-[1440px] items-center justify-between px-5 sm:px-8 lg:px-12">
           <a href="/" className="flex items-center" aria-label="rizbo home">
-            <img
-              src="/logo.svg"
-              alt="rizbo"
-              width={118}
-              height={37}
-              className="h-9 w-auto"
-            />
+            <img src="/logo.svg" alt="rizbo" width={118} height={37} className="h-9 w-auto" />
           </a>
 
-          <nav className="hidden items-center gap-7 text-sm font-semibold text-slate-700 lg:flex">
-            {LP_NAV.map((item) => (
+          <nav className="hidden items-center gap-9 text-sm font-extrabold text-slate-800 lg:flex">
+            {LP_NAV.map((item, index) => (
               <a
-                key={item.href}
+                key={`${item.href}-${item.label}-${index}`}
                 href={item.href}
                 className="transition hover:text-[#fe6147]"
               >
@@ -482,492 +720,221 @@ function LandingPage() {
             ))}
           </nav>
 
-          <div className="flex items-center gap-2">
-            <Link
-              href={LOGIN_HREF}
-              className="hidden min-h-[40px] items-center justify-center rounded-lg border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-800 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 sm:inline-flex"
-            >
-              ログイン
-            </Link>
-            <Link
-              href={LOGIN_HREF}
-              className="inline-flex min-h-[40px] items-center justify-center gap-2 rounded-lg bg-[#fe6147] px-4 text-sm font-bold text-white shadow-sm shadow-[#fe6147]/25 transition hover:bg-[#e94f36] sm:px-5"
-            >
-              管理画面へ
-              <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
-            </Link>
-          </div>
+          <Link
+            href={LOGIN_HREF}
+            className="inline-flex min-h-[42px] items-center justify-center gap-2 rounded-lg border border-[#fe6147] bg-white px-4 text-sm font-extrabold text-[#fe6147] transition hover:bg-[#fff4f0] sm:px-6"
+          >
+            管理画面にログイン
+            <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
+          </Link>
         </div>
       </header>
 
-      <section className="relative overflow-hidden border-b border-slate-200 bg-white">
-        <div className="absolute inset-0 bg-[linear-gradient(115deg,#ffffff_0%,#ffffff_48%,#f8fafc_48%,#f8fafc_100%)]" />
-        <div
-          aria-hidden="true"
-          className="absolute inset-0 opacity-80"
-          style={{
-            backgroundImage:
-              "radial-gradient(circle at 1px 1px, rgba(254,97,71,0.18) 1px, transparent 0)",
-            backgroundSize: "28px 28px",
-            maskImage:
-              "linear-gradient(90deg, rgba(0,0,0,0.38), rgba(0,0,0,0.18) 48%, transparent 78%)",
-            WebkitMaskImage:
-              "linear-gradient(90deg, rgba(0,0,0,0.38), rgba(0,0,0,0.18) 48%, transparent 78%)",
-          }}
-        />
-        <div
-          aria-hidden="true"
-          className="absolute left-0 top-16 h-[620px] w-[54%] opacity-40"
-          style={{
-            backgroundImage:
-              "repeating-linear-gradient(135deg, rgba(254,97,71,0.11) 0px, rgba(254,97,71,0.11) 1px, transparent 1px, transparent 18px)",
-          }}
-        />
-        <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-white to-white/0" />
-
-        <div className="relative mx-auto grid min-h-[700px] max-w-[1680px] items-center gap-8 px-4 pb-8 pt-20 sm:px-6 sm:pt-24 lg:min-h-[660px] lg:grid-cols-[minmax(520px,0.86fr)_minmax(560px,1.14fr)] lg:gap-10 lg:px-10 lg:pt-20 xl:px-16 2xl:px-20">
-          <div className="relative z-10 max-w-[620px] lg:pt-2">
-            <h1 className="text-[42px] font-extrabold leading-[1.06] tracking-normal text-slate-950 sm:text-[56px] lg:text-[52px] xl:text-[70px]">
-              <span className="block whitespace-nowrap">ダンススクールの</span>
-              <span className="block whitespace-nowrap text-[#fe6147]">
-                体験予約を増やす
-              </span>
-              <span className="block whitespace-nowrap">運用システム</span>
-            </h1>
-            <p className="mt-6 max-w-[560px] text-base leading-8 text-slate-600 sm:text-lg">
-              Q&amp;Aチャットボット、相性診断、予約フォーム、運用レポートをひとつに。
-              問い合わせ対応を減らしながら、迷っている見込み客を体験予約へつなげます。
-            </p>
-
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <Link
-                href={LOGIN_HREF}
-                className="inline-flex min-h-[52px] items-center justify-center gap-2 rounded-xl bg-[#fe6147] px-6 text-sm font-bold text-white shadow-lg shadow-[#fe6147]/25 transition hover:bg-[#e94f36]"
-              >
-                管理画面にログイン
-                <ChevronRight className="h-4 w-4" aria-hidden="true" />
-              </Link>
-              <a
-                href="#features"
-                className="inline-flex min-h-[52px] items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-6 text-sm font-bold text-slate-900 shadow-sm transition hover:border-slate-300 hover:bg-slate-50"
-              >
-                機能を見る
-                <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
-              </a>
-            </div>
-
-          </div>
-
-          <div className="relative z-10 min-h-[220px] lg:min-h-[560px]">
-            <div className="absolute -left-8 top-12 z-20 hidden w-[170px] space-y-3 2xl:block">
-              {LP_HERO_FLOW.map(({ title, text, icon: Icon, color }) => (
-                <div
-                  key={title}
-                  className={[
-                    "flex items-center gap-3 rounded-2xl border bg-white/90 px-3 py-2.5 shadow-sm backdrop-blur",
-                    color,
-                  ].join(" ")}
-                >
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/80">
-                    <Icon className="h-4 w-4" aria-hidden="true" />
-                  </div>
-                  <div>
-                    <div className="text-xs font-extrabold text-slate-950">
-                      {title}
-                    </div>
-                    <div className="mt-0.5 text-[11px] font-semibold text-slate-500">
-                      {text}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div className="relative ml-auto w-full max-w-[1040px] rounded-[24px] border border-slate-200 bg-white/95 p-2.5 shadow-[0_32px_90px_rgba(15,23,42,0.14)] backdrop-blur lg:rounded-[30px] lg:p-3">
-              <img
-                src="/lp/mockup.png"
-                alt="rizboの管理画面"
-                width={1478}
-                height={782}
-                className="h-[150px] w-full rounded-[16px] object-cover object-left-top sm:h-[260px] lg:h-auto lg:rounded-[20px]"
-              />
-            </div>
-
-            <div className="absolute bottom-[-8px] right-3 z-30 hidden w-[360px] rounded-2xl border border-slate-200 bg-white/95 p-4 shadow-[0_24px_70px_rgba(15,23,42,0.18)] backdrop-blur lg:block xl:bottom-2 xl:right-10">
-              <div className="mb-4 flex items-center justify-between">
-                <div>
-                  <div className="text-xs font-bold text-slate-500">運用レポート</div>
-                  <div className="mt-1 text-sm font-extrabold text-slate-950">
-                    次に直すポイントを自動で見える化
-                  </div>
-                </div>
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#fff0ec] text-[#fe6147]">
-                  <BarChart3 className="h-5 w-5" aria-hidden="true" />
-                </div>
-              </div>
-              <div className="grid gap-3">
-                {LP_FUNNEL_STEPS.slice(2).map((step) => (
-                  <div
-                    key={step.label}
-                    className="grid grid-cols-[86px_1fr_48px] items-center gap-3"
-                  >
-                    <div className="text-xs font-semibold text-slate-500">
-                      {step.label}
-                    </div>
-                    <div className="h-2 overflow-hidden rounded-full bg-slate-100">
-                      <div
-                        className="h-full rounded-full bg-[#fe6147]"
-                        style={{ width: `${step.rate}%` }}
-                      />
-                    </div>
-                    <div className="text-right text-sm font-extrabold text-slate-950">
-                      {step.rate}%
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div className="mt-4 rounded-xl border border-[#ffd5cc] bg-[#fff6f3] p-3">
-                <div className="flex items-center gap-2 text-xs font-bold text-[#c84732]">
-                  <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
-                  改善候補
-                </div>
-                <p className="mt-1 text-xs leading-5 text-slate-600">
-                  結果画面の予約CTAと未回答FAQを優先して更新します。
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="relative overflow-hidden border-b border-slate-200 bg-white py-10 sm:py-12">
+      <section className="relative overflow-hidden border-b border-slate-200 bg-white pt-[70px]">
         <div
           aria-hidden="true"
           className="absolute inset-0 opacity-70"
           style={{
             backgroundImage:
-              "radial-gradient(circle at 1px 1px, rgba(15,23,42,0.08) 1px, transparent 0)",
+              "radial-gradient(circle at 1px 1px, rgba(15,23,42,0.06) 1px, transparent 0)",
             backgroundSize: "26px 26px",
-            maskImage:
-              "linear-gradient(180deg, rgba(0,0,0,0.6), transparent 85%)",
-            WebkitMaskImage:
-              "linear-gradient(180deg, rgba(0,0,0,0.6), transparent 85%)",
+            maskImage: "linear-gradient(90deg, rgba(0,0,0,0.45), transparent 72%)",
+            WebkitMaskImage: "linear-gradient(90deg, rgba(0,0,0,0.45), transparent 72%)",
           }}
         />
-        <div className="relative mx-auto max-w-7xl px-4 sm:px-6">
-          <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-            <div>
-              <h2 className="text-2xl font-extrabold tracking-normal text-slate-950 sm:text-3xl">
-                予約につながる導線を、下支えします
-              </h2>
-              <p className="mt-2 max-w-2xl text-sm leading-7 text-slate-600">
-                問い合わせ対応、診断案内、フォーム後の通知までをひとつの流れで整えます。
+        <div
+          aria-hidden="true"
+          className="absolute inset-y-[70px] left-0 w-[44%] opacity-50"
+          style={{
+            backgroundImage:
+              "repeating-linear-gradient(135deg, rgba(254,97,71,0.10) 0px, rgba(254,97,71,0.10) 1px, transparent 1px, transparent 18px)",
+          }}
+        />
+
+        <div className="relative mx-auto grid min-h-[650px] max-w-[1440px] items-center gap-8 px-5 py-10 sm:px-8 lg:grid-cols-[0.44fr_0.56fr] lg:px-12 lg:py-12">
+          <div className="max-w-[520px]">
+            <h1 className="text-[42px] font-extrabold leading-[1.12] tracking-normal text-slate-950 sm:text-[58px] lg:text-[56px] xl:text-[58px]">
+              <span className="block whitespace-nowrap">体験予約を増やす</span>
+              <span className="block whitespace-nowrap">運用システム</span>
+            </h1>
+            <p className="mt-6 text-base font-medium leading-8 text-slate-700 sm:text-lg">
+              Q&amp;Aで疑問を解消し、診断で興味を高め、フォームで申し込みへ。
+              すべての接点をデータで可視化し、成果を最大化します。
+            </p>
+
+            <div className="mt-7 grid gap-4 sm:grid-cols-2">
+              {LP_HERO_CHECKS.map(({ text, icon: Icon }) => (
+                <div key={text} className="flex items-start gap-2 text-sm font-bold leading-6 text-slate-700">
+                  <span className="mt-1 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[#fe6147] text-white">
+                    <CheckCircle2 className="h-3 w-3" aria-hidden="true" />
+                  </span>
+                  <span>{text}</span>
+                  <Icon className="sr-only" aria-hidden="true" />
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-8">
+              <Link
+                href={LOGIN_HREF}
+                className="inline-flex min-h-[56px] w-full max-w-[390px] items-center justify-center gap-3 rounded-lg bg-[#fe6147] px-7 text-base font-extrabold text-white shadow-[0_14px_30px_rgba(254,97,71,0.22)] transition hover:bg-[#e94f36]"
+              >
+                管理画面にログイン
+                <ChevronRight className="h-5 w-5" aria-hidden="true" />
+              </Link>
+              <p className="mt-3 text-xs font-semibold text-slate-400">
+                ログインが必要です
               </p>
             </div>
-            <a
-              href="#features"
-              className="inline-flex min-h-[42px] items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-sm font-bold text-slate-900 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 md:shrink-0"
-            >
-              詳しく見る
-              <ChevronRight className="h-4 w-4" aria-hidden="true" />
-            </a>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-3">
-            {LP_HERO_METRICS.map(({ value, label, text, icon: Icon, color }) => (
-              <article
-                key={label}
-                className="rounded-2xl border border-slate-200 bg-white/95 p-5 shadow-sm backdrop-blur"
-              >
-                <div className="mb-5 flex items-start justify-between gap-4">
-                  <div>
-                    <div className="text-3xl font-extrabold tracking-normal text-slate-950">
-                      {value}
-                    </div>
-                    <h3 className="mt-2 text-sm font-bold text-slate-700">
-                      {label}
-                    </h3>
-                  </div>
-                  <div
-                    className={[
-                      "flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl",
-                      color,
-                    ].join(" ")}
-                  >
-                    <Icon className="h-5 w-5" aria-hidden="true" />
-                  </div>
-                </div>
-                <div className="flex items-start gap-2 text-sm font-semibold leading-6 text-slate-700">
-                  <CheckCircle2
-                    className="mt-1 h-4 w-4 shrink-0 text-[#fe6147]"
-                    aria-hidden="true"
-                  />
-                  <span>{text}</span>
-                </div>
-              </article>
-            ))}
+          <div className="relative">
+            <HeroDashboardPreview />
           </div>
         </div>
       </section>
 
       <section className="border-b border-slate-200 bg-white">
-        <div className="mx-auto grid max-w-7xl gap-5 px-4 py-6 sm:px-6 sm:py-7 lg:grid-cols-[190px_1fr_220px] lg:items-center">
-          <h2 className="text-xl font-bold leading-8 text-slate-950">
-            こんなお悩み、
-            <br className="hidden lg:block" />
-            ありませんか？
+        <div className="mx-auto max-w-[1440px] px-5 py-10 sm:px-8 lg:px-12">
+          <h2 className="text-center text-2xl font-extrabold tracking-normal text-slate-950">
+            こんなお悩みはありませんか？
           </h2>
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            {LP_PROBLEMS.map(({ title, text, icon: Icon, color }) => (
-              <div key={title} className="flex gap-3">
-                <div
-                  className={[
-                    "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl",
-                    color,
-                  ].join(" ")}
-                >
-                  <Icon className="h-4 w-4" aria-hidden="true" />
+          <div className="mt-8 grid gap-0 overflow-hidden rounded-2xl border border-slate-200 bg-white md:grid-cols-4">
+            {LP_PROBLEMS.map(({ title, text, icon: Icon }) => (
+              <article key={title} className="border-b border-slate-200 p-6 text-center md:border-b-0 md:border-r last:md:border-r-0">
+                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl text-slate-800">
+                  <Icon className="h-8 w-8 stroke-[1.7]" aria-hidden="true" />
                 </div>
-                <div>
-                  <h3 className="text-sm font-bold text-slate-950">
-                    {title}
-                  </h3>
-                  <p className="mt-1 text-xs leading-5 text-slate-500">
-                    {text}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-          <div className="flex items-center gap-2 rounded-xl bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-800">
-            <CheckCircle2 className="h-5 w-5 shrink-0" aria-hidden="true" />
-            rizboがまとめて解決
-          </div>
-        </div>
-      </section>
-
-      <section id="features" className="bg-white py-20 sm:py-24">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6">
-          <div className="grid gap-10 lg:grid-cols-[0.85fr_1.15fr] lg:items-start">
-            <div>
-              <h2 className="text-3xl font-extrabold tracking-normal text-slate-950 sm:text-4xl">
-                問い合わせから予約後対応まで、ひとつの導線で管理
-              </h2>
-              <p className="mt-4 text-base leading-8 text-slate-600">
-                サイト訪問者が迷うポイントを先回りして解消し、予約フォームまでの流れをデータで改善できます。
-              </p>
-              <div className="mt-7 rounded-2xl border border-slate-200 bg-slate-50 p-5">
-                <div className="text-sm font-bold text-slate-950">
-                  予約につながる導線
-                </div>
-                <div className="mt-4 space-y-3">
-                  {["疑問にすぐ答える", "合うクラスを提案する", "申込後の通知を自動化する", "ログから改善する"].map(
-                    (item, index) => (
-                      <div key={item} className="flex items-center gap-3">
-                        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white text-xs font-bold text-[#fe6147] ring-1 ring-slate-200">
-                          {index + 1}
-                        </span>
-                        <span className="text-sm font-semibold text-slate-700">
-                          {item}
-                        </span>
-                      </div>
-                    ),
-                  )}
-                </div>
-              </div>
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              {LP_FEATURES.map(({ title, text, icon: Icon, color }) => (
-                <article
-                  key={title}
-                  className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
-                >
-                  <div
-                    className={[
-                      "mb-5 flex h-11 w-11 items-center justify-center rounded-xl",
-                      color,
-                    ].join(" ")}
-                  >
-                    <Icon className="h-5 w-5" aria-hidden="true" />
-                  </div>
-                  <h3 className="text-lg font-bold text-slate-950">{title}</h3>
-                  <p className="mt-3 text-sm leading-7 text-slate-600">
-                    {text}
-                  </p>
-                </article>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section id="workflow" className="border-y border-slate-200 bg-slate-50 py-20">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6">
-          <div className="mb-10 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-            <div>
-              <h2 className="text-3xl font-extrabold tracking-normal text-slate-950">
-                導入から改善までの流れ
-              </h2>
-              <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-600">
-                既存サイトに埋め込み、管理画面で設定し、運用ログを見ながら改善します。
-              </p>
-            </div>
-            <a
-              href="#cta"
-              className="inline-flex min-h-[42px] items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-sm font-bold text-slate-900 shadow-sm transition hover:border-slate-300 hover:bg-slate-50"
-            >
-              利用を始める
-              <ChevronRight className="h-4 w-4" aria-hidden="true" />
-            </a>
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-4">
-            {LP_WORKFLOW.map(({ title, text, icon: Icon }, index) => (
-              <article
-                key={title}
-                className="relative rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
-              >
-                <div className="mb-5 flex items-center justify-between">
-                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#fe6147] text-sm font-bold text-white">
-                    {index + 1}
-                  </span>
-                  <Icon className="h-5 w-5 text-slate-400" aria-hidden="true" />
-                </div>
-                <h3 className="text-base font-bold text-slate-950">{title}</h3>
-                <p className="mt-2 text-sm leading-6 text-slate-600">{text}</p>
+                <h3 className="mt-4 text-sm font-extrabold leading-6 text-slate-950">
+                  {title}
+                </h3>
+                <p className="mt-2 text-xs leading-6 text-slate-500">
+                  {text}
+                </p>
               </article>
             ))}
           </div>
         </div>
       </section>
 
-      <section id="reports" className="bg-white py-20 sm:py-24">
-        <div className="mx-auto grid max-w-7xl gap-10 px-4 sm:px-6 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
-          <div>
-            <h2 className="text-3xl font-extrabold tracking-normal text-slate-950 sm:text-4xl">
-              勘ではなく、ログで改善できます
-            </h2>
-            <p className="mt-4 text-base leading-8 text-slate-600">
-              未回答ログ、診断ファネル、フォーム到達率、申込数をまとめて確認。
-              次に直すべきFAQ、診断、フォーム項目が分かります。
-            </p>
-            <div className="mt-7 grid gap-3 sm:grid-cols-3">
-              {LP_REPORT_CARDS.map(([title, text]) => (
-                <div
-                  key={title}
-                  className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
-                >
-                  <div className="text-sm font-bold text-slate-950">{title}</div>
-                  <div className="mt-1 text-xs leading-5 text-slate-500">
-                    {text}
-                  </div>
+      <section id="features" className="border-b border-slate-200 bg-white py-14 sm:py-16">
+        <div className="mx-auto max-w-[1440px] px-5 sm:px-8 lg:px-12">
+          <h2 className="text-center text-3xl font-extrabold tracking-normal text-slate-950">
+            rizboでできること
+          </h2>
+          <div className="mt-9 grid gap-0 overflow-hidden rounded-2xl border border-slate-200 bg-white lg:grid-cols-5">
+            {LP_FEATURES.map(({ title, text, icon: Icon, miniTitle, miniValue }, index) => (
+              <article
+                key={title}
+                className="border-b border-slate-200 p-5 lg:border-b-0 lg:border-r last:lg:border-r-0"
+              >
+                <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#fff0ec] text-[#fe6147]">
+                  <Icon className="h-7 w-7 stroke-[1.8]" aria-hidden="true" />
                 </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4 shadow-[0_22px_70px_rgba(15,23,42,0.12)]">
-            <div className="rounded-2xl bg-white p-5 shadow-sm">
-              <div className="mb-5 flex items-center justify-between">
-                <div>
-                  <div className="text-sm font-bold text-slate-950">
-                    運用レポート
-                  </div>
-                  <div className="text-xs text-slate-500">直近30日の状況</div>
-                </div>
-                <BarChart3 className="h-5 w-5 text-[#fe6147]" aria-hidden="true" />
-              </div>
-              <div className="grid gap-3 sm:grid-cols-3">
-                {LP_REPORT_METRICS.map((metric) => (
-                  <div key={metric.label} className="rounded-xl bg-slate-50 p-4">
-                    <div className="text-xs font-semibold text-slate-500">
-                      {metric.label}
-                    </div>
-                    <div className="mt-2 text-2xl font-extrabold text-slate-950">
-                      {metric.value}
-                    </div>
-                    <div className="mt-1 text-[11px] font-semibold leading-4 text-slate-400">
-                      {metric.note}
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div className="mt-5 space-y-3">
-                {LP_FUNNEL_STEPS.map((step) => (
-                  <div key={step.label} className="grid grid-cols-[92px_1fr_44px] items-center gap-3">
-                    <div className="text-xs font-semibold text-slate-600">
-                      {step.label}
-                    </div>
-                    <div className="h-2.5 overflow-hidden rounded-full bg-slate-100">
-                      <div
-                        className="h-full rounded-full bg-[#fe6147]"
-                        style={{ width: `${step.rate}%` }}
-                      />
-                    </div>
-                    <div className="text-right text-xs font-bold text-slate-700">
-                      {step.rate}%
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div className="mt-6 border-t border-slate-100 pt-5">
-                <div className="mb-3 flex items-center justify-between gap-3">
-                  <div className="text-sm font-bold text-slate-950">
-                    改善候補
-                  </div>
-                  <span className="rounded-full bg-[#fff0ec] px-2.5 py-1 text-[11px] font-bold text-[#c84732]">
-                    優先度順
-                  </span>
-                </div>
-                <div className="space-y-3">
-                  {LP_REPORT_INSIGHTS.map((item, index) => (
-                    <div
-                      key={item.title}
-                      className="grid grid-cols-[28px_1fr] gap-3 rounded-xl border border-slate-100 bg-white p-3"
-                    >
-                      <div className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-950 text-xs font-bold text-white">
-                        {index + 1}
-                      </div>
-                      <div>
-                        <div className="text-sm font-bold text-slate-950">
-                          {item.title}
+                <h3 className="text-base font-extrabold text-slate-950">{title}</h3>
+                <p className="mt-3 min-h-[84px] text-xs leading-6 text-slate-600">
+                  {text}
+                </p>
+                <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-3">
+                  <div className="text-[11px] font-bold text-slate-500">{miniTitle}</div>
+                  <div className="mt-2 text-sm font-extrabold text-slate-950">{miniValue}</div>
+                  {index === 1 && (
+                    <div className="mt-2 space-y-1">
+                      {["HIPHOP", "JAZZ"].map((label, i) => (
+                        <div key={label} className="flex items-center gap-2">
+                          <span className="w-12 text-[10px] font-bold text-slate-500">{label}</span>
+                          <div className="h-1.5 flex-1 rounded-full bg-slate-200">
+                            <div className="h-full rounded-full bg-[#fe6147]" style={{ width: `${78 - i * 13}%` }} />
+                          </div>
                         </div>
-                        <p className="mt-1 text-xs leading-5 text-slate-500">
-                          {item.text}
-                        </p>
-                      </div>
+                      ))}
                     </div>
-                  ))}
+                  )}
+                  {index === 3 && <MiniLineChart className="mt-1 h-12 w-full" />}
+                  {index === 4 && (
+                    <div className="mt-2 space-y-1">
+                      {["診断の設問を見直す", "Q&A回答率に導線を設置"].map((item) => (
+                        <div key={item} className="flex items-center gap-1 text-[10px] font-semibold text-slate-500">
+                          <CheckCircle2 className="h-3 w-3 text-[#fe6147]" aria-hidden="true" />
+                          {item}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              </div>
-            </div>
+              </article>
+            ))}
           </div>
         </div>
       </section>
 
-      <section id="cta" className="bg-slate-950 px-4 py-16 text-white sm:px-6">
-        <div className="mx-auto flex max-w-5xl flex-col gap-8 md:flex-row md:items-center md:justify-between">
-          <div>
-            <h2 className="text-3xl font-extrabold tracking-normal sm:text-4xl">
-              今日から、体験予約の導線を改善しましょう
-            </h2>
-            <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-300">
-              1行のスクリプトを既存サイトに埋め込むだけで、Q&amp;A、診断、フォーム、分析をまとめて運用できます。
-            </p>
+      <section id="reports" className="border-b border-slate-200 bg-white py-14 sm:py-16">
+        <div className="mx-auto max-w-[1440px] px-5 sm:px-8 lg:px-12">
+          <h2 className="text-center text-3xl font-extrabold tracking-normal text-slate-950">
+            運用レポートで、施策の成果と改善点がすぐわかる
+          </h2>
+          <p className="mx-auto mt-4 max-w-3xl text-center text-sm leading-7 text-slate-600">
+            ファネル、Q&amp;A、流入チャネル、期間ハイライトをひとつの画面で確認。
+            次に直すべきポイントまで運用者がすぐ判断できます。
+          </p>
+          <div className="mt-9">
+            <ReportTablePanel />
           </div>
-          <Link
-            href={LOGIN_HREF}
-            className="inline-flex min-h-[52px] shrink-0 items-center justify-center gap-2 rounded-xl bg-[#fe6147] px-6 text-sm font-bold text-white shadow-lg shadow-[#fe6147]/25 transition hover:bg-[#e94f36]"
-          >
-            管理画面にログイン
-            <ChevronRight className="h-4 w-4" aria-hidden="true" />
-          </Link>
+        </div>
+      </section>
+
+      <section id="workflow" className="border-b border-slate-200 bg-white py-14 sm:py-16">
+        <div className="mx-auto max-w-[1240px] px-5 sm:px-8">
+          <h2 className="text-center text-3xl font-extrabold tracking-normal text-slate-950">
+            導入から改善までの流れ
+          </h2>
+          <div className="mt-10 grid gap-7 md:grid-cols-4">
+            {LP_WORKFLOW.map(({ title, text, icon: Icon }, index) => (
+              <article key={title} className="relative text-center">
+                {index < LP_WORKFLOW.length - 1 && (
+                  <div className="absolute left-[calc(50%+36px)] top-8 hidden h-px w-[calc(100%-72px)] bg-slate-300 md:block" />
+                )}
+                <div
+                  className={[
+                    "relative z-10 mx-auto flex h-16 w-16 items-center justify-center rounded-full border text-lg font-extrabold",
+                    index === 0
+                      ? "border-[#fe6147] bg-[#fe6147] text-white"
+                      : "border-slate-200 bg-white text-slate-950",
+                  ].join(" ")}
+                >
+                  {index + 1}
+                </div>
+                <Icon className="mx-auto mt-5 h-9 w-9 stroke-[1.6] text-slate-700" aria-hidden="true" />
+                <h3 className="mt-5 text-base font-extrabold text-slate-950">{title}</h3>
+                <p className="mx-auto mt-3 max-w-[230px] text-sm leading-7 text-slate-600">
+                  {text}
+                </p>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section id="cta" className="bg-white px-5 py-10 sm:px-8">
+        <div className="mx-auto flex max-w-[1240px] flex-col items-center justify-between gap-5 rounded-xl border border-[#fe6147] bg-white px-6 py-7 text-center sm:flex-row sm:text-left">
+          <h2 className="text-xl font-extrabold tracking-normal text-slate-950 sm:text-2xl">
+            データで運用を最適化し、体験予約を増やしましょう
+          </h2>
+          <div className="flex shrink-0 flex-col items-center gap-2">
+            <Link
+              href={LOGIN_HREF}
+              className="inline-flex min-h-[48px] items-center justify-center gap-3 rounded-lg bg-[#fe6147] px-8 text-sm font-extrabold text-white shadow-[0_10px_24px_rgba(254,97,71,0.20)] transition hover:bg-[#e94f36]"
+            >
+              管理画面にログイン
+              <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
+            </Link>
+            <span className="text-[11px] font-semibold text-slate-400">ログインが必要です</span>
+          </div>
         </div>
       </section>
 
       <footer className="border-t border-slate-200 bg-white py-8">
-        <div className="mx-auto flex max-w-7xl flex-col gap-3 px-4 text-sm text-slate-500 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+        <div className="mx-auto flex max-w-[1240px] flex-col gap-3 px-5 text-sm text-slate-500 sm:flex-row sm:items-center sm:justify-between sm:px-8">
           <img src="/logo.svg" alt="rizbo" width={92} height={29} className="h-7 w-auto" />
           <p>© {new Date().getFullYear()} Rizbo Admin System.</p>
         </div>
