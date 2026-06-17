@@ -149,28 +149,25 @@ const LP_NAV = [
   { href: "#cta", label: "始める" },
 ];
 
-const LP_PROOF = [
-  "24時間自動応答で問い合わせ対応を削減",
-  "診断で最適なクラスへ案内",
-  "フォーム送信とメール通知を自動化",
-];
-
 const LP_HERO_METRICS = [
   {
     value: "24h",
     label: "問い合わせ自動応答",
+    text: "24時間自動応答で問い合わせ対応を削減",
     icon: MessageSquare,
     color: "text-[#fe6147] bg-[#fff0ec]",
   },
   {
     value: "1導線",
     label: "診断から予約まで統合",
+    text: "診断で最適なクラスへ案内",
     icon: MousePointerClick,
     color: "text-emerald-700 bg-emerald-50",
   },
   {
     value: "30日",
     label: "ログを見て改善",
+    text: "フォーム送信とメール通知を自動化",
     icon: BarChart3,
     color: "text-blue-700 bg-blue-50",
   },
@@ -559,43 +556,6 @@ function LandingPage() {
               </a>
             </div>
 
-            <div className="mt-7 hidden max-w-[620px] gap-3 sm:grid sm:grid-cols-3">
-              {LP_HERO_METRICS.map(({ value, label, icon: Icon, color }) => (
-                <div
-                  key={label}
-                  className="rounded-xl border border-slate-200 bg-white/90 px-4 py-3 shadow-sm backdrop-blur"
-                >
-                  <div className="mb-3 flex items-center justify-between gap-3">
-                    <div className="text-2xl font-extrabold text-slate-950">
-                      {value}
-                    </div>
-                    <div
-                      className={[
-                        "flex h-9 w-9 items-center justify-center rounded-lg",
-                        color,
-                      ].join(" ")}
-                    >
-                      <Icon className="h-4 w-4" aria-hidden="true" />
-                    </div>
-                  </div>
-                  <div className="text-xs font-semibold leading-5 text-slate-500">
-                    {label}
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div className="mt-5 hidden max-w-[620px] gap-3 text-sm font-semibold text-slate-700 md:grid md:grid-cols-3">
-              {LP_PROOF.map((item) => (
-                <div key={item} className="flex items-start gap-2">
-                  <CheckCircle2
-                    className="mt-0.5 h-4 w-4 shrink-0 text-[#fe6147]"
-                    aria-hidden="true"
-                  />
-                  <span>{item}</span>
-                </div>
-              ))}
-            </div>
           </div>
 
           <div className="relative z-10 min-h-[220px] lg:min-h-[560px]">
@@ -676,6 +636,76 @@ function LandingPage() {
                 </p>
               </div>
             </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="relative overflow-hidden border-b border-slate-200 bg-white py-10 sm:py-12">
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 opacity-70"
+          style={{
+            backgroundImage:
+              "radial-gradient(circle at 1px 1px, rgba(15,23,42,0.08) 1px, transparent 0)",
+            backgroundSize: "26px 26px",
+            maskImage:
+              "linear-gradient(180deg, rgba(0,0,0,0.6), transparent 85%)",
+            WebkitMaskImage:
+              "linear-gradient(180deg, rgba(0,0,0,0.6), transparent 85%)",
+          }}
+        />
+        <div className="relative mx-auto max-w-7xl px-4 sm:px-6">
+          <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+            <div>
+              <h2 className="text-2xl font-extrabold tracking-normal text-slate-950 sm:text-3xl">
+                予約につながる導線を、下支えします
+              </h2>
+              <p className="mt-2 max-w-2xl text-sm leading-7 text-slate-600">
+                問い合わせ対応、診断案内、フォーム後の通知までをひとつの流れで整えます。
+              </p>
+            </div>
+            <a
+              href="#features"
+              className="inline-flex min-h-[42px] items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-sm font-bold text-slate-900 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 md:shrink-0"
+            >
+              詳しく見る
+              <ChevronRight className="h-4 w-4" aria-hidden="true" />
+            </a>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-3">
+            {LP_HERO_METRICS.map(({ value, label, text, icon: Icon, color }) => (
+              <article
+                key={label}
+                className="rounded-2xl border border-slate-200 bg-white/95 p-5 shadow-sm backdrop-blur"
+              >
+                <div className="mb-5 flex items-start justify-between gap-4">
+                  <div>
+                    <div className="text-3xl font-extrabold tracking-normal text-slate-950">
+                      {value}
+                    </div>
+                    <h3 className="mt-2 text-sm font-bold text-slate-700">
+                      {label}
+                    </h3>
+                  </div>
+                  <div
+                    className={[
+                      "flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl",
+                      color,
+                    ].join(" ")}
+                  >
+                    <Icon className="h-5 w-5" aria-hidden="true" />
+                  </div>
+                </div>
+                <div className="flex items-start gap-2 text-sm font-semibold leading-6 text-slate-700">
+                  <CheckCircle2
+                    className="mt-1 h-4 w-4 shrink-0 text-[#fe6147]"
+                    aria-hidden="true"
+                  />
+                  <span>{text}</span>
+                </div>
+              </article>
+            ))}
           </div>
         </div>
       </section>
