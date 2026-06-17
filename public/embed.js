@@ -123,6 +123,53 @@
 
     const palette = paletteFromDb;
     const color = paletteColorMap[palette] || paletteColorMap["gray"];
+    const lockContainerPosition = (element, placement) => {
+      if (!element) return;
+
+      const apply = () => {
+        const isMobile = window.matchMedia("(max-width: 640px)").matches;
+        const offset = isMobile ? 16 : 24;
+        const bottomOffset = isMobile ? bottomOffsetSp : bottomOffsetPc;
+
+        const setImportant = (property, value) => {
+          if (
+            element.style.getPropertyValue(property) !== value ||
+            element.style.getPropertyPriority(property) !== "important"
+          ) {
+            element.style.setProperty(property, value, "important");
+          }
+        };
+
+        if (element.style.getPropertyValue("inset")) {
+          element.style.removeProperty("inset");
+        }
+
+        setImportant("position", "fixed");
+        setImportant("top", "auto");
+        setImportant("bottom", `${bottomOffset}px`);
+        setImportant("margin", "0px");
+        setImportant("transform", "none");
+        setImportant("z-index", "2147483000");
+
+        if (placement === "left") {
+          setImportant("left", `${offset}px`);
+          setImportant("right", "auto");
+          setImportant("transform-origin", "left bottom");
+        } else {
+          setImportant("right", `${offset}px`);
+          setImportant("left", "auto");
+          setImportant("transform-origin", "right bottom");
+        }
+      };
+
+      apply();
+      window.addEventListener("resize", apply, { passive: true });
+
+      const observer = new MutationObserver(() => {
+        window.requestAnimationFrame(apply);
+      });
+      observer.observe(element, { attributes: true, attributeFilter: ["style", "class"] });
+    };
 
     // スタイル定義
     const css = `
@@ -298,6 +345,7 @@
     // コンテナ作成
     const container = document.createElement("div");
     container.className = `rzb-widget-container rzb-${side}`;
+    lockContainerPosition(container, side === "left" ? "left" : "right");
 
     let panel = null;
     let btn = null;
@@ -438,6 +486,7 @@
 
       const bannerContainer = document.createElement("div");
       bannerContainer.className = "rzb-widget-container rzb-left";
+      lockContainerPosition(bannerContainer, "left");
       bannerContainer.appendChild(banner);
       document.body.appendChild(bannerContainer);
     }
