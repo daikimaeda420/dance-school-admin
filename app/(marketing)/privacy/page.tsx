@@ -229,8 +229,9 @@ export default function PrivacyPage() {
             トップへ戻る
           </Link>
           <p className="mt-8 text-sm font-extrabold text-[#fe6147]">Privacy Policy</p>
-          <h1 className="mt-3 max-w-[820px] text-[36px] font-extrabold leading-tight tracking-normal text-slate-950 sm:text-[48px]">
-            プライバシーポリシー
+          <h1 className="mt-3 max-w-[820px] text-[32px] font-extrabold leading-tight tracking-normal text-slate-950 sm:text-[48px]">
+            <span className="inline-block">プライバシー</span>
+            <span className="inline-block">ポリシー</span>
           </h1>
           <p className="mt-5 max-w-[820px] text-base font-semibold leading-8 text-slate-700">
             rizboのQ&Aチャットボット、相性診断、予約フォーム、管理画面、運用レポートで取り扱う情報と、その利用目的を定めます。
