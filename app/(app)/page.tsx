@@ -1450,18 +1450,11 @@ function LandingConsultationForm() {
         <button
           type="submit"
           disabled={submitState === "submitting"}
-          className="inline-flex min-h-[50px] items-center justify-center gap-3 rounded-lg bg-[#fe6147] px-8 text-sm font-extrabold text-white shadow-[0_14px_30px_rgba(254,97,71,0.22)] transition hover:bg-[#e94f36] disabled:cursor-not-allowed disabled:opacity-70"
+          className="inline-flex min-h-[50px] w-full items-center justify-center gap-3 rounded-lg bg-[#fe6147] px-8 text-sm font-extrabold text-white shadow-[0_14px_30px_rgba(254,97,71,0.22)] transition hover:bg-[#e94f36] disabled:cursor-not-allowed disabled:opacity-70 sm:w-fit"
         >
           {submitState === "submitting" ? "送信中..." : "相談内容を送信"}
           <Mail className="h-4 w-4" aria-hidden="true" />
         </button>
-        <Link
-          href={LOGIN_HREF}
-          className="inline-flex min-h-[50px] items-center justify-center gap-3 rounded-lg border border-slate-200 bg-white px-8 text-sm font-extrabold text-slate-950 transition hover:border-[#fe6147] hover:text-[#fe6147]"
-        >
-          ログイン
-          <ChevronRight className="h-4 w-4" aria-hidden="true" />
-        </Link>
       </div>
 
       <p
@@ -1724,13 +1717,6 @@ function LandingPageDesigned() {
                 </div>
               ))}
             </div>
-            <Link
-              href={LOGIN_HREF}
-              className="inline-flex min-h-[48px] w-full items-center justify-center gap-3 rounded-lg border border-slate-200 bg-white px-8 text-sm font-extrabold text-slate-950 transition hover:border-[#fe6147] hover:text-[#fe6147] sm:w-fit"
-            >
-              ログイン
-              <ChevronRight className="h-4 w-4" aria-hidden="true" />
-            </Link>
           </div>
           <LandingConsultationForm />
           <ArrowUpRight className="absolute -bottom-4 right-8 h-24 w-24 text-[#fe6147]/20" aria-hidden="true" />
