@@ -147,8 +147,7 @@ const READINESS_TONES: Record<
 };
 
 const LOGIN_HREF = "/login";
-const CONSULT_HREF =
-  "mailto:support@rizbo.jp?subject=rizbo%E5%B0%8E%E5%85%A5%E3%81%AE%E7%9B%B8%E8%AB%87";
+const CONSULT_HREF = "#cta";
 
 const LP_NAV = [
   { href: "#features", label: "機能" },
@@ -1340,6 +1339,148 @@ function LandingReportPanel() {
   );
 }
 
+function LandingConsultationForm() {
+  const [submitState, setSubmitState] = useState<"idle" | "submitting" | "success" | "error">("idle");
+  const [submitMessage, setSubmitMessage] = useState("");
+
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const formData = new FormData(form);
+
+    setSubmitState("submitting");
+    setSubmitMessage("");
+
+    try {
+      const res = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          schoolName: formData.get("schoolName"),
+          name: formData.get("name"),
+          email: formData.get("email"),
+          phone: formData.get("phone"),
+          message: formData.get("message"),
+          website: formData.get("website"),
+        }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data?.message ?? "送信に失敗しました。");
+      }
+
+      form.reset();
+      setSubmitState("success");
+      setSubmitMessage("送信しました。内容を確認のうえ、担当よりご連絡します。");
+    } catch (error) {
+      setSubmitState("error");
+      setSubmitMessage(
+        error instanceof Error
+          ? error.message
+          : "送信に失敗しました。時間をおいて再度お試しください。",
+      );
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="relative rounded-xl border border-slate-200 bg-white p-5 shadow-[0_18px_50px_rgba(15,23,42,0.08)] sm:p-6">
+      <div className="grid gap-4 sm:grid-cols-2">
+        <label className="block">
+          <span className="text-xs font-extrabold text-slate-700">スクール名</span>
+          <input
+            name="schoolName"
+            required
+            autoComplete="organization"
+            className="mt-2 h-12 w-full rounded-lg border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-[#fe6147] focus:ring-4 focus:ring-[#fe6147]/10"
+            placeholder="例）Rizbo Dance Studio"
+          />
+        </label>
+        <label className="block">
+          <span className="text-xs font-extrabold text-slate-700">お名前</span>
+          <input
+            name="name"
+            required
+            autoComplete="name"
+            className="mt-2 h-12 w-full rounded-lg border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-[#fe6147] focus:ring-4 focus:ring-[#fe6147]/10"
+            placeholder="例）山田 太郎"
+          />
+        </label>
+        <label className="block">
+          <span className="text-xs font-extrabold text-slate-700">メールアドレス</span>
+          <input
+            name="email"
+            type="email"
+            required
+            autoComplete="email"
+            inputMode="email"
+            className="mt-2 h-12 w-full rounded-lg border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-[#fe6147] focus:ring-4 focus:ring-[#fe6147]/10"
+            placeholder="example@school.jp"
+          />
+        </label>
+        <label className="block">
+          <span className="text-xs font-extrabold text-slate-700">電話番号</span>
+          <input
+            name="phone"
+            type="tel"
+            autoComplete="tel"
+            inputMode="tel"
+            className="mt-2 h-12 w-full rounded-lg border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-[#fe6147] focus:ring-4 focus:ring-[#fe6147]/10"
+            placeholder="任意"
+          />
+        </label>
+      </div>
+
+      <label className="mt-4 block">
+        <span className="text-xs font-extrabold text-slate-700">相談内容</span>
+        <textarea
+          name="message"
+          rows={5}
+          className="mt-2 w-full resize-none rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm font-semibold leading-6 text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-[#fe6147] focus:ring-4 focus:ring-[#fe6147]/10"
+          placeholder="導入時期、現在の課題、確認したいことなど"
+        />
+      </label>
+
+      <label className="sr-only" aria-hidden="true">
+        Web site
+        <input name="website" tabIndex={-1} autoComplete="off" />
+      </label>
+
+      <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center">
+        <button
+          type="submit"
+          disabled={submitState === "submitting"}
+          className="inline-flex min-h-[50px] items-center justify-center gap-3 rounded-lg bg-[#fe6147] px-8 text-sm font-extrabold text-white shadow-[0_14px_30px_rgba(254,97,71,0.22)] transition hover:bg-[#e94f36] disabled:cursor-not-allowed disabled:opacity-70"
+        >
+          {submitState === "submitting" ? "送信中..." : "相談内容を送信"}
+          <Mail className="h-4 w-4" aria-hidden="true" />
+        </button>
+        <Link
+          href={LOGIN_HREF}
+          className="inline-flex min-h-[50px] items-center justify-center gap-3 rounded-lg border border-slate-200 bg-white px-8 text-sm font-extrabold text-slate-950 transition hover:border-[#fe6147] hover:text-[#fe6147]"
+        >
+          ログイン
+          <ChevronRight className="h-4 w-4" aria-hidden="true" />
+        </Link>
+      </div>
+
+      <p
+        className={[
+          "mt-4 min-h-[20px] text-xs font-bold",
+          submitState === "success"
+            ? "text-emerald-600"
+            : submitState === "error"
+              ? "text-[#fe6147]"
+              : "text-slate-400",
+        ].join(" ")}
+        aria-live="polite"
+      >
+        {submitMessage || "送信内容は導入相談の連絡にのみ使用します。"}
+      </p>
+    </form>
+  );
+}
+
 function LandingPageDesigned() {
   return (
     <main className="min-h-screen overflow-x-hidden bg-white text-slate-950 selection:bg-[#fe6147]/20">
@@ -1553,7 +1694,7 @@ function LandingPageDesigned() {
       </section>
 
       <section id="cta" className="bg-white px-5 py-9 sm:px-8">
-        <div className="relative mx-auto flex max-w-[1280px] flex-col items-center justify-between gap-6 overflow-hidden rounded-xl border border-[#ffe0d8] bg-[#fff5f2] px-7 py-9 text-center sm:flex-row sm:px-12 sm:text-left">
+        <div className="relative mx-auto grid max-w-[1280px] gap-6 overflow-hidden rounded-xl border border-[#ffe0d8] bg-[#fff5f2] px-5 py-7 sm:px-7 sm:py-9 lg:grid-cols-[0.78fr_1.22fr] lg:px-10">
           <div
             aria-hidden="true"
             className="absolute left-7 top-7 h-20 w-20 opacity-55"
@@ -1562,30 +1703,36 @@ function LandingPageDesigned() {
               backgroundSize: "12px 12px",
             }}
           />
-          <div className="relative">
-            <h2 className="text-2xl font-extrabold tracking-normal text-slate-950 sm:text-[28px]">
-              迷っているお客様を、体験予約へ
-            </h2>
-            <p className="mt-3 text-sm font-semibold text-slate-600">
-              アカウントをお持ちの方はログイン、導入前の確認はお気軽にご相談ください。
-            </p>
-          </div>
-          <div className="relative flex flex-col gap-3 sm:flex-row">
+          <div className="relative flex flex-col justify-between gap-7">
+            <div>
+              <h2 className="text-2xl font-extrabold leading-tight tracking-normal text-slate-950 sm:text-[30px]">
+                導入の相談をする
+              </h2>
+              <p className="mt-4 text-sm font-semibold leading-7 text-slate-600">
+                現在の運用状況や、増やしたい体験予約数に合わせて、必要な機能と始め方を整理します。
+              </p>
+            </div>
+            <div className="grid gap-3 text-sm font-bold text-slate-700">
+              {[
+                "今の問い合わせ対応を整理したい",
+                "診断や予約フォームの設置方法を知りたい",
+                "導入前に管理画面の使い方を確認したい",
+              ].map((item) => (
+                <div key={item} className="flex items-start gap-2">
+                  <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-[#fe6147]" aria-hidden="true" />
+                  <span>{item}</span>
+                </div>
+              ))}
+            </div>
             <Link
               href={LOGIN_HREF}
-              className="inline-flex min-h-[50px] items-center justify-center gap-3 rounded-lg bg-[#fe6147] px-8 text-sm font-extrabold text-white shadow-[0_14px_30px_rgba(254,97,71,0.22)] transition hover:bg-[#e94f36]"
+              className="inline-flex min-h-[48px] w-full items-center justify-center gap-3 rounded-lg border border-slate-200 bg-white px-8 text-sm font-extrabold text-slate-950 transition hover:border-[#fe6147] hover:text-[#fe6147] sm:w-fit"
             >
               ログイン
               <ChevronRight className="h-4 w-4" aria-hidden="true" />
             </Link>
-            <a
-              href={CONSULT_HREF}
-              className="inline-flex min-h-[50px] items-center justify-center gap-3 rounded-lg border border-slate-200 bg-white px-8 text-sm font-extrabold text-slate-950 transition hover:border-[#fe6147] hover:text-[#fe6147]"
-            >
-              導入の相談
-              <ChevronRight className="h-4 w-4" aria-hidden="true" />
-            </a>
           </div>
+          <LandingConsultationForm />
           <ArrowUpRight className="absolute -bottom-4 right-8 h-24 w-24 text-[#fe6147]/20" aria-hidden="true" />
         </div>
       </section>
