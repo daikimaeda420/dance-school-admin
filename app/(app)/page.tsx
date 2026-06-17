@@ -1043,10 +1043,6 @@ function LandingHeroMockup() {
 
   return (
     <div className="relative min-w-0 max-w-full lg:-mr-2">
-      <div
-        aria-hidden="true"
-        className="absolute -right-16 top-12 h-[280px] w-[390px] -skew-x-12 bg-sky-100/80"
-      />
       <div className="relative min-w-0 overflow-hidden rounded-[22px] border border-slate-200 bg-white p-2 shadow-[0_24px_76px_rgba(15,23,42,0.13)]">
         <div
           role="img"
@@ -1375,49 +1371,13 @@ function LandingPageDesigned() {
         </div>
       </header>
 
-      <section className="relative overflow-hidden border-b border-slate-200 bg-[linear-gradient(180deg,#ffffff_0%,#f7fbff_100%)] pt-[62px]">
-        <div
-          aria-hidden="true"
-          className="absolute inset-0 opacity-80"
-          style={{
-            backgroundImage:
-              "linear-gradient(90deg, rgba(79,125,240,0.045) 1px, transparent 1px), linear-gradient(0deg, rgba(79,125,240,0.04) 1px, transparent 1px)",
-            backgroundSize: "56px 56px",
-            maskImage: "linear-gradient(90deg, rgba(0,0,0,0.24), transparent 52%), linear-gradient(180deg, rgba(0,0,0,0.18), transparent 72%)",
-            WebkitMaskImage: "linear-gradient(90deg, rgba(0,0,0,0.24), transparent 52%), linear-gradient(180deg, rgba(0,0,0,0.18), transparent 72%)",
-          }}
-        />
-        <div
-          aria-hidden="true"
-          className="absolute inset-y-[62px] left-0 w-[58%] opacity-70"
-          style={{
-            backgroundImage:
-              "repeating-linear-gradient(135deg, rgba(254,97,71,0.10) 0px, rgba(254,97,71,0.10) 1px, transparent 1px, transparent 22px)",
-            maskImage: "linear-gradient(90deg, rgba(0,0,0,0.68), rgba(0,0,0,0.28) 44%, transparent 82%)",
-            WebkitMaskImage: "linear-gradient(90deg, rgba(0,0,0,0.68), rgba(0,0,0,0.28) 44%, transparent 82%)",
-          }}
-        />
-        <div
-          aria-hidden="true"
-          className="absolute -right-24 top-[62px] h-[520px] w-[52%] bg-[linear-gradient(135deg,rgba(239,248,255,0.95),rgba(206,232,250,0.72))]"
-          style={{ clipPath: "polygon(28% 0, 100% 0, 100% 100%, 0 100%)" }}
-        />
-        <div
-          aria-hidden="true"
-          className="absolute right-[6%] top-[118px] h-[270px] w-[430px] -rotate-6 rounded-[44px] border border-sky-200/55 opacity-45"
-        />
-        <div
-          aria-hidden="true"
-          className="absolute bottom-8 right-0 h-28 w-[44%] opacity-45"
-          style={{
-            backgroundImage:
-              "radial-gradient(circle, rgba(254,97,71,0.24) 1.2px, transparent 1.4px)",
-            backgroundSize: "14px 14px",
-            maskImage: "linear-gradient(90deg, transparent, rgba(0,0,0,0.42) 30%, rgba(0,0,0,0.18))",
-            WebkitMaskImage: "linear-gradient(90deg, transparent, rgba(0,0,0,0.42) 30%, rgba(0,0,0,0.18))",
-          }}
-        />
-
+      <section
+        className="relative overflow-hidden border-b border-pink-100 bg-[#fff8f7] pt-[62px]"
+        style={{
+          backgroundImage:
+            "radial-gradient(circle at 18% 18%, rgba(255,225,215,0.72) 0%, rgba(255,225,215,0) 34%), radial-gradient(circle at 86% 22%, rgba(255,228,238,0.78) 0%, rgba(255,228,238,0) 36%), linear-gradient(135deg, #ffffff 0%, #fff7f1 48%, #ffeef4 100%)",
+        }}
+      >
         <div className="relative mx-auto grid max-w-[1320px] items-center gap-12 px-5 py-16 sm:px-8 lg:grid-cols-[0.4fr_0.6fr] lg:py-14">
           <div className="min-w-0">
             <h1 className="text-[39px] font-extrabold leading-[1.12] tracking-normal text-slate-950 sm:text-[56px] lg:text-[50px] xl:text-[56px]">
@@ -1452,22 +1412,6 @@ function LandingPageDesigned() {
       </section>
 
       <section className="relative border-b border-slate-200 bg-white py-12 sm:py-14">
-        <div
-          aria-hidden="true"
-          className="absolute left-0 top-0 h-44 w-48 opacity-60"
-          style={{
-            backgroundImage: "radial-gradient(circle, rgba(79,125,240,0.32) 1.2px, transparent 1.2px)",
-            backgroundSize: "12px 12px",
-          }}
-        />
-        <div
-          aria-hidden="true"
-          className="absolute right-0 top-28 h-44 w-48 opacity-55"
-          style={{
-            backgroundImage: "radial-gradient(circle, rgba(254,97,71,0.30) 1.2px, transparent 1.2px)",
-            backgroundSize: "12px 12px",
-          }}
-        />
         <div className="relative mx-auto max-w-[1220px] px-5 sm:px-8">
           <LandingSectionTitle
             title="予約につながる導線を、下支えします"
