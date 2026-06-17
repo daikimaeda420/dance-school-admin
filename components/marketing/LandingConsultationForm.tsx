@@ -10,6 +10,12 @@ type LandingConsultationFormProps = {
   className?: string;
 };
 
+const inputClassName =
+  "marketing-input mt-2 h-12 w-full rounded-lg border border-slate-200 bg-white px-4 text-[15px] font-bold text-slate-950 outline-none transition placeholder:text-slate-500 focus:border-[#fe6147] focus:ring-4 focus:ring-[#fe6147]/10";
+
+const textareaClassName =
+  "marketing-input mt-2 w-full resize-none rounded-lg border border-slate-200 bg-white px-4 py-3 text-[15px] font-bold leading-6 text-slate-950 outline-none transition placeholder:text-slate-500 focus:border-[#fe6147] focus:ring-4 focus:ring-[#fe6147]/10";
+
 export function LandingConsultationForm({ className }: LandingConsultationFormProps) {
   const [submitState, setSubmitState] = useState<SubmitState>("idle");
   const [submitMessage, setSubmitMessage] = useState("");
@@ -71,7 +77,7 @@ export function LandingConsultationForm({ className }: LandingConsultationFormPr
             name="schoolName"
             required
             autoComplete="organization"
-            className="mt-2 h-12 w-full rounded-lg border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-[#fe6147] focus:ring-4 focus:ring-[#fe6147]/10"
+            className={inputClassName}
             placeholder="例）Rizbo Dance Studio"
           />
         </label>
@@ -81,7 +87,7 @@ export function LandingConsultationForm({ className }: LandingConsultationFormPr
             name="name"
             required
             autoComplete="name"
-            className="mt-2 h-12 w-full rounded-lg border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-[#fe6147] focus:ring-4 focus:ring-[#fe6147]/10"
+            className={inputClassName}
             placeholder="例）山田 太郎"
           />
         </label>
@@ -93,7 +99,7 @@ export function LandingConsultationForm({ className }: LandingConsultationFormPr
             required
             autoComplete="email"
             inputMode="email"
-            className="mt-2 h-12 w-full rounded-lg border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-[#fe6147] focus:ring-4 focus:ring-[#fe6147]/10"
+            className={inputClassName}
             placeholder="example@school.jp"
           />
         </label>
@@ -104,7 +110,7 @@ export function LandingConsultationForm({ className }: LandingConsultationFormPr
             type="tel"
             autoComplete="tel"
             inputMode="tel"
-            className="mt-2 h-12 w-full rounded-lg border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-[#fe6147] focus:ring-4 focus:ring-[#fe6147]/10"
+            className={inputClassName}
             placeholder="任意"
           />
         </label>
@@ -115,7 +121,7 @@ export function LandingConsultationForm({ className }: LandingConsultationFormPr
         <textarea
           name="message"
           rows={5}
-          className="mt-2 w-full resize-none rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm font-semibold leading-6 text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-[#fe6147] focus:ring-4 focus:ring-[#fe6147]/10"
+          className={textareaClassName}
           placeholder="導入時期、現在の課題、確認したいことなど"
         />
       </label>

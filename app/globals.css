@@ -91,6 +91,29 @@
     border-color: var(--ring);
   }
 
+  .marketing-input {
+    color: #0f172a;
+    -webkit-text-fill-color: #0f172a;
+    caret-color: #fe6147;
+  }
+  .marketing-input::placeholder {
+    color: #64748b;
+    -webkit-text-fill-color: #64748b;
+    opacity: 1;
+  }
+  .marketing-input::selection {
+    background: rgba(254, 97, 71, 0.2);
+    color: #0f172a;
+    -webkit-text-fill-color: #0f172a;
+  }
+  .marketing-input:-webkit-autofill,
+  .marketing-input:-webkit-autofill:hover,
+  .marketing-input:-webkit-autofill:focus {
+    -webkit-text-fill-color: #0f172a;
+    -webkit-box-shadow: 0 0 0 1000px #ffffff inset;
+    caret-color: #fe6147;
+  }
+
   /* Buttons */
   .btn-ghost {
     border: 1px solid var(--border);
