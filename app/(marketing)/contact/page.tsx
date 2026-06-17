@@ -14,25 +14,9 @@ export default function ContactPage() {
       title="お問い合わせ"
       description="導入相談、機能の確認、運用に関するご相談はフォームまたはメールでお問い合わせください。"
       showCta={false}
-      sections={[
-        {
-          title: "導入の相談",
-          description: "まずは現在の問い合わせ対応や体験予約までの流れを確認し、必要な機能を整理します。",
-          bullets: ["運用状況のヒアリング", "必要な機能の整理", "導入手順の確認"],
-        },
-        {
-          title: "メールで連絡",
-          description: "フォームを使わずに連絡したい場合は、rizbo@dansul.jp までご連絡ください。",
-          bullets: ["返信目安は1〜2営業日", "スクール名を添えて送信", "確認したい内容を記載"],
-        },
-        {
-          title: "導入後の相談",
-          description: "公開後の改善や、FAQ・診断・フォームの見直しもご相談いただけます。",
-          bullets: ["質問ログの見直し", "フォーム項目の整理", "レポートを使った改善"],
-        },
-      ]}
+      sections={[]}
     >
-      <section className="px-5 pb-12 sm:px-8">
+      <section className="px-5 py-12 sm:px-8">
         <div className="mx-auto grid max-w-[1120px] gap-6 lg:grid-cols-[0.85fr_1.15fr]">
           <div className="rounded-xl border border-[#ffd7cf] bg-[#fff0ec] p-6 shadow-[0_14px_34px_rgba(254,97,71,0.08)]">
             <h2 className="text-xl font-extrabold leading-8 text-slate-950">
