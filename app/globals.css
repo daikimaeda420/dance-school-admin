@@ -30,7 +30,13 @@
 
 @layer base {
   html {
-    scroll-padding-top: 78px;
+    scroll-padding-top: 112px;
+  }
+
+  @media (min-width: 1024px) {
+    html {
+      scroll-padding-top: 78px;
+    }
   }
 
   @media (prefers-reduced-motion: no-preference) {
@@ -112,6 +118,14 @@
     -webkit-text-fill-color: #0f172a;
     -webkit-box-shadow: 0 0 0 1000px #ffffff inset;
     caret-color: #fe6147;
+  }
+
+  .marketing-mobile-nav {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .marketing-mobile-nav::-webkit-scrollbar {
+    display: none;
   }
 
   /* Buttons */

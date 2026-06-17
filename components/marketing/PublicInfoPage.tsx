@@ -47,6 +47,13 @@ const FOOTER_COLUMNS = [
   },
 ];
 
+const MOBILE_NAV_LINKS = [
+  { label: "機能", href: "/features" },
+  { label: "はじめ方", href: "/getting-started" },
+  { label: "運用レポート", href: "/reports" },
+  { label: "お問い合わせ", href: "/contact" },
+];
+
 export function PublicInfoPage({
   title,
   description,
@@ -58,7 +65,7 @@ export function PublicInfoPage({
 }: PublicInfoPageProps) {
   return (
     <main className="min-h-screen bg-white text-slate-950 selection:bg-[#fe6147]/20">
-      <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/90 backdrop-blur">
+      <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur-xl">
         <div className="mx-auto flex max-w-[1280px] items-center justify-between gap-4 px-5 py-3 sm:px-8">
           <Link href="/" className="flex items-center">
             <img src="/logo.svg" alt="rizbo" width={94} height={30} className="h-8 w-auto" />
@@ -82,6 +89,20 @@ export function PublicInfoPage({
             <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
           </Link>
         </div>
+        <nav
+          aria-label="スマートフォン用グローバルナビ"
+          className="marketing-mobile-nav flex gap-2 overflow-x-auto border-t border-slate-100 px-4 py-2 text-[12px] font-extrabold text-slate-700 md:hidden"
+        >
+          {MOBILE_NAV_LINKS.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className="inline-flex min-h-[32px] shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white px-3.5 shadow-sm transition hover:border-[#fe6147] hover:text-[#fe6147]"
+            >
+              {item.label}
+            </Link>
+          ))}
+        </nav>
       </header>
 
       <section

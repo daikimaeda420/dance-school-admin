@@ -1391,10 +1391,24 @@ function LandingPageDesigned() {
             </a>
           </div>
         </div>
+        <nav
+          aria-label="スマートフォン用グローバルナビ"
+          className="marketing-mobile-nav flex gap-2 overflow-x-auto border-t border-slate-100 px-4 py-2 text-[12px] font-extrabold text-slate-700 lg:hidden"
+        >
+          {LP_NAV.map((item) => (
+            <a
+              key={`mobile-${item.href}`}
+              href={item.href}
+              className="inline-flex min-h-[32px] shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white px-3.5 shadow-sm transition hover:border-[#fe6147] hover:text-[#fe6147]"
+            >
+              {item.label}
+            </a>
+          ))}
+        </nav>
       </header>
 
       <section
-        className="relative overflow-hidden border-b border-pink-100 bg-[#fff8f7] pt-[62px]"
+        className="relative overflow-hidden border-b border-pink-100 bg-[#fff8f7] pt-[108px] lg:pt-[62px]"
         style={{
           backgroundImage: LANDING_SOFT_GRADIENT,
         }}
