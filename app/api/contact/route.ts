@@ -66,7 +66,7 @@ export async function POST(req: Request) {
     const port = Number(env("SMTP_PORT") || "587");
     const user = env("SMTP_USER");
     const pass = env("SMTP_PASS");
-    const to = cleanHeader(env("CONTACT_TO_EMAIL") || "support@rizbo.jp", "to");
+    const to = cleanHeader(env("CONTACT_TO_EMAIL") || CONTACT_FROM_EMAIL, "to");
     const fromEmail = cleanHeader(CONTACT_FROM_EMAIL, "fromEmail");
 
     if (!Number.isInteger(port) || port < 1 || port > 65535) {
