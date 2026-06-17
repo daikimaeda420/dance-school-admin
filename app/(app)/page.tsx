@@ -1240,7 +1240,7 @@ function LandingPageDesigned() {
   return (
     <main className="min-h-screen overflow-x-hidden bg-white text-slate-950 selection:bg-[#fe6147]/20">
       <header className="fixed inset-x-0 top-0 z-50 border-b border-slate-200/80 bg-white/95 backdrop-blur-xl">
-        <div className="mx-auto flex h-[62px] w-full max-w-[1180px] items-center justify-between px-5 sm:px-8">
+        <div className="mx-auto flex h-[62px] w-full max-w-[1320px] items-center justify-between px-5 sm:px-8">
           <a href="/" aria-label="rizbo home" className="flex items-center">
             <img src="/logo.svg" alt="rizbo" width={98} height={31} className="h-7 w-auto sm:h-8" />
           </a>
@@ -1286,7 +1286,7 @@ function LandingPageDesigned() {
           style={{ clipPath: "polygon(34% 0, 100% 0, 100% 100%, 0 100%)" }}
         />
 
-        <div className="relative mx-auto grid max-w-[1180px] items-center gap-10 px-5 py-16 sm:px-8 lg:grid-cols-[0.42fr_0.58fr] lg:py-14">
+        <div className="relative mx-auto grid max-w-[1320px] items-center gap-12 px-5 py-16 sm:px-8 lg:grid-cols-[0.4fr_0.6fr] lg:py-14">
           <div className="min-w-0">
             <h1 className="text-[39px] font-extrabold leading-[1.12] tracking-normal text-slate-950 sm:text-[56px] lg:text-[50px] xl:text-[56px]">
               <span className="block">ダンススクールの</span>
@@ -1336,7 +1336,7 @@ function LandingPageDesigned() {
             backgroundSize: "12px 12px",
           }}
         />
-        <div className="relative mx-auto max-w-[1040px] px-5 sm:px-8">
+        <div className="relative mx-auto max-w-[1220px] px-5 sm:px-8">
           <LandingSectionTitle
             title="予約につながる導線を、下支えします"
             subtitle="問い合わせ対応、診断案内、フォーム後の通知までをひとつの流れで整えます。"
@@ -1368,7 +1368,7 @@ function LandingPageDesigned() {
       </section>
 
       <section className="border-b border-slate-100 bg-white py-12">
-        <div className="mx-auto max-w-[1060px] px-5 sm:px-8">
+        <div className="mx-auto max-w-[1220px] px-5 sm:px-8">
           <LandingSectionTitle title="こんなお悩み、ありませんか？" />
           <div className="mt-8 grid gap-5 md:grid-cols-4">
             {LP_PROBLEMS.map(({ title, text, icon: Icon, tone }) => (
@@ -1385,7 +1385,7 @@ function LandingPageDesigned() {
       </section>
 
       <section id="features" className="border-b border-slate-100 bg-white py-12 sm:py-14">
-        <div className="mx-auto max-w-[1060px] px-5 sm:px-8">
+        <div className="mx-auto max-w-[1220px] px-5 sm:px-8">
           <LandingSectionTitle
             title="問い合わせから予約後対応まで、ひとつの導線で管理"
             subtitle="サイト訪問者が迷うポイントを先回りして解消し、予約フォームまでの流れをデータで改善できます。"
@@ -1436,7 +1436,7 @@ function LandingPageDesigned() {
       </section>
 
       <section id="reports" className="border-b border-slate-100 bg-white py-12 sm:py-14">
-        <div className="mx-auto max-w-[1060px] px-5 sm:px-8">
+        <div className="mx-auto max-w-[1220px] px-5 sm:px-8">
           <LandingSectionTitle
             title="データで現状を把握し、改善アクションへ"
             subtitle="運用レポートで成果と課題を可視化し、次にやるべきことを明確にします。"
@@ -1448,7 +1448,7 @@ function LandingPageDesigned() {
       </section>
 
       <section id="workflow" className="border-b border-slate-100 bg-white py-12 sm:py-14">
-        <div className="mx-auto max-w-[900px] px-5 sm:px-8">
+        <div className="mx-auto max-w-[1120px] px-5 sm:px-8">
           <LandingSectionTitle title="導入の流れ" />
           <div className="mt-9 grid gap-7 md:grid-cols-[1fr_auto_1fr_auto_1fr] md:items-center">
             {LP_WORKFLOW.map(({ title, text, icon: Icon }, index) => (
@@ -1475,7 +1475,7 @@ function LandingPageDesigned() {
       </section>
 
       <section id="cta" className="bg-white px-5 py-9 sm:px-8">
-        <div className="relative mx-auto flex max-w-[1120px] flex-col items-center justify-between gap-6 overflow-hidden rounded-xl border border-[#ffe0d8] bg-[#fff5f2] px-7 py-9 text-center sm:flex-row sm:px-12 sm:text-left">
+        <div className="relative mx-auto flex max-w-[1280px] flex-col items-center justify-between gap-6 overflow-hidden rounded-xl border border-[#ffe0d8] bg-[#fff5f2] px-7 py-9 text-center sm:flex-row sm:px-12 sm:text-left">
           <div
             aria-hidden="true"
             className="absolute left-7 top-7 h-20 w-20 opacity-55"
@@ -1513,7 +1513,7 @@ function LandingPageDesigned() {
       </section>
 
       <footer className="border-t border-slate-200 bg-white py-10">
-        <div className="mx-auto grid max-w-[1120px] gap-8 px-5 text-sm sm:px-8 md:grid-cols-[1.4fr_0.7fr_0.7fr_0.7fr_1.1fr]">
+        <div className="mx-auto grid max-w-[1280px] gap-8 px-5 text-sm sm:px-8 md:grid-cols-[1.4fr_0.7fr_0.7fr_0.7fr_1.1fr]">
           <div>
             <img src="/logo.svg" alt="rizbo" width={94} height={30} className="h-7 w-auto" />
             <p className="mt-4 max-w-[260px] text-xs font-semibold leading-6 text-slate-500">
