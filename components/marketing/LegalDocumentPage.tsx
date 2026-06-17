@@ -27,14 +27,6 @@ const SOFT_GRADIENT =
 
 const FOOTER_COLUMNS = [
   {
-    title: "プロダクト",
-    links: [
-      { label: "機能一覧", href: "/features" },
-      { label: "はじめ方", href: "/getting-started" },
-      { label: "運用レポート", href: "/reports" },
-    ],
-  },
-  {
     title: "サポート",
     links: [
       { label: "ヘルプセンター", href: "/support" },
@@ -58,7 +50,7 @@ function sectionId(title: string) {
 function Footer() {
   return (
     <footer className="border-t border-slate-200 bg-white py-10">
-      <div className="mx-auto grid max-w-[1280px] gap-8 px-5 text-sm sm:px-8 md:grid-cols-[1.4fr_0.7fr_0.7fr_0.7fr_1.1fr]">
+      <div className="mx-auto grid max-w-[1280px] gap-8 px-5 text-sm sm:px-8 md:grid-cols-[1.4fr_0.7fr_0.7fr_1.1fr]">
         <div>
           <img src="/logo.svg" alt="rizbo" width={94} height={30} className="h-7 w-auto" />
           <p className="mt-4 max-w-[260px] text-xs font-semibold leading-6 text-slate-500">
