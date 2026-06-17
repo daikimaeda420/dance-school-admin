@@ -158,6 +158,32 @@ const LP_NAV = [
   { href: "#cta", label: "導入の相談" },
 ];
 
+const LP_FOOTER_COLUMNS = [
+  {
+    title: "プロダクト",
+    links: [
+      { label: "機能一覧", href: "/features" },
+      { label: "はじめ方", href: "/getting-started" },
+      { label: "運用レポート", href: "/reports" },
+    ],
+  },
+  {
+    title: "サポート",
+    links: [
+      { label: "ヘルプセンター", href: "/support" },
+      { label: "お問い合わせ", href: "/contact" },
+      { label: "利用規約", href: "/terms" },
+    ],
+  },
+  {
+    title: "会社情報",
+    links: [
+      { label: "運営会社", href: "https://dansul.jp/", external: true },
+      { label: "プライバシーポリシー", href: "/privacy" },
+    ],
+  },
+];
+
 const LP_VALUE_CARDS = [
   {
     value: "24h",
@@ -1738,29 +1764,26 @@ function LandingPageDesigned() {
               ダンススクールの運用を、もっとシンプルに。問い合わせ対応を減らし、体験予約につながる流れを整える管理ツールです。
             </p>
           </div>
-          {[
-            { title: "プロダクト", links: ["機能一覧", "はじめ方", "運用レポート"] },
-            { title: "サポート", links: ["ヘルプセンター", "お問い合わせ", "利用規約"] },
-            { title: "会社情報", links: ["運営会社", "プライバシーポリシー"] },
-          ].map((column) => (
+          {LP_FOOTER_COLUMNS.map((column) => (
             <div key={column.title}>
               <h3 className="text-xs font-extrabold text-slate-950">{column.title}</h3>
               <div className="mt-4 space-y-3">
                 {column.links.map((link) => (
-                  <a key={link} href={LOGIN_HREF} className="block text-xs font-bold text-slate-500 hover:text-[#fe6147]">
-                    {link}
+                  <a
+                    key={link.label}
+                    href={link.href}
+                    target={link.external ? "_blank" : undefined}
+                    rel={link.external ? "noreferrer" : undefined}
+                    className="block text-xs font-bold text-slate-500 hover:text-[#fe6147]"
+                  >
+                    {link.label}
                   </a>
                 ))}
               </div>
             </div>
           ))}
           <div>
-            <div
-              className="relative overflow-hidden rounded-xl border border-[#ffe0d8] bg-[#fff8f7] p-5 shadow-[0_14px_34px_rgba(254,97,71,0.08)]"
-              style={{
-                backgroundImage: LANDING_SOFT_GRADIENT,
-              }}
-            >
+            <div className="relative overflow-hidden rounded-xl border border-[#ffd7cf] bg-[#fff0ec] p-5 shadow-[0_14px_34px_rgba(254,97,71,0.08)]">
               <p className="relative text-xs font-bold text-slate-600">ご不明な点はお気軽にご相談ください</p>
               <a href="mailto:rizbo@dansul.jp" className="relative mt-3 flex items-center gap-3 text-sm font-extrabold text-slate-950 transition hover:text-[#fe6147]">
                 <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/80 text-[#fe6147] shadow-sm">
