@@ -148,6 +148,8 @@ const READINESS_TONES: Record<
 
 const LOGIN_HREF = "/login";
 const CONSULT_HREF = "#cta";
+const LANDING_SOFT_GRADIENT =
+  "radial-gradient(circle at 18% 18%, rgba(255,225,215,0.72) 0%, rgba(255,225,215,0) 34%), radial-gradient(circle at 86% 22%, rgba(255,228,238,0.78) 0%, rgba(255,228,238,0) 36%), linear-gradient(135deg, #ffffff 0%, #fff7f1 48%, #ffeef4 100%)";
 
 const LP_NAV = [
   { href: "#features", label: "機能" },
@@ -1510,8 +1512,7 @@ function LandingPageDesigned() {
       <section
         className="relative overflow-hidden border-b border-pink-100 bg-[#fff8f7] pt-[62px]"
         style={{
-          backgroundImage:
-            "radial-gradient(circle at 18% 18%, rgba(255,225,215,0.72) 0%, rgba(255,225,215,0) 34%), radial-gradient(circle at 86% 22%, rgba(255,228,238,0.78) 0%, rgba(255,228,238,0) 36%), linear-gradient(135deg, #ffffff 0%, #fff7f1 48%, #ffeef4 100%)",
+          backgroundImage: LANDING_SOFT_GRADIENT,
         }}
       >
         <div className="relative mx-auto grid max-w-[1320px] items-center gap-12 px-5 py-16 sm:px-8 lg:grid-cols-[0.4fr_0.6fr] lg:py-14">
@@ -1690,8 +1691,7 @@ function LandingPageDesigned() {
         id="cta"
         className="relative overflow-hidden border-t border-pink-100 bg-[#fff8f7] px-5 py-9 sm:px-8"
         style={{
-          backgroundImage:
-            "radial-gradient(circle at 18% 18%, rgba(255,225,215,0.72) 0%, rgba(255,225,215,0) 34%), radial-gradient(circle at 86% 22%, rgba(255,228,238,0.78) 0%, rgba(255,228,238,0) 36%), linear-gradient(135deg, #ffffff 0%, #fff7f1 48%, #ffeef4 100%)",
+          backgroundImage: LANDING_SOFT_GRADIENT,
         }}
       >
         <div className="relative mx-auto grid max-w-[1280px] gap-6 overflow-hidden rounded-xl border border-white/80 bg-white/68 px-5 py-7 shadow-[0_18px_50px_rgba(254,97,71,0.10)] backdrop-blur sm:px-7 sm:py-9 lg:grid-cols-[0.78fr_1.22fr] lg:px-10">
@@ -1755,10 +1755,17 @@ function LandingPageDesigned() {
             </div>
           ))}
           <div>
-            <div className="rounded-xl border border-slate-200 bg-white p-5">
-              <p className="text-xs font-bold text-slate-500">ご不明な点はお気軽にご相談ください</p>
-              <a href="mailto:support@rizbo.jp" className="mt-3 flex items-center gap-2 text-sm font-extrabold text-slate-950">
-                <Mail className="h-4 w-4 text-slate-500" aria-hidden="true" />
+            <div
+              className="relative overflow-hidden rounded-xl border border-[#ffe0d8] bg-[#fff8f7] p-5 shadow-[0_14px_34px_rgba(254,97,71,0.08)]"
+              style={{
+                backgroundImage: LANDING_SOFT_GRADIENT,
+              }}
+            >
+              <p className="relative text-xs font-bold text-slate-600">ご不明な点はお気軽にご相談ください</p>
+              <a href="mailto:support@rizbo.jp" className="relative mt-3 flex items-center gap-3 text-sm font-extrabold text-slate-950 transition hover:text-[#fe6147]">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/80 text-[#fe6147] shadow-sm">
+                  <Mail className="h-4 w-4" aria-hidden="true" />
+                </span>
                 support@rizbo.jp
               </a>
             </div>
