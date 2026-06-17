@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { ArrowLeft, ArrowUpRight, Mail } from "lucide-react";
+import { ArrowLeft, Mail } from "lucide-react";
+import { MarketingFooter, MarketingHeader } from "@/components/marketing/MarketingChrome";
 
 export type LegalSection = {
   title: string;
@@ -25,72 +26,8 @@ type LegalDocumentPageProps = {
 const SOFT_GRADIENT =
   "radial-gradient(circle at 18% 18%, rgba(255,225,215,0.72) 0%, rgba(255,225,215,0) 34%), radial-gradient(circle at 86% 22%, rgba(255,228,238,0.78) 0%, rgba(255,228,238,0) 36%), linear-gradient(135deg, #ffffff 0%, #fff7f1 48%, #ffeef4 100%)";
 
-const FOOTER_COLUMNS = [
-  {
-    title: "サポート",
-    links: [
-      { label: "ヘルプセンター", href: "/support" },
-      { label: "お問い合わせ", href: "/contact" },
-      { label: "利用規約", href: "/terms" },
-    ],
-  },
-  {
-    title: "会社情報",
-    links: [
-      { label: "運営会社", href: "https://dansul.jp/", external: true },
-      { label: "プライバシーポリシー", href: "/privacy" },
-    ],
-  },
-];
-
 function sectionId(title: string) {
   return title.replace(/[^0-9]/g, "");
-}
-
-function Footer() {
-  return (
-    <footer className="border-t border-slate-200 bg-white py-10">
-      <div className="mx-auto grid max-w-[1280px] gap-8 px-5 text-sm sm:px-8 md:grid-cols-[1.4fr_0.7fr_0.7fr_1.1fr]">
-        <div>
-          <img src="/logo.svg" alt="rizbo" width={94} height={30} className="h-7 w-auto" />
-          <p className="mt-4 max-w-[260px] text-xs font-semibold leading-6 text-slate-500">
-            問い合わせ対応を減らし、体験予約につながる流れを整える管理ツールです。
-          </p>
-        </div>
-        {FOOTER_COLUMNS.map((column) => (
-          <div key={column.title}>
-            <h3 className="text-xs font-extrabold text-slate-950">{column.title}</h3>
-            <div className="mt-4 space-y-3">
-              {column.links.map((link) => (
-                <a
-                  key={link.label}
-                  href={link.href}
-                  target={link.external ? "_blank" : undefined}
-                  rel={link.external ? "noreferrer" : undefined}
-                  className="block text-xs font-bold text-slate-500 hover:text-[#fe6147]"
-                >
-                  {link.label}
-                </a>
-              ))}
-            </div>
-          </div>
-        ))}
-        <div>
-          <div className="rounded-xl border border-[#ffd7cf] bg-[#fff0ec] p-5">
-            <p className="text-xs font-bold text-slate-600">ご不明な点はお気軽にご相談ください</p>
-            <a
-              href="mailto:rizbo@dansul.jp"
-              className="mt-3 flex items-center gap-2 text-sm font-extrabold text-slate-950 hover:text-[#fe6147]"
-            >
-              <Mail className="h-4 w-4 text-[#fe6147]" aria-hidden="true" />
-              rizbo@dansul.jp
-            </a>
-          </div>
-          <p className="mt-5 text-xs font-semibold text-slate-400">© 2025 rizbo. All rights reserved.</p>
-        </div>
-      </div>
-    </footer>
-  );
 }
 
 export function LegalDocumentPage({
@@ -107,28 +44,7 @@ export function LegalDocumentPage({
 
   return (
     <main className="min-h-screen bg-white text-slate-950 selection:bg-[#fe6147]/20">
-      <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/90 backdrop-blur">
-        <div className="mx-auto flex max-w-[1280px] items-center justify-between gap-4 px-5 py-3 sm:px-8">
-          <Link href="/" className="flex items-center">
-            <img src="/logo.svg" alt="rizbo" width={94} height={30} className="h-8 w-auto" />
-          </Link>
-          <nav className="hidden items-center gap-7 text-sm font-extrabold text-slate-800 md:flex">
-            <Link href="/features" className="hover:text-[#fe6147]">
-              機能
-            </Link>
-            <Link href="/getting-started" className="hover:text-[#fe6147]">
-              はじめ方
-            </Link>
-          </nav>
-          <Link
-            href="/#cta"
-            className="inline-flex min-h-[40px] items-center justify-center gap-2 rounded-lg bg-[#fe6147] px-5 text-sm font-extrabold text-white shadow-[0_12px_24px_rgba(254,97,71,0.2)] transition hover:bg-[#e94f36]"
-          >
-            導入の相談
-            <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
-          </Link>
-        </div>
-      </header>
+      <MarketingHeader />
 
       <section
         className="border-b border-pink-100 bg-[#fff8f7] px-5 py-14 sm:px-8"
@@ -229,7 +145,7 @@ export function LegalDocumentPage({
         </div>
       </section>
 
-      <Footer />
+      <MarketingFooter />
     </main>
   );
 }

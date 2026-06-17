@@ -34,6 +34,11 @@ import {
   Target,
 } from "lucide-react";
 import { LandingConsultationForm } from "@/components/marketing/LandingConsultationForm";
+import {
+  MarketingFooter,
+  MarketingHeader,
+  type MarketingNavItem,
+} from "@/components/marketing/MarketingChrome";
 
 type UserWithSchool = {
   name?: string;
@@ -152,28 +157,10 @@ const CONSULT_HREF = "#cta";
 const LANDING_SOFT_GRADIENT =
   "radial-gradient(circle at 18% 18%, rgba(255,225,215,0.72) 0%, rgba(255,225,215,0) 34%), radial-gradient(circle at 86% 22%, rgba(255,228,238,0.78) 0%, rgba(255,228,238,0) 36%), linear-gradient(135deg, #ffffff 0%, #fff7f1 48%, #ffeef4 100%)";
 
-const LP_NAV = [
+const LP_NAV: MarketingNavItem[] = [
   { href: "#features", label: "機能" },
   { href: "#workflow", label: "はじめ方" },
   { href: "#cta", label: "導入の相談" },
-];
-
-const LP_FOOTER_COLUMNS = [
-  {
-    title: "サポート",
-    links: [
-      { label: "ヘルプセンター", href: "/support" },
-      { label: "お問い合わせ", href: "/contact" },
-      { label: "利用規約", href: "/terms" },
-    ],
-  },
-  {
-    title: "会社情報",
-    links: [
-      { label: "運営会社", href: "https://dansul.jp/", external: true },
-      { label: "プライバシーポリシー", href: "/privacy" },
-    ],
-  },
 ];
 
 const LP_VALUE_CARDS = [
@@ -775,35 +762,16 @@ function ReportTablePanel() {
 function LandingPage() {
   return (
     <main className="min-h-screen overflow-x-hidden bg-white text-slate-950 selection:bg-[#fe6147]/20">
-      <header className="fixed inset-x-0 top-0 z-50 border-b border-slate-200/80 bg-white/95 backdrop-blur-xl">
-        <div className="mx-auto flex h-[70px] w-full max-w-[1440px] items-center justify-between px-5 sm:px-8 lg:px-12">
-          <a href="/" className="flex items-center" aria-label="rizbo home">
-            <img src="/logo.svg" alt="rizbo" width={118} height={37} className="h-9 w-auto" />
-          </a>
+      <MarketingHeader
+        variant="landing"
+        navItems={LP_NAV}
+        mobileNavItems={LP_NAV}
+        showLogin
+        loginHref={LOGIN_HREF}
+        ctaHref={CONSULT_HREF}
+      />
 
-          <nav className="hidden items-center gap-9 text-sm font-extrabold text-slate-800 lg:flex">
-            {LP_NAV.map((item, index) => (
-              <a
-                key={`${item.href}-${item.label}-${index}`}
-                href={item.href}
-                className="transition hover:text-[#fe6147]"
-              >
-                {item.label}
-              </a>
-            ))}
-          </nav>
-
-          <Link
-            href={LOGIN_HREF}
-            className="inline-flex min-h-[42px] items-center justify-center gap-2 rounded-lg border border-[#fe6147] bg-white px-4 text-sm font-extrabold text-[#fe6147] transition hover:bg-[#fff4f0] sm:px-6"
-          >
-            ログイン
-            <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
-          </Link>
-        </div>
-      </header>
-
-      <section className="relative overflow-hidden border-b border-slate-200 bg-white pt-[70px]">
+      <section className="relative overflow-hidden border-b border-slate-200 bg-white pt-[108px] lg:pt-[62px]">
         <div
           aria-hidden="true"
           className="absolute inset-0 opacity-70"
@@ -1006,12 +974,7 @@ function LandingPage() {
         </div>
       </section>
 
-      <footer className="border-t border-slate-200 bg-white py-8">
-        <div className="mx-auto flex max-w-[1240px] flex-col gap-3 px-5 text-sm text-slate-500 sm:flex-row sm:items-center sm:justify-between sm:px-8">
-          <img src="/logo.svg" alt="rizbo" width={92} height={29} className="h-7 w-auto" />
-          <p>© {new Date().getFullYear()} Rizbo Admin System.</p>
-        </div>
-      </footer>
+      <MarketingFooter brandDescription="ダンススクールの運用を、もっとシンプルに。問い合わせ対応を減らし、体験予約につながる流れを整える管理ツールです。" />
     </main>
   );
 }
@@ -1362,49 +1325,14 @@ function LandingReportPanel() {
 function LandingPageDesigned() {
   return (
     <main className="min-h-screen overflow-x-hidden bg-white text-slate-950 selection:bg-[#fe6147]/20">
-      <header className="fixed inset-x-0 top-0 z-50 border-b border-slate-200/80 bg-white/95 backdrop-blur-xl">
-        <div className="mx-auto flex h-[62px] w-full max-w-[1320px] items-center justify-between px-5 sm:px-8">
-          <a href="/" aria-label="rizbo home" className="flex items-center">
-            <img src="/logo.svg" alt="rizbo" width={98} height={31} className="h-7 w-auto sm:h-8" />
-          </a>
-          <nav className="hidden items-center gap-8 text-[13px] font-extrabold text-slate-800 lg:flex">
-            {LP_NAV.map((item) => (
-              <a key={item.href} href={item.href} className="transition hover:text-[#fe6147]">
-                {item.label}
-              </a>
-            ))}
-          </nav>
-          <div className="flex min-w-0 items-center gap-2 sm:gap-3">
-            <Link
-              href={LOGIN_HREF}
-              className="hidden min-h-[40px] items-center justify-center rounded-lg border border-slate-200 bg-white px-5 text-sm font-extrabold text-slate-800 transition hover:border-[#fe6147] hover:text-[#fe6147] sm:inline-flex"
-            >
-              ログイン
-            </Link>
-            <a
-              href={CONSULT_HREF}
-              className="inline-flex min-h-[38px] shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg bg-[#fe6147] px-3 text-xs font-extrabold text-white shadow-[0_12px_24px_rgba(254,97,71,0.2)] transition hover:bg-[#e94f36] sm:min-h-[40px] sm:gap-2 sm:px-5 sm:text-sm"
-            >
-              導入の相談
-              <ChevronRight className="h-4 w-4" aria-hidden="true" />
-            </a>
-          </div>
-        </div>
-        <nav
-          aria-label="スマートフォン用グローバルナビ"
-          className="marketing-mobile-nav flex gap-2 overflow-x-auto border-t border-slate-100 px-4 py-2 text-[12px] font-extrabold text-slate-700 lg:hidden"
-        >
-          {LP_NAV.map((item) => (
-            <a
-              key={`mobile-${item.href}`}
-              href={item.href}
-              className="inline-flex min-h-[32px] shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white px-3.5 shadow-sm transition hover:border-[#fe6147] hover:text-[#fe6147]"
-            >
-              {item.label}
-            </a>
-          ))}
-        </nav>
-      </header>
+      <MarketingHeader
+        variant="landing"
+        navItems={LP_NAV}
+        mobileNavItems={LP_NAV}
+        showLogin
+        loginHref={LOGIN_HREF}
+        ctaHref={CONSULT_HREF}
+      />
 
       <section
         className="relative overflow-hidden border-b border-pink-100 bg-[#fff8f7] pt-[108px] lg:pt-[62px]"
@@ -1627,48 +1555,7 @@ function LandingPageDesigned() {
         </div>
       </section>
 
-      <footer className="border-t border-slate-200 bg-white py-10">
-        <div className="mx-auto grid max-w-[1280px] gap-8 px-5 text-sm sm:px-8 md:grid-cols-[1.4fr_0.7fr_0.7fr_1.1fr]">
-          <div>
-            <img src="/logo.svg" alt="rizbo" width={94} height={30} className="h-7 w-auto" />
-            <p className="mt-4 max-w-[260px] text-xs font-semibold leading-6 text-slate-500">
-              ダンススクールの運用を、もっとシンプルに。問い合わせ対応を減らし、体験予約につながる流れを整える管理ツールです。
-            </p>
-          </div>
-          {LP_FOOTER_COLUMNS.map((column) => (
-            <div key={column.title}>
-              <h3 className="text-xs font-extrabold text-slate-950">{column.title}</h3>
-              <div className="mt-4 space-y-3">
-                {column.links.map((link) => (
-                  <a
-                    key={link.label}
-                    href={link.href}
-                    target={link.external ? "_blank" : undefined}
-                    rel={link.external ? "noreferrer" : undefined}
-                    className="block text-xs font-bold text-slate-500 hover:text-[#fe6147]"
-                  >
-                    {link.label}
-                  </a>
-                ))}
-              </div>
-            </div>
-          ))}
-          <div>
-            <div className="relative overflow-hidden rounded-xl border border-[#ffd7cf] bg-[#fff0ec] p-5 shadow-[0_14px_34px_rgba(254,97,71,0.08)]">
-              <p className="relative text-xs font-bold text-slate-600">ご不明な点はお気軽にご相談ください</p>
-              <a href="mailto:rizbo@dansul.jp" className="relative mt-3 flex items-center gap-3 text-sm font-extrabold text-slate-950 transition hover:text-[#fe6147]">
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/80 text-[#fe6147] shadow-sm">
-                  <Mail className="h-4 w-4" aria-hidden="true" />
-                </span>
-                rizbo@dansul.jp
-              </a>
-            </div>
-            <p className="mt-5 text-xs font-semibold text-slate-400">
-              © 2025 rizbo. All rights reserved.
-            </p>
-          </div>
-        </div>
-      </footer>
+      <MarketingFooter brandDescription="ダンススクールの運用を、もっとシンプルに。問い合わせ対応を減らし、体験予約につながる流れを整える管理ツールです。" />
     </main>
   );
 }
