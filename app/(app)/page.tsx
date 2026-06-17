@@ -147,12 +147,14 @@ const READINESS_TONES: Record<
 };
 
 const LOGIN_HREF = "/login";
+const CONSULT_HREF =
+  "mailto:support@rizbo.jp?subject=rizbo%E5%B0%8E%E5%85%A5%E3%81%AE%E7%9B%B8%E8%AB%87";
 
 const LP_NAV = [
   { href: "#features", label: "機能" },
   { href: "#workflow", label: "はじめ方" },
   { href: "#reports", label: "運用レポート" },
-  { href: "#cta", label: "ログイン" },
+  { href: "#cta", label: "導入の相談" },
 ];
 
 const LP_VALUE_CARDS = [
@@ -776,7 +778,7 @@ function LandingPage() {
             href={LOGIN_HREF}
             className="inline-flex min-h-[42px] items-center justify-center gap-2 rounded-lg border border-[#fe6147] bg-white px-4 text-sm font-extrabold text-[#fe6147] transition hover:bg-[#fff4f0] sm:px-6"
           >
-            管理画面にログイン
+            ログイン
             <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
           </Link>
         </div>
@@ -831,11 +833,11 @@ function LandingPage() {
                 href={LOGIN_HREF}
                 className="inline-flex min-h-[56px] w-full max-w-[390px] items-center justify-center gap-3 rounded-lg bg-[#fe6147] px-7 text-base font-extrabold text-white shadow-[0_14px_30px_rgba(254,97,71,0.22)] transition hover:bg-[#e94f36]"
               >
-                管理画面にログイン
+                ログイン
                 <ChevronRight className="h-5 w-5" aria-hidden="true" />
               </Link>
               <p className="mt-3 text-xs font-semibold text-slate-400">
-                管理画面に移動します
+                アカウントをお持ちの方はこちら
               </p>
             </div>
           </div>
@@ -977,10 +979,10 @@ function LandingPage() {
               href={LOGIN_HREF}
               className="inline-flex min-h-[48px] items-center justify-center gap-3 rounded-lg bg-[#fe6147] px-8 text-sm font-extrabold text-white shadow-[0_10px_24px_rgba(254,97,71,0.20)] transition hover:bg-[#e94f36]"
             >
-              管理画面にログイン
+              ログイン
               <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
             </Link>
-            <span className="text-[11px] font-semibold text-slate-400">管理画面に移動します</span>
+            <span className="text-[11px] font-semibold text-slate-400">アカウントをお持ちの方はこちら</span>
           </div>
         </div>
       </section>
@@ -1360,13 +1362,13 @@ function LandingPageDesigned() {
             >
               ログイン
             </Link>
-            <Link
-              href={LOGIN_HREF}
+            <a
+              href={CONSULT_HREF}
               className="inline-flex min-h-[38px] shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg bg-[#fe6147] px-3 text-xs font-extrabold text-white shadow-[0_12px_24px_rgba(254,97,71,0.2)] transition hover:bg-[#e94f36] sm:min-h-[40px] sm:gap-2 sm:px-5 sm:text-sm"
             >
-              管理画面へ
+              導入の相談
               <ChevronRight className="h-4 w-4" aria-hidden="true" />
-            </Link>
+            </a>
           </div>
         </div>
       </header>
@@ -1394,14 +1396,14 @@ function LandingPageDesigned() {
                 href={LOGIN_HREF}
                 className="inline-flex min-h-[52px] items-center justify-center gap-3 rounded-lg bg-[#fe6147] px-7 text-sm font-extrabold text-white shadow-[0_14px_30px_rgba(254,97,71,0.24)] transition hover:bg-[#e94f36]"
               >
-                管理画面にログイン
+                ログイン
                 <ChevronRight className="h-4 w-4" aria-hidden="true" />
               </Link>
               <a
-                href="#features"
+                href={CONSULT_HREF}
                 className="inline-flex min-h-[52px] items-center justify-center gap-3 rounded-lg border border-slate-200 bg-white px-7 text-sm font-extrabold text-slate-950 shadow-sm transition hover:border-[#fe6147] hover:text-[#fe6147]"
               >
-                機能を見る
+                導入の相談
                 <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
               </a>
             </div>
@@ -1565,7 +1567,7 @@ function LandingPageDesigned() {
               迷っているお客様を、体験予約へ
             </h2>
             <p className="mt-3 text-sm font-semibold text-slate-600">
-              まずは管理画面で、今の状況を確認しましょう。
+              アカウントをお持ちの方はログイン、導入前の確認はお気軽にご相談ください。
             </p>
           </div>
           <div className="relative flex flex-col gap-3 sm:flex-row">
@@ -1573,16 +1575,16 @@ function LandingPageDesigned() {
               href={LOGIN_HREF}
               className="inline-flex min-h-[50px] items-center justify-center gap-3 rounded-lg bg-[#fe6147] px-8 text-sm font-extrabold text-white shadow-[0_14px_30px_rgba(254,97,71,0.22)] transition hover:bg-[#e94f36]"
             >
-              管理画面にログイン
-              <ChevronRight className="h-4 w-4" aria-hidden="true" />
-            </Link>
-            <Link
-              href={LOGIN_HREF}
-              className="inline-flex min-h-[50px] items-center justify-center gap-3 rounded-lg border border-slate-200 bg-white px-8 text-sm font-extrabold text-slate-950 transition hover:border-[#fe6147] hover:text-[#fe6147]"
-            >
               ログイン
               <ChevronRight className="h-4 w-4" aria-hidden="true" />
             </Link>
+            <a
+              href={CONSULT_HREF}
+              className="inline-flex min-h-[50px] items-center justify-center gap-3 rounded-lg border border-slate-200 bg-white px-8 text-sm font-extrabold text-slate-950 transition hover:border-[#fe6147] hover:text-[#fe6147]"
+            >
+              導入の相談
+              <ChevronRight className="h-4 w-4" aria-hidden="true" />
+            </a>
           </div>
           <ArrowUpRight className="absolute -bottom-4 right-8 h-24 w-24 text-[#fe6147]/20" aria-hidden="true" />
         </div>
