@@ -29,6 +29,16 @@
 }
 
 @layer base {
+  html {
+    scroll-padding-top: 78px;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    html {
+      scroll-behavior: smooth;
+    }
+  }
+
   html,
   body {
     height: 100%;
