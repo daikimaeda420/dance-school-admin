@@ -12,6 +12,8 @@ type ContactBody = {
   website?: string;
 };
 
+const CONTACT_FROM_EMAIL = "rizbo@dansul.jp";
+
 function env(name: string) {
   return process.env[name]?.trim() ?? "";
 }
@@ -65,7 +67,7 @@ export async function POST(req: Request) {
     const user = env("SMTP_USER");
     const pass = env("SMTP_PASS");
     const to = cleanHeader(env("CONTACT_TO_EMAIL") || "support@rizbo.jp", "to");
-    const fromEmail = cleanHeader(env("CONTACT_FROM_EMAIL") || user, "fromEmail");
+    const fromEmail = cleanHeader(CONTACT_FROM_EMAIL, "fromEmail");
 
     if (!Number.isInteger(port) || port < 1 || port > 65535) {
       return json("メール設定のポート番号が不正です。", 500);
@@ -100,7 +102,7 @@ export async function POST(req: Request) {
     ].join("\n");
 
     await transporter.sendMail({
-      from: { name: "rizbo LP", address: fromEmail },
+      from: { name: "rizbo", address: fromEmail },
       to,
       replyTo: email,
       subject,
