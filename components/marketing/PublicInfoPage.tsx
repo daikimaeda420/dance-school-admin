@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { ArrowLeft, ArrowUpRight, CheckCircle2, Mail } from "lucide-react";
 
 export type PublicInfoSection = {
@@ -13,6 +14,8 @@ type PublicInfoPageProps = {
   sections: PublicInfoSection[];
   ctaTitle?: string;
   ctaText?: string;
+  children?: ReactNode;
+  showCta?: boolean;
 };
 
 const SOFT_GRADIENT =
@@ -50,6 +53,8 @@ export function PublicInfoPage({
   sections,
   ctaTitle = "導入の相談をする",
   ctaText = "現在の運用状況に合わせて、必要な機能と始め方を整理します。",
+  children,
+  showCta = true,
 }: PublicInfoPageProps) {
   return (
     <main className="min-h-screen bg-white text-slate-950 selection:bg-[#fe6147]/20">
@@ -124,29 +129,33 @@ export function PublicInfoPage({
         </div>
       </section>
 
-      <section className="px-5 pb-12 sm:px-8">
-        <div className="mx-auto flex max-w-[1120px] flex-col gap-4 rounded-xl border border-[#ffd7cf] bg-[#fff0ec] p-6 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h2 className="text-xl font-extrabold text-slate-950">{ctaTitle}</h2>
-            <p className="mt-2 text-sm font-semibold leading-6 text-slate-600">{ctaText}</p>
+      {children}
+
+      {showCta ? (
+        <section className="px-5 pb-12 sm:px-8">
+          <div className="mx-auto flex max-w-[1120px] flex-col gap-4 rounded-xl border border-[#ffd7cf] bg-[#fff0ec] p-6 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="text-xl font-extrabold text-slate-950">{ctaTitle}</h2>
+              <p className="mt-2 text-sm font-semibold leading-6 text-slate-600">{ctaText}</p>
+            </div>
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <Link
+                href="/#cta"
+                className="inline-flex min-h-[46px] items-center justify-center rounded-lg bg-[#fe6147] px-6 text-sm font-extrabold text-white shadow-[0_12px_26px_rgba(254,97,71,0.2)] transition hover:bg-[#e94f36]"
+              >
+                導入の相談
+              </Link>
+              <a
+                href="mailto:rizbo@dansul.jp"
+                className="inline-flex min-h-[46px] items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-6 text-sm font-extrabold text-slate-950 transition hover:border-[#fe6147] hover:text-[#fe6147]"
+              >
+                <Mail className="h-4 w-4" aria-hidden="true" />
+                メールする
+              </a>
+            </div>
           </div>
-          <div className="flex flex-col gap-3 sm:flex-row">
-            <Link
-              href="/#cta"
-              className="inline-flex min-h-[46px] items-center justify-center rounded-lg bg-[#fe6147] px-6 text-sm font-extrabold text-white shadow-[0_12px_26px_rgba(254,97,71,0.2)] transition hover:bg-[#e94f36]"
-            >
-              導入の相談
-            </Link>
-            <a
-              href="mailto:rizbo@dansul.jp"
-              className="inline-flex min-h-[46px] items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-6 text-sm font-extrabold text-slate-950 transition hover:border-[#fe6147] hover:text-[#fe6147]"
-            >
-              <Mail className="h-4 w-4" aria-hidden="true" />
-              メールする
-            </a>
-          </div>
-        </div>
-      </section>
+        </section>
+      ) : null}
 
       <footer className="border-t border-slate-200 bg-white py-10">
         <div className="mx-auto grid max-w-[1280px] gap-8 px-5 text-sm sm:px-8 md:grid-cols-[1.4fr_0.7fr_0.7fr_0.7fr_1.1fr]">
