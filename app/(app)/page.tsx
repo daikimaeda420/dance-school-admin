@@ -1019,6 +1019,28 @@ function LandingSectionTitle({
 }
 
 function LandingHeroMockup() {
+  const navItems = [
+    { label: "ホーム", icon: Home, active: true },
+    { label: "Q&A編集", icon: MessageSquare },
+    { label: "診断編集", icon: ClipboardList },
+    { label: "ユーザーログ", icon: Users },
+    { label: "アカウント管理", icon: Settings },
+    { label: "ヘルプ", icon: CheckCircle2 },
+    { label: "プレビュー", icon: ExternalLink },
+  ];
+  const metrics = [
+    { label: "セッション（7日）", value: "0" },
+    { label: "人気の質問シェア", value: "0%" },
+    { label: "未解決/要修正", value: "0件" },
+    { label: "ログ件数", value: "0" },
+  ];
+  const quickActions = [
+    "新しいQ&Aを追加",
+    "ドラフトを公開",
+    "埋め込みコードをコピー",
+    "ログCSVをエクスポート（7日）",
+  ];
+
   return (
     <div className="relative min-w-0 max-w-full lg:-mr-2">
       <div
@@ -1026,13 +1048,138 @@ function LandingHeroMockup() {
         className="absolute -right-16 top-12 h-[280px] w-[390px] -skew-x-12 bg-sky-100/80"
       />
       <div className="relative min-w-0 overflow-hidden rounded-[22px] border border-slate-200 bg-white p-2 shadow-[0_24px_76px_rgba(15,23,42,0.13)]">
-        <img
-          src="/lp/mockup.png"
-          alt="rizbo管理画面のプレビュー"
-          width={1182}
-          height={626}
-          className="aspect-[1.88/1] w-full rounded-[16px] object-cover object-left-top"
-        />
+        <div
+          role="img"
+          aria-label="rizbo管理画面のプレビュー"
+          className="aspect-[1.88/1] w-full overflow-hidden rounded-[16px] border border-slate-100 bg-slate-50 text-slate-950"
+        >
+          <div className="flex h-full flex-col">
+            <div className="flex h-[9%] items-center justify-between border-b border-slate-200 bg-white px-[2%]">
+              <img src="/logo.svg" alt="" width={66} height={21} className="h-[42%] min-h-[12px] w-auto" />
+              <div className="flex items-center gap-1.5 text-[7px] font-bold text-slate-500 sm:text-[8px] lg:text-[9px]">
+                <span className="hidden truncate sm:inline">前田大輝</span>
+                <span className="hidden max-w-[120px] truncate md:inline">daiki.maeda.web@gmail.com</span>
+                <span className="rounded-md bg-slate-900 px-2 py-1 text-white">ログアウト</span>
+              </div>
+            </div>
+
+            <div className="grid min-h-0 flex-1 grid-cols-[18%_1fr]">
+              <aside className="min-w-0 border-r border-slate-200 bg-white px-[9%] py-[7%]">
+                <div className="space-y-[4%]">
+                  {navItems.map(({ label, icon: Icon, active }) => (
+                    <div
+                      key={label}
+                      className={[
+                        "flex items-center gap-1.5 rounded-md px-2 py-1.5 text-[7px] font-bold sm:text-[8px] lg:text-[9px]",
+                        active ? "bg-slate-100 text-slate-950" : "text-slate-600",
+                      ].join(" ")}
+                    >
+                      <Icon className="h-3 w-3 shrink-0 stroke-[2]" aria-hidden="true" />
+                      <span className="truncate">{label}</span>
+                    </div>
+                  ))}
+                </div>
+              </aside>
+
+              <div className="min-w-0 bg-slate-50/80 px-[3%] py-[2%]">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <div className="flex items-center gap-1.5 text-[12px] font-extrabold text-slate-950 lg:text-[14px]">
+                      <Home className="h-4 w-4 stroke-[2.2]" aria-hidden="true" />
+                      ホーム
+                    </div>
+                    <p className="mt-1 text-[7px] font-semibold text-slate-500 sm:text-[8px] lg:text-[9px]">
+                      ログイン中: daiki.maeda.web
+                    </p>
+                  </div>
+                  <div className="hidden items-center gap-2 sm:flex">
+                    {["直近7日", "更新", "ヘルプ"].map((item) => (
+                      <span
+                        key={item}
+                        className="rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-[8px] font-bold text-slate-700"
+                      >
+                        {item}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="mt-3 grid grid-cols-4 gap-[2%]">
+                  {metrics.map((metric) => (
+                    <div key={metric.label} className="rounded-lg border border-slate-200 bg-white p-2.5">
+                      <div className="truncate text-[7px] font-bold text-slate-400 sm:text-[8px]">{metric.label}</div>
+                      <div className="mt-2 text-[16px] font-extrabold leading-none text-slate-950 lg:text-[20px]">
+                        {metric.value}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-3 grid grid-cols-[1.08fr_0.72fr] gap-[2%]">
+                  <div className="rounded-lg border border-slate-200 bg-white p-3">
+                    <div className="flex items-center gap-1.5 text-[9px] font-extrabold text-slate-950 lg:text-[10px]">
+                      <RefreshCw className="h-3.5 w-3.5" aria-hidden="true" />
+                      クイックアクション
+                    </div>
+                    <div className="mt-3 flex flex-wrap gap-1.5">
+                      {quickActions.map((item) => (
+                        <span
+                          key={item}
+                          className="rounded-md border border-slate-200 bg-white px-2 py-1 text-[7px] font-bold text-slate-600 lg:text-[8px]"
+                        >
+                          {item}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="rounded-lg border border-slate-200 bg-white p-3">
+                    <div className="flex items-center gap-1.5 text-[9px] font-extrabold text-slate-950 lg:text-[10px]">
+                      <AlertCircle className="h-3.5 w-3.5" aria-hidden="true" />
+                      アラート＆タスク
+                    </div>
+                    <p className="mt-3 text-[7px] font-semibold text-slate-500 lg:text-[8px]">
+                      問題は検出されていません。
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-3 grid grid-cols-[1.08fr_0.72fr] gap-[2%]">
+                  <div className="rounded-lg border border-slate-200 bg-white p-3">
+                    <div className="flex items-center gap-1.5 text-[9px] font-extrabold text-slate-950 lg:text-[10px]">
+                      <ClipboardList className="h-3.5 w-3.5" aria-hidden="true" />
+                      最近のアクティビティ
+                    </div>
+                    <p className="mt-3 text-[7px] font-semibold text-slate-500 lg:text-[8px]">
+                      対象期間のアクティビティはありません。
+                    </p>
+                  </div>
+
+                  <div className="rounded-lg border border-slate-200 bg-white p-3">
+                    <div className="flex items-center gap-1.5 text-[9px] font-extrabold text-slate-950 lg:text-[10px]">
+                      <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" />
+                      システム情報
+                    </div>
+                    <dl className="mt-3 space-y-1 text-[7px] font-semibold lg:text-[8px]">
+                      <div className="flex justify-between gap-2">
+                        <dt className="text-slate-500">バージョン</dt>
+                        <dd className="text-slate-900">v0.1.0</dd>
+                      </div>
+                      <div className="flex justify-between gap-2">
+                        <dt className="text-slate-500">環境</dt>
+                        <dd className="text-slate-900">Production</dd>
+                      </div>
+                      <div className="flex justify-between gap-2">
+                        <dt className="text-slate-500">最終バックアップ</dt>
+                        <dd className="text-slate-900">-</dd>
+                      </div>
+                    </dl>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
     </div>
@@ -1228,21 +1375,47 @@ function LandingPageDesigned() {
         </div>
       </header>
 
-      <section className="relative overflow-hidden border-b border-slate-200 pt-[62px]">
+      <section className="relative overflow-hidden border-b border-slate-200 bg-[linear-gradient(180deg,#ffffff_0%,#f7fbff_100%)] pt-[62px]">
         <div
           aria-hidden="true"
-          className="absolute inset-0 opacity-75"
+          className="absolute inset-0 opacity-80"
           style={{
             backgroundImage:
-              "repeating-linear-gradient(135deg, rgba(254,97,71,0.09) 0px, rgba(254,97,71,0.09) 1px, transparent 1px, transparent 18px)",
-            maskImage: "linear-gradient(90deg, rgba(0,0,0,0.7), transparent 58%)",
-            WebkitMaskImage: "linear-gradient(90deg, rgba(0,0,0,0.7), transparent 58%)",
+              "linear-gradient(90deg, rgba(79,125,240,0.045) 1px, transparent 1px), linear-gradient(0deg, rgba(79,125,240,0.04) 1px, transparent 1px)",
+            backgroundSize: "56px 56px",
+            maskImage: "linear-gradient(90deg, rgba(0,0,0,0.24), transparent 52%), linear-gradient(180deg, rgba(0,0,0,0.18), transparent 72%)",
+            WebkitMaskImage: "linear-gradient(90deg, rgba(0,0,0,0.24), transparent 52%), linear-gradient(180deg, rgba(0,0,0,0.18), transparent 72%)",
           }}
         />
         <div
           aria-hidden="true"
-          className="absolute -right-20 bottom-0 h-[360px] w-[440px] bg-sky-100/70"
-          style={{ clipPath: "polygon(34% 0, 100% 0, 100% 100%, 0 100%)" }}
+          className="absolute inset-y-[62px] left-0 w-[58%] opacity-70"
+          style={{
+            backgroundImage:
+              "repeating-linear-gradient(135deg, rgba(254,97,71,0.10) 0px, rgba(254,97,71,0.10) 1px, transparent 1px, transparent 22px)",
+            maskImage: "linear-gradient(90deg, rgba(0,0,0,0.68), rgba(0,0,0,0.28) 44%, transparent 82%)",
+            WebkitMaskImage: "linear-gradient(90deg, rgba(0,0,0,0.68), rgba(0,0,0,0.28) 44%, transparent 82%)",
+          }}
+        />
+        <div
+          aria-hidden="true"
+          className="absolute -right-24 top-[62px] h-[520px] w-[52%] bg-[linear-gradient(135deg,rgba(239,248,255,0.95),rgba(206,232,250,0.72))]"
+          style={{ clipPath: "polygon(28% 0, 100% 0, 100% 100%, 0 100%)" }}
+        />
+        <div
+          aria-hidden="true"
+          className="absolute right-[6%] top-[118px] h-[270px] w-[430px] -rotate-6 rounded-[44px] border border-sky-200/55 opacity-45"
+        />
+        <div
+          aria-hidden="true"
+          className="absolute bottom-8 right-0 h-28 w-[44%] opacity-45"
+          style={{
+            backgroundImage:
+              "radial-gradient(circle, rgba(254,97,71,0.24) 1.2px, transparent 1.4px)",
+            backgroundSize: "14px 14px",
+            maskImage: "linear-gradient(90deg, transparent, rgba(0,0,0,0.42) 30%, rgba(0,0,0,0.18))",
+            WebkitMaskImage: "linear-gradient(90deg, transparent, rgba(0,0,0,0.42) 30%, rgba(0,0,0,0.18))",
+          }}
         />
 
         <div className="relative mx-auto grid max-w-[1320px] items-center gap-12 px-5 py-16 sm:px-8 lg:grid-cols-[0.4fr_0.6fr] lg:py-14">
