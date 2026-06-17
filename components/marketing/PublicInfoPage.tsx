@@ -50,7 +50,6 @@ const FOOTER_COLUMNS = [
 const MOBILE_NAV_LINKS = [
   { label: "機能", href: "/features" },
   { label: "はじめ方", href: "/getting-started" },
-  { label: "運用レポート", href: "/reports" },
   { label: "お問い合わせ", href: "/contact" },
 ];
 
@@ -76,9 +75,6 @@ export function PublicInfoPage({
             </Link>
             <Link href="/getting-started" className="hover:text-[#fe6147]">
               はじめ方
-            </Link>
-            <Link href="/reports" className="hover:text-[#fe6147]">
-              運用レポート
             </Link>
           </nav>
           <Link

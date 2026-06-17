@@ -155,7 +155,6 @@ const LANDING_SOFT_GRADIENT =
 const LP_NAV = [
   { href: "#features", label: "機能" },
   { href: "#workflow", label: "はじめ方" },
-  { href: "#reports", label: "運用レポート" },
   { href: "#cta", label: "導入の相談" },
 ];
 

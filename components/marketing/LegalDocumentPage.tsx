@@ -127,9 +127,6 @@ export function LegalDocumentPage({
             <Link href="/getting-started" className="hover:text-[#fe6147]">
               はじめ方
             </Link>
-            <Link href="/reports" className="hover:text-[#fe6147]">
-              運用レポート
-            </Link>
           </nav>
           <Link
             href="/#cta"
