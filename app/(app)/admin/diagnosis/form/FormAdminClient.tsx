@@ -1,7 +1,7 @@
 // app/admin/diagnosis/form/FormAdminClient.tsx
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import AdminPageHeader from "../_components/AdminPageHeader";
 import { adminCard } from "../_components/adminStyles";
 
@@ -48,6 +48,26 @@ type EmailSetting = {
   userAutoReplyEnabled: boolean;
   userSubjectTemplate: string;
   userBodyTemplate?: string | null;
+};
+
+type MailLog = {
+  id: string;
+  schoolId: string;
+  submissionId?: string | null;
+  messageType: string;
+  status: string;
+  fromEmail?: string | null;
+  toEmail?: string | null;
+  ccEmail?: string | null;
+  bccEmail?: string | null;
+  replyTo?: string | null;
+  subject?: string | null;
+  messageId?: string | null;
+  accepted: string[];
+  rejected: string[];
+  response?: string | null;
+  error?: string | null;
+  createdAt: string;
 };
 
 const FIELD_TYPES = [
@@ -182,15 +202,79 @@ function ensureJsonContentType(res: Response, bodyText: string) {
   }
 }
 
+async function fetchMailLogs(schoolId: string): Promise<MailLog[]> {
+  const res = await fetch(
+    `/api/admin/diagnosis/mail-logs?schoolId=${encodeURIComponent(
+      schoolId,
+    )}&take=20`,
+    { cache: "no-store" },
+  );
+  const text = await res.text();
+  ensureJsonContentType(res, text);
+  const data = JSON.parse(text);
+
+  if (!res.ok) {
+    throw new Error(data?.message ?? "メール送信ログAPI error");
+  }
+
+  return Array.isArray(data?.logs) ? data.logs : [];
+}
+
+function formatLogDate(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "-";
+  return new Intl.DateTimeFormat("ja-JP", {
+    timeZone: "Asia/Tokyo",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
+}
+
+function getMessageTypeLabel(type: string) {
+  if (type === "ADMIN_NOTIFICATION") return "管理者通知";
+  if (type === "USER_AUTO_REPLY") return "ユーザー自動返信";
+  return type || "-";
+}
+
+function getStatusLabel(status: string) {
+  if (status === "SENT") return "送信済み";
+  if (status === "ERROR") return "エラー";
+  if (status === "SKIPPED") return "スキップ";
+  return status || "-";
+}
+
+function getStatusClass(status: string) {
+  if (status === "SENT") {
+    return "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300";
+  }
+  if (status === "ERROR") {
+    return "border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950/40 dark:text-red-300";
+  }
+  if (status === "SKIPPED") {
+    return "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300";
+  }
+  return "border-gray-200 bg-gray-50 text-gray-600 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300";
+}
+
+function formatList(values?: string[] | null) {
+  if (!values?.length) return "-";
+  return values.join(", ");
+}
+
 export default function FormAdminClient({ schoolId }: { schoolId: string }) {
   const [form, setForm] = useState<FormData | null>(null);
   const [emailSetting, setEmailSetting] = useState<EmailSetting | null>(null);
+  const [mailLogs, setMailLogs] = useState<MailLog[]>([]);
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [mailLogsLoading, setMailLogsLoading] = useState(false);
 
   const [err, setErr] = useState<string | null>(null);
   const [emailErr, setEmailErr] = useState<string | null>(null);
+  const [mailLogErr, setMailLogErr] = useState<string | null>(null);
 
   const [originalForm, setOriginalForm] = useState<FormData | null>(null);
   const [originalEmail, setOriginalEmail] = useState<EmailSetting | null>(null);
@@ -203,6 +287,20 @@ export default function FormAdminClient({ schoolId }: { schoolId: string }) {
     return JSON.stringify(form) !== JSON.stringify(originalForm) ||
            JSON.stringify(emailSetting) !== JSON.stringify(originalEmail);
   }, [form, originalForm, emailSetting, originalEmail]);
+
+  const loadMailLogs = useCallback(async () => {
+    setMailLogsLoading(true);
+    setMailLogErr(null);
+
+    try {
+      const logs = await fetchMailLogs(schoolId);
+      setMailLogs(logs);
+    } catch (e: any) {
+      setMailLogErr(e?.message ?? "メール送信ログの取得に失敗しました");
+    } finally {
+      setMailLogsLoading(false);
+    }
+  }, [schoolId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -266,6 +364,30 @@ export default function FormAdminClient({ schoolId }: { schoolId: string }) {
         }
       } finally {
         if (!cancelled) setLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [schoolId]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
+      setMailLogsLoading(true);
+      setMailLogErr(null);
+
+      try {
+        const logs = await fetchMailLogs(schoolId);
+        if (!cancelled) setMailLogs(logs);
+      } catch (e: any) {
+        if (!cancelled) {
+          setMailLogErr(e?.message ?? "メール送信ログの取得に失敗しました");
+        }
+      } finally {
+        if (!cancelled) setMailLogsLoading(false);
       }
     })();
 
@@ -838,6 +960,131 @@ export default function FormAdminClient({ schoolId }: { schoolId: string }) {
             <span className="text-xs">
               `/api/admin/diagnosis/form-email`（GET/PUT）を実装すると編集できるようになります。
             </span>
+          </div>
+        )}
+      </section>
+
+      {/* ========== メール送信ログ ========== */}
+      <section className={adminCard + " space-y-4"}>
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h3 className="font-semibold">メール送信ログ</h3>
+            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              フォーム送信時にSMTPで受理された宛先、拒否された宛先、messageIdを確認できます。
+            </p>
+          </div>
+          <button
+            className="w-fit rounded border border-gray-300 px-3 py-1.5 text-sm hover:bg-gray-50 disabled:opacity-50 dark:border-gray-600 dark:hover:bg-gray-800"
+            disabled={mailLogsLoading}
+            onClick={loadMailLogs}
+            type="button"
+          >
+            {mailLogsLoading ? "読み込み中..." : "再読み込み"}
+          </button>
+        </div>
+
+        {mailLogErr && (
+          <div className="rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-800 dark:bg-red-950/40 dark:text-red-300">
+            {mailLogErr}
+          </div>
+        )}
+
+        {mailLogsLoading && mailLogs.length === 0 ? (
+          <div className="rounded border border-gray-200 bg-gray-50 px-3 py-4 text-sm text-gray-600 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-400">
+            メール送信ログを読み込んでいます...
+          </div>
+        ) : mailLogs.length === 0 ? (
+          <div className="rounded border border-gray-200 bg-gray-50 px-3 py-4 text-sm text-gray-600 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-400">
+            まだ送信ログはありません。次回フォーム送信時から記録されます。
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {mailLogs.map((log) => (
+              <div
+                key={log.id}
+                className="rounded border border-gray-200 bg-white p-3 text-sm dark:border-gray-700 dark:bg-gray-900/70"
+              >
+                <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-semibold">
+                        {getMessageTypeLabel(log.messageType)}
+                      </span>
+                      <span
+                        className={`rounded-full border px-2 py-0.5 text-xs font-semibold ${getStatusClass(
+                          log.status,
+                        )}`}
+                      >
+                        {getStatusLabel(log.status)}
+                      </span>
+                    </div>
+                    <div className="mt-1 break-all text-xs text-gray-500 dark:text-gray-400">
+                      {log.subject || "件名なし"}
+                    </div>
+                  </div>
+                  <div className="shrink-0 text-xs text-gray-500 dark:text-gray-400">
+                    {formatLogDate(log.createdAt)}
+                  </div>
+                </div>
+
+                <div className="mt-3 grid grid-cols-1 gap-2 md:grid-cols-2">
+                  <div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400">
+                      To
+                    </div>
+                    <div className="break-all text-gray-800 dark:text-gray-100">
+                      {log.toEmail || "-"}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400">
+                      From
+                    </div>
+                    <div className="break-all text-gray-800 dark:text-gray-100">
+                      {log.fromEmail || "-"}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400">
+                      accepted
+                    </div>
+                    <div className="break-all text-gray-800 dark:text-gray-100">
+                      {formatList(log.accepted)}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400">
+                      rejected
+                    </div>
+                    <div className="break-all text-gray-800 dark:text-gray-100">
+                      {formatList(log.rejected)}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400">
+                      messageId
+                    </div>
+                    <div className="break-all text-gray-800 dark:text-gray-100">
+                      {log.messageId || "-"}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400">
+                      response
+                    </div>
+                    <div className="break-all text-gray-800 dark:text-gray-100">
+                      {log.response || "-"}
+                    </div>
+                  </div>
+                </div>
+
+                {log.error && (
+                  <div className="mt-3 rounded border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700 dark:border-red-800 dark:bg-red-950/40 dark:text-red-300">
+                    {log.error}
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
         )}
       </section>

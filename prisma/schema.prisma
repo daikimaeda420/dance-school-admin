@@ -467,6 +467,34 @@ model DiagnosisFormSubmission {
   @@index([createdAt])
 }
 
+model DiagnosisMailDeliveryLog {
+  id           String   @id @default(cuid())
+  schoolId     String
+  submissionId String?
+
+  messageType String
+  status      String
+
+  fromEmail String?
+  toEmail   String?
+  ccEmail   String?
+  bccEmail  String?
+  replyTo   String?
+  subject   String?
+
+  messageId String?
+  accepted  String[] @default([])
+  rejected  String[] @default([])
+  response  String?
+  error     String?
+
+  createdAt DateTime @default(now())
+
+  @@index([schoolId, createdAt])
+  @@index([submissionId])
+  @@index([status])
+}
+
 /// 診断ステップの通過ログ（離脱トラッキング用）
 model DiagnosisSessionLog {
   id         String   @id @default(cuid())
