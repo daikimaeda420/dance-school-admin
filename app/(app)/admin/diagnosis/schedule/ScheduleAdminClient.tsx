@@ -318,6 +318,11 @@ export default function ScheduleAdminClient({ initialSchoolId }: Props) {
       const data = await readJsonFlexible(res);
       const saved = data?.slot ?? data;
       if (saved?.id) {
+        if (saved.isActive === false) {
+          setSlots((prev) => prev.filter((s) => s.id !== id));
+          return;
+        }
+
         updateSlotLocal(id, {
           weekday: saved.weekday,
           genreText: saved.genreText,

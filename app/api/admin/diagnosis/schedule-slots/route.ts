@@ -43,13 +43,14 @@ export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const schoolId = searchParams.get("schoolId");
+    const includeInactive = searchParams.get("includeInactive") === "true";
     if (!schoolId) return bad("schoolId が必要です");
 
     const auth = await requireSchoolAccess(schoolId);
     if (!auth.ok) return auth.response;
 
     const slots = await prisma.diagnosisScheduleSlot.findMany({
-      where: { schoolId },
+      where: includeInactive ? { schoolId } : { schoolId, isActive: true },
       orderBy: [{ weekday: "asc" }, { sortOrder: "asc" }, { createdAt: "asc" }],
       include: { courses: true },
     });
