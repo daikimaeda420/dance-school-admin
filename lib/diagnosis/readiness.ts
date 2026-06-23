@@ -152,6 +152,7 @@ async function loadReadinessData(schoolId: string) {
       select: {
         id: true,
         isActive: true,
+        isPublic: true,
         courses: { select: { courseId: true } },
       },
     }),
@@ -214,7 +215,9 @@ export async function getDiagnosisReadinessReport(
   const activeLifestyles = data.lifestyles.filter((row) => row.isActive);
   const activeGenres = data.genres.filter((row) => row.isActive);
   const activeInstructors = data.instructors.filter((row) => row.isActive);
-  const activeScheduleSlots = data.scheduleSlots.filter((row) => row.isActive);
+  const activeScheduleSlots = data.scheduleSlots.filter(
+    (row) => row.isActive && row.isPublic,
+  );
   const activeFields = data.form?.fields.filter((row) => row.isActive) ?? [];
 
   const activeCampusIds = new Set(activeCampuses.map((row) => row.id));
@@ -510,7 +513,7 @@ export async function getDiagnosisReadinessReport(
         activeSlotsWithCourse.length > 0,
         scheduleSlotsWithoutActiveCourse > 0,
       ),
-      summary: `${activeSlotsWithCourse.length}枠 有効`,
+      summary: `${activeSlotsWithCourse.length}枠 公開中`,
       detail:
         scheduleSlotsWithoutActiveCourse > 0
           ? `${scheduleSlotsWithoutActiveCourse}枠で有効コースとの紐づけが不足しています。`

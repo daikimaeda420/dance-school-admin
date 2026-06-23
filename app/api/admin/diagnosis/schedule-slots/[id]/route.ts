@@ -34,6 +34,7 @@ type PatchBody = {
   place?: string;
   sortOrder?: number;
   isActive?: boolean;
+  isPublic?: boolean;
   courseIds?: string[]; // 送られてきたら紐付けを置き換え
 };
 
@@ -73,6 +74,7 @@ export async function PATCH(
     if (body.place !== undefined) data.place = String(body.place).trim();
     if (body.sortOrder !== undefined) data.sortOrder = Number(body.sortOrder);
     if (body.isActive !== undefined) data.isActive = Boolean(body.isActive);
+    if (body.isPublic !== undefined) data.isPublic = Boolean(body.isPublic);
 
     // courseIds: undefined → 触らない / [] → エラー / [..] → 置き換え
     const hasCourseIds = Object.prototype.hasOwnProperty.call(
@@ -138,6 +140,7 @@ export async function PATCH(
         place: updated.place,
         sortOrder: updated.sortOrder,
         isActive: updated.isActive,
+        isPublic: updated.isPublic,
         courseIds: updated.courses.map((c) => c.courseId),
       },
     });

@@ -35,6 +35,7 @@ type Body = {
   place: string;
   sortOrder?: number;
   isActive?: boolean;
+  isPublic?: boolean;
   courseIds: string[];
 };
 
@@ -66,6 +67,7 @@ export async function GET(req: NextRequest) {
         place: s.place,
         sortOrder: s.sortOrder,
         isActive: s.isActive,
+        isPublic: s.isPublic,
         courseIds: s.courses.map((c) => c.courseId),
       })),
     });
@@ -125,6 +127,7 @@ export async function POST(req: NextRequest) {
         place,
         sortOrder: Number(body.sortOrder ?? 0),
         isActive: Boolean(body.isActive ?? true),
+        isPublic: Boolean(body.isPublic ?? true),
 
         // ✅ createMany ではなく create の配列で確実に作る
         courses: {
@@ -145,6 +148,7 @@ export async function POST(req: NextRequest) {
         place: created.place,
         sortOrder: created.sortOrder,
         isActive: created.isActive,
+        isPublic: created.isPublic,
         courseIds: created.courses.map((c) => c.courseId),
       },
     });

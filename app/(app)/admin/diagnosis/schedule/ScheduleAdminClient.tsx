@@ -34,6 +34,7 @@ type SlotRow = {
   place: string;
   sortOrder: number;
   isActive: boolean;
+  isPublic: boolean;
   courseIds: string[];
 };
 
@@ -127,6 +128,7 @@ export default function ScheduleAdminClient({ initialSchoolId }: Props) {
     place: "",
     sortOrder: 0,
     isActive: true,
+    isPublic: true,
     courseIds: [],
   });
 
@@ -216,6 +218,7 @@ export default function ScheduleAdminClient({ initialSchoolId }: Props) {
             place: String(s.place ?? ""),
             sortOrder: Number(s.sortOrder ?? 0),
             isActive: Boolean(s.isActive ?? true),
+            isPublic: Boolean(s.isPublic ?? s.isActive ?? true),
             courseIds: Array.isArray(s.courseIds)
               ? s.courseIds.map(String)
               : [],
@@ -309,6 +312,7 @@ export default function ScheduleAdminClient({ initialSchoolId }: Props) {
             place: slot.place,
             sortOrder: slot.sortOrder,
             isActive: slot.isActive,
+            isPublic: slot.isPublic,
             courseIds: slot.courseIds,
           }),
         },
@@ -331,6 +335,7 @@ export default function ScheduleAdminClient({ initialSchoolId }: Props) {
           place: saved.place,
           sortOrder: Number(saved.sortOrder ?? slot.sortOrder),
           isActive: Boolean(saved.isActive ?? slot.isActive),
+          isPublic: Boolean(saved.isPublic ?? slot.isPublic),
           courseIds: Array.isArray(saved.courseIds)
             ? saved.courseIds
             : slot.courseIds,
@@ -404,6 +409,7 @@ export default function ScheduleAdminClient({ initialSchoolId }: Props) {
           place: p.place,
           sortOrder: p.sortOrder ?? 0,
           isActive: p.isActive ?? true,
+          isPublic: p.isPublic ?? true,
           courseIds: p.courseIds,
         }),
       });
@@ -433,6 +439,7 @@ export default function ScheduleAdminClient({ initialSchoolId }: Props) {
           place: String(created.place ?? ""),
           sortOrder: Number(created.sortOrder ?? 0),
           isActive: Boolean(created.isActive ?? true),
+          isPublic: Boolean(created.isPublic ?? true),
           courseIds: Array.isArray(created.courseIds)
             ? created.courseIds.map(String)
             : [],
@@ -446,6 +453,7 @@ export default function ScheduleAdminClient({ initialSchoolId }: Props) {
         teacher: "",
         place: "",
         sortOrder: (prev.sortOrder ?? 0) + 1,
+        isPublic: true,
         courseIds: [],
       }));
     } catch (e) {
@@ -672,6 +680,18 @@ export default function ScheduleAdminClient({ initialSchoolId }: Props) {
           </div>
         </div>
 
+        <label className="mt-4 flex w-fit items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100">
+          <input
+            type="checkbox"
+            checked={newSlot.isPublic}
+            onChange={() =>
+              setNewSlot((p) => ({ ...p, isPublic: !p.isPublic }))
+            }
+            disabled={savingId === "REORDER"}
+          />
+          公開スケジュールに表示する
+        </label>
+
         <div className="mt-4">
           <div className={label}>対応コース（1つ以上チェック）</div>
           <div className="mt-2 grid gap-2 md:grid-cols-2">
@@ -736,7 +756,9 @@ export default function ScheduleAdminClient({ initialSchoolId }: Props) {
                 key={s.id}
                 className={[
                   "rounded-2xl border p-4 transition",
-                  "border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-950",
+                  s.isPublic
+                    ? "border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-950"
+                    : "border-amber-200 bg-amber-50/60 dark:border-amber-900 dark:bg-amber-950/20",
                   draggingId === s.id ? "opacity-60" : "opacity-100",
                 ].join(" ")}
                 onDragOver={(e) => e.preventDefault()}
@@ -762,6 +784,11 @@ export default function ScheduleAdminClient({ initialSchoolId }: Props) {
                     <div className="min-w-0">
                       <div className="text-sm font-extrabold">
                         {s.genreText || "(未入力)"} / {s.timeText || "(未入力)"}
+                        {!s.isPublic && (
+                          <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-bold text-amber-700 dark:bg-amber-900/50 dark:text-amber-200">
+                            非公開
+                          </span>
+                        )}
                       </div>
                       <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                         sortOrder: {s.sortOrder}
@@ -882,13 +909,13 @@ export default function ScheduleAdminClient({ initialSchoolId }: Props) {
                     <label className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300">
                       <input
                         type="checkbox"
-                        checked={s.isActive}
+                        checked={s.isPublic}
                         onChange={() =>
-                          updateSlotLocal(s.id, { isActive: !s.isActive })
+                          updateSlotLocal(s.id, { isPublic: !s.isPublic })
                         }
                         disabled={savingId === "REORDER"}
                       />
-                      有効（結果に表示）
+                      公開スケジュールに表示
                     </label>
                   </div>
 
@@ -917,7 +944,7 @@ export default function ScheduleAdminClient({ initialSchoolId }: Props) {
                   </div>
 
                   <div className="mt-2 text-[11px] text-gray-500 dark:text-gray-400">
-                    ※「保存」を押すまでDBには反映されません（並び替えはドロップ時に自動保存）。
+                    ※非公開にすると管理画面の一覧には残り、公開フォームのスケジュール選択肢からは外れます。「保存」を押すまでDBには反映されません（並び替えはドロップ時に自動保存）。
                   </div>
                 </div>
               </div>

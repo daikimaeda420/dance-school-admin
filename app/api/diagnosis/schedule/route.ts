@@ -19,6 +19,7 @@ export async function GET(req: NextRequest) {
   const whereClause: any = {
     schoolId,
     isActive: true,
+    isPublic: true,
   };
   
   if (courseId) {

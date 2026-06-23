@@ -120,7 +120,7 @@ export async function GET(req: NextRequest) {
 
       // [診断] スケジュールスロット数（有効）
       prisma.diagnosisScheduleSlot.count({
-        where: { ...schoolFilter, isActive: true },
+        where: { ...schoolFilter, isActive: true, isPublic: true },
       }),
 
       // [診断] FAQ設定

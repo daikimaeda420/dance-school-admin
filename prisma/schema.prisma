@@ -309,6 +309,7 @@ model DiagnosisScheduleSlot {
   place     String
 
   isActive  Boolean @default(true)
+  isPublic  Boolean @default(true)
   sortOrder Int     @default(0)
 
   createdAt DateTime @default(now())
@@ -317,6 +318,7 @@ model DiagnosisScheduleSlot {
   courses DiagnosisScheduleSlotCourse[]
 
   @@index([schoolId, weekday, isActive])
+  @@index([schoolId, weekday, isActive, isPublic])
 }
 
 model DiagnosisScheduleSlotCourse {
