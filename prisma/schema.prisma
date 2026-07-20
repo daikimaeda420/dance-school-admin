@@ -42,6 +42,7 @@ model FaqLog {
   @@index([school])
   @@index([sessionId])
   @@index([timestamp])
+  @@index([school, timestamp])
 }
 
 model User {
@@ -510,4 +511,5 @@ model DiagnosisSessionLog {
   @@index([schoolId, stepKey])
   @@index([sessionId])
   @@index([createdAt])
+  @@index([schoolId, createdAt])
 }

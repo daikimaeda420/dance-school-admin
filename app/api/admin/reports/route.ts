@@ -134,7 +134,8 @@ export async function GET(req: NextRequest) {
     const [
       faqRow,
       faqLogs,
-      diagnosisLogs,
+      diagnosisUniqueSteps,
+      diagnosisClickTotals,
       submissionCount,
       recentSubmissions,
     ] = await Promise.all([
@@ -155,10 +156,21 @@ export async function GET(req: NextRequest) {
           url: true,
         },
       }),
-      prisma.diagnosisSessionLog.findMany({
+      // 同じセッション・イベントの重複ログはレポート集計に不要なため、
+      // DB側でユニーク化して転送量とNode.js側の処理を抑える。
+      prisma.diagnosisSessionLog.groupBy({
+        by: ["stepKey", "sessionId"],
         where: { schoolId, createdAt: { gte: since } },
-        orderBy: { createdAt: "asc" },
-        select: { sessionId: true, stepKey: true, stepLabel: true, createdAt: true },
+      }),
+      // クリックは延べ回数も表示するため、対象イベントだけを別途集計する。
+      prisma.diagnosisSessionLog.groupBy({
+        by: ["stepKey"],
+        where: {
+          schoolId,
+          createdAt: { gte: since },
+          stepKey: { in: CLICK_STEPS.map((step) => step.key) },
+        },
+        _count: { _all: true },
       }),
       prisma.diagnosisFormSubmission.count({
         where: { schoolId, createdAt: { gte: since } },
@@ -229,14 +241,14 @@ export async function GET(req: NextRequest) {
       .map(([question, count]) => ({ question, count }));
 
     const uniqueByStep = new Map<string, Set<string>>();
-    for (const log of diagnosisLogs) {
+    for (const log of diagnosisUniqueSteps) {
       if (!uniqueByStep.has(log.stepKey)) uniqueByStep.set(log.stepKey, new Set());
       uniqueByStep.get(log.stepKey)!.add(log.sessionId);
     }
 
     const flowKeys = new Set(FUNNEL_STEPS.map((step) => step.key));
     const flowSessions = new Set(
-      diagnosisLogs
+      diagnosisUniqueSteps
         .filter(
           (log) =>
             flowKeys.has(log.stepKey as (typeof FUNNEL_STEPS)[number]["key"]) ||
@@ -271,17 +283,20 @@ export async function GET(req: NextRequest) {
       };
     });
 
+    const totalClicksByStep = new Map(
+      diagnosisClickTotals.map((row) => [row.stepKey, row._count._all]),
+    );
     const clickStats = CLICK_STEPS.map((step) => ({
       stepKey: step.key,
       label: step.label,
-      totalClicks: diagnosisLogs.filter((log) => log.stepKey === step.key).length,
+      totalClicks: totalClicksByStep.get(step.key) ?? 0,
       uniqueSessions: uniqueByStep.get(step.key)?.size ?? 0,
     }));
 
     const formOpenCount = uniqueByStep.get("FORM_OPEN")?.size ?? 0;
     const fieldKeys = Array.from(
       new Set(
-        diagnosisLogs
+        diagnosisUniqueSteps
           .filter((log) => log.stepKey.startsWith("FORM_FIELD_"))
           .map((log) => log.stepKey),
       ),
