@@ -65,6 +65,11 @@ export default function Sidebar({
     schoolId ? `?schoolId=${encodeURIComponent(schoolId)}` : ""
   }`;
 
+  const reportHref = (section: "qa" | "diagnosis") =>
+    `/admin/reports/${section}${
+      schoolId ? `?schoolId=${encodeURIComponent(schoolId)}` : ""
+    }`;
+
   // ★ 相性診断プレビュー（外部URL：school を動的差し込み）
   const diagnosisPreviewUrl = schoolId
     ? `https://rizbo.dansul.jp/embed/diagnosis?schoolId=${encodeURIComponent(
@@ -143,6 +148,31 @@ export default function Sidebar({
             {NAV.filter((item) => !item.superOnly || isSuperAdmin).map(({ href, label, icon: Icon }) => {
               // Q&A編集の直後に診断編集を差し込むための処理
               const selected = isActive(href);
+
+              if (href === "/admin/reports") {
+                return (
+                  <div key={href + "_wrap"} className="group relative">
+                    <Link
+                      href={reportHref("diagnosis")}
+                      aria-current={selected ? "page" : undefined}
+                      className={[baseLink, selected ? active : inactive].join(" ")}
+                    >
+                      <Icon size={18} />
+                      <span>{label}</span>
+                    </Link>
+                    <div className="absolute left-full top-0 z-50 hidden w-44 rounded-xl border border-gray-200 bg-white p-1.5 shadow-xl group-hover:block group-focus-within:block dark:border-gray-700 dark:bg-gray-900">
+                      <Link href={reportHref("qa")} className={[baseLink, isActive("/admin/reports/qa") ? active : inactive].join(" ")}>
+                        <MessagesSquare size={16} />
+                        <span>Q&amp;A</span>
+                      </Link>
+                      <Link href={reportHref("diagnosis")} className={[baseLink, isActive("/admin/reports/diagnosis") ? active : inactive].join(" ")}>
+                        <ClipboardList size={16} />
+                        <span>相性診断</span>
+                      </Link>
+                    </div>
+                  </div>
+                );
+              }
 
               return (
                 <div key={href + "_wrap"}>
@@ -265,6 +295,30 @@ export default function Sidebar({
             <nav className="p-2 space-y-1">
               {NAV.filter((item) => !item.superOnly || isSuperAdmin).map(({ href, label, icon: Icon }) => {
                 const selected = isActive(href);
+
+                if (href === "/admin/reports") {
+                  return (
+                    <div key={href + "_wrap_m"}>
+                      <Link
+                        href={reportHref("diagnosis")}
+                        onClick={onClose}
+                        aria-current={selected ? "page" : undefined}
+                        className={[baseLink, "w-full", selected ? active : inactive].join(" ")}
+                      >
+                        <Icon size={18} />
+                        <span>{label}</span>
+                      </Link>
+                      <Link href={reportHref("qa")} onClick={onClose} className={[baseLink, "w-full ml-2", isActive("/admin/reports/qa") ? active : inactive].join(" ")}>
+                        <MessagesSquare size={16} />
+                        <span>Q&amp;Aレポート</span>
+                      </Link>
+                      <Link href={reportHref("diagnosis")} onClick={onClose} className={[baseLink, "w-full ml-2", isActive("/admin/reports/diagnosis") ? active : inactive].join(" ")}>
+                        <ClipboardList size={16} />
+                        <span>相性診断レポート</span>
+                      </Link>
+                    </div>
+                  );
+                }
 
                 return (
                   <div key={href + "_wrap_m"}>

@@ -154,8 +154,10 @@ function eventLabel(type: OperationReport["qa"]["recent"][number]["eventType"]) 
 
 export default function OperationReportClient({
   initialSchoolId,
+  view = "diagnosis",
 }: {
   initialSchoolId: string;
+  view?: "qa" | "diagnosis";
 }) {
   const [days, setDays] = useState(30);
   const [report, setReport] = useState<OperationReport | null>(null);
@@ -163,6 +165,7 @@ export default function OperationReportClient({
   const [error, setError] = useState<string | null>(null);
 
   const schoolId = report?.schoolId ?? initialSchoolId;
+  const isQaReport = view === "qa";
 
   const fetchReport = useCallback(async () => {
     setLoading(true);
@@ -209,9 +212,13 @@ export default function OperationReportClient({
             <BarChart3 className="h-4 w-4" aria-hidden />
             運用状況
           </div>
-          <h1 className="text-xl font-bold">運用レポート</h1>
+          <h1 className="text-xl font-bold">
+            {isQaReport ? "Q&Aレポート" : "相性診断レポート"}
+          </h1>
           <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
-            設置サイト、Q&amp;A、相性診断、フォーム申込の状況を期間別に確認できます。UUは匿名のブラウザIDを使った推定値です。
+            {isQaReport
+              ? "Q&Aの利用状況、よく見られている質問、直近ログを期間別に確認できます。"
+              : "設置サイトのUU、相性診断、フォーム申込の状況を期間別に確認できます。UUは匿名のブラウザIDを使った推定値です。"}
           </p>
           {schoolId && (
             <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
@@ -269,7 +276,13 @@ export default function OperationReportClient({
       ) : report ? (
         <div className="space-y-5">
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-            {report.summary.map((item) => (
+            {report.summary
+              .filter((item) =>
+                isQaReport
+                  ? item.key === "qaSessions" || item.key === "qaAnswers"
+                  : item.key !== "qaSessions" && item.key !== "qaAnswers",
+              )
+              .map((item) => (
               <div key={item.key} className={adminCard}>
                 <div className="text-xs font-semibold text-gray-500 dark:text-gray-400">
                   {item.label}
@@ -281,9 +294,10 @@ export default function OperationReportClient({
                   {item.note}
                 </div>
               </div>
-            ))}
+              ))}
           </div>
 
+          {!isQaReport && (
           <div className="grid gap-5 xl:grid-cols-[minmax(0,1.7fr)_minmax(320px,0.9fr)]">
             <section className={adminCard}>
               <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
@@ -388,8 +402,9 @@ export default function OperationReportClient({
               </div>
             </section>
           </div>
+          )}
 
-          <div className="grid gap-5 xl:grid-cols-2">
+          <div className={["grid gap-5", isQaReport ? "xl:grid-cols-2" : "xl:grid-cols-1"].join(" ")}>
             <section className={adminCard}>
               <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
                 <div>
@@ -466,7 +481,7 @@ export default function OperationReportClient({
               </div>
             </section>
 
-            <section className={adminCard}>
+            {!isQaReport && <section className={adminCard}>
               <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <h2 className="flex items-center gap-2 text-sm font-bold text-gray-950 dark:text-gray-50">
@@ -521,11 +536,11 @@ export default function OperationReportClient({
                   ))}
                 </div>
               )}
-            </section>
+            </section>}
           </div>
 
-          <div className="grid gap-5 xl:grid-cols-2">
-            <section className={adminCard}>
+          <div className={["grid gap-5", isQaReport ? "xl:grid-cols-1" : "xl:grid-cols-2"].join(" ")}>
+            {!isQaReport && <section className={adminCard}>
               <div className="mb-4">
                 <h2 className="flex items-center gap-2 text-sm font-bold text-gray-950 dark:text-gray-50">
                   <MousePointerClick className="h-4 w-4 text-cyan-600" aria-hidden />
@@ -553,7 +568,7 @@ export default function OperationReportClient({
                   </div>
                 ))}
               </div>
-            </section>
+            </section>}
 
             <section className={adminCard}>
               <div className="mb-4">
