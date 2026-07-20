@@ -138,58 +138,61 @@ export async function POST(req: NextRequest) {
     }
 
     const campusSlug = norm(answers["Q1"]);
-    const campus = await prisma.diagnosisCampus.findFirst({
-      where: { schoolId, slug: campusSlug, isActive: true },
-      select: { id: true, label: true, slug: true },
-    });
-    if (!campus)
-      return NextResponse.json({ error: "NO_CAMPUS" }, { status: 400 });
-
     const q2ForCourse = getQ2ValueForCourse(answers);
     
     // ✅ Q4 は動的なので答案そのものをタグとして扱う（Frontend で id=tag としているため）
     const q4Tag = answers["Q4"]; 
 
-    const recommendedCourse = await prisma.diagnosisCourse.findFirst({
-      where: {
-        schoolId,
-        isActive: true,
-        q2AnswerTags: { has: q2ForCourse },
-        // ✅ Q4タグ（ジャンル）で絞り込み
-        ...(q4Tag ? { genreTags: { has: q4Tag } } : {}),
-      },
-      orderBy: { sortOrder: "asc" },
-      select: {
-        id: true,
-        label: true,
-        slug: true,
-        description: true,
-        photoMime: true,
-        youtubeVideoId: true,
-      },
-    });
-    // ===== 講師抽出 =====
-    const campusInstructorIds = await instructorIdsByCampus({
-      schoolId,
-      campusId: campus.id,
-    });
-
-    const courseInstructorIds = recommendedCourse?.id
-      ? await instructorIdsByCourse({
+    // 校舎とコースは互いに依存しないため、最初の待機を並列化する。
+    // 校舎は結果表示に必要な情報まで一度に取得し、後段の重複照会をなくす。
+    const [campus, recommendedCourse] = await Promise.all([
+      prisma.diagnosisCampus.findFirst({
+        where: { schoolId, slug: campusSlug, isActive: true },
+        select: {
+          id: true,
+          label: true,
+          slug: true,
+          address: true,
+          access: true,
+          googleMapUrl: true,
+          googleMapEmbedUrl: true,
+        },
+      }),
+      prisma.diagnosisCourse.findFirst({
+        where: {
           schoolId,
-          courseId: recommendedCourse.id,
-        })
-      : [];
-
+          isActive: true,
+          q2AnswerTags: { has: q2ForCourse },
+          // ✅ Q4タグ（ジャンル）で絞り込み
+          ...(q4Tag ? { genreTags: { has: q4Tag } } : {}),
+        },
+        orderBy: { sortOrder: "asc" },
+        select: {
+          id: true,
+          label: true,
+          slug: true,
+          description: true,
+          photoMime: true,
+          youtubeVideoId: true,
+        },
+      }),
+    ]);
+    if (!campus)
+      return NextResponse.json({ error: "NO_CAMPUS" }, { status: 400 });
+    // ===== 講師抽出 =====
     // 講師照合は Q5（理想の先生）を利用（旧Q4）
     const teacherIdealOptionId = getTeacherIdealOptionId(answers);
     const concernOptionId = getConcernOptionId(answers);
-    const concernInstructorIds = teacherIdealOptionId
-      ? await instructorIdsByConcernOption({
-          schoolId,
-          optionId: teacherIdealOptionId,
-        })
-      : [];
+    const [campusInstructorIds, courseInstructorIds, concernInstructorIds] =
+      await Promise.all([
+        instructorIdsByCampus({ schoolId, campusId: campus.id }),
+        recommendedCourse?.id
+          ? instructorIdsByCourse({ schoolId, courseId: recommendedCourse.id })
+          : Promise.resolve([]),
+        teacherIdealOptionId
+          ? instructorIdsByConcernOption({ schoolId, optionId: teacherIdealOptionId })
+          : Promise.resolve([]),
+      ]);
 
     const selectInstructor = {
       id: true,
@@ -210,50 +213,50 @@ export async function POST(req: NextRequest) {
             select: selectInstructor,
           });
 
-    let instructors: any[] = [];
-    let instructorMatchedBy = "none";
-
-    // ⭐ 最優先：campus + course + concern
-    if (courseInstructorIds.length > 0 && concernInstructorIds.length > 0) {
-      const ids = intersectIds(
-        intersectIds(campusInstructorIds, courseInstructorIds),
-        concernInstructorIds,
-      );
-      const got = await load(ids);
-      if (got.length > 0) {
-        instructors = got;
-        instructorMatchedBy = "campus+course+concern";
-      }
-    }
-
-    // 2番目：campus + course
-    if (instructors.length === 0 && courseInstructorIds.length > 0) {
-      const ids = intersectIds(campusInstructorIds, courseInstructorIds);
-      const got = await load(ids);
-      if (got.length > 0) {
-        instructors = got;
-        instructorMatchedBy = "campus+course";
-      }
-    }
-    
-    // 3番目：campus + concern
-    if (instructors.length === 0 && concernInstructorIds.length > 0) {
-      const ids = intersectIds(campusInstructorIds, concernInstructorIds);
-      const got = await load(ids);
-      if (got.length > 0) {
-        instructors = got;
-        instructorMatchedBy = "campus+concern";
-      }
-    }
-
-    // 4番目：campus
-    if (instructors.length === 0) {
-      const got = await load(campusInstructorIds);
-      if (got.length > 0) {
-        instructors = got;
-        instructorMatchedBy = "campus";
-      }
-    }
+    // 優先順は保持しつつ、候補IDを先に決めて講師本体の検索を一度だけにする。
+    const matchCandidates: Array<{ ids: string[]; matchedBy: string }> = [
+      {
+        ids:
+          courseInstructorIds.length > 0 && concernInstructorIds.length > 0
+            ? intersectIds(
+                intersectIds(campusInstructorIds, courseInstructorIds),
+                concernInstructorIds,
+              )
+            : [],
+        matchedBy: "campus+course+concern",
+      },
+      {
+        ids:
+          courseInstructorIds.length > 0
+            ? intersectIds(campusInstructorIds, courseInstructorIds)
+            : [],
+        matchedBy: "campus+course",
+      },
+      {
+        ids:
+          concernInstructorIds.length > 0
+            ? intersectIds(campusInstructorIds, concernInstructorIds)
+            : [],
+        matchedBy: "campus+concern",
+      },
+      { ids: campusInstructorIds, matchedBy: "campus" },
+    ];
+    // 校舎に紐づく有効講師を一度だけ読み、優先候補に有効講師がいるかを
+    // メモリ上で判定する。これで従来のフォールバック順も維持できる。
+    const activeCampusInstructors = await load(campusInstructorIds);
+    const activeInstructorIds = new Set(
+      activeCampusInstructors.map((instructor) => instructor.id),
+    );
+    const selectedInstructorMatch = matchCandidates.find(({ ids }) =>
+      ids.some((id) => activeInstructorIds.has(id)),
+    );
+    const selectedInstructorIds = new Set(selectedInstructorMatch?.ids ?? []);
+    const instructors = selectedInstructorMatch
+      ? activeCampusInstructors.filter((instructor) =>
+          selectedInstructorIds.has(instructor.id),
+        )
+      : [];
+    const instructorMatchedBy = selectedInstructorMatch?.matchedBy ?? "none";
 
     // ===== コピー =====
     const concernKey = getConcernKey(answers);
@@ -287,20 +290,6 @@ export async function POST(req: NextRequest) {
             : null,
         }
       : null;
-
-    // ===== キャンパス情報取得 =====
-    const campusFull = await prisma.diagnosisCampus.findFirst({
-      where: { schoolId, slug: campusSlug, isActive: true },
-      select: {
-        id: true,
-        label: true,
-        slug: true,
-        address: true,
-        access: true,
-        googleMapUrl: true,
-        googleMapEmbedUrl: true,
-      },
-    });
 
     // ===== スコア計算（減点式） =====
     // 基準: 100点 から各Qの回答に応じて減点
@@ -352,17 +341,17 @@ export async function POST(req: NextRequest) {
       breakdown: [],
       worstMatch: null,
       allScores: [],
-      campus: campusFull
+      campus: campus
         ? {
-            id: campusFull.id,
-            label: campusFull.label,
-            slug: campusFull.slug,
-            address: campusFull.address ?? null,
-            access: campusFull.access ?? null,
-            googleMapUrl: campusFull.googleMapUrl ?? null,
-            googleMapEmbedUrl: campusFull.googleMapEmbedUrl ?? null,
-            mapLinkUrl: campusFull.googleMapUrl ?? null,
-            mapEmbedUrl: campusFull.googleMapEmbedUrl ?? null,
+            id: campus.id,
+            label: campus.label,
+            slug: campus.slug,
+            address: campus.address ?? null,
+            access: campus.access ?? null,
+            googleMapUrl: campus.googleMapUrl ?? null,
+            googleMapEmbedUrl: campus.googleMapEmbedUrl ?? null,
+            mapLinkUrl: campus.googleMapUrl ?? null,
+            mapEmbedUrl: campus.googleMapEmbedUrl ?? null,
           }
         : undefined,
       selectedCourse,
