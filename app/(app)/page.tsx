@@ -37,6 +37,7 @@ import { LandingConsultationForm } from "@/components/marketing/LandingConsultat
 import {
   MarketingFooter,
   MarketingHeader,
+  SOCIAL_NAV_ITEMS,
   type MarketingNavItem,
 } from "@/components/marketing/MarketingChrome";
 
@@ -161,6 +162,7 @@ const LP_NAV: MarketingNavItem[] = [
   { href: "#features", label: "機能" },
   { href: "#workflow", label: "はじめ方" },
   { href: "#cta", label: "導入の相談" },
+  ...SOCIAL_NAV_ITEMS,
 ];
 
 const LP_VALUE_CARDS = [
@@ -1943,7 +1945,7 @@ export default function HomePage() {
         <SectionHeader
           icon={<MessageSquare className="h-5 w-5" />}
           title="Q&A チャットボット"
-          subtitle={`直近 ${range}日間のチャット状況`}
+          subtitle={`直近 ${range}日間の利用ユーザー・ログ状況`}
           accent="bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-300"
         />
 
@@ -2016,7 +2018,7 @@ export default function HomePage() {
         <SectionHeader
           icon={<MousePointerClick className="h-5 w-5" />}
           title="パーソナライズ診断"
-          subtitle={`直近 ${range}日間のコンバージョン状況`}
+          subtitle={`直近 ${range}日間のUU・利用ユーザー・フォーム送信CVR`}
           accent="bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-300"
         />
 
@@ -2039,9 +2041,9 @@ export default function HomePage() {
                   i === 0 ? (
                     <Users className="h-4 w-4" />
                   ) : i === 1 ? (
-                    <BarChart3 className="h-4 w-4" />
+                    <MousePointerClick className="h-4 w-4" />
                   ) : (
-                    <Activity className="h-4 w-4" />
+                    <Target className="h-4 w-4" />
                   )
                 }
               />

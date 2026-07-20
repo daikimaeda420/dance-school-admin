@@ -78,6 +78,10 @@ export async function GET(req: NextRequest) {
       formRow,
       formSubmissionCount,
       recentSubmissions,
+      // 設置先サイトの訪問UU（匿名 visitorId を sessionId として記録）
+      siteVisitorCount,
+      // 診断を開始したユニークユーザー数（Q1表示）
+      diagnosisStartSessionCount,
       // 離脱ファネル（直近のセッション数）
       sessionLogCount,
     ] = await Promise.all([
@@ -148,6 +152,30 @@ export async function GET(req: NextRequest) {
         select: { id: true, fields: true, createdAt: true },
       }),
 
+      prisma.diagnosisSessionLog
+        .findMany({
+          where: {
+            ...schoolFilter,
+            createdAt: { gte: since },
+            stepKey: "SITE_VISIT",
+          },
+          select: { sessionId: true },
+          distinct: ["sessionId"],
+        })
+        .then((rows) => rows.length),
+
+      prisma.diagnosisSessionLog
+        .findMany({
+          where: {
+            ...schoolFilter,
+            createdAt: { gte: since },
+            stepKey: "Q1_VIEW",
+          },
+          select: { sessionId: true },
+          distinct: ["sessionId"],
+        })
+        .then((rows) => rows.length),
+
       // [診断] セッションログ数（離脱ファネル存在チェック）
       prisma.diagnosisSessionLog.count({
         where: { ...schoolFilter, createdAt: { gte: since } },
@@ -161,9 +189,9 @@ export async function GET(req: NextRequest) {
     // ── Q&A KPI ──
     const qaKpis = [
       {
-        label: `チャットセッション数`,
+        label: "Q&A利用ユーザー",
         value: faqSessionCount.toLocaleString(),
-        note: `直近 ${days}日間`,
+        note: `直近 ${days}日間のユニークセッション数`,
       },
       {
         label: "Q&Aログ総件数",
@@ -178,21 +206,26 @@ export async function GET(req: NextRequest) {
     ];
 
     // ── 診断 KPI ──
+    const diagnosisConversionRate =
+      diagnosisStartSessionCount > 0
+        ? Math.round((formSubmissionCount / diagnosisStartSessionCount) * 100)
+        : null;
     const diagnosisKpis = [
       {
-        label: "フォームコンバージョン数",
-        value: formSubmissionCount.toLocaleString(),
+        label: "設置サイト UU（推定）",
+        value: siteVisitorCount.toLocaleString(),
         note: `直近 ${days}日間`,
       },
       {
-        label: "診断コース数",
-        value: courseCount.toLocaleString(),
-        note: "有効なコース",
+        label: "診断利用ユーザー",
+        value: diagnosisStartSessionCount.toLocaleString(),
+        note: "Q1を表示したユニークユーザー数",
       },
       {
-        label: "登録講師数",
-        value: instructorCount.toLocaleString(),
-        note: "有効な講師",
+        label: "フォーム送信CVR",
+        value:
+          diagnosisConversionRate == null ? "-" : `${diagnosisConversionRate}%`,
+        note: `送信 ${formSubmissionCount.toLocaleString()}件 / 診断利用ユーザー`,
       },
     ];
 
