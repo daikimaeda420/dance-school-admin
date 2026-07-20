@@ -66,6 +66,7 @@ type OperationReport = {
   };
   diagnosis: {
     diagnosisEnabled: boolean;
+    siteVisitors: number;
     totalSessions: number;
     resultViews: number;
     formOpens: number;
@@ -210,7 +211,7 @@ export default function OperationReportClient({
           </div>
           <h1 className="text-xl font-bold">運用レポート</h1>
           <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
-            Q&amp;A、相性診断、フォーム申込の状況を期間別に確認できます。診断LP UUはブラウザのユニークセッション数による推定値です。
+            設置サイト、Q&amp;A、相性診断、フォーム申込の状況を期間別に確認できます。UUは匿名のブラウザIDを使った推定値です。
           </p>
           {schoolId && (
             <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">

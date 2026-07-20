@@ -34,6 +34,8 @@ const CLICK_STEPS = [
   { key: "DIAGNOSIS_BANNER_CLICK", label: "診断バナー" },
 ] as const;
 
+const SITE_VISIT_STEP = "SITE_VISIT";
+
 function parseDays(value: string | null) {
   const raw = Number(value ?? 30);
   if (!Number.isFinite(raw)) return 30;
@@ -259,6 +261,7 @@ export async function GET(req: NextRequest) {
     );
     const totalDiagnosisSessions =
       uniqueByStep.get("Q1_VIEW")?.size ?? flowSessions.size;
+    const siteVisitors = uniqueByStep.get(SITE_VISIT_STEP)?.size ?? 0;
 
     const funnel = FUNNEL_STEPS.map((step, index) => {
       const count = uniqueByStep.get(step.key)?.size ?? 0;
@@ -416,6 +419,12 @@ export async function GET(req: NextRequest) {
       generatedAt: new Date(),
       summary: [
         {
+          key: "siteVisitors",
+          label: "設置サイト UU（推定）",
+          value: siteVisitors,
+          note: "埋め込みタグが読み込まれたユニーク訪問者数",
+        },
+        {
           key: "qaSessions",
           label: "Q&Aセッション",
           value: qaSessions,
@@ -461,6 +470,7 @@ export async function GET(req: NextRequest) {
       },
       diagnosis: {
         diagnosisEnabled: Boolean(faqRow?.diagnosisEnabled),
+        siteVisitors,
         totalSessions: totalDiagnosisSessions,
         resultViews,
         formOpens: formOpenCount,

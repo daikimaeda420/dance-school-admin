@@ -56,6 +56,21 @@
     }
   };
 
+  // ── 設置先サイト訪問者ID（個人を特定しない匿名ID）──
+  const _getVisitorId = () => {
+    try {
+      const key = `rizbo_visitor_${school}`;
+      let id = localStorage.getItem(key);
+      if (!id) {
+        id = `${Date.now()}_${Math.random().toString(36).slice(2, 12)}`;
+        localStorage.setItem(key, id);
+      }
+      return id;
+    } catch {
+      return `${Date.now()}_visitor_fallback`;
+    }
+  };
+
   // ── クリックイベントをサーバーに送信するユーティリティ ──
   const trackClick = (stepKey, stepLabel) => {
     try {
@@ -72,6 +87,29 @@
         }),
         credentials: "omit",
       }).catch(() => {}); // 失敗しても無視
+    } catch {}
+  };
+
+  // 同じタブで埋め込みタグが重複して読み込まれても、訪問ログは1回に抑える。
+  const trackSiteVisit = () => {
+    try {
+      const sentKey = `rizbo_site_visit_sent_${school}`;
+      if (sessionStorage.getItem(sentKey)) return;
+      sessionStorage.setItem(sentKey, "1");
+
+      fetch(`${origin}/api/diagnosis/session-log`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          schoolId: school,
+          sessionId: _getVisitorId(),
+          stepKey: "SITE_VISIT",
+          stepLabel: "設置サイト 訪問",
+          allowDuplicate: true,
+        }),
+        credentials: "omit",
+        keepalive: true,
+      }).catch(() => {});
     } catch {}
   };
 
@@ -120,6 +158,8 @@
     } catch (e) {
       console.warn("[rizbo] /api/faq 取得中にエラー", e);
     }
+
+    trackSiteVisit();
 
     const palette = paletteFromDb;
     const color = paletteColorMap[palette] || paletteColorMap["gray"];
