@@ -414,9 +414,9 @@ export async function GET(req: NextRequest) {
         },
         {
           key: "diagnosisStarts",
-          label: "診断開始",
+          label: "診断LP UU（推定）",
           value: totalDiagnosisSessions,
-          note: `バナークリック ${bannerClicks.toLocaleString()}件`,
+          note: `Q1表示のユニークセッション数 / バナークリック ${bannerClicks.toLocaleString()}件`,
         },
         {
           key: "formOpenRate",

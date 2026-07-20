@@ -210,7 +210,7 @@ export default function OperationReportClient({
           </div>
           <h1 className="text-xl font-bold">運用レポート</h1>
           <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
-            Q&amp;A、相性診断、フォーム申込の状況を期間別に確認できます。
+            Q&amp;A、相性診断、フォーム申込の状況を期間別に確認できます。診断LP UUはブラウザのユニークセッション数による推定値です。
           </p>
           {schoolId && (
             <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
@@ -292,8 +292,8 @@ export default function OperationReportClient({
                     相性診断ファネル
                   </h2>
                   <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                    直近{report.days}日 / 診断開始{" "}
-                    {report.diagnosis.totalSessions.toLocaleString()}件
+                    直近{report.days}日 / 診断LP UU（推定） {" "}
+                    {report.diagnosis.totalSessions.toLocaleString()}人
                   </p>
                 </div>
                 <Link
@@ -307,7 +307,7 @@ export default function OperationReportClient({
 
               {report.diagnosis.totalSessions === 0 ? (
                 <div className="rounded-xl border border-dashed border-gray-200 p-6 text-center text-sm text-gray-500 dark:border-gray-700 dark:text-gray-400">
-                  期間内の診断開始ログがありません。
+                  期間内の診断LP UUログがありません。
                 </div>
               ) : (
                 <div className="space-y-3">
