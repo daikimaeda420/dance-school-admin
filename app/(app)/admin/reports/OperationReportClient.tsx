@@ -279,7 +279,9 @@ export default function OperationReportClient({
             {report.summary
               .filter((item) =>
                 isQaReport
-                  ? item.key === "qaSessions" || item.key === "qaAnswers"
+                  ? item.key === "siteVisitors" ||
+                    item.key === "qaSessions" ||
+                    item.key === "qaAnswers"
                   : item.key !== "qaSessions" && item.key !== "qaAnswers",
               )
               .map((item) => (
