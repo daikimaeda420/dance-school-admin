@@ -17,6 +17,7 @@ import {
   ListChecks, // 診断編集アイコン
   ClipboardList, // ← 追加（相性診断プレビュー用アイコン）
   ClipboardCheck,
+  Sparkles,
 } from "lucide-react";
 import { useEffect, MouseEvent } from "react";
 import { useSession } from "next-auth/react";
@@ -30,6 +31,7 @@ type Props = {
 const NAV = [
   { href: "/", label: "ホーム", icon: Home },
   { href: "/admin/reports", label: "運用レポート", icon: BarChart3 },
+  { href: "/admin/ai-insights", label: "AIコンサル・分析", icon: Sparkles },
   { href: "/faq", label: "Q&A編集", icon: MessagesSquare },
   // ← ★ この下に診断編集を追加する（NAV には入れない）
   { href: "/admin/chat-history", label: "ユーザーログ", icon: TimerReset },
