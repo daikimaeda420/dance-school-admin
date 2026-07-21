@@ -1,7 +1,10 @@
 ALTER TABLE "Faq"
   ADD COLUMN "chatMode" TEXT NOT NULL DEFAULT 'FAQ_ONLY',
   ADD COLUMN "reservationMode" TEXT NOT NULL DEFAULT 'NONE',
-  ADD COLUMN "reservationUrl" TEXT;
+  ADD COLUMN "reservationUrl" TEXT,
+  ADD COLUMN "knowledgeSourceUrl" TEXT,
+  ADD COLUMN "knowledgeContent" TEXT,
+  ADD COLUMN "knowledgeUpdatedAt" TIMESTAMP(3);
 
 CREATE TABLE "ChatReservation" (
   "id" TEXT NOT NULL,

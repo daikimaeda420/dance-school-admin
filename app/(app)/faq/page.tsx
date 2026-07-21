@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import { useSession } from "next-auth/react";
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useTransition } from "react";
 import { produce } from "immer";
 import { MessagesSquare, CodeXml, BadgeCheck, Palette, CalendarCheck } from "lucide-react";
 import { FAQEditor } from "../../../components/FAQEditor";
@@ -130,6 +130,11 @@ export default function FAQPage() {
   const [chatMode, setChatMode] = useState<ChatMode>("FAQ_ONLY");
   const [reservationMode, setReservationMode] = useState<ReservationMode>("NONE");
   const [reservationUrl, setReservationUrl] = useState("");
+  const [knowledgeUrl, setKnowledgeUrl] = useState("");
+  const [knowledgeContent, setKnowledgeContent] = useState("");
+  const [knowledgeUpdatedAt, setKnowledgeUpdatedAt] = useState<string | null>(null);
+  const [knowledgeError, setKnowledgeError] = useState("");
+  const [isReadingKnowledge, startReadingKnowledge] = useTransition();
 
   // 取得（FAQ + メタ）
   useEffect(() => {
@@ -208,6 +213,37 @@ export default function FAQPage() {
         });
     }
   }, [status, schoolId]);
+
+  useEffect(() => {
+    if (status !== "authenticated" || !schoolId) return;
+    fetch(`/api/admin/chat-knowledge?schoolId=${encodeURIComponent(schoolId)}`, { cache: "no-store" })
+      .then((res) => res.ok ? res.json() : Promise.reject())
+      .then((data) => {
+        setKnowledgeUrl(typeof data.knowledgeSourceUrl === "string" ? data.knowledgeSourceUrl : "");
+        setKnowledgeContent(typeof data.knowledgeContent === "string" ? data.knowledgeContent : "");
+        setKnowledgeUpdatedAt(typeof data.knowledgeUpdatedAt === "string" ? data.knowledgeUpdatedAt : null);
+      })
+      .catch(() => setKnowledgeError("会話用ナレッジを読み込めませんでした。"));
+  }, [status, schoolId]);
+
+  const readSiteKnowledge = () => {
+    if (!schoolId || !knowledgeUrl.trim()) return;
+    setKnowledgeError("");
+    startReadingKnowledge(async () => {
+      try {
+        const res = await fetch(`/api/admin/chat-knowledge?schoolId=${encodeURIComponent(schoolId)}`, {
+          method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url: knowledgeUrl }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "読み込みに失敗しました。");
+        setKnowledgeUrl(data.knowledgeSourceUrl ?? knowledgeUrl);
+        setKnowledgeContent(data.knowledgeContent ?? "");
+        setKnowledgeUpdatedAt(data.knowledgeUpdatedAt ?? null);
+      } catch (error) {
+        setKnowledgeError(error instanceof Error ? error.message : "読み込みに失敗しました。");
+      }
+    });
+  };
 
   // 未保存警告
   useEffect(() => {
@@ -595,6 +631,22 @@ export default function FAQPage() {
                 </div>
               )}
             </fieldset>
+          </div>
+        </section>
+
+        <section className="card">
+          <div className="card-header">
+            <h3 className="font-semibold">会話用ナレッジ</h3>
+            <p className="text-xs text-gray-500">設置サイトの内容を読み込み、今後のAI会話が参照する最新情報として保存します。現在は内容の保存・確認まで利用できます。</p>
+          </div>
+          <div className="card-body space-y-3">
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <input className="input flex-1" value={knowledgeUrl} onChange={(e) => setKnowledgeUrl(e.target.value)} placeholder="https://スクールのサイトURL" />
+              <button type="button" className="btn-primary whitespace-nowrap" disabled={!knowledgeUrl.trim() || isReadingKnowledge} onClick={readSiteKnowledge}>{isReadingKnowledge ? "読み込み中..." : "サイト情報を読み込む"}</button>
+            </div>
+            {knowledgeError && <p className="text-sm text-red-600">{knowledgeError}</p>}
+            {knowledgeUpdatedAt && <p className="text-xs text-gray-500">最終読み込み：{new Date(knowledgeUpdatedAt).toLocaleString("ja-JP")}（{knowledgeContent.length.toLocaleString()}文字）</p>}
+            {knowledgeContent && <details><summary className="cursor-pointer text-sm text-blue-600">読み込んだ内容を確認する</summary><p className="mt-2 max-h-52 overflow-auto whitespace-pre-wrap rounded border bg-gray-50 p-3 text-xs text-gray-700">{knowledgeContent}</p></details>}
           </div>
         </section>
 

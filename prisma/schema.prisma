@@ -30,6 +30,9 @@ model Faq {
   chatMode        String  @default("FAQ_ONLY")
   reservationMode String  @default("NONE")
   reservationUrl  String?
+  knowledgeSourceUrl String?
+  knowledgeContent   String? @db.Text
+  knowledgeUpdatedAt DateTime?
 
   @@index([updatedAt])
 }
