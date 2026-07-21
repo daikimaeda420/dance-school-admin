@@ -5,6 +5,7 @@ import { ArrowUpRight, ChevronRight, Mail } from "lucide-react";
 export type MarketingNavItem = {
   label: string;
   href: string;
+  external?: boolean;
 };
 
 type MarketingFooterLink = MarketingNavItem & {
@@ -30,9 +31,15 @@ type MarketingFooterProps = {
   brandDescription?: string;
 };
 
+export const SOCIAL_NAV_ITEMS: MarketingNavItem[] = [
+  { label: "note", href: "https://note.com/deep_zen", external: true },
+  { label: "Zenn", href: "https://zenn.dev/deep_zen", external: true },
+];
+
 export const LOWER_PAGE_NAV_ITEMS: MarketingNavItem[] = [
   { label: "機能", href: "/features" },
   { label: "はじめ方", href: "/getting-started" },
+  ...SOCIAL_NAV_ITEMS,
 ];
 
 export const LOWER_PAGE_MOBILE_NAV_ITEMS: MarketingNavItem[] = [
@@ -127,6 +134,7 @@ export function MarketingHeader({
             <MarketingTextLink
               key={item.href}
               href={item.href}
+              external={item.external}
               className="transition hover:text-[#fe6147]"
             >
               {item.label}
@@ -157,6 +165,7 @@ export function MarketingHeader({
           <MarketingTextLink
             key={`mobile-${item.href}`}
             href={item.href}
+            external={item.external}
             className="inline-flex min-h-[32px] shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white px-3.5 shadow-sm transition hover:border-[#fe6147] hover:text-[#fe6147]"
           >
             {item.label}
