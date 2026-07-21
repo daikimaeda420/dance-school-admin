@@ -19,7 +19,7 @@ function topicOf(question: string) {
   if (/アクセス|場所|住所|駅|校舎/.test(value)) return "アクセス・校舎";
   if (/年齢|初心者|経験|大人|子供|キッズ/.test(value)) return "対象年齢・レベル";
   if (/持ち物|服装|シューズ/.test(value)) return "持ち物・服装";
-  return "その他の質問";
+  return null;
 }
 
 export async function GET(req: NextRequest) {
@@ -76,6 +76,7 @@ export async function GET(req: NextRequest) {
       const question = String(log.question ?? "");
       if (!question || question.startsWith("{")) continue;
       const topic = topicOf(question);
+      if (!topic) continue;
       if (!topics.has(topic)) topics.set(topic, new Set());
       topics.get(topic)!.add(log.sessionId);
     }
@@ -85,15 +86,18 @@ export async function GET(req: NextRequest) {
       { label: "設置サイトUU", count: siteVisitors }, { label: "診断開始", count: starts }, { label: "診断完了", count: results },
       { label: "フォーム到達", count: formOpens }, { label: "フォーム送信", count: formSubmits }, { label: "チャット予約希望", count: reservations },
     ];
+    // 設置サイトUUは visitorId、診断開始は sessionId で計測しているため、
+    // 同一期間でも開始数が上回る場合は率として表示しない。
+    const diagnosisStartRate = starts <= siteVisitors ? percent(starts, siteVisitors) : null;
     const suggestions: { title: string; detail: string; priority: "high" | "medium" | "low"; href: string }[] = [];
-    if (siteVisitors > 0 && (percent(starts, siteVisitors) ?? 0) < 20) suggestions.push({ title: "診断への導線を強化", detail: `サイト訪問から診断開始への転換率は${percent(starts, siteVisitors)}%です。ファーストビュー付近に「30秒でおすすめが分かる」導線を置くことをおすすめします。`, priority: "high", href: "/faq" });
+    if (diagnosisStartRate != null && diagnosisStartRate < 20) suggestions.push({ title: "診断への導線を強化", detail: `サイト訪問から診断開始への転換率は${diagnosisStartRate}%です。ファーストビュー付近に「30秒でおすすめが分かる」導線を置くことをおすすめします。`, priority: "high", href: "/faq" });
     if (starts > 0 && (percent(results, starts) ?? 0) < 60) suggestions.push({ title: "診断途中の離脱を改善", detail: `診断完了率は${percent(results, starts)}%です。質問数・選択肢のわかりやすさを確認し、最初の質問を短くしてください。`, priority: "high", href: "/admin/diagnosis/checklist" });
     if (results > 0 && (percent(formOpens, results) ?? 0) < 35) suggestions.push({ title: "結果から体験申込への誘導を改善", detail: `結果表示からフォーム到達は${percent(formOpens, results)}%です。結果の直下に、体験のメリットと空き状況を添えたCTAを置く余地があります。`, priority: "medium", href: "/admin/diagnosis/form" });
     if (formOpens > 0 && (percent(formSubmits, formOpens) ?? 0) < 40) suggestions.push({ title: "フォームの入力負荷を見直す", detail: `フォーム到達後の送信率は${percent(formSubmits, formOpens)}%です。必須項目を絞り、希望日時は「相談したい」も選べるようにしてください。`, priority: "high", href: "/admin/diagnosis/form" });
     if (qaTopics[0]) suggestions.push({ title: `${qaTopics[0].label}の案内を強化`, detail: `直近${days}日では「${qaTopics[0].label}」に関するQ&A利用が最も多く、${qaTopics[0].count}セッションありました。サイト上部とチャットの初期選択肢へ追加すると不安解消につながります。`, priority: "medium", href: "/faq" });
     if (!suggestions.length) suggestions.push({ title: "分析データを蓄積中", detail: `直近${days}日のデータがまだ少ないため、改善提案を確定できません。設置タグと診断導線を確認して継続計測してください。`, priority: "low", href: "/admin/reports/diagnosis" });
 
-    return NextResponse.json({ days, generatedAt: new Date(), funnel, rates: { diagnosisStartRate: percent(starts, siteVisitors), diagnosisCompletionRate: percent(results, starts), formOpenRate: percent(formOpens, results), formSubmitRate: percent(formSubmits, formOpens), overallConversionRate: percent(formSubmits + reservations, starts), diagnosisStartChange: change(starts, previousStarts), diagnosisCompletionChange: change(percent(results, starts) ?? 0, percent(previousResults, previousStarts) ?? 0) }, demand, qaTopics, suggestions });
+    return NextResponse.json({ days, generatedAt: new Date(), funnel, rates: { diagnosisStartRate, diagnosisCompletionRate: percent(results, starts), formOpenRate: percent(formOpens, results), formSubmitRate: percent(formSubmits, formOpens), overallConversionRate: percent(formSubmits + reservations, starts), diagnosisStartChange: change(starts, previousStarts), diagnosisCompletionChange: change(percent(results, starts) ?? 0, percent(previousResults, previousStarts) ?? 0) }, demand, qaTopics, suggestions });
   } catch (error) {
     console.error("[ai-insights]", error);
     return NextResponse.json({ error: "分析データの取得に失敗しました" }, { status: 500 });
