@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { produce } from "immer";
-import { MessagesSquare, CodeXml, BadgeCheck, Palette } from "lucide-react";
+import { MessagesSquare, CodeXml, BadgeCheck, Palette, CalendarCheck } from "lucide-react";
 import { FAQEditor } from "../../../components/FAQEditor";
 
 // schoolId を含む型
@@ -25,6 +25,8 @@ const PALETTES = [
   { value: "gray", label: "Gray", color: "#374151" },
 ] as const;
 type PaletteValue = (typeof PALETTES)[number]["value"];
+type ChatMode = "FAQ_ONLY" | "FAQ_PLUS_AI";
+type ReservationMode = "NONE" | "RIZBO" | "EXTERNAL";
 
 export type FAQItem =
   | {
@@ -125,6 +127,9 @@ export default function FAQPage() {
   const [diagnosisEnabled, setDiagnosisEnabled] = useState(false);
   const [bottomOffsetPc, setBottomOffsetPc] = useState(24);
   const [bottomOffsetSp, setBottomOffsetSp] = useState(16);
+  const [chatMode, setChatMode] = useState<ChatMode>("FAQ_ONLY");
+  const [reservationMode, setReservationMode] = useState<ReservationMode>("NONE");
+  const [reservationUrl, setReservationUrl] = useState("");
 
   // 取得（FAQ + メタ）
   useEffect(() => {
@@ -142,6 +147,9 @@ export default function FAQPage() {
           let nextDiagnosisEnabled = false;
           let nextBottomOffsetPc = 24;
           let nextBottomOffsetSp = 16;
+          let nextChatMode: ChatMode = "FAQ_ONLY";
+          let nextReservationMode: ReservationMode = "NONE";
+          let nextReservationUrl = "";
 
           if (data && typeof data === "object") {
             const d = data as any;
@@ -162,6 +170,11 @@ export default function FAQPage() {
             }
             if (typeof d.bottomOffsetPc === "number") nextBottomOffsetPc = d.bottomOffsetPc;
             if (typeof d.bottomOffsetSp === "number") nextBottomOffsetSp = d.bottomOffsetSp;
+            if (d.chatMode === "FAQ_PLUS_AI") nextChatMode = "FAQ_PLUS_AI";
+            if (d.reservationMode === "RIZBO" || d.reservationMode === "EXTERNAL") {
+              nextReservationMode = d.reservationMode;
+            }
+            if (typeof d.reservationUrl === "string") nextReservationUrl = d.reservationUrl;
           }
 
           setFaq(arr);
@@ -173,6 +186,9 @@ export default function FAQPage() {
           setDiagnosisEnabled(nextDiagnosisEnabled);
           setBottomOffsetPc(nextBottomOffsetPc);
           setBottomOffsetSp(nextBottomOffsetSp);
+          setChatMode(nextChatMode);
+          setReservationMode(nextReservationMode);
+          setReservationUrl(nextReservationUrl);
           setDirty(false); // ← サーバーから読み込んだ直後は「保存済み」扱い
         })
         .catch(() => {
@@ -185,6 +201,9 @@ export default function FAQPage() {
           setDiagnosisEnabled(false);
           setBottomOffsetPc(24);
           setBottomOffsetSp(16);
+          setChatMode("FAQ_ONLY");
+          setReservationMode("NONE");
+          setReservationUrl("");
           setDirty(false); // 空データ読み込みも保存済み扱い
         });
     }
@@ -228,6 +247,9 @@ export default function FAQPage() {
       diagnosisEnabled,
       bottomOffsetPc,
       bottomOffsetSp,
+      chatMode,
+      reservationMode,
+      reservationUrl: reservationUrl.trim() || null,
     };
 
     const res = await fetch(`/api/faq?school=${schoolId}`, {
@@ -522,6 +544,57 @@ export default function FAQPage() {
                 </div>
               </div>
             </div>
+          </div>
+        </section>
+
+        <section className="card">
+          <div className="card-header">
+            <h3 className="font-semibold flex items-center gap-2">
+              <CalendarCheck aria-hidden="true" className="w-5 h-5" />
+              <span>会話・予約設定</span>
+            </h3>
+            <p className="text-xs text-gray-500">
+              API接続前でも、Q&Aと選択式の体験予約受付を先に運用できます。
+            </p>
+          </div>
+          <div className="card-body space-y-5">
+            <fieldset>
+              <legend className="text-sm font-medium mb-2">会話モード</legend>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {([
+                  ["FAQ_ONLY", "Q&Aのみ", "登録した選択肢でご案内します。"],
+                  ["FAQ_PLUS_AI", "Q&A + AI会話", "AI APIの接続後に自然文の会話を追加します。現在はQ&Aとして動作します。"],
+                ] as const).map(([value, label, description]) => (
+                  <label key={value} className="flex cursor-pointer gap-3 rounded-lg border p-3">
+                    <input type="radio" name="chatMode" checked={chatMode === value} onChange={() => { setChatMode(value); setDirty(true); }} />
+                    <span><span className="block text-sm font-medium">{label}</span><span className="block mt-1 text-xs text-gray-500">{description}</span></span>
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+            <fieldset>
+              <legend className="text-sm font-medium mb-2">体験予約の受付方法</legend>
+              <div className="grid gap-3 sm:grid-cols-3">
+                {([
+                  ["NONE", "予約導線なし"],
+                  ["RIZBO", "チャット内で受付"],
+                  ["EXTERNAL", "外部予約ページへ"],
+                ] as const).map(([value, label]) => (
+                  <label key={value} className="flex cursor-pointer items-center gap-2 rounded-lg border p-3 text-sm">
+                    <input type="radio" name="reservationMode" checked={reservationMode === value} onChange={() => { setReservationMode(value); setDirty(true); }} />
+                    {label}
+                  </label>
+                ))}
+              </div>
+              {reservationMode === "RIZBO" && <p className="mt-2 text-xs text-gray-500">お名前・連絡先・希望日時・備考をチャット内で受け付け、管理データとして保存します。通知連携は次の段階で追加できます。</p>}
+              {reservationMode === "RIZBO" && <Link className="mt-2 inline-block text-xs text-blue-600 hover:underline" href="/admin/chat-reservations">受付済みの予約希望を見る →</Link>}
+              {reservationMode === "EXTERNAL" && (
+                <div className="mt-3 max-w-xl">
+                  <label className="block text-sm font-medium mb-1">外部予約ページURL</label>
+                  <input className="input w-full" value={reservationUrl} onChange={(e) => { setReservationUrl(e.target.value); setDirty(true); }} placeholder="https://example.com/reservation" />
+                </div>
+              )}
+            </fieldset>
           </div>
         </section>
 

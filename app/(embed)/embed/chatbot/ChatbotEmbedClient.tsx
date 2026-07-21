@@ -32,6 +32,7 @@ type Message = {
   text: string;
   url?: string;
   options?: { label: string; next: FAQItem }[];
+  action?: "reservation";
 };
 
 type ChatbotEmbedClientProps = {
@@ -95,6 +96,10 @@ export default function ChatbotEmbedClient({
   // ✅ 下部CTA（DBから取得した値を持つ）
   const [ctaLabel, setCtaLabel] = useState<string | null>(null);
   const [ctaUrl, setCtaUrl] = useState<string | null>(null);
+  const [reservationMode, setReservationMode] = useState<"NONE" | "RIZBO" | "EXTERNAL">("NONE");
+  const [reservationUrl, setReservationUrl] = useState<string | null>(null);
+  const [reservationOpen, setReservationOpen] = useState(false);
+  const [reservationStatus, setReservationStatus] = useState<"idle" | "sending" | "done" | "error">("idle");
   const hasCta = !!ctaLabel && !!ctaUrl;
 
   // ---- helpers ----
@@ -207,6 +212,8 @@ export default function ChatbotEmbedClient({
                   ? d.ctaUrl
                   : null
               );
+              setReservationMode(d.reservationMode === "RIZBO" || d.reservationMode === "EXTERNAL" ? d.reservationMode : "NONE");
+              setReservationUrl(typeof d.reservationUrl === "string" && d.reservationUrl.trim() ? d.reservationUrl : null);
             }
           }
           return;
@@ -232,6 +239,8 @@ export default function ChatbotEmbedClient({
             setCtaLabel(null);
             setCtaUrl(null);
           }
+          setReservationMode("NONE");
+          setReservationUrl(null);
         }
       } catch (e) {
         console.error("[rizbo-chatbot] FAQ取得失敗:", e);
@@ -239,6 +248,8 @@ export default function ChatbotEmbedClient({
           setFaq([]);
           setCtaLabel(null);
           setCtaUrl(null);
+          setReservationMode("NONE");
+          setReservationUrl(null);
         }
       }
     };
@@ -257,6 +268,7 @@ export default function ChatbotEmbedClient({
       setMessages([
         greet,
         bot("このスクールのFAQはまだ登録されていないようです。"),
+        ...(reservationMode !== "NONE" ? [bot("体験レッスンをご希望の方はこちらです。", { action: "reservation" })] : []),
       ]);
       return;
     }
@@ -272,10 +284,10 @@ export default function ChatbotEmbedClient({
       logToServer(first.question, "(選択肢)");
     } else {
       const opts = faq.map((it) => ({ label: it.question, next: it }));
-      setMessages([greet, bot("項目をお選びください。", { options: opts })]);
+      setMessages([greet, bot("項目をお選びください。", { options: opts }), ...(reservationMode !== "NONE" ? [bot("体験レッスンをご希望の方はこちらです。", { action: "reservation" })] : [])]);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [faq]);
+  }, [faq, reservationMode]);
 
   // ==== オートスクロール（本文のみ） ====
   useEffect(() => {
@@ -346,6 +358,8 @@ export default function ChatbotEmbedClient({
   // ==== セッション初期化 ====
   const handleReset = () => {
     setMessages([]);
+    setReservationOpen(false);
+    setReservationStatus("idle");
     localStorage.removeItem("sessionId");
     if (!faq.length) return;
 
@@ -357,10 +371,43 @@ export default function ChatbotEmbedClient({
         greet,
         ...(first.answer ? [bot(first.answer)] : []),
         bot(first.question, { options: first.options }),
+        ...(reservationMode !== "NONE" ? [bot("体験レッスンをご希望の方はこちらです。", { action: "reservation" })] : []),
       ]);
     } else {
       const opts = faq.map((it) => ({ label: it.question, next: it }));
-      setMessages([greet, bot("項目をお選びください。", { options: opts })]);
+      setMessages([greet, bot("項目をお選びください。", { options: opts }), ...(reservationMode !== "NONE" ? [bot("体験レッスンをご希望の方はこちらです。", { action: "reservation" })] : [])]);
+    }
+  };
+
+  const openReservation = () => {
+    if (reservationMode === "EXTERNAL" && reservationUrl) {
+      window.open(reservationUrl, "_blank", "noopener,noreferrer");
+      return;
+    }
+    if (reservationMode === "RIZBO") {
+      setMessages((prev) => [...prev, userMsg("体験予約を希望する"), bot("ご希望を受け付けます。以下をご入力ください。")]);
+      setReservationOpen(true);
+    }
+  };
+
+  const submitReservation = async (form: HTMLFormElement) => {
+    if (!schoolId) return;
+    setReservationStatus("sending");
+    const fields = new FormData(form);
+    try {
+      const res = await fetch(`${getApiBase()}/api/chat/reservations`, {
+        method: "POST", mode: "cors", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          schoolId, sessionId: getSessionId(), name: fields.get("name"), email: fields.get("email"), phone: fields.get("phone"),
+          preferredDate: fields.get("preferredDate"), note: fields.get("note"),
+        }),
+      });
+      if (!res.ok) throw new Error();
+      setReservationStatus("done");
+      setReservationOpen(false);
+      setMessages((prev) => [...prev, bot("体験予約のご希望を受け付けました。スクールからご連絡します。")]);
+    } catch {
+      setReservationStatus("error");
     }
   };
 
@@ -448,10 +495,26 @@ export default function ChatbotEmbedClient({
                     ))}
                   </div>
                 ) : null}
+                {m.role === "bot" && m.action === "reservation" ? (
+                  <div className="rzw-qr"><button className="rzw-chip" onClick={openReservation}>体験予約をする</button></div>
+                ) : null}
               </div>
             </div>
           ))}
         </main>
+
+        {reservationOpen && (
+          <form className="rzw-reservation" onSubmit={(e) => { e.preventDefault(); submitReservation(e.currentTarget); }}>
+            <strong>体験予約のご希望</strong>
+            <input name="name" required placeholder="お名前 *" />
+            <input name="email" type="email" placeholder="メールアドレス" />
+            <input name="phone" placeholder="電話番号" />
+            <input name="preferredDate" placeholder="希望日時（例：8/1 午後）" />
+            <textarea name="note" placeholder="ご質問・ご要望（任意）" rows={2} />
+            {reservationStatus === "error" && <span className="rzw-error">送信できませんでした。メールアドレスまたは電話番号をご確認ください。</span>}
+            <button className="rzw-cta-btn" disabled={reservationStatus === "sending"}>{reservationStatus === "sending" ? "送信中…" : "予約希望を送信"}</button>
+          </form>
+        )}
 
         {/* ✅ 下部 CTA：DB から取得したラベル＆URLが両方ある時だけ表示 */}
         {hasCta && (
@@ -703,6 +766,9 @@ export default function ChatbotEmbedClient({
           background: #fff;
           border-top: 1px solid var(--rz-border);
         }
+        .rzw-reservation { padding: 10px 12px; display: grid; gap: 7px; background: #fff; border-top: 1px solid var(--rz-border); font-size: 12px; }
+        .rzw-reservation input, .rzw-reservation textarea { width: 100%; border: 1px solid var(--rz-border); border-radius: 8px; padding: 8px; font: inherit; }
+        .rzw-error { color: #b91c1c; }
         .rzw-cta-btn {
           display: inline-flex;
           width: 100%;

@@ -26,7 +26,28 @@ model Faq {
   bottomOffsetPc   Int     @default(24)
   bottomOffsetSp   Int     @default(16)
 
+  // チャットの提供方法。AI接続前でも Q&A と予約導線を先に設定できる。
+  chatMode        String  @default("FAQ_ONLY")
+  reservationMode String  @default("NONE")
+  reservationUrl  String?
+
   @@index([updatedAt])
+}
+
+model ChatReservation {
+  id             String   @id @default(cuid())
+  schoolId       String
+  sessionId      String?
+  name           String
+  email          String?
+  phone          String?
+  preferredDate  String?
+  note           String?
+  status         String   @default("PENDING")
+  createdAt      DateTime @default(now())
+
+  @@index([schoolId, createdAt])
+  @@index([schoolId, status])
 }
 
 model FaqLog {

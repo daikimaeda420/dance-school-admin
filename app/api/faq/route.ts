@@ -156,6 +156,9 @@ function extractPayload(raw: unknown): {
   diagnosisEnabled?: boolean;
   bottomOffsetPc?: number;
   bottomOffsetSp?: number;
+  chatMode?: "FAQ_ONLY" | "FAQ_PLUS_AI";
+  reservationMode?: "NONE" | "RIZBO" | "EXTERNAL";
+  reservationUrl?: string | null;
 } {
   if (Array.isArray(raw)) {
     return { items: raw };
@@ -180,6 +183,15 @@ function extractPayload(raw: unknown): {
         typeof r.bottomOffsetPc === "number" ? r.bottomOffsetPc : undefined,
       bottomOffsetSp:
         typeof r.bottomOffsetSp === "number" ? r.bottomOffsetSp : undefined,
+      chatMode: r.chatMode === "FAQ_PLUS_AI" ? "FAQ_PLUS_AI" : "FAQ_ONLY",
+      reservationMode:
+        r.reservationMode === "RIZBO" || r.reservationMode === "EXTERNAL"
+          ? r.reservationMode
+          : "NONE",
+      reservationUrl:
+        typeof r.reservationUrl === "string" && r.reservationUrl.trim()
+          ? r.reservationUrl.trim()
+          : null,
     };
   }
   return { items: [] };
@@ -223,6 +235,9 @@ export async function GET(req: NextRequest) {
         diagnosisEnabled: true, // ★ 追加
         bottomOffsetPc: true,
         bottomOffsetSp: true,
+        chatMode: true,
+        reservationMode: true,
+        reservationUrl: true,
         updatedAt: true,
         updatedBy: true,
       },
@@ -242,6 +257,9 @@ export async function GET(req: NextRequest) {
         diagnosisEnabled: rec?.diagnosisEnabled ?? false, // ★ 追加
         bottomOffsetPc: rec?.bottomOffsetPc ?? 24,
         bottomOffsetSp: rec?.bottomOffsetSp ?? 16,
+        chatMode: rec?.chatMode ?? "FAQ_ONLY",
+        reservationMode: rec?.reservationMode ?? "NONE",
+        reservationUrl: rec?.reservationUrl ?? null,
         updatedAt: rec?.updatedAt ?? null,
         updatedBy: rec?.updatedBy ?? null,
       },
@@ -280,6 +298,9 @@ export async function POST(req: NextRequest) {
       diagnosisEnabled, // ★ 追加
       bottomOffsetPc,
       bottomOffsetSp,
+      chatMode,
+      reservationMode,
+      reservationUrl,
     } = extractPayload(raw);
 
     // まず items 部分だけバリデーション
@@ -312,6 +333,9 @@ export async function POST(req: NextRequest) {
         diagnosisEnabled: diagnosisEnabled ?? false, // ★ 追加
         bottomOffsetPc: bottomOffsetPc ?? 24,
         bottomOffsetSp: bottomOffsetSp ?? 16,
+        chatMode: chatMode ?? "FAQ_ONLY",
+        reservationMode: reservationMode ?? "NONE",
+        reservationUrl: reservationUrl ?? null,
         updatedBy: "api",
       },
       create: {
@@ -325,6 +349,9 @@ export async function POST(req: NextRequest) {
         diagnosisEnabled: diagnosisEnabled ?? false, // ★ 追加
         bottomOffsetPc: bottomOffsetPc ?? 24,
         bottomOffsetSp: bottomOffsetSp ?? 16,
+        chatMode: chatMode ?? "FAQ_ONLY",
+        reservationMode: reservationMode ?? "NONE",
+        reservationUrl: reservationUrl ?? null,
         updatedBy: "api",
       },
       select: { id: true, schoolId: true, updatedAt: true },
