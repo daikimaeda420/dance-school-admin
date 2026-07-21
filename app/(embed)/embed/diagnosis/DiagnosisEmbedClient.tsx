@@ -214,7 +214,7 @@ export default function DiagnosisEmbedClient({
     [],
   );
   useEffect(() => {
-    if (!schoolId) return;
+    if (!result || !schoolId) return;
     fetch(`/api/diagnosis/faqs?schoolId=${encodeURIComponent(schoolId)}`)
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
@@ -228,12 +228,12 @@ export default function DiagnosisEmbedClient({
         setFetchedFaqs(items);
       })
       .catch((e) => console.error("Failed to load FAQs:", e));
-  }, [schoolId]);
+  }, [result, schoolId]);
 
   // ✅ バナー画像の取得
   const [bannerUrl, setBannerUrl] = useState<string | null>(null);
   useEffect(() => {
-    if (!schoolId) return;
+    if (!result || !schoolId) return;
     fetch(`/api/diagnosis/media/banner/info?schoolId=${encodeURIComponent(schoolId)}`)
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
@@ -246,24 +246,24 @@ export default function DiagnosisEmbedClient({
         }
       })
       .catch((e) => console.error("Failed to check banner:", e));
-  }, [schoolId]);
+  }, [result, schoolId]);
 
   // ✅ YouTube動画の取得
   const [youtubeVideoId, setYoutubeVideoId] = useState<string | null>(null);
   useEffect(() => {
-    if (!schoolId) return;
+    if (!result || !schoolId) return;
     fetch(`/api/diagnosis/media/video?schoolId=${encodeURIComponent(schoolId)}`)
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
         setYoutubeVideoId(data?.videoId || null);
       })
       .catch((e) => console.error("Failed to check video:", e));
-  }, [schoolId]);
+  }, [result, schoolId]);
 
   // ✅ コース取得
   const [fetchedCourses, setFetchedCourses] = useState<ApiCourse[]>([]);
   useEffect(() => {
-    if (!schoolId) return;
+    if (!result || !schoolId) return;
     fetch(`/api/diagnosis/courses?schoolId=${encodeURIComponent(schoolId)}`)
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
@@ -272,7 +272,7 @@ export default function DiagnosisEmbedClient({
         }
       })
       .catch((e) => console.error("Failed to load courses:", e));
-  }, [schoolId]);
+  }, [result, schoolId]);
 
   type PublicScheduleSlot = {
     id: string;
@@ -297,7 +297,7 @@ export default function DiagnosisEmbedClient({
   // ✅ 追加: 全スケジュール取得（フォームの選択肢用）
   const [allSchedulesGrouped, setAllSchedulesGrouped] = useState<PublicSchedule | null>(null);
   useEffect(() => {
-    if (!schoolId) return;
+    if (!result || !schoolId) return;
     let cancelled = false;
     fetch(`/api/diagnosis/schedule?schoolId=${encodeURIComponent(schoolId)}`)
       .then((res) => (res.ok ? res.json() : null))
@@ -315,7 +315,7 @@ export default function DiagnosisEmbedClient({
     return () => {
       cancelled = true;
     };
-  }, [schoolId]);
+  }, [result, schoolId]);
 
 
 

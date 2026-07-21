@@ -54,23 +54,17 @@ export default async function DiagnosisPage({
   // ★ 両対応（schoolId 優先）
   const schoolId = sp.schoolId ?? sp.school ?? "";
 
-  const [
-    campusOptions,
-    courseOptions,
-    instructorOptions,
-    lifestyleOptions,
-    genreOptions,
-  ] = await Promise.all([
+  // 初回表示に必要な選択肢だけを先に取得する。
+  // コース・講師は診断結果以降で使うため、ここで待機させない。
+  const [campusOptions, lifestyleOptions, genreOptions] = await Promise.all([
     fetchOptions("campuses", schoolId),
-    fetchOptions("courses", schoolId),
-    fetchOptions("instructors", schoolId),
     fetchOptions("lifestyles", schoolId),
     fetchOptions("genres", schoolId),
   ]);
 
   // ✅ 有効なジャンルタグを集計
   const activeGenreTags = Array.from(
-    new Set(courseOptions.flatMap((c) => c.genreTags ?? []).filter(Boolean)),
+    new Set(genreOptions.map((genre) => genre.tag).filter(Boolean)),
   );
 
   // ✅ 有効な年代タグを集計（Q3用）
@@ -83,8 +77,6 @@ export default async function DiagnosisPage({
       <DiagnosisEmbedClient
         schoolIdProp={schoolId}
         campusOptions={campusOptions}
-        courseOptions={courseOptions}
-        instructorOptions={instructorOptions}
         genreOptions={genreOptions} // ✅ 追加
         lifestyleOptions={lifestyleOptions} // ✅ 追加
         activeGenreTags={activeGenreTags}
