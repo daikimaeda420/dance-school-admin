@@ -1736,13 +1736,6 @@ export default function HomePage() {
     status,
   ]);
 
-  const subtitle = useMemo(() => {
-    if (status === "authenticated" && schoolId)
-      return `ログイン中: ${schoolId}`;
-    if (status === "authenticated") return "ログイン中";
-    return "";
-  }, [status, schoolId]);
-
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "";
   const embedScriptCode = `<script src="${baseUrl}/embed.js" data-rizbo-school="${schoolId ?? ""}"></script>`;
 
@@ -1849,7 +1842,7 @@ export default function HomePage() {
             <span>ホーム</span>
           </h1>
           <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
-            {subtitle || "Q&A・診断の運用状況ダッシュボード"}
+            Q&A・診断の運用状況をまとめて確認できます。
           </p>
           {status === "authenticated" && !schoolId && (
             <p className="mt-2 text-xs text-amber-700 dark:text-amber-200">
