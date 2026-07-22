@@ -221,11 +221,6 @@ export default function OperationReportClient({
               ? "Q&Aの利用状況、よく見られている質問、直近ログを期間別に確認できます。"
               : "設置サイトのUU、相性診断、フォーム申込の状況を期間別に確認できます。UUは匿名のブラウザIDを使った推定値です。"}
           </p>
-          {schoolId && (
-            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-              schoolId: <span className="font-semibold">{schoolId}</span>
-            </p>
-          )}
         </div>
 
         <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
