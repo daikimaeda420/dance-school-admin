@@ -214,7 +214,7 @@ export default function OperationReportClient({
           </div>
           <h1 className="flex items-center gap-2 text-xl font-bold">
             {isQaReport ? (
-              <MessagesSquare aria-hidden="true" className="h-5 w-5 text-[#fe6147]" />
+              <BarChart3 aria-hidden="true" className="h-5 w-5 text-[#fe6147]" />
             ) : (
               <ClipboardList aria-hidden="true" className="h-5 w-5 text-[#fe6147]" />
             )}

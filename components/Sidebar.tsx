@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BarChart3, Bot, ClipboardCheck, ClipboardList, ExternalLink, HelpCircle, Home, ListChecks, MessagesSquare, Settings, Sparkles, TimerReset, UserCog, Users, X } from "lucide-react";
+import { BarChart3, Bot, CalendarCheck, ClipboardCheck, ClipboardList, ExternalLink, HelpCircle, Home, ListChecks, MessagesSquare, Settings, Sparkles, TimerReset, UserCog, X } from "lucide-react";
 import { MouseEvent, useEffect } from "react";
 import { useSession } from "next-auth/react";
 
@@ -44,7 +44,7 @@ export default function Sidebar({ showDesktop = true, mobileOpen = false, onClos
     { items: [{ href: "/", label: "ホーム", icon: Home }] },
     { label: "分析・改善", items: [{ href: "/admin/ai-insights", label: "AIコンサル・分析", icon: Sparkles }, { href: reportDiagnosis, label: "相性診断レポート", icon: ClipboardList }, { href: reportQa, label: "Q&Aレポート", icon: BarChart3 }] },
     { label: "コンテンツ設定", items: [{ href: "/faq", label: "Q&A編集", icon: MessagesSquare }, { href: qaChecklist, label: "Q&A完成度", icon: ClipboardCheck }, { href: diagnosisEdit, label: "診断編集", icon: ListChecks }] },
-    { label: "運用", items: [{ href: "/admin/chat-history", label: "ユーザーログ", icon: TimerReset }, { href: "/admin/chat-reservations", label: "チャット予約", icon: Users }] },
+    { label: "運用", items: [{ href: "/admin/chat-history", label: "ユーザーログ", icon: TimerReset }, { href: "/admin/chat-reservations", label: "チャット予約", icon: CalendarCheck }] },
     { label: "管理", items: [{ href: "/superadmin", label: "アカウント管理", icon: UserCog }, { href: "/admin/system", label: "システム設定", icon: Settings, superOnly: true }, { href: "/help", label: "ヘルプ", icon: HelpCircle }] },
   ];
 

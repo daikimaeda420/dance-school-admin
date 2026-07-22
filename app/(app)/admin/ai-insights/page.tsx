@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
 import {
-  ArrowRight, Bot, BrainCircuit, CheckCircle2, ChevronRight, ClipboardCheck,
+  ArrowRight, BrainCircuit, CheckCircle2, ChevronRight, ClipboardCheck,
   Lightbulb, LoaderCircle, RefreshCw, Sparkles, TrendingUp, Users, WandSparkles,
   X,
 } from "lucide-react";
@@ -157,7 +157,7 @@ export default function AiInsightsPage() {
 
   return <div className="mx-auto max-w-[1540px] px-4 py-6 text-slate-800 md:px-6">
     <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-      <div><h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight"><Bot className="h-6 w-6 text-[#fe6147]" />AIコンサル・分析</h1><p className="mt-1 text-sm text-slate-500">分析から改善の反映、効果測定まで。毎月サイトを育て続けます。</p></div>
+      <div><h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight"><Sparkles className="h-6 w-6 text-[#fe6147]" />AIコンサル・分析</h1><p className="mt-1 text-sm text-slate-500">分析から改善の反映、効果測定まで。毎月サイトを育て続けます。</p></div>
       <div className="flex flex-wrap gap-2"><select className="input h-10" value={days} onChange={(event) => setDays(Number(event.target.value))}><option value={30}>直近30日</option><option value={60}>直近60日</option><option value={90}>直近90日</option></select><button className="btn-ghost inline-flex items-center gap-2" onClick={load}><RefreshCw className="h-4 w-4" />更新</button></div>
     </div>
 
