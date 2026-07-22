@@ -36,7 +36,7 @@ const levelWrap = (level = 0, bordered = true) => {
 const nodeId = (path: (number | string)[]) =>
   `node-` + path.map(String).join("-");
 
-/** ヘッダー（Level 表示 + タイプ切替 + パンくず） */
+/** ヘッダー（階層表示 + タイプ切替 + パンくず） */
 function NodeHeader({
   level,
   type,
@@ -53,7 +53,7 @@ function NodeHeader({
       <div className="min-w-0">
         <div className="flex items-center gap-2 text-xs font-semibold">
           <span className="rounded-md bg-blue-50 px-2 py-1 text-blue-700">
-            Level {level + 1}
+            {level === 0 ? "メインステップ" : "回答ステップ"} {level + 1}
           </span>
           <span className="text-slate-500">
             {type === "question" ? "回答を作成" : "選択肢を設定"}
@@ -392,51 +392,56 @@ export function FAQEditor({
             <span className="text-xs text-slate-400">ドラッグせず、ボタンで並び替えできます</span>
           </div>
 
-          {item.options.map((opt, idx) => {
-            const hasLabelErr = invalid([...path, "options", idx], "label");
-            const opened = idx in openMap ? openMap[idx] : true;
+          <div className="relative ml-2 space-y-3 border-l border-dashed border-slate-300 pb-1 pl-4">
+            {item.options.map((opt, idx) => {
+              const hasLabelErr = invalid([...path, "options", idx], "label");
+              const opened = idx in openMap ? openMap[idx] : true;
 
-            return (
-              <div key={idx} className="rounded-xl bg-white">
-                <OptionHeader
-                  idx={idx}
-                  label={opt.label}
-                  onChangeLabel={(v) =>
-                    update({
-                      ...item,
-                      options: item.options.map((o, j) =>
-                        j === idx ? { ...o, label: v } : o,
-                      ),
-                    })
-                  }
-                  opened={opened}
-                  onToggle={() => toggleOpt(idx)}
-                  onMoveUp={() => moveOpt(idx, idx - 1)}
-                  onMoveDown={() => moveOpt(idx, idx + 1)}
-                  onDuplicate={() => dupOpt(idx)}
-                  onRemove={() => removeOpt(idx)}
-                  showError={hasLabelErr}
-                />
+              return (
+                <div
+                  key={idx}
+                  className="relative rounded-xl bg-white before:absolute before:-left-4 before:top-7 before:w-4 before:border-t before:border-dashed before:border-slate-300"
+                >
+                  <OptionHeader
+                    idx={idx}
+                    label={opt.label}
+                    onChangeLabel={(v) =>
+                      update({
+                        ...item,
+                        options: item.options.map((o, j) =>
+                          j === idx ? { ...o, label: v } : o,
+                        ),
+                      })
+                    }
+                    opened={opened}
+                    onToggle={() => toggleOpt(idx)}
+                    onMoveUp={() => moveOpt(idx, idx - 1)}
+                    onMoveDown={() => moveOpt(idx, idx + 1)}
+                    onDuplicate={() => dupOpt(idx)}
+                    onRemove={() => removeOpt(idx)}
+                    showError={hasLabelErr}
+                  />
 
-                {opened && (
-                  <div className="border-t border-slate-100 px-4 pb-4 pt-3">
-                    <FAQEditor
-                      item={opt.next}
-                      path={[...path, "options", idx, "next"]}
-                      onChange={onChange}
-                      level={level + 1}
-                      hasError={hasError}
-                      breadcrumb={[
-                        ...(breadcrumb || []),
-                        opt.label || "（ラベル未設定）",
-                      ]}
-                      naked
-                    />
-                  </div>
-                )}
-              </div>
-            );
-          })}
+                  {opened && (
+                    <div className="border-t border-slate-100 px-4 pb-4 pt-3">
+                      <FAQEditor
+                        item={opt.next}
+                        path={[...path, "options", idx, "next"]}
+                        onChange={onChange}
+                        level={level + 1}
+                        hasError={hasError}
+                        breadcrumb={[
+                          ...(breadcrumb || []),
+                          opt.label || "（ラベル未設定）",
+                        ]}
+                        naked
+                      />
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
 
           <button
             type="button"
