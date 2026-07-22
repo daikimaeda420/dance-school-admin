@@ -205,7 +205,7 @@ export default function OperationReportClient({
   }, [report]);
 
   return (
-    <div className="mx-auto max-w-7xl p-4 text-gray-900 dark:text-gray-100 md:p-6">
+    <div className="mx-auto max-w-[1540px] px-4 py-6 text-gray-900 dark:text-gray-100 md:px-6">
       <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div>
           <div className="mb-2 inline-flex items-center gap-2 rounded-full bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-700 dark:bg-sky-950/40 dark:text-sky-200">

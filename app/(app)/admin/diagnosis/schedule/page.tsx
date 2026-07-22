@@ -13,7 +13,7 @@ export default async function Page({
   const schoolId = await getAccessiblePageSchoolId(sp.schoolId);
 
   return (
-    <div className="p-6">
+    <div className="w-full">
       <ScheduleAdminClient initialSchoolId={schoolId} />
     </div>
   );

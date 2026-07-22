@@ -22,7 +22,7 @@ export default async function GenreAdminPage({
   );
 
   return (
-    <div className="mx-auto max-w-5xl p-4 md:p-8">
+    <div className="w-full">
       <Suspense fallback={<div>Loading...</div>}>
         <GenreAdminClient schoolId={schoolId} />
       </Suspense>

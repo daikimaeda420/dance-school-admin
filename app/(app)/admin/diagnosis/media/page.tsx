@@ -22,7 +22,7 @@ export default async function MediaAdminPage({
   );
 
   return (
-    <div className="mx-auto max-w-4xl p-4 md:p-8">
+    <div className="w-full">
       <Suspense fallback={<div>Loading...</div>}>
         <MediaAdminClient schoolId={schoolId} />
       </Suspense>

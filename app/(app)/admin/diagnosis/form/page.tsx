@@ -14,7 +14,7 @@ export default async function Page({
 
   if (!schoolId) {
     return (
-      <div className="p-6">
+      <div className="w-full">
         <div className="rounded-xl border p-4 text-sm">
           schoolId が指定されていません。
           <br />
@@ -25,7 +25,7 @@ export default async function Page({
   }
 
   return (
-    <div className="p-6">
+    <div className="w-full">
       <div className="mb-4 text-lg font-bold dark:text-gray-100">
         診断編集：フォーム
       </div>

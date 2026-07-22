@@ -22,7 +22,7 @@ export default async function FaqAdminPage({
   );
 
   return (
-    <div className="mx-auto max-w-3xl p-4 md:p-8">
+    <div className="w-full">
       <Suspense fallback={<div>Loading...</div>}>
         <FaqAdminClient schoolId={schoolId} />
       </Suspense>

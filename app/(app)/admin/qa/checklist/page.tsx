@@ -59,7 +59,7 @@ export default async function FaqChecklistPage({
 
   if (!schoolId) {
     return (
-      <div className="mx-auto max-w-5xl p-6 text-gray-900 dark:text-gray-100">
+      <div className="mx-auto max-w-[1540px] px-4 py-6 text-gray-900 dark:text-gray-100 md:px-6">
         <div className={adminCard}>
           <div className="flex items-start gap-3 text-sm text-red-700 dark:text-red-200">
             <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" aria-hidden />
@@ -79,7 +79,7 @@ export default async function FaqChecklistPage({
   const SummaryIcon = STATUS_META[report.summary.status].icon;
 
   return (
-    <div className="mx-auto max-w-6xl p-4 text-gray-900 dark:text-gray-100 md:p-6">
+    <div className="mx-auto max-w-[1540px] px-4 py-6 text-gray-900 dark:text-gray-100 md:px-6">
       <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div>
           <div className="mb-2 inline-flex items-center gap-2 rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700 dark:bg-blue-950/40 dark:text-blue-200">

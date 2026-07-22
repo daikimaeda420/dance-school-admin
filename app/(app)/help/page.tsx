@@ -28,7 +28,7 @@ export default function HelpPage() {
 
   return (
     <main className="min-h-[80vh]">
-      <div className="mx-auto max-w-6xl px-4 py-6">
+      <div className="mx-auto max-w-[1540px] px-4 py-6 md:px-6">
         <div className="mb-6">
           <h1 className="flex items-center gap-2 text-2xl font-bold">
             <HelpCircle aria-hidden="true" className="w-6 h-6" />

@@ -17,7 +17,7 @@ export default async function DiagnosisCoursesPage({ searchParams }: Props) {
   const schoolId = await getAccessiblePageSchoolId(sp.schoolId);
 
   return (
-    <div className="mx-auto p-6 text-gray-900 dark:text-gray-100">
+    <div className="w-full text-gray-900 dark:text-gray-100">
       <h1 className="mb-4 text-xl font-bold">診断用 コース管理</h1>
 
       {!schoolId && (

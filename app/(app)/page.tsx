@@ -1827,7 +1827,7 @@ export default function HomePage() {
   // 認証状態ロード中
   if (status === "loading") {
     return (
-      <div className="mx-auto max-w-6xl px-4 py-6">
+      <div className="mx-auto max-w-[1540px] px-4 py-6 md:px-6">
         <div className="card p-5 animate-pulse">
           <div className="h-4 w-40 rounded bg-gray-200 dark:bg-gray-800" />
           <div className="mt-3 h-3 w-72 rounded bg-gray-100 dark:bg-gray-900" />
@@ -1840,7 +1840,7 @@ export default function HomePage() {
   // ログイン後 統合ダッシュボード
   // ==========================
   return (
-    <div className="mx-auto max-w-6xl px-4 py-6">
+    <div className="mx-auto max-w-[1540px] px-4 py-6 md:px-6">
       {/* ヘッダー */}
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>

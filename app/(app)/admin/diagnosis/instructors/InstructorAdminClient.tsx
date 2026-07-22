@@ -781,7 +781,7 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
   const hintSlug = useMemo(() => slugifyJa(newLabel), [newLabel]);
 
   return (
-    <div className="mx-auto w-full p-6 text-gray-900 dark:text-gray-100">
+    <div className="w-full text-gray-900 dark:text-gray-100">
       <AdminPageHeader
         title="講師管理"
         description="講師の追加・編集・写真アップロードが可能です。各講師ごとに編集→保存してください。推奨画像サイズ：500×500"

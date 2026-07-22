@@ -141,7 +141,7 @@ export default function FaqAdminPage() {
   };
 
   return (
-    <main className="p-6 max-w-4xl mx-auto space-y-6">
+    <main className="mx-auto w-full max-w-[1540px] space-y-6 px-4 py-6 md:px-6">
       <h1 className="text-2xl font-bold">FAQ 管理</h1>
 
       <div className="grid gap-3">
