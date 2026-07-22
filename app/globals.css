@@ -3,29 +3,20 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ===== Accessible UI Baseline (Light/Dark 両対応) ================= */
+/* ===== Rizbo Admin UI: light-only ================= */
 :root {
   /* surfaces & text */
-  --bg: #f8fafc; /* ページ背景 (light) */
-  --surface: #ffffff; /* カード/入力背景 (light) */
-  --fg: #0b0f19; /* 本文 */
-  --muted: #4b5563; /* 補助テキスト */
-  --border: #e5e7eb; /* 枠線 */
-  --ring: #64748b; /* フォーカスリング */
-  --ringA: rgba(100, 116, 139, 0.35); /* フォールバック用 */
+  --bg: #f8fafc;
+  --surface: #ffffff;
+  --fg: #172033;
+  --muted: #64748b;
+  --border: #e5e7eb;
+  --ring: #fe6147;
+  --ringA: rgba(254, 97, 71, 0.28);
 
   /* accent */
-  --primary: #2563eb; /* blue-600 */
-  --primaryH: #1d4ed8; /* hover */
-}
-.dark {
-  --bg: #0b0f19; /* ページ背景 (dark) */
-  --surface: #111827; /* カード/入力背景 */
-  --fg: #e5e7eb; /* 本文 */
-  --muted: #cbd5e1; /* 補助テキスト */
-  --border: #334155; /* 枠線 */
-  --ring: #94a3b8; /* フォーカスリング */
-  --ringA: rgba(148, 163, 184, 0.35);
+  --primary: #fe6147;
+  --primaryH: #eb4f35;
 }
 
 @layer base {
@@ -66,7 +57,8 @@
   .card {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 14px;
+    border-radius: 12px;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.035);
   }
   .card-header {
     padding: 12px 16px;
@@ -81,7 +73,7 @@
     background: var(--surface);
     color: var(--fg);
     border: 1px solid var(--border);
-    border-radius: 10px;
+    border-radius: 8px;
     padding: 10px 12px;
     line-height: 1.5;
   }
@@ -132,7 +124,7 @@
   .btn-ghost {
     border: 1px solid var(--border);
     background: transparent;
-    border-radius: 10px;
+    border-radius: 8px;
     padding: 8px 12px;
     transition: background 0.15s ease, border-color 0.15s ease;
   }
@@ -165,5 +157,5 @@
 
 /* ===== Optional helpers ========================================== */
 :root {
-  --app-bg: #0b0b0c;
-} /* 既存変数は残します（未使用でもOK） */
+  --app-bg: #f8fafc;
+}

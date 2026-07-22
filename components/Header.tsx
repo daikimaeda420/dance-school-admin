@@ -95,13 +95,13 @@ export default function Header() {
 
   return (
     <>
-      <header className="fixed inset-x-0 top-0 z-50 h-16 border-b bg-white/90 backdrop-blur border-gray-200 dark:border-gray-800 dark:bg-gray-900/70">
+      <header className="fixed inset-x-0 top-0 z-50 h-16 border-b border-slate-200 bg-white shadow-sm">
         <div className="mx-auto flex h-full w-full items-center justify-between px-4">
           {/* 左：ハンバーガー（smのみ）＋ ロゴ */}
           <div className="flex items-center gap-2">
             <button
               type="button"
-              className="sm:hidden grid h-10 w-10 place-items-center rounded-md hover:bg-gray-100 dark:hover:bg-gray-800"
+              className="sm:hidden grid h-10 w-10 place-items-center rounded-md text-slate-700 transition hover:bg-orange-50 hover:text-[#fe6147]"
               onClick={() => setMenuOpen(true)}
               aria-label="メニュー"
               aria-expanded={menuOpen}
@@ -114,22 +114,13 @@ export default function Header() {
               className="flex items-center gap-2"
               aria-label="トップへ"
             >
-              {/* ライト用 */}
               <Image
                 src="/logo.svg"
                 alt="rizbo"
                 width={100}
                 height={32}
                 priority
-                className="object-contain dark:hidden"
-              />
-              {/* ダーク用 */}
-              <Image
-                src="/logo_w.svg"
-                alt="rizbo"
-                width={100}
-                height={32}
-                className="hidden dark:inline object-contain"
+                className="object-contain"
               />
             </Link>
           </div>
@@ -144,20 +135,20 @@ export default function Header() {
                     <img
                       src={user.image}
                       alt={user.name ?? "User"}
-                      className="h-9 w-9 rounded-full object-cover ring-1 ring-gray-200 dark:ring-gray-700"
+                      className="h-9 w-9 rounded-full object-cover ring-1 ring-slate-200"
                       referrerPolicy="no-referrer"
                       loading="lazy"
                     />
                   ) : (
-                    <span className="grid h-9 w-9 place-items-center rounded-full bg-gray-200 text-xs text-gray-600 ring-1 ring-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:ring-gray-700">
+                    <span className="grid h-9 w-9 place-items-center rounded-full bg-blue-50 text-xs font-semibold text-blue-700 ring-1 ring-blue-100">
                       {user?.name?.[0] ?? "U"}
                     </span>
                   )}
                   <div className="text-right">
-                    <div className="leading-none text-sm font-medium text-gray-900 dark:text-gray-100">
+                    <div className="leading-none text-sm font-semibold text-slate-800">
                       {user?.name ?? "ユーザー"}
                     </div>
-                    <div className="leading-none text-xs text-gray-500 dark:text-gray-400">
+                    <div className="leading-none text-xs text-slate-500">
                       {user?.email}
                     </div>
                   </div>
@@ -167,7 +158,7 @@ export default function Header() {
                 <button
                   type="button"
                   onClick={() => signOut({ callbackUrl: "/login" })}
-                  className="hidden sm:inline-flex items-center gap-2 rounded-md bg-gray-800 px-4 py-2 text-sm font-medium text-white hover:bg-gray-900 dark:bg-gray-700 dark:hover:bg-gray-600"
+                  className="hidden sm:inline-flex items-center gap-2 rounded-md bg-[#fe6147] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#eb4f35]"
                 >
                   <LogOut size={16} />
                   ログアウト
@@ -180,7 +171,7 @@ export default function Header() {
                     aria-label="アカウントメニュー"
                     aria-expanded={profileOpen}
                     onClick={() => setProfileOpen((v) => !v)}
-                    className="grid h-10 w-10 place-items-center rounded-full bg-gray-100 ring-1 ring-gray-200 dark:bg-gray-800 dark:ring-gray-700"
+                    className="grid h-10 w-10 place-items-center rounded-full bg-blue-50 ring-1 ring-blue-100"
                   >
                     {user?.image ? (
                       <img
@@ -191,33 +182,33 @@ export default function Header() {
                         loading="lazy"
                       />
                     ) : (
-                      <span className="text-sm font-semibold text-gray-700 dark:text-gray-200">
+                      <span className="text-sm font-semibold text-blue-700">
                         {user?.name?.[0] ?? "U"}
                       </span>
                     )}
                   </button>
 
                   {profileOpen && (
-                    <div className="absolute right-0 mt-2 w-64 rounded-xl border border-gray-200 bg-white p-3 shadow-lg dark:border-gray-700 dark:bg-gray-900">
+                    <div className="absolute right-0 mt-2 w-64 rounded-xl border border-slate-200 bg-white p-3 shadow-xl shadow-slate-200/60">
                       <div className="mb-3 flex items-center gap-3">
                         {user?.image ? (
                           <img
                             src={user.image}
                             alt={user.name ?? "User"}
-                            className="h-9 w-9 rounded-full object-cover ring-1 ring-gray-200 dark:ring-gray-700"
+                            className="h-9 w-9 rounded-full object-cover ring-1 ring-slate-200"
                             referrerPolicy="no-referrer"
                             loading="lazy"
                           />
                         ) : (
-                          <span className="grid h-9 w-9 place-items-center rounded-full bg-gray-200 text-xs text-gray-600 ring-1 ring-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:ring-gray-700">
+                          <span className="grid h-9 w-9 place-items-center rounded-full bg-blue-50 text-xs font-semibold text-blue-700 ring-1 ring-blue-100">
                             {user?.name?.[0] ?? "U"}
                           </span>
                         )}
                         <div>
-                          <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                          <div className="text-sm font-semibold text-slate-800">
                             {user?.name ?? "ユーザー"}
                           </div>
-                          <div className="text-xs text-gray-500 dark:text-gray-400">
+                          <div className="text-xs text-slate-500">
                             {user?.email}
                           </div>
                         </div>
@@ -225,7 +216,7 @@ export default function Header() {
                       <button
                         type="button"
                         onClick={() => signOut({ callbackUrl: "/login" })}
-                        className="flex w-full items-center justify-center gap-2 rounded-md bg-gray-800 px-4 py-2 text-sm font-medium text-white hover:bg-gray-900 dark:bg-gray-700 dark:hover:bg-gray-600"
+                        className="flex w-full items-center justify-center gap-2 rounded-md bg-[#fe6147] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#eb4f35]"
                       >
                         <LogOut size={16} />
                         ログアウト
@@ -239,14 +230,14 @@ export default function Header() {
                 {/* PC：ログイン */}
                 <Link
                   href="/login"
-                  className="hidden sm:inline-flex rounded-md bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-400 dark:focus:ring-primary-700 hover:bg-gray-900 dark:bg-gray-700 dark:hover:bg-gray-600"
+                  className="hidden sm:inline-flex rounded-md bg-[#fe6147] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#eb4f35] focus:outline-none focus:ring-2 focus:ring-orange-200"
                 >
                   ログイン
                 </Link>
                 {/* モバイル：ログイン丸ボタン */}
                 <Link
                   href="/login"
-                  className="sm:hidden grid h-10 w-10 place-items-center rounded-full bg-primary text-white hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-400 dark:focus:ring-primary-700"
+                  className="sm:hidden grid h-10 w-10 place-items-center rounded-full bg-[#fe6147] text-white transition hover:bg-[#eb4f35] focus:outline-none focus:ring-2 focus:ring-orange-200"
                   aria-label="ログイン"
                 >
                   <LogIn size={18} />

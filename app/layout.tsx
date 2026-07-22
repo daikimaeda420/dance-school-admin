@@ -1,6 +1,5 @@
 // app/layout.tsx
 import "./globals.css";
-import Script from "next/script";
 import type { Metadata, Viewport } from "next";
 
 export const metadata: Metadata = {
@@ -43,19 +42,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="ja" data-scroll-behavior="smooth" suppressHydrationWarning>
-      <head>
-        <Script id="theme-init" strategy="beforeInteractive">{`
-          try {
-            var ls = localStorage.getItem("theme");
-            var mql = window.matchMedia("(prefers-color-scheme: dark)");
-            var dark = ls ? (ls === "dark") : mql.matches;
-            if (dark) document.documentElement.classList.add("dark");
-          } catch (e) {}
-        `}</Script>
-      </head>
-
-      <body className="min-h-screen bg-gray-50 text-gray-900 dark:bg-gray-950 dark:text-gray-100 w-dvw">
+    <html lang="ja" data-scroll-behavior="smooth">
+      <body className="min-h-screen bg-white text-slate-900 w-dvw">
         {children}
       </body>
     </html>

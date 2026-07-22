@@ -24,10 +24,10 @@ export default function LayoutShell({ children }: { children: ReactNode }) {
   return (
     <>
       <Header />
-      <div className="flex">
+      <div className="flex min-h-[calc(100vh-4rem)] pt-16 bg-[#f8fafc]">
         {/* デスクトップ用サイドバー（md以上で表示） */}
         <Sidebar showDesktop />
-        <main className="flex-1 min-w-0">{children}</main>
+        <main className="flex-1 min-w-0 bg-[#f8fafc]">{children}</main>
       </div>
     </>
   );
