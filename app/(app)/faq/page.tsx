@@ -5,7 +5,18 @@ import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { useState, useEffect, useCallback, useMemo, useTransition } from "react";
 import { produce } from "immer";
-import { MessagesSquare, CodeXml, BadgeCheck, Palette, CalendarCheck } from "lucide-react";
+import {
+  BookOpen,
+  BadgeCheck,
+  CalendarCheck,
+  CodeXml,
+  MessagesSquare,
+  MonitorCog,
+  Palette,
+  Plus,
+  Save,
+  Settings2,
+} from "lucide-react";
 import { FAQEditor } from "../../../components/FAQEditor";
 
 // schoolId を含む型
@@ -27,6 +38,7 @@ const PALETTES = [
 type PaletteValue = (typeof PALETTES)[number]["value"];
 type ChatMode = "FAQ_ONLY" | "FAQ_PLUS_AI";
 type ReservationMode = "NONE" | "RIZBO" | "EXTERNAL";
+type EditorTab = "editor" | "conversation" | "knowledge" | "display";
 
 export type FAQItem =
   | {
@@ -111,6 +123,7 @@ export default function FAQPage() {
 
   const [collapsed, setCollapsed] = useState<Record<number, boolean>>({});
   const [query, setQuery] = useState("");
+  const [activeTab, setActiveTab] = useState<EditorTab>("editor");
 
   // ▼ テーマパレット（DBから読み書きするメタ）
   const [palette, setPalette] = useState<PaletteValue>("navy");
@@ -370,31 +383,67 @@ export default function FAQPage() {
 
   return (
     <div className="mx-auto max-w-[1540px] px-4 py-6 text-slate-800 md:px-6">
-      {/* 見出し + ツールバー */}
-      <div className="mb-6">
-        <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight">
-          <MessagesSquare aria-hidden="true" className="h-6 w-6 text-[#fe6147]" />
-          <span>Q&A編集</span>
-        </h1>
-        <p className="mt-1 text-sm text-slate-500">
-          チャットボットの質問の追加・編集を行います。変更後は必ず保存してください。
-        </p>
-      </div>
-      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-wrap gap-2">
-          <Link href={readinessHref} className="btn-ghost">
-            <BadgeCheck aria-hidden="true" className="h-4 w-4" />
-            完成度チェック
-          </Link>
-          {dirty && (
-            <span
-              className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs
-              border border-amber-300 bg-amber-50 text-amber-800
-              "
-            >
+      <header className="mb-5 flex flex-col gap-4 border-b border-slate-200 pb-5 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+          <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight text-slate-900">
+            <MessagesSquare aria-hidden="true" className="h-6 w-6 text-[#fe6147]" />
+            <span>Q&A編集</span>
+          </h1>
+          <p className="mt-1 text-sm text-slate-500">
+            質問・回答、会話導線、埋め込み設定をまとめて管理できます。
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          {dirty ? (
+            <span className="inline-flex items-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800">
               未保存の変更あり
             </span>
+          ) : (
+            <span className="px-2 text-xs font-medium text-emerald-600">保存済み</span>
           )}
+          <Link href={readinessHref} className="btn-ghost">
+            <Settings2 aria-hidden="true" className="h-4 w-4" />
+            完成度チェック
+          </Link>
+          <button
+            type="button"
+            onClick={saveFAQ}
+            disabled={saving || !dirty}
+            className="btn-primary inline-flex items-center gap-2 disabled:opacity-50"
+          >
+            <Save aria-hidden="true" className="h-4 w-4" />
+            {saving ? "保存中..." : "保存する"}
+          </button>
+        </div>
+      </header>
+
+      <nav aria-label="Q&A編集メニュー" className="mb-6 flex overflow-x-auto border-b border-slate-200">
+        {([
+          ["editor", "質問・回答", MessagesSquare],
+          ["conversation", "会話・予約", CalendarCheck],
+          ["knowledge", "ナレッジ", BookOpen],
+          ["display", "表示・埋め込み", MonitorCog],
+        ] as const).map(([tab, label, Icon]) => (
+          <button
+            key={tab}
+            type="button"
+            onClick={() => setActiveTab(tab)}
+            className={[
+              "inline-flex shrink-0 items-center gap-2 border-b-2 px-4 py-3 text-sm font-semibold transition-colors",
+              activeTab === tab
+                ? "border-[#fe6147] text-[#d94d38]"
+                : "border-transparent text-slate-500 hover:text-slate-800",
+            ].join(" ")}
+            aria-current={activeTab === tab ? "page" : undefined}
+          >
+            <Icon aria-hidden="true" className="h-4 w-4" />
+            {label}
+          </button>
+        ))}
+      </nav>
+
+      {activeTab === "editor" && <div className="mb-6 rounded-xl border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
+        <div className="flex flex-wrap gap-2">
           {errors.size > 0 && (
             <button
               type="button"
@@ -414,7 +463,7 @@ export default function FAQPage() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && scrollToFirstMatch()}
-              className="input pr-20"
+            className="input h-10 pr-20"
               placeholder="キーワード検索"
             />
             <button
@@ -431,9 +480,10 @@ export default function FAQPage() {
               setFaq([...faq, { type: "question", question: "", answer: "" }]);
               setDirty(true);
             }}
-            className="btn-ghost"
+            className="btn-ghost inline-flex items-center gap-2"
           >
-            ＋ 通常の質問
+            <Plus aria-hidden="true" className="h-4 w-4" />
+            通常の質問を追加
           </button>
           <button
             type="button"
@@ -454,9 +504,10 @@ export default function FAQPage() {
               ]);
               setDirty(true);
             }}
-            className="btn-ghost"
+            className="btn-ghost inline-flex items-center gap-2"
           >
-            ＋ 選択肢ブロック
+            <Plus aria-hidden="true" className="h-4 w-4" />
+            選択肢ブロックを追加
           </button>
           <button
             type="button"
@@ -474,20 +525,12 @@ export default function FAQPage() {
           >
             すべて開く
           </button>
-          <button
-            type="button"
-            onClick={saveFAQ}
-            disabled={saving || !dirty}
-            className="btn-primary disabled:opacity-50"
-          >
-            {saving ? "保存中..." : dirty ? "保存する（⌘/Ctrl+S）" : "保存済み"}
-          </button>
         </div>
-      </div>
+      </div>}
 
       {/* ===== 1カラム構成 ===== */}
       <div className="space-y-6">
-        {/* 🔥 埋め込み表示設定 */}
+        {activeTab === "display" && (
         <section className="card">
           <div className="card-header">
             <h3 className="font-semibold flex items-center gap-2">
@@ -582,8 +625,9 @@ export default function FAQPage() {
             </div>
           </div>
         </section>
+        )}
 
-        <section className="card">
+        {activeTab === "conversation" && <section className="card">
           <div className="card-header">
             <h3 className="font-semibold flex items-center gap-2">
               <CalendarCheck aria-hidden="true" className="w-5 h-5" />
@@ -632,9 +676,9 @@ export default function FAQPage() {
               )}
             </fieldset>
           </div>
-        </section>
+        </section>}
 
-        <section className="card">
+        {activeTab === "knowledge" && <section className="card">
           <div className="card-header">
             <h3 className="font-semibold">会話用ナレッジ</h3>
             <p className="text-xs text-gray-500">設置サイトの内容を読み込み、今後のAI会話が参照する最新情報として保存します。現在は内容の保存・確認まで利用できます。</p>
@@ -648,10 +692,9 @@ export default function FAQPage() {
             {knowledgeUpdatedAt && <p className="text-xs text-gray-500">最終読み込み：{new Date(knowledgeUpdatedAt).toLocaleString("ja-JP")}（{knowledgeContent.length.toLocaleString()}文字）</p>}
             {knowledgeContent && <details><summary className="cursor-pointer text-sm text-blue-600">読み込んだ内容を確認する</summary><p className="mt-2 max-h-52 overflow-auto whitespace-pre-wrap rounded border bg-gray-50 p-3 text-xs text-gray-700">{knowledgeContent}</p></details>}
           </div>
-        </section>
+        </section>}
 
-        {/* エディタ */}
-        <section className="space-y-4">
+        {activeTab === "editor" && <section className="space-y-4">
           {empty ? (
             <div className="card p-6 text-sm text-gray-600 dark:text-gray-300">
               まだ項目がありません。右上の「通常の質問」または「選択肢ブロック」から追加してください。
@@ -743,9 +786,9 @@ export default function FAQPage() {
               </div>
             ))
           )}
-        </section>
+        </section>}
 
-        {/* 🎨 テーマカラー */}
+        {activeTab === "display" && <>
         <section className="card">
           <div className="card-header">
             <h3 className="font-semibold flex items-center gap-2">
@@ -899,8 +942,9 @@ export default function FAQPage() {
           </div>
         </section>
 
-        {/* バリデーション */}
-        <section className="card">
+        </>}
+
+        {activeTab === "editor" && <section className="card">
           <div className="card-header">
             <h3 className="font-semibold flex items-center gap-2">
               <BadgeCheck aria-hidden="true" className="w-5 h-5" />
@@ -922,7 +966,7 @@ export default function FAQPage() {
               </ul>
             )}
           </div>
-        </section>
+        </section>}
       </div>
     </div>
   );
