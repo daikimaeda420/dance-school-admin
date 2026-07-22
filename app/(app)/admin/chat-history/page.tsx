@@ -1,104 +1,37 @@
-"use client"; // ← 必ずファイルの最上部に
+"use client";
 
-// app/admin/chat-history/page.tsx
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { RefreshCw, TimerReset } from "lucide-react";
 import ChatLogTreeView from "@/components/ChatLogTreeView";
-import { MessageSquareText, TimerReset, Users } from "lucide-react";
 
-type FaqLog = {
-  school: string;
-  sessionId: string;
-  timestamp: string;
-  question: any;
-  answer?: any;
-  url?: string;
-};
+type FaqLog = { school: string; sessionId: string; timestamp: string; question: any; answer?: unknown; url?: string };
 
 export default function ChatHistoryPage() {
   const [logs, setLogs] = useState<FaqLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchLogs = async () => {
-      setLoading(true);
-      setError(null);
-
-      try {
-        const params = new URLSearchParams(window.location.search);
-        const schoolId = params.get("schoolId") ?? params.get("school") ?? "";
-        const query = new URLSearchParams();
-        if (schoolId) query.set("schoolId", schoolId);
-        const url = `/api/admin/faq-logs${query.toString() ? `?${query.toString()}` : ""}`;
-
-        const res = await fetch(url);
-
-        if (!res.ok) {
-          throw new Error(`${res.status} ${res.statusText}`);
-        }
-
-        const data: unknown = await res.json();
-
-        // ① /api/logs が配列を返すパターン
-        // ② /api/logs が { logs: [...] } を返すパターン
-        let normalized: FaqLog[] = [];
-
-        if (Array.isArray(data)) {
-          normalized = data as FaqLog[];
-        } else if (
-          data &&
-          typeof data === "object" &&
-          Array.isArray((data as any).logs)
-        ) {
-          normalized = (data as any).logs as FaqLog[];
-        }
-
-        // timestamp がある前提で並び替え（新しい順）
-        normalized.sort((a, b) => {
-          const ta = new Date(a.timestamp).getTime() || 0;
-          const tb = new Date(b.timestamp).getTime() || 0;
-          return tb - ta;
-        });
-
-        setLogs(normalized);
-      } catch (err) {
-        console.error("ログ取得失敗:", err);
-        setError("ログの取得に失敗しました");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchLogs();
+  const loadLogs = useCallback(async () => {
+    setLoading(true); setError(null);
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const schoolId = params.get("schoolId") ?? params.get("school") ?? "";
+      const response = await fetch(`/api/admin/faq-logs${schoolId ? `?schoolId=${encodeURIComponent(schoolId)}` : ""}`, { cache: "no-store" });
+      if (!response.ok) throw new Error();
+      const data: unknown = await response.json();
+      const normalized = Array.isArray(data) ? data as FaqLog[] : data && typeof data === "object" && Array.isArray((data as { logs?: unknown[] }).logs) ? (data as { logs: FaqLog[] }).logs : [];
+      setLogs(normalized.toSorted((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()));
+    } catch { setError("ログの取得に失敗しました。時間をおいて再度お試しください。"); }
+    finally { setLoading(false); }
   }, []);
 
-  const { sessionCount, totalCount } = useMemo(() => {
-    const sessions = new Set((logs || []).map((l) => l.sessionId || "unknown"));
-    return { sessionCount: sessions.size, totalCount: logs.length };
-  }, [logs]);
+  useEffect(() => { loadLogs(); }, [loadLogs]);
 
-  return (
-    <div className="mx-auto max-w-[1540px] px-4 py-6 text-slate-800 md:px-6">
-      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div><h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight"><TimerReset aria-hidden="true" className="h-6 w-6 text-[#fe6147]" />ユーザーログ</h1><p className="mt-1 text-sm text-slate-500">チャットでの会話内容を確認し、Q&Aや導線改善に活かせます。</p></div>
-        <div className="flex gap-3"><div className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm"><span className="flex items-center gap-2 text-xs font-semibold text-slate-500"><Users className="h-4 w-4 text-blue-600" />セッション数</span><strong className="mt-1 block text-2xl text-slate-900">{sessionCount}</strong></div><div className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm"><span className="flex items-center gap-2 text-xs font-semibold text-slate-500"><MessageSquareText className="h-4 w-4 text-blue-600" />ログ件数</span><strong className="mt-1 block text-2xl text-slate-900">{totalCount}</strong></div></div>
-      </div>
-
-      <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-        {loading ? (
-          <div className="animate-pulse p-8 text-slate-500">
-            読み込み中...
-          </div>
-        ) : error ? (
-          <div className="p-6 text-red-600">{error}</div>
-        ) : logs.length === 0 ? (
-          <div className="p-8 text-sm text-slate-500">
-            まだログがありません
-          </div>
-        ) : (
-          <ChatLogTreeView logs={logs} />
-        )}
-      </div>
+  return <div className="mx-auto max-w-[1540px] px-4 py-6 text-slate-800 md:px-6">
+    <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      <div><h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight"><TimerReset aria-hidden className="h-6 w-6 text-[#fe6147]" />ユーザーログ</h1><p className="mt-1 text-sm text-slate-500">チャットでの会話内容を確認し、Q&Aや導線改善に活かせます。</p></div>
+      <button onClick={loadLogs} disabled={loading} className="btn-ghost inline-flex w-fit items-center gap-2 text-sm"><RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />更新</button>
     </div>
-  );
+    {loading ? <div className="grid min-h-80 place-items-center rounded-xl border border-slate-200 bg-white text-sm text-slate-500 shadow-sm"><span className="inline-flex items-center gap-2"><RefreshCw className="h-4 w-4 animate-spin text-[#fe6147]" />ログを読み込んでいます...</span></div> : error ? <div className="rounded-xl border border-rose-200 bg-rose-50 p-6 text-sm text-rose-700"><p>{error}</p><button onClick={loadLogs} className="mt-3 font-semibold underline">再読み込み</button></div> : logs.length === 0 ? <div className="grid min-h-80 place-items-center rounded-xl border border-slate-200 bg-white p-8 text-center shadow-sm"><div><TimerReset className="mx-auto h-8 w-8 text-slate-300" /><p className="mt-3 text-sm font-semibold text-slate-700">まだ会話ログがありません</p><p className="mt-1 text-sm text-slate-500">チャットの利用が始まると、ここで会話内容を確認できます。</p></div></div> : <ChatLogTreeView logs={logs} onSessionDeleted={(sessionId) => setLogs((current) => current.filter((log) => log.sessionId !== sessionId))} />}
+  </div>;
 }
