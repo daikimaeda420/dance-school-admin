@@ -254,9 +254,6 @@ export default function Header() {
         mobileOpen={menuOpen}
         onClose={() => setMenuOpen(false)}
       />
-
-      {/* ヘッダー分の余白 */}
-      <div className="h-16" aria-hidden />
     </>
   );
 }
