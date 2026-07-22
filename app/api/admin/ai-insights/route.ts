@@ -86,6 +86,20 @@ export async function GET(req: NextRequest) {
       { label: "設置サイトUU", count: siteVisitors }, { label: "診断開始", count: starts }, { label: "診断完了", count: results },
       { label: "フォーム到達", count: formOpens }, { label: "フォーム送信", count: formSubmits }, { label: "チャット予約希望", count: reservations },
     ];
+    const dropoffSteps = [
+      ["Q1_VIEW", "Q1：最初の質問", "最初の質問が自分に関係あると感じにくい"],
+      ["Q2_ANSWER", "Q2：経験・目的の選択", "選択肢が自分に合うか迷っている"],
+      ["Q4_ANSWER", "Q4：ジャンル選択", "自分に合うジャンルがわからない"],
+      ["RESULT_VIEW", "おすすめ結果の表示", "提案内容や次の行動が弱い"],
+      ["FORM_OPEN", "体験予約フォーム", "入力の負担や日程の不安がある"],
+      ["FORM_SUBMIT", "予約送信", "送信直前に検討が止まっている"],
+    ] as const;
+    const dropoffs = dropoffSteps.slice(1).map(([key, label, reason], index) => {
+      const previousKey = dropoffSteps[index][0];
+      const previousCount = countStep(currentLogs, previousKey);
+      const count = countStep(currentLogs, key);
+      return { label, dropoffRate: previousCount > 0 ? Math.max(0, Math.round(((previousCount - count) / previousCount) * 1000) / 10) : null, reason };
+    }).filter((item) => item.dropoffRate != null).sort((a, b) => (b.dropoffRate ?? 0) - (a.dropoffRate ?? 0)).slice(0, 5);
     // 設置サイトUUは visitorId、診断開始は sessionId で計測しているため、
     // 同一期間でも開始数が上回る場合は率として表示しない。
     const diagnosisStartRate = starts <= siteVisitors ? percent(starts, siteVisitors) : null;
@@ -97,7 +111,7 @@ export async function GET(req: NextRequest) {
     if (qaTopics[0]) suggestions.push({ title: `${qaTopics[0].label}の案内を強化`, detail: `直近${days}日では「${qaTopics[0].label}」に関するQ&A利用が最も多く、${qaTopics[0].count}セッションありました。サイト上部とチャットの初期選択肢へ追加すると不安解消につながります。`, priority: "medium", href: "/faq" });
     if (!suggestions.length) suggestions.push({ title: "分析データを蓄積中", detail: `直近${days}日のデータがまだ少ないため、改善提案を確定できません。設置タグと診断導線を確認して継続計測してください。`, priority: "low", href: "/admin/reports/diagnosis" });
 
-    return NextResponse.json({ days, generatedAt: new Date(), funnel, rates: { diagnosisStartRate, diagnosisCompletionRate: percent(results, starts), formOpenRate: percent(formOpens, results), formSubmitRate: percent(formSubmits, formOpens), overallConversionRate: percent(formSubmits + reservations, starts), diagnosisStartChange: change(starts, previousStarts), diagnosisCompletionChange: change(percent(results, starts) ?? 0, percent(previousResults, previousStarts) ?? 0) }, demand, qaTopics, suggestions });
+    return NextResponse.json({ days, generatedAt: new Date(), funnel, dropoffs, rates: { diagnosisStartRate, diagnosisCompletionRate: percent(results, starts), formOpenRate: percent(formOpens, results), formSubmitRate: percent(formSubmits, formOpens), overallConversionRate: percent(formSubmits + reservations, starts), diagnosisStartChange: change(starts, previousStarts), diagnosisCompletionChange: change(percent(results, starts) ?? 0, percent(previousResults, previousStarts) ?? 0) }, demand, qaTopics, suggestions });
   } catch (error) {
     console.error("[ai-insights]", error);
     return NextResponse.json({ error: "分析データの取得に失敗しました" }, { status: 500 });
