@@ -16,8 +16,6 @@ export default async function DiagnosisCampusesPage({
 
   return (
     <div className="w-full text-gray-900 dark:text-gray-100">
-      <h1 className="mb-4 text-xl font-bold">診断用 校舎管理</h1>
-
       {!schoolId && (
         <p className="mb-4 text-sm text-red-600 dark:text-red-400">
           URL に{" "}

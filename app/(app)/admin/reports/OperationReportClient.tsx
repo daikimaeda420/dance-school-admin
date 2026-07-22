@@ -212,7 +212,12 @@ export default function OperationReportClient({
             <BarChart3 className="h-4 w-4" aria-hidden />
             運用状況
           </div>
-          <h1 className="text-xl font-bold">
+          <h1 className="flex items-center gap-2 text-xl font-bold">
+            {isQaReport ? (
+              <MessagesSquare aria-hidden="true" className="h-5 w-5 text-[#fe6147]" />
+            ) : (
+              <ClipboardList aria-hidden="true" className="h-5 w-5 text-[#fe6147]" />
+            )}
             {isQaReport ? "Q&Aレポート" : "相性診断レポート"}
           </h1>
           <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">

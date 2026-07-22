@@ -18,8 +18,6 @@ export default async function DiagnosisCoursesPage({ searchParams }: Props) {
 
   return (
     <div className="w-full text-gray-900 dark:text-gray-100">
-      <h1 className="mb-4 text-xl font-bold">診断用 コース管理</h1>
-
       {!schoolId && (
         <p className="mb-4 text-sm text-red-600 dark:text-red-400">
            schoolId が取得できませんでした。FAQ設定を確認してください。

@@ -1,7 +1,7 @@
 // app/(app)/admin/diagnosis/_components/AdminPageHeader.tsx
 "use client";
 
-import { AlertTriangle, CheckCircle2, Loader2, Save } from "lucide-react";
+import { AlertTriangle, ListChecks, Loader2, Save } from "lucide-react";
 
 type Props = {
   title: string;
@@ -27,11 +27,12 @@ export default function AdminPageHeader({
 }: Props) {
   return (
     <div className="mb-5 space-y-3">
-      {/* タイトル行 + 保存ボタン */}
+      {/* メニューと対応するタイトル行 + 保存ボタン */}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h2 className="text-xl font-bold tracking-tight text-slate-900">
-            {title}
+        <div className="min-w-0">
+          <h2 className="flex items-center gap-2 text-xl font-bold tracking-tight text-slate-900">
+            <ListChecks aria-hidden="true" className="h-5 w-5 shrink-0 text-[#fe6147]" />
+            <span>{title}</span>
           </h2>
           {description && (
             <p className="mt-1 text-sm text-slate-500">
