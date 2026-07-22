@@ -3,7 +3,7 @@
 // app/admin/chat-history/page.tsx
 import { useEffect, useMemo, useState } from "react";
 import ChatLogTreeView from "@/components/ChatLogTreeView";
-import { TimerReset } from "lucide-react";
+import { MessageSquareText, TimerReset, Users } from "lucide-react";
 
 type FaqLog = {
   school: string;
@@ -78,33 +78,21 @@ export default function ChatHistoryPage() {
   }, [logs]);
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-6">
-      <div className="mb-6">
-        <h1 className="flex items-center gap-2 text-2xl font-bold">
-          <TimerReset aria-hidden="true" className="w-6 h-6" />
-          <span>ユーザーログ</span>
-        </h1>
-        <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
-          セッション数{" "}
-          <span className="font-semibold text-gray-900 dark:text-gray-100">
-            {sessionCount}
-          </span>{" "}
-          ／ ログ件数{" "}
-          <span className="font-semibold text-gray-900 dark:text-gray-100">
-            {totalCount}
-          </span>
-        </p>
+    <div className="mx-auto max-w-[1540px] px-4 py-6 text-slate-800 md:px-6">
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div><h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight"><TimerReset aria-hidden="true" className="h-6 w-6 text-[#fe6147]" />ユーザーログ</h1><p className="mt-1 text-sm text-slate-500">チャットでの会話内容を確認し、Q&Aや導線改善に活かせます。</p></div>
+        <div className="flex gap-3"><div className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm"><span className="flex items-center gap-2 text-xs font-semibold text-slate-500"><Users className="h-4 w-4 text-blue-600" />セッション数</span><strong className="mt-1 block text-2xl text-slate-900">{sessionCount}</strong></div><div className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm"><span className="flex items-center gap-2 text-xs font-semibold text-slate-500"><MessageSquareText className="h-4 w-4 text-blue-600" />ログ件数</span><strong className="mt-1 block text-2xl text-slate-900">{totalCount}</strong></div></div>
       </div>
 
-      <div className="card overflow-hidden">
+      <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
         {loading ? (
-          <div className="p-8 animate-pulse text-gray-500 dark:text-gray-400">
+          <div className="animate-pulse p-8 text-slate-500">
             読み込み中...
           </div>
         ) : error ? (
-          <div className="p-6 text-red-600 dark:text-red-400">{error}</div>
+          <div className="p-6 text-red-600">{error}</div>
         ) : logs.length === 0 ? (
-          <div className="p-8 text-sm text-gray-500 dark:text-gray-400">
+          <div className="p-8 text-sm text-slate-500">
             まだログがありません
           </div>
         ) : (

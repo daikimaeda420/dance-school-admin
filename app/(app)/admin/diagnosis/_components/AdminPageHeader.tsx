@@ -26,15 +26,15 @@ export default function AdminPageHeader({
   hideSave,
 }: Props) {
   return (
-    <div className="mb-4 space-y-2">
+    <div className="mb-5 space-y-3">
       {/* タイトル行 + 保存ボタン */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">
+          <h2 className="text-xl font-bold tracking-tight text-slate-900">
             {title}
           </h2>
           {description && (
-            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+            <p className="mt-1 text-sm text-slate-500">
               {description}
             </p>
           )}
@@ -47,9 +47,7 @@ export default function AdminPageHeader({
                 type="button"
                 onClick={onDiscard}
                 disabled={saving}
-                className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700
-                           hover:bg-gray-50 disabled:opacity-50
-                           dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200 dark:hover:bg-gray-800"
+                className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
               >
                 変更を破棄
               </button>
@@ -58,9 +56,7 @@ export default function AdminPageHeader({
               type="button"
               onClick={onSave}
               disabled={saving || !isDirty}
-              className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-2 text-sm font-semibold text-white
-                         shadow-sm hover:bg-blue-700 disabled:opacity-50
-                         dark:bg-blue-500 dark:hover:bg-blue-400"
+              className="inline-flex items-center gap-2 rounded-lg bg-[#fe6147] px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[#eb4f35] disabled:opacity-50"
             >
               {saving ? (
                 <>
@@ -80,7 +76,7 @@ export default function AdminPageHeader({
 
       {/* 変更ありバナー */}
       {isDirty && !error && (
-        <div className="flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
+        <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm text-amber-800">
           <AlertTriangle className="h-4 w-4 flex-shrink-0" />
           <span>変更した内容があります。保存ボタンを押して反映してください。</span>
         </div>
@@ -90,7 +86,7 @@ export default function AdminPageHeader({
 
       {/* エラー表示 */}
       {error && (
-        <div className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm text-red-700 dark:border-red-800 dark:bg-red-950/40 dark:text-red-200">
+        <div className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-2.5 text-sm text-red-700">
           <AlertTriangle className="h-4 w-4 flex-shrink-0 text-red-500" />
           <span>{error}</span>
         </div>

@@ -38,19 +38,19 @@ export default function DiagnosisAdminNav({ defaultSchoolId }: Props) {
   }, [schoolId]);
 
   return (
-    <div className={adminCard + " mb-4"}>
+    <div className={adminCard + " mb-5"}>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <div className="text-sm font-bold text-gray-900 dark:text-gray-100">
+          <div className="text-base font-bold text-slate-900">
             診断編集
           </div>
-          <div className="mt-1 text-[11px] text-gray-500 dark:text-gray-400">
+          <div className="mt-1 text-xs text-slate-500">
             schoolId:{" "}
-            <span className="font-mono text-gray-700 dark:text-gray-200">
+            <span className="font-mono text-slate-700">
               {schoolId || "(未指定)"}
             </span>
             {!schoolId && (
-              <span className="ml-2 text-red-500 dark:text-red-300">
+              <span className="ml-2 text-red-500">
                 ※ URLに ?schoolId=xxx を付けてください
               </span>
             )}
@@ -67,12 +67,11 @@ export default function DiagnosisAdminNav({ defaultSchoolId }: Props) {
                 key={t.href}
                 href={href}
                 className={[
-                  "rounded-xl px-4 py-2 text-xs font-semibold border transition",
-                  "focus:outline-none focus:ring-2 focus:ring-blue-500",
+                  "rounded-lg px-3 py-2 text-xs font-semibold border transition",
+                  "focus:outline-none focus:ring-2 focus:ring-orange-100",
                   active
-                    ? "bg-blue-600 text-white border-blue-600 dark:bg-blue-500 dark:border-blue-500"
-                    : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50 " +
-                      "dark:bg-gray-900 dark:text-gray-200 dark:border-gray-700 dark:hover:bg-gray-800/60",
+                    ? "bg-[#fe6147] text-white border-[#fe6147] shadow-sm"
+                    : "bg-white text-slate-600 border-slate-200 hover:border-orange-200 hover:bg-orange-50 hover:text-[#c53f2b]",
                 ].join(" ")}
               >
                 {t.label}

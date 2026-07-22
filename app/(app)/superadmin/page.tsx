@@ -4,13 +4,13 @@ import SuperAdminEditor from "./SuperAdminEditor";
 
 export default function SuperadminPage() {
   return (
-    <div className="mx-auto max-w-6xl px-4 py-6">
+    <div className="mx-auto max-w-[1540px] px-4 py-6 text-slate-800 md:px-6">
       <div className="mb-4 sm:mb-6">
-        <h1 className="flex items-center gap-2 text-xl sm:text-2xl font-bold">
-          <UserCog aria-hidden="true" className="h-5 w-5 sm:h-6 sm:w-6" />
+        <h1 className="flex items-center gap-2 text-xl font-bold tracking-tight sm:text-2xl">
+          <UserCog aria-hidden="true" className="h-5 w-5 text-[#fe6147] sm:h-6 sm:w-6" />
           <span>アカウント管理</span>
         </h1>
-        <p className="mt-1 text-xs sm:text-sm text-gray-600 dark:text-gray-300">
+        <p className="mt-1 text-xs text-slate-500 sm:text-sm">
           アカウント・権限の設定と、ユーザー管理を行います。
         </p>
       </div>
@@ -23,7 +23,7 @@ export default function SuperadminPage() {
       {/* ユーザー管理 */}
       <section className="card">
         <div className="card-header">
-          <h2 className="font-semibold text-gray-900 dark:text-gray-100 text-sm sm:text-base">
+          <h2 className="text-sm font-semibold text-slate-900 sm:text-base">
             スクールユーザー管理
           </h2>
         </div>

@@ -15,7 +15,7 @@ export default async function DiagnosisAdminLayout({
   const schoolId = await getAccessiblePageSchoolId("");
 
   return (
-    <div className="mx-auto w-full p-6 text-gray-900">
+    <div className="mx-auto w-full max-w-[1540px] px-4 py-6 text-slate-900 md:px-6">
       <Suspense fallback={null}>
         <DiagnosisAdminNav defaultSchoolId={schoolId} />
         {children}

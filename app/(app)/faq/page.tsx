@@ -369,14 +369,14 @@ export default function FAQPage() {
   if (!schoolId) return <p className="p-6">schoolId が見つかりません。</p>;
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-6">
+    <div className="mx-auto max-w-[1540px] px-4 py-6 text-slate-800 md:px-6">
       {/* 見出し + ツールバー */}
       <div className="mb-6">
-        <h1 className="flex items-center gap-2 text-2xl font-bold">
-          <MessagesSquare aria-hidden="true" className="w-6 h-6" />
+        <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight">
+          <MessagesSquare aria-hidden="true" className="h-6 w-6 text-[#fe6147]" />
           <span>Q&A編集</span>
         </h1>
-        <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
+        <p className="mt-1 text-sm text-slate-500">
           チャットボットの質問の追加・編集を行います。変更後は必ず保存してください。
         </p>
       </div>
@@ -390,7 +390,7 @@ export default function FAQPage() {
             <span
               className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs
               border border-amber-300 bg-amber-50 text-amber-800
-              dark:bg-amber-900/30 dark:border-amber-700 dark:text-amber-200"
+              "
             >
               未保存の変更あり
             </span>
@@ -518,7 +518,7 @@ export default function FAQPage() {
                       setDirty(true);
                     }}
                   />
-                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                  <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-orange-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#fe6147]"></div>
                 </label>
               </div>
 
@@ -540,7 +540,7 @@ export default function FAQPage() {
                       setDirty(true);
                     }}
                   />
-                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                  <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-orange-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#fe6147]"></div>
                 </label>
               </div>
 

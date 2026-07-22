@@ -21,7 +21,7 @@ export default async function SystemPage() {
 
   if (!principal) {
     return (
-      <div className="p-6 text-sm text-red-600 dark:text-red-300">
+      <div className="p-6 text-sm text-red-600">
         ログインが必要です。
       </div>
     );
@@ -29,7 +29,7 @@ export default async function SystemPage() {
 
   if (!principal.isSuperAdmin) {
     return (
-      <div className="p-6 text-sm text-red-600 dark:text-red-300">
+      <div className="p-6 text-sm text-red-600">
         このページを表示する権限がありません。
       </div>
     );
@@ -43,14 +43,14 @@ export default async function SystemPage() {
   const missing = rows.filter((row) => !row.configured);
 
   return (
-    <div className="mx-auto max-w-5xl p-6 text-gray-900 dark:text-gray-100">
+    <div className="mx-auto max-w-[1540px] px-4 py-6 text-slate-800 md:px-6">
       <div className="mb-6 flex items-center gap-3">
-        <div className="rounded-lg bg-gray-900 p-2 text-white dark:bg-gray-100 dark:text-gray-900">
+        <div className="rounded-lg bg-[#fe6147] p-2 text-white">
           <Settings className="h-5 w-5" aria-hidden />
         </div>
         <div>
-          <h1 className="text-xl font-bold">システム設定</h1>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+          <h1 className="text-xl font-bold tracking-tight">システム設定</h1>
+          <p className="mt-1 text-sm text-slate-500">
             環境変数の設定状況を確認できます。
           </p>
         </div>
@@ -63,29 +63,29 @@ export default async function SystemPage() {
             className={[
               "rounded-full px-2.5 py-1 text-xs font-semibold",
               missing.length
-                ? "bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-200"
-                : "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-200",
+                ? "bg-red-50 text-red-700"
+                : "bg-emerald-50 text-emerald-700",
             ].join(" ")}
           >
             {missing.length ? `${missing.length}件 未設定` : "すべて設定済み"}
           </span>
         </div>
-        <div className="divide-y divide-gray-100 dark:divide-gray-800">
+        <div className="divide-y divide-slate-100">
           {rows.map((row) => (
             <div
               key={row.key}
               className="flex items-center justify-between gap-4 px-4 py-3 text-sm"
             >
-              <span className="font-mono text-xs text-gray-700 dark:text-gray-200">
+              <span className="font-mono text-xs text-slate-700">
                 {row.key}
               </span>
               {row.configured ? (
-                <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700 dark:text-emerald-200">
+                <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700">
                   <CheckCircle2 className="h-4 w-4" aria-hidden />
                   設定済み
                 </span>
               ) : (
-                <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-red-700 dark:text-red-200">
+                <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-red-700">
                   <AlertCircle className="h-4 w-4" aria-hidden />
                   未設定
                 </span>
@@ -101,17 +101,17 @@ export default async function SystemPage() {
         </div>
         <div className="grid gap-3 p-4 text-sm sm:grid-cols-3">
           <div>
-            <div className="text-xs text-gray-500 dark:text-gray-400">NODE_ENV</div>
+            <div className="text-xs text-slate-500">NODE_ENV</div>
             <div className="mt-1 font-mono">{process.env.NODE_ENV ?? "-"}</div>
           </div>
           <div>
-            <div className="text-xs text-gray-500 dark:text-gray-400">APP_VERSION</div>
+            <div className="text-xs text-slate-500">APP_VERSION</div>
             <div className="mt-1 font-mono">
               {process.env.NEXT_PUBLIC_APP_VERSION || "-"}
             </div>
           </div>
           <div>
-            <div className="text-xs text-gray-500 dark:text-gray-400">schoolId</div>
+            <div className="text-xs text-slate-500">schoolId</div>
             <div className="mt-1 font-mono">{principal.schoolId || "-"}</div>
           </div>
         </div>
