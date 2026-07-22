@@ -53,6 +53,24 @@ model ChatReservation {
   @@index([schoolId, status])
 }
 
+// AI改善提案を適用した履歴。適用時の指標を残し、後続の効果測定に使う。
+model AiImprovement {
+  id            String   @id @default(cuid())
+  schoolId      String
+  actionKey     String
+  title         String
+  summary       String
+  status        String   @default("APPLIED")
+  metricKey     String?
+  baselineValue Float?
+  metadata      Json?
+  appliedAt     DateTime @default(now())
+  createdAt     DateTime @default(now())
+
+  @@index([schoolId, appliedAt])
+  @@index([schoolId, actionKey])
+}
+
 model FaqLog {
   id        Int      @id @default(autoincrement())
   school    String

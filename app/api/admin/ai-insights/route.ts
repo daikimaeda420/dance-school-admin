@@ -68,7 +68,7 @@ export async function GET(req: NextRequest) {
     currentLogs.forEach((row) => addDemand(currentDemand, row));
     previousLogs.forEach((row) => addDemand(previousDemand, row));
     const demand = Array.from(currentDemand.entries()).map(([slug, sessions]) => ({
-      label: labels.get(slug) ?? slug, count: sessions.size, change: change(sessions.size, previousDemand.get(slug)?.size ?? 0),
+      slug, label: labels.get(slug) ?? slug, count: sessions.size, change: change(sessions.size, previousDemand.get(slug)?.size ?? 0),
     })).sort((a, b) => b.count - a.count).slice(0, 6);
 
     const topics = new Map<string, Set<string>>();
@@ -103,12 +103,12 @@ export async function GET(req: NextRequest) {
     // 設置サイトUUは visitorId、診断開始は sessionId で計測しているため、
     // 同一期間でも開始数が上回る場合は率として表示しない。
     const diagnosisStartRate = starts <= siteVisitors ? percent(starts, siteVisitors) : null;
-    const suggestions: { title: string; detail: string; priority: "high" | "medium" | "low"; href: string }[] = [];
-    if (diagnosisStartRate != null && diagnosisStartRate < 20) suggestions.push({ title: "診断への導線を強化", detail: `サイト訪問から診断開始への転換率は${diagnosisStartRate}%です。ファーストビュー付近に「30秒でおすすめが分かる」導線を置くことをおすすめします。`, priority: "high", href: "/faq" });
+    const suggestions: { title: string; detail: string; priority: "high" | "medium" | "low"; href: string; action?: "PROMOTE_DEMAND_GENRE" | "SIMPLIFY_FORM" | "ADD_FAQ"; payload?: Record<string, string> }[] = [];
+    if (demand[0]) suggestions.push({ title: `「${demand[0].label}」を初期選択肢で目立たせる`, detail: `直近${days}日で${demand[0].count}人が希望しています。診断の最初に見つけやすくすると、希望者が迷わず進めます。`, priority: "medium", href: "/admin/diagnosis/genres", action: "PROMOTE_DEMAND_GENRE", payload: { slug: demand[0].slug, label: demand[0].label } });
+    if (formOpens > 0 && (percent(formSubmits, formOpens) ?? 0) < 40) suggestions.push({ title: "フォームの入力負荷を見直す", detail: `フォーム到達後の送信率は${percent(formSubmits, formOpens)}%です。電話番号・備考などを任意化して、まず予約意向を取りこぼさない設計にします。`, priority: "high", href: "/admin/diagnosis/form", action: "SIMPLIFY_FORM" });
+    if (qaTopics[0]) suggestions.push({ title: `${qaTopics[0].label}のQ&Aを追加する`, detail: `直近${days}日では「${qaTopics[0].label}」に関する質問が${qaTopics[0].count}セッションありました。質問前の不安を解消するQ&Aを追加します。`, priority: "medium", href: "/faq", action: "ADD_FAQ", payload: { topic: qaTopics[0].label } });
     if (starts > 0 && (percent(results, starts) ?? 0) < 60) suggestions.push({ title: "診断途中の離脱を改善", detail: `診断完了率は${percent(results, starts)}%です。質問数・選択肢のわかりやすさを確認し、最初の質問を短くしてください。`, priority: "high", href: "/admin/diagnosis/checklist" });
     if (results > 0 && (percent(formOpens, results) ?? 0) < 35) suggestions.push({ title: "結果から体験申込への誘導を改善", detail: `結果表示からフォーム到達は${percent(formOpens, results)}%です。結果の直下に、体験のメリットと空き状況を添えたCTAを置く余地があります。`, priority: "medium", href: "/admin/diagnosis/form" });
-    if (formOpens > 0 && (percent(formSubmits, formOpens) ?? 0) < 40) suggestions.push({ title: "フォームの入力負荷を見直す", detail: `フォーム到達後の送信率は${percent(formSubmits, formOpens)}%です。必須項目を絞り、希望日時は「相談したい」も選べるようにしてください。`, priority: "high", href: "/admin/diagnosis/form" });
-    if (qaTopics[0]) suggestions.push({ title: `${qaTopics[0].label}の案内を強化`, detail: `直近${days}日では「${qaTopics[0].label}」に関するQ&A利用が最も多く、${qaTopics[0].count}セッションありました。サイト上部とチャットの初期選択肢へ追加すると不安解消につながります。`, priority: "medium", href: "/faq" });
     if (!suggestions.length) suggestions.push({ title: "分析データを蓄積中", detail: `直近${days}日のデータがまだ少ないため、改善提案を確定できません。設置タグと診断導線を確認して継続計測してください。`, priority: "low", href: "/admin/reports/diagnosis" });
 
     return NextResponse.json({ days, generatedAt: new Date(), funnel, dropoffs, rates: { diagnosisStartRate, diagnosisCompletionRate: percent(results, starts), formOpenRate: percent(formOpens, results), formSubmitRate: percent(formSubmits, formOpens), overallConversionRate: percent(formSubmits + reservations, starts), diagnosisStartChange: change(starts, previousStarts), diagnosisCompletionChange: change(percent(results, starts) ?? 0, percent(previousResults, previousStarts) ?? 0) }, demand, qaTopics, suggestions });
