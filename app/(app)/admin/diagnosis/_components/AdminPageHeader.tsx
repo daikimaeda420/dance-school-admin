@@ -30,8 +30,8 @@ export default function AdminPageHeader({
       {/* メニューと対応するタイトル行 + 保存ボタン */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0">
-          <h2 className="flex items-center gap-2 text-xl font-bold tracking-tight text-slate-900">
-            <ListChecks aria-hidden="true" className="h-5 w-5 shrink-0 text-[#fe6147]" />
+          <h2 className="flex items-center gap-2 text-2xl font-bold tracking-tight text-slate-900">
+            <ListChecks aria-hidden="true" className="h-6 w-6 shrink-0 text-[#fe6147]" />
             <span>{title}</span>
           </h2>
           {description && (

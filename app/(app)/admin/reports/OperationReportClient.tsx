@@ -208,15 +208,11 @@ export default function OperationReportClient({
     <div className="mx-auto max-w-[1540px] px-4 py-6 text-gray-900 dark:text-gray-100 md:px-6">
       <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div>
-          <div className="mb-2 inline-flex items-center gap-2 rounded-full bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-700 dark:bg-sky-950/40 dark:text-sky-200">
-            <BarChart3 className="h-4 w-4" aria-hidden />
-            運用状況
-          </div>
-          <h1 className="flex items-center gap-2 text-xl font-bold">
+          <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight text-slate-900">
             {isQaReport ? (
-              <BarChart3 aria-hidden="true" className="h-5 w-5 text-[#fe6147]" />
+              <BarChart3 aria-hidden="true" className="h-6 w-6 text-[#fe6147]" />
             ) : (
-              <ClipboardList aria-hidden="true" className="h-5 w-5 text-[#fe6147]" />
+              <ClipboardList aria-hidden="true" className="h-6 w-6 text-[#fe6147]" />
             )}
             {isQaReport ? "Q&Aレポート" : "相性診断レポート"}
           </h1>

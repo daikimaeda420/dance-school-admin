@@ -46,8 +46,8 @@ export default async function SystemPage() {
     <div className="mx-auto max-w-[1540px] px-4 py-6 text-slate-800 md:px-6">
       <div className="mb-6">
         <div>
-          <h1 className="flex items-center gap-2 text-xl font-bold tracking-tight text-slate-900">
-            <Settings className="h-5 w-5 text-[#fe6147]" aria-hidden />
+          <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight text-slate-900">
+            <Settings className="h-6 w-6 text-[#fe6147]" aria-hidden />
             システム設定
           </h1>
           <p className="mt-1 text-sm text-slate-500">

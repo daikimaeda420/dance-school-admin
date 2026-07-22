@@ -82,8 +82,8 @@ export default async function DiagnosisChecklistPage({
     <div className="w-full text-gray-900 dark:text-gray-100">
       <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="flex items-center gap-2 text-xl font-bold text-slate-900">
-            <ClipboardCheck className="h-5 w-5 text-[#fe6147]" aria-hidden />
+          <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight text-slate-900">
+            <ClipboardCheck className="h-6 w-6 text-[#fe6147]" aria-hidden />
             完成度
           </h1>
           <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">

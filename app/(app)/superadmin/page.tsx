@@ -6,8 +6,8 @@ export default function SuperadminPage() {
   return (
     <div className="mx-auto max-w-[1540px] px-4 py-6 text-slate-800 md:px-6">
       <div className="mb-4 sm:mb-6">
-        <h1 className="flex items-center gap-2 text-xl font-bold tracking-tight sm:text-2xl">
-          <UserCog aria-hidden="true" className="h-5 w-5 text-[#fe6147] sm:h-6 sm:w-6" />
+        <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight">
+          <UserCog aria-hidden="true" className="h-6 w-6 text-[#fe6147]" />
           <span>アカウント管理</span>
         </h1>
         <p className="mt-1 text-xs text-slate-500 sm:text-sm">
