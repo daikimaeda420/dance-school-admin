@@ -562,7 +562,7 @@ export default function CampusAdminClient({ schoolId }: Props) {
   return (
     <div className="space-y-4">
       <AdminPageHeader
-        title="校舎管理"
+        title="校舎"
         description="校舎の追加・編集・並び替えが可能です。変更後は保存ボタンを押してください。"
         isDirty={anyDirty}
         saving={!!savingId}

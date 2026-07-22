@@ -531,7 +531,7 @@ export default function ScheduleAdminClient({ initialSchoolId }: Props) {
     <div className="space-y-4">
       {/* ヘッダー */}
       <AdminPageHeader
-        title="スケジュール管理"
+        title="スケジュール"
         description="曜日ごとに枠を作り、対応コース（チェックボックス）を紐付けてください。並び順はドラッグ＆ドロップで変更できます。"
         isDirty={false}
         saving={savingId === "REORDER"}

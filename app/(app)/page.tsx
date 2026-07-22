@@ -1845,7 +1845,7 @@ export default function HomePage() {
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="flex items-center gap-2 text-2xl font-bold">
-            <Home aria-hidden="true" className="w-6 h-6" />
+            <Home aria-hidden="true" className="w-6 h-6 text-[#fe6147]" />
             <span>ホーム</span>
           </h1>
           <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">

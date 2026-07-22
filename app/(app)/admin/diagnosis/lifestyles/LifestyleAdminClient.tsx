@@ -232,7 +232,7 @@ export default function LifestyleAdminClient({
   return (
     <div className="space-y-4">
       <AdminPageHeader
-        title="年代・ライフスタイル（Q3）"
+        title="年代・ライフスタイル"
         description="デフォルト6項目が自動で作成されます。追加・編集・削除・並び替えが可能です。並び替えはドラッグ＆ドロップで行い、最後に「保存」を押してください。"
         isDirty={dirty}
         saving={saving}

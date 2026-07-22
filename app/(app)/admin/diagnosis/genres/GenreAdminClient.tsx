@@ -241,7 +241,7 @@ export default function GenreAdminClient({
   return (
     <div className="space-y-4">
       <AdminPageHeader
-        title="Q4 ジャンル設定"
+        title="ジャンル"
         description="診断の「興味のあるジャンル」の選択肢を管理します。名称編集、表示・非表示、並び替えが可能です。"
         isDirty={dirty}
         saving={saving}

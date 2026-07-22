@@ -540,7 +540,7 @@ export default function FormAdminClient({ schoolId }: { schoolId: string }) {
   return (
     <div className="space-y-6 text-gray-900 dark:text-gray-100">
       <AdminPageHeader
-        title="フォーム設定"
+        title="フォーム"
         description="体験予約フォームの項目・メール設定を管理します。変更後は保存ボタンを押してください。"
         isDirty={isDirty}
         saving={saving}

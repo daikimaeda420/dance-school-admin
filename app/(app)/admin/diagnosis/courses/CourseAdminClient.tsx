@@ -638,7 +638,7 @@ export default function CourseAdminClient({ schoolId }: Props) {
   return (
     <div className="space-y-4">
       <AdminPageHeader
-        title="診断：コース管理"
+        title="コース"
         description="コースの追加・編集・並び順（ドラッグ）の変更が可能です。変更後は「保存」を押してください。"
         isDirty={isDirty}
         saving={saving}

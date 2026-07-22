@@ -409,7 +409,7 @@ export default function FaqAdminClient({ schoolId }: Props) {
   return (
     <div className="space-y-4">
       <AdminPageHeader
-        title="よくある質問 (FAQ) 管理"
+        title="よくある質問"
         description="診断結果ページ等で表示されるFAQを追加・編集できます。ドラッグで並び替えが可能です。"
         isDirty={false}
         saving={reordering}

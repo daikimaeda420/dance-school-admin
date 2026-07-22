@@ -132,7 +132,7 @@ export default function MediaAdminClient({ schoolId }: Props) {
   return (
     <div className="space-y-4">
       <AdminPageHeader
-        title="画像・動画管理"
+        title="画像・動画"
         description="診断結果ページ等で表示されるキャンペーンバナー画像やYouTube動画を設定できます。反映は即時行われます。"
         isDirty={false}
         saving={isAnySaving}

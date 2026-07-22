@@ -44,12 +44,12 @@ export default async function SystemPage() {
 
   return (
     <div className="mx-auto max-w-[1540px] px-4 py-6 text-slate-800 md:px-6">
-      <div className="mb-6 flex items-center gap-3">
-        <div className="rounded-lg bg-[#fe6147] p-2 text-white">
-          <Settings className="h-5 w-5" aria-hidden />
-        </div>
+      <div className="mb-6">
         <div>
-          <h1 className="text-xl font-bold tracking-tight">システム設定</h1>
+          <h1 className="flex items-center gap-2 text-xl font-bold tracking-tight text-slate-900">
+            <Settings className="h-5 w-5 text-[#fe6147]" aria-hidden />
+            システム設定
+          </h1>
           <p className="mt-1 text-sm text-slate-500">
             環境変数の設定状況を確認できます。
           </p>

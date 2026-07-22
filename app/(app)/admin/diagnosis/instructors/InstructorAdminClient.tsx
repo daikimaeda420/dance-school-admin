@@ -783,7 +783,7 @@ export default function InstructorAdminClient({ initialSchoolId }: Props) {
   return (
     <div className="w-full text-gray-900 dark:text-gray-100">
       <AdminPageHeader
-        title="講師管理"
+        title="講師"
         description="講師の追加・編集・写真アップロードが可能です。各講師ごとに編集→保存してください。推奨画像サイズ：500×500"
         isDirty={false}
         saving={false}

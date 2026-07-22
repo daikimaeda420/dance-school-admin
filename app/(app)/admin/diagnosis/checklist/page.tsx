@@ -82,11 +82,10 @@ export default async function DiagnosisChecklistPage({
     <div className="w-full text-gray-900 dark:text-gray-100">
       <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div>
-          <div className="mb-2 inline-flex items-center gap-2 rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700 dark:bg-blue-950/40 dark:text-blue-200">
-            <ClipboardCheck className="h-4 w-4" aria-hidden />
-            診断設定
-          </div>
-          <h1 className="text-xl font-bold">完成度チェック</h1>
+          <h1 className="flex items-center gap-2 text-xl font-bold text-slate-900">
+            <ClipboardCheck className="h-5 w-5 text-[#fe6147]" aria-hidden />
+            完成度
+          </h1>
           <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
             診断の公開・推薦精度・申込導線に必要な設定をまとめて確認できます。
           </p>
