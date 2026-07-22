@@ -16,20 +16,19 @@ type Props = {
   naked?: boolean;
 };
 
-/** ★ 変更: 枠線あり/なしを切替できるラッパー */
-/** 枠線あり/なしで padding を切替 */
 const levelWrap = (level = 0, bordered = true) => {
-  if (level === 0) return "";
+  if (level === 0 || !bordered) return "";
 
-  const cls = ["rounded-md", "bg-gray-50", "dark:bg-gray-900/40"];
+  const cls = [
+    "rounded-xl",
+    "border",
+    "border-slate-200",
+    "bg-white",
+    "p-4",
+    "shadow-[0_1px_2px_rgba(15,23,42,0.035)]",
+  ];
 
-  if (bordered) {
-    // 枠線あり → padding なし
-    cls.push("border", "border-gray-300", "dark:border-gray-600");
-  } else {
-    // 枠線なし（naked） → p-3 を付与
-    cls.push("p-3");
-  }
+  cls.push("border-orange-100");
 
   return cls.join(" ");
 };
@@ -50,28 +49,32 @@ function NodeHeader({
   breadcrumb?: string[];
 }) {
   return (
-    <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-      <div className="flex flex-col">
-        <div className="text-xs font-semibold text-gray-600 dark:text-gray-200">
-          Level {level + 1}
+    <div className="mb-4 flex flex-col gap-3 border-b border-slate-100 pb-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="min-w-0">
+        <div className="flex items-center gap-2 text-xs font-semibold">
+          <span className="rounded-md bg-blue-50 px-2 py-1 text-blue-700">
+            Level {level + 1}
+          </span>
+          <span className="text-slate-500">
+            {type === "question" ? "回答を作成" : "選択肢を設定"}
+          </span>
         </div>
         {breadcrumb.length > 0 && (
-          <div className="mt-1 text-[11px] text-gray-500 dark:text-gray-400">
+          <div className="mt-2 truncate text-xs text-slate-500">
             {breadcrumb.filter(Boolean).join(" › ")}
           </div>
         )}
       </div>
 
-      <div className="inline-flex rounded-full bg-gray-100 p-0.5 dark:bg-gray-800">
+      <div className="inline-flex self-start rounded-lg border border-slate-200 bg-slate-50 p-1 sm:self-auto">
         <button
           type="button"
           onClick={() => onSwitch("question")}
-          className={`px-3 py-1 text-xs rounded-full
-            text-gray-800 dark:text-gray-100
+          className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-colors
             ${
               type === "question"
-                ? "bg-white shadow-sm dark:bg-gray-700"
-                : "hover:bg-white/70 dark:hover:bg-gray-700/70"
+                ? "bg-[#fe6147] text-white shadow-sm"
+                : "text-slate-500 hover:bg-white hover:text-slate-700"
             }`}
         >
           質問
@@ -79,12 +82,11 @@ function NodeHeader({
         <button
           type="button"
           onClick={() => onSwitch("select")}
-          className={`px-3 py-1 text-xs rounded-full
-            text-gray-800 dark:text-gray-100
+          className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-colors
             ${
               type === "select"
-                ? "bg-white shadow-sm dark:bg-gray-700"
-                : "hover:bg-white/70 dark:hover:bg-gray-700/70"
+                ? "bg-[#fe6147] text-white shadow-sm"
+                : "text-slate-500 hover:bg-white hover:text-slate-700"
             }`}
         >
           選択肢
@@ -95,11 +97,11 @@ function NodeHeader({
 }
 
 const FieldLabel = ({ children }: { children: React.ReactNode }) => (
-  <label className="text-sm text-gray-700 dark:text-gray-200">{children}</label>
+  <label className="text-sm font-semibold text-slate-700">{children}</label>
 );
 
 const RequiredBadge = () => (
-  <span className="ml-2 rounded-full bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-200 border border-red-200 dark:border-red-700 px-1.5 py-0.5 text-[10px]">
+  <span className="ml-2 rounded-full border border-red-200 bg-red-50 px-1.5 py-0.5 text-[10px] font-medium text-red-600">
     必須
   </span>
 );
@@ -132,7 +134,7 @@ function OptionHeader({
   const stop = (e: React.SyntheticEvent) => e.stopPropagation();
 
   return (
-    <div className="rounded-md dark:border-gray-600">
+    <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.035)]">
       <button
         type="button"
         aria-expanded={opened}
@@ -143,30 +145,20 @@ function OptionHeader({
             onToggle();
           }
         }}
-        className="rounded-md group flex w-full items-center justify-between gap-2 px-2.5 py-2 text-left
-        bg-gray-200 dark:bg-gray-700
-            hover:bg-gray-300 dark:hover:bg-gray-600
-          appearance-none border-0 ring-0
-          focus:outline-none focus:ring-0
-          focus-visible:outline-none focus-visible:ring-0"
+        className="group flex w-full items-center justify-between gap-3 bg-slate-50 px-4 py-3 text-left transition-colors hover:bg-orange-50/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-300"
       >
         {/* 左：バッジ＋ラベル */}
         <div className="min-w-0 flex items-center gap-2">
           {/* バッジ：濃いグレー枠 */}
           <span
-            className="inline-flex shrink-0 items-center rounded-full border px-2 py-0.5 text-[11px]
-                      border-gray-500 bg-gray-100 text-gray-700
-                      dark:border-gray-500 dark:bg-gray-800 dark:text-gray-200"
+            className="inline-flex shrink-0 items-center rounded-md bg-blue-50 px-2 py-1 text-[11px] font-semibold text-blue-700"
           >
             選択肢 {letter}
           </span>
 
           {/* ラベル入力：濃いグレー枠 */}
           <input
-            className="input h-8 w-[220px] sm:w-[280px] md:w-[320px]
-                      !border-gray-500 dark:!border-gray-500
-                      focus:!border-gray-600 focus:!ring-1 focus:!ring-gray-600
-                      dark:focus:!border-gray-500 dark:focus:!ring-gray-500"
+            className="input h-9 w-[180px] bg-white text-sm sm:w-[260px] md:w-[320px]"
             value={label}
             placeholder="（例）キッズ"
             onChange={(e) => onChangeLabel(e.target.value)}
@@ -192,10 +184,7 @@ function OptionHeader({
                 e.stopPropagation();
                 onClick();
               }}
-              className="inline-flex items-center gap-1 rounded-full
-                border border-gray-500 dark:border-gray-500
-                bg-white px-3 py-1.5 text-xs hover:bg-gray-50
-                dark:bg-gray-900 dark:hover:bg-gray-800"
+              className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs font-medium text-slate-600 transition-colors hover:border-orange-200 hover:bg-orange-50 hover:text-[#d94d38]"
               title={label}
             >
               <Icon size={14} />
@@ -210,10 +199,7 @@ function OptionHeader({
               e.stopPropagation();
               onRemove();
             }}
-            className="inline-flex items-center gap-1 rounded-md
-              border dark:border-gray-500
-              ring-1 ring-inset ring-gray-500 dark:ring-gray-500
-              bg-red-600 px-2.5 py-1.5 text-xs font-medium text-white hover:bg-red-700"
+            className="inline-flex items-center gap-1 rounded-lg border border-red-100 bg-red-50 px-2.5 py-2 text-xs font-medium text-red-600 transition-colors hover:bg-red-100"
             title="削除"
           >
             <Trash2 size={14} />
@@ -225,7 +211,7 @@ function OptionHeader({
             size={20}
             className={`shrink-0 transition-transform duration-200 ${
               opened ? "rotate-180" : ""
-            } text-gray-600 dark:text-gray-300`}
+            } text-slate-400`}
             aria-hidden
           />
         </div>
@@ -241,7 +227,7 @@ export function FAQEditor({
   level = 0,
   hasError,
   breadcrumb = [],
-  naked = false, // ★ 追加: デフォルトは枠線あり
+  naked = false,
 }: Props) {
   const update = useCallback(
     (updated: FAQItem) => onChange(path, updated),
@@ -307,14 +293,11 @@ export function FAQEditor({
     const qErr = invalid(path, "question");
     const aErr = invalid(path, "answer");
 
-    const frame = levelWrap(level, !naked); // ★ 内側なら枠線なし
+    const frame = levelWrap(level, !naked);
 
     return (
       <div
-        className={`${frame}
-          dark:[&_label]:text-gray-200
-          dark:[&_input]:bg-gray-900 dark:[&_input]:text-gray-100 dark:[&_input]:placeholder:text-gray-500 dark:[&_input]:border-gray-700
-          dark:[&_textarea]:bg-gray-900 dark:[&_textarea]:text-gray-100 dark:[&_textarea]:placeholder:text-gray-500 dark:[&_textarea]:border-gray-700`}
+        className={frame}
         id={nodeId(path)}
         data-path={path.join(".")}
       >
@@ -340,7 +323,7 @@ export function FAQEditor({
           <div className="grid gap-2">
             <FieldLabel>回答 {aErr && <RequiredBadge />}</FieldLabel>
             <textarea
-              className="input"
+              className="input min-h-28"
               aria-invalid={aErr || undefined}
               rows={3}
               value={item.answer}
@@ -364,14 +347,11 @@ export function FAQEditor({
   }
 
   // ===== select =====
-  const frame = levelWrap(level, !naked); // ★ 内側なら枠線なし
+  const frame = levelWrap(level, !naked);
 
   return (
     <div
-      className={`${frame}
-        dark:[&_label]:text-gray-200
-        dark:[&_input]:bg-gray-900 dark:[&_input]:text-gray-100 dark:[&_input]:placeholder:text-gray-500 dark:[&_input]:border-gray-700
-        dark:[&_textarea]:bg-gray-900 dark:[&_textarea]:text-gray-100 dark:[&_textarea]:placeholder:text-gray-500 dark:[&_textarea]:border-gray-700`}
+      className={frame}
       id={nodeId(path)}
       data-path={path.join(".")}
     >
@@ -406,9 +386,10 @@ export function FAQEditor({
           />
         </div>
 
-        <div className="space-y-3">
-          <div className="text-sm font-semibold text-gray-700 dark:text-gray-200">
-            選択肢
+        <div className="space-y-3 rounded-xl border border-slate-100 bg-slate-50/70 p-3 sm:p-4">
+          <div className="flex items-center justify-between">
+            <div className="text-sm font-semibold text-slate-800">選択肢</div>
+            <span className="text-xs text-slate-400">ドラッグせず、ボタンで並び替えできます</span>
           </div>
 
           {item.options.map((opt, idx) => {
@@ -416,9 +397,7 @@ export function FAQEditor({
             const opened = idx in openMap ? openMap[idx] : true;
 
             return (
-              <div key={idx} className={levelWrap(level + 1, true)}>
-                {/* ↑ ここ（選択肢ヘッダーの外枠）は従来どおり枠線あり */}
-
+              <div key={idx} className="rounded-xl bg-white">
                 <OptionHeader
                   idx={idx}
                   label={opt.label}
@@ -440,8 +419,7 @@ export function FAQEditor({
                 />
 
                 {opened && (
-                  <div className="mt-3">
-                    {/* ★ 内側のFAQ（子ノード）は枠線なしで表示 */}
+                  <div className="border-t border-slate-100 px-4 pb-4 pt-3">
                     <FAQEditor
                       item={opt.next}
                       path={[...path, "options", idx, "next"]}
