@@ -31,6 +31,13 @@ export async function GET(req: NextRequest) {
     if (!access.ok) return access.response;
     const schoolId = access.schoolId;
     const days = parseDays(url.searchParams.get("days"));
+    const snapshot = await prisma.analyticsSnapshot.findUnique({
+      where: { schoolId_kind_periodDays: { schoolId, kind: "ai-insights", periodDays: days } },
+      select: { payload: true, generatedAt: true },
+    });
+    if (snapshot && Date.now() - snapshot.generatedAt.getTime() < 5 * 60_000) {
+      return NextResponse.json(snapshot.payload, { headers: { "Cache-Control": "private, max-age=30, stale-while-revalidate=60" } });
+    }
     const now = Date.now();
     const since = new Date(now - days * DAY);
     const previousSince = new Date(now - days * 2 * DAY);
@@ -124,7 +131,13 @@ export async function GET(req: NextRequest) {
     if (results > 0 && (percent(formOpens, results) ?? 0) < 35) suggestions.push({ title: "結果から体験申込への誘導を改善", detail: `結果表示からフォーム到達は${percent(formOpens, results)}%です。結果の直下に、体験のメリットと空き状況を添えたCTAを置く余地があります。`, priority: "medium", href: "/admin/diagnosis/form" });
     if (!suggestions.length) suggestions.push({ title: "分析データを蓄積中", detail: `直近${days}日のデータがまだ少ないため、改善提案を確定できません。設置タグと診断導線を確認して継続計測してください。`, priority: "low", href: "/admin/reports/diagnosis" });
 
-    return NextResponse.json({ days, generatedAt: new Date(), funnel, dropoffs, rates: { diagnosisStartRate, diagnosisCompletionRate: percent(results, starts), formOpenRate: percent(formOpens, results), formSubmitRate: percent(formSubmits, formOpens), overallConversionRate: percent(formSubmits + reservations, starts), diagnosisStartChange: change(starts, previousStarts), diagnosisCompletionChange: change(percent(results, starts) ?? 0, percent(previousResults, previousStarts) ?? 0) }, demand, qaTopics, suggestions, improvements }, { headers: { "Cache-Control": "private, max-age=30, stale-while-revalidate=60" } });
+    const payload = { days, generatedAt: new Date(), funnel, dropoffs, rates: { diagnosisStartRate, diagnosisCompletionRate: percent(results, starts), formOpenRate: percent(formOpens, results), formSubmitRate: percent(formSubmits, formOpens), overallConversionRate: percent(formSubmits + reservations, starts), diagnosisStartChange: change(starts, previousStarts), diagnosisCompletionChange: change(percent(results, starts) ?? 0, percent(previousResults, previousStarts) ?? 0) }, demand, qaTopics, suggestions, improvements };
+    await prisma.analyticsSnapshot.upsert({
+      where: { schoolId_kind_periodDays: { schoolId, kind: "ai-insights", periodDays: days } },
+      create: { schoolId, kind: "ai-insights", periodDays: days, payload: JSON.parse(JSON.stringify(payload)) },
+      update: { payload: JSON.parse(JSON.stringify(payload)), generatedAt: new Date() },
+    });
+    return NextResponse.json(payload, { headers: { "Cache-Control": "private, max-age=30, stale-while-revalidate=60" } });
   } catch (error) {
     console.error("[ai-insights]", error);
     return NextResponse.json({ error: "分析データの取得に失敗しました" }, { status: 500 });

@@ -71,6 +71,20 @@ model AiImprovement {
   @@index([schoolId, actionKey])
 }
 
+/// 分析画面用の集計済みデータ。生ログの再集計を避け、表示を高速化する。
+model AnalyticsSnapshot {
+  id         String   @id @default(cuid())
+  schoolId   String
+  kind       String
+  periodDays Int
+  payload    Json
+  generatedAt DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([schoolId, kind, periodDays])
+  @@index([schoolId, kind, updatedAt])
+}
+
 model FaqLog {
   id        Int      @id @default(autoincrement())
   school    String

@@ -59,13 +59,35 @@ export async function GET(req: NextRequest) {
       };
     }
 
-    const logs = await prisma.faqLog.findMany({
-      where,
-      orderBy: { timestamp: "desc" },
-      take: 2000,
-    });
+    const pageParam = Number(searchParams.get("page"));
+    const pageSizeParam = Number(searchParams.get("pageSize"));
+    const query = String(searchParams.get("query") ?? "").trim().slice(0, 120);
+    const paginated = Number.isFinite(pageParam) && pageParam > 0;
+    const page = paginated ? Math.floor(pageParam) : 1;
+    const pageSize = Math.min(100, Math.max(10, Number.isFinite(pageSizeParam) ? Math.floor(pageSizeParam) : 50));
 
-    return NextResponse.json(logs);
+    if (query) {
+      where.OR = [
+        { sessionId: { contains: query, mode: "insensitive" } },
+        { question: { contains: query, mode: "insensitive" } },
+        { answer: { contains: query, mode: "insensitive" } },
+      ];
+    }
+
+    const [logs, total] = await Promise.all([
+      prisma.faqLog.findMany({
+        where,
+        orderBy: { timestamp: "desc" },
+        take: paginated ? pageSize : 2000,
+        skip: paginated ? (page - 1) * pageSize : 0,
+      }),
+      paginated ? prisma.faqLog.count({ where }) : Promise.resolve(0),
+    ]);
+
+    // 既存のCSV出力などは配列レスポンスを利用しているため、ページ指定時のみ新形式を返す。
+    return NextResponse.json(
+      paginated ? { logs, total, page, pageSize } : logs,
+    );
   } catch (err) {
     console.error("ログ読み込みエラー:", err);
     return json("ログ取得に失敗しました", 500);
