@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
     const schoolId = access.schoolId;
     const days = parseDays(url.searchParams.get("days"));
     const snapshot = await prisma.analyticsSnapshot.findUnique({
-      where: { schoolId_kind_periodDays: { schoolId, kind: "ai-insights", periodDays: days } },
+      where: { schoolId_kind_periodDays: { schoolId, kind: "ai-insights-v2", periodDays: days } },
       select: { payload: true, generatedAt: true },
     });
     if (snapshot && Date.now() - snapshot.generatedAt.getTime() < 5 * 60_000) {
@@ -60,10 +60,9 @@ export async function GET(req: NextRequest) {
       prisma.diagnosisGenre.findMany({ where: { schoolId, isActive: true }, select: { slug: true, label: true } }),
       prisma.diagnosisLifestyle.findMany({ where: { schoolId, isActive: true }, select: { slug: true, label: true } }),
       prisma.diagnosisFormSubmission.count({ where: { schoolId, createdAt: { gte: since } } }),
-      prisma.chatReservation.count({ where: { schoolId, createdAt: { gte: since } } }),
       prisma.aiImprovement.findMany({ where: { schoolId }, orderBy: { appliedAt: "desc" }, take: 8 }),
-    ]), ["ai-insights", schoolId, String(days)], { revalidate: 30 });
-    const [currentLogs, previousLogs, faqLogs, genres, lifestyles, forms, reservations, improvements] = await loadInsightRows();
+    ]), ["ai-insights-v2", schoolId, String(days)], { revalidate: 30 });
+    const [currentLogs, previousLogs, faqLogs, genres, lifestyles, forms, improvements] = await loadInsightRows();
 
     const countStep = (rows: AggregatedLog[], key: string) => uniqueCount(rows.filter((row) => row.stepKey === key));
     const siteVisitors = countStep(currentLogs, "SITE_VISIT");
@@ -104,7 +103,7 @@ export async function GET(req: NextRequest) {
 
     const funnel = [
       { label: "設置サイトUU", count: siteVisitors }, { label: "診断開始", count: starts }, { label: "診断完了", count: results },
-      { label: "フォーム到達", count: formOpens }, { label: "フォーム送信", count: formSubmits }, { label: "チャット予約希望", count: reservations },
+      { label: "フォーム到達", count: formOpens }, { label: "フォーム送信", count: formSubmits },
     ];
     const dropoffSteps = [
       ["Q1_VIEW", "Q1：最初の質問", "最初の質問が自分に関係あると感じにくい"],
@@ -131,10 +130,10 @@ export async function GET(req: NextRequest) {
     if (results > 0 && (percent(formOpens, results) ?? 0) < 35) suggestions.push({ title: "結果から体験申込への誘導を改善", detail: `結果表示からフォーム到達は${percent(formOpens, results)}%です。結果の直下に、体験のメリットと空き状況を添えたCTAを置く余地があります。`, priority: "medium", href: "/admin/diagnosis/form" });
     if (!suggestions.length) suggestions.push({ title: "分析データを蓄積中", detail: `直近${days}日のデータがまだ少ないため、改善提案を確定できません。設置タグと診断導線を確認して継続計測してください。`, priority: "low", href: "/admin/reports/diagnosis" });
 
-    const payload = { days, generatedAt: new Date(), funnel, dropoffs, rates: { diagnosisStartRate, diagnosisCompletionRate: percent(results, starts), formOpenRate: percent(formOpens, results), formSubmitRate: percent(formSubmits, formOpens), overallConversionRate: percent(formSubmits + reservations, starts), diagnosisStartChange: change(starts, previousStarts), diagnosisCompletionChange: change(percent(results, starts) ?? 0, percent(previousResults, previousStarts) ?? 0) }, demand, qaTopics, suggestions, improvements };
+    const payload = { days, generatedAt: new Date(), funnel, dropoffs, rates: { diagnosisStartRate, diagnosisCompletionRate: percent(results, starts), formOpenRate: percent(formOpens, results), formSubmitRate: percent(formSubmits, formOpens), overallConversionRate: percent(formSubmits, starts), diagnosisStartChange: change(starts, previousStarts), diagnosisCompletionChange: change(percent(results, starts) ?? 0, percent(previousResults, previousStarts) ?? 0) }, demand, qaTopics, suggestions, improvements };
     await prisma.analyticsSnapshot.upsert({
-      where: { schoolId_kind_periodDays: { schoolId, kind: "ai-insights", periodDays: days } },
-      create: { schoolId, kind: "ai-insights", periodDays: days, payload: JSON.parse(JSON.stringify(payload)) },
+      where: { schoolId_kind_periodDays: { schoolId, kind: "ai-insights-v2", periodDays: days } },
+      create: { schoolId, kind: "ai-insights-v2", periodDays: days, payload: JSON.parse(JSON.stringify(payload)) },
       update: { payload: JSON.parse(JSON.stringify(payload)), generatedAt: new Date() },
     });
     return NextResponse.json(payload, { headers: { "Cache-Control": "private, max-age=30, stale-while-revalidate=60" } });
