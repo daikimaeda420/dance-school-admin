@@ -79,9 +79,9 @@ export default function AiInsightsClient({ initialInsight = null }: { initialIns
   const [message, setMessage] = useState("");
   const [faq, setFaq] = useState(faqDraft());
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (background = false) => {
     if (!schoolId) return;
-    setLoading(true);
+    if (!background) setLoading(true);
     try {
       const encodedSchool = encodeURIComponent(schoolId);
       const insightsRes = await fetch(`/api/admin/ai-insights?schoolId=${encodedSchool}&days=${days}`);
@@ -89,6 +89,7 @@ export default function AiInsightsClient({ initialInsight = null }: { initialIns
       const insights = await insightsRes.json() as Insight;
       setData(insights);
       setHistory(Array.isArray(insights.improvements) ? insights.improvements : []);
+      sessionStorage.setItem(`rizbo:ai-insights:${schoolId}:${days}`, JSON.stringify(insights));
     } catch {
       setData(null);
       setHistory([]);
@@ -98,8 +99,20 @@ export default function AiInsightsClient({ initialInsight = null }: { initialIns
   }, [days, schoolId]);
 
   useEffect(() => {
-    // 初回はサーバーから渡された分析結果を使う。
+    // サーバー集計の期限が切れていても、同一ブラウザでの再訪は前回結果を先に表示する。
     if (initialInsight && days === 30) return;
+    if (!schoolId) return;
+    try {
+      const cached = sessionStorage.getItem(`rizbo:ai-insights:${schoolId}:${days}`);
+      if (cached) {
+        const insight = JSON.parse(cached) as Insight;
+        setData(insight);
+        setHistory(Array.isArray(insight.improvements) ? insight.improvements : []);
+        setLoading(false);
+        void load(true);
+        return;
+      }
+    } catch { sessionStorage.removeItem(`rizbo:ai-insights:${schoolId}:${days}`); }
     void load();
   }, [days, initialInsight, load]);
 
@@ -181,7 +194,7 @@ export default function AiInsightsClient({ initialInsight = null }: { initialIns
   return <div className="mx-auto max-w-[1540px] px-4 py-6 text-slate-800 md:px-6">
     <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
       <div><h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight"><Sparkles className="h-6 w-6 text-[#fe6147]" />AIコンサル・分析</h1><p className="mt-1 text-sm text-slate-500">分析から改善の反映、効果測定まで。毎月サイトを育て続けます。</p></div>
-      <div className="flex flex-wrap gap-2"><select className="input h-10" value={days} onChange={(event) => setDays(Number(event.target.value))}><option value={30}>直近30日</option><option value={60}>直近60日</option><option value={90}>直近90日</option></select><button className="btn-ghost inline-flex items-center gap-2" onClick={load}><RefreshCw className="h-4 w-4" />更新</button></div>
+      <div className="flex flex-wrap gap-2"><select className="input h-10" value={days} onChange={(event) => setDays(Number(event.target.value))}><option value={30}>直近30日</option><option value={60}>直近60日</option><option value={90}>直近90日</option></select><button className="btn-ghost inline-flex items-center gap-2" onClick={() => void load()}><RefreshCw className="h-4 w-4" />更新</button></div>
     </div>
 
     {message && <div className="mb-4 flex items-center justify-between gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800"><span className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4" />{message}</span><button aria-label="お知らせを閉じる" onClick={() => setMessage("")}><X className="h-4 w-4" /></button></div>}

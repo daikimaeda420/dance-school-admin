@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { resolveAccessibleSchool } from "@/lib/authz";
-import { getFaqReadinessReport } from "@/lib/faq/readiness";
+import { getCachedFaqReadinessReport } from "@/lib/faq/readiness";
 
 export const dynamic = "force-dynamic";
 
@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
     if (!access.ok) return access.response;
 
     const schoolId = access.schoolId;
-    const report = await getFaqReadinessReport(schoolId);
+    const report = await getCachedFaqReadinessReport(schoolId);
 
     return NextResponse.json({
       ...report.summary,

@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { unstable_cache } from "next/cache";
 
 export type FaqReadinessStatus = "ok" | "warn" | "missing";
 
@@ -40,6 +41,14 @@ export type FaqReadinessReport = {
   stats: FaqReadinessStat[];
   groups: FaqReadinessGroup[];
 };
+
+export function getCachedFaqReadinessReport(schoolId: string) {
+  return unstable_cache(
+    () => getFaqReadinessReport(schoolId),
+    ["faq-readiness-v1", schoolId],
+    { revalidate: 300 },
+  )();
+}
 
 type WalkStats = {
   nodes: number;

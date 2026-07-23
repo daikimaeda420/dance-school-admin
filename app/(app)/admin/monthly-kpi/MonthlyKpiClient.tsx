@@ -49,9 +49,20 @@ export default function MonthlyKpiClient({ initialData = null, initialSchoolId }
       const result = await response.json();
       if (!response.ok) throw new Error(result.error ?? "月次KPIの取得に失敗しました");
       setSettings(result.settings); setData(result);
+      sessionStorage.setItem(`rizbo:monthly-kpi:${schoolId}`, JSON.stringify(result));
     } catch (error) { setMessage(error instanceof Error ? error.message : "月次KPIの取得に失敗しました"); }
   }, [schoolId]);
-  useEffect(() => { if (!initialData) void load(); }, [initialData, load]);
+  useEffect(() => {
+    if (initialData || !schoolId) return;
+    try {
+      const cached = sessionStorage.getItem(`rizbo:monthly-kpi:${schoolId}`);
+      if (cached) {
+        const value = JSON.parse(cached) as MonthlyKpiData;
+        setSettings(value.settings); setData(value);
+      }
+    } catch { sessionStorage.removeItem(`rizbo:monthly-kpi:${schoolId}`); }
+    void load();
+  }, [initialData, load, schoolId]);
   const save = async () => {
     if (!schoolId) return;
     setSaving(true); setMessage("");
@@ -62,7 +73,7 @@ export default function MonthlyKpiClient({ initialData = null, initialSchoolId }
       const refreshed = await fetch(`/api/admin/monthly-kpi?schoolId=${encodeURIComponent(schoolId)}&months=6`, { cache: "no-store" });
       const refreshedData = await refreshed.json();
       if (!refreshed.ok) throw new Error(refreshedData.error ?? "再計算に失敗しました");
-      setSettings(refreshedData.settings); setData(refreshedData); setMessage("計算条件を保存し、グラフを更新しました。");
+      setSettings(refreshedData.settings); setData(refreshedData); sessionStorage.setItem(`rizbo:monthly-kpi:${schoolId}`, JSON.stringify(refreshedData)); setMessage("計算条件を保存し、グラフを更新しました。");
     } catch (error) { setMessage(error instanceof Error ? error.message : "保存に失敗しました"); } finally { setSaving(false); }
   };
 

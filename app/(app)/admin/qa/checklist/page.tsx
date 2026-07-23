@@ -11,7 +11,7 @@ import {
 import { getAccessiblePageSchoolId } from "@/lib/authz";
 import {
   FaqReadinessStatus,
-  getFaqReadinessReport,
+  getCachedFaqReadinessReport,
 } from "@/lib/faq/readiness";
 import { adminCard } from "../../diagnosis/_components/adminStyles";
 
@@ -75,7 +75,7 @@ export default async function FaqChecklistPage({
     );
   }
 
-  const report = await getFaqReadinessReport(schoolId);
+  const report = await getCachedFaqReadinessReport(schoolId);
   const SummaryIcon = STATUS_META[report.summary.status].icon;
 
   return (
