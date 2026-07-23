@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
 import { BarChart3, Crown, Info, LoaderCircle, Save, Sparkles, TrendingUp } from "lucide-react";
 
@@ -42,6 +42,16 @@ export default function MonthlyKpiClient({ initialData = null, initialSchoolId }
   const impact = useMemo(() => Math.round(initialRevenue * 0.1), [initialRevenue]);
 
   const updateSetting = (key: keyof Settings, value: string) => setSettings((current) => ({ ...current, [key]: Number(value) || 0 }));
+  const load = useCallback(async () => {
+    if (!schoolId) return;
+    try {
+      const response = await fetch(`/api/admin/monthly-kpi?schoolId=${encodeURIComponent(schoolId)}&months=6`);
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error ?? "月次KPIの取得に失敗しました");
+      setSettings(result.settings); setData(result);
+    } catch (error) { setMessage(error instanceof Error ? error.message : "月次KPIの取得に失敗しました"); }
+  }, [schoolId]);
+  useEffect(() => { if (!initialData) void load(); }, [initialData, load]);
   const save = async () => {
     if (!schoolId) return;
     setSaving(true); setMessage("");
