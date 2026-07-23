@@ -162,23 +162,24 @@ export default function ScheduleAdminClient({ initialSchoolId }: Props) {
       setError(null);
 
       try {
-        // コース
-        const courseRes = await fetch(
-          `/api/admin/diagnosis/courses?schoolId=${encodeURIComponent(schoolId)}`,
-          { signal: controller.signal, cache: "no-store" },
-        );
+        const [courseRes, slotRes] = await Promise.all([
+          fetch(
+            `/api/admin/diagnosis/courses?schoolId=${encodeURIComponent(schoolId)}`,
+            { signal: controller.signal, cache: "no-store" },
+          ),
+          fetch(
+            `/api/admin/diagnosis/schedule-slots?schoolId=${encodeURIComponent(
+              schoolId,
+            )}`,
+            { signal: controller.signal, cache: "no-store" },
+          ),
+        ]);
         await assertOk(courseRes, "コース取得");
-        const courseJson = await readJsonFlexible(courseRes);
-
-        // schedule slots
-        const slotRes = await fetch(
-          `/api/admin/diagnosis/schedule-slots?schoolId=${encodeURIComponent(
-            schoolId,
-          )}`,
-          { signal: controller.signal, cache: "no-store" },
-        );
         await assertOk(slotRes, "スケジュール取得");
-        const slotJson = await readJsonFlexible(slotRes);
+        const [courseJson, slotJson] = await Promise.all([
+          readJsonFlexible(courseRes),
+          readJsonFlexible(slotRes),
+        ]);
 
         if (cancelled) return;
 

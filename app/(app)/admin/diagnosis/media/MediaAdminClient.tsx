@@ -32,20 +32,16 @@ export default function MediaAdminClient({ schoolId }: Props) {
     if (!schoolId) return;
     setLoading(true);
     try {
-      // バナー取得
-      const resBanner = await fetch(
-        `/api/admin/diagnosis/media/banner?schoolId=${encodeURIComponent(schoolId)}`,
-      );
+      const [resBanner, resVideo] = await Promise.all([
+        fetch(`/api/admin/diagnosis/media/banner?schoolId=${encodeURIComponent(schoolId)}`),
+        fetch(`/api/admin/diagnosis/media/video?schoolId=${encodeURIComponent(schoolId)}`),
+      ]);
       if (resBanner.ok) {
         const data = await resBanner.json();
         setHasBanner(data.hasImage);
         if (data.updatedAt) setBannerTs(new Date(data.updatedAt).getTime());
       }
 
-      // 動画取得
-      const resVideo = await fetch(
-        `/api/admin/diagnosis/media/video?schoolId=${encodeURIComponent(schoolId)}`,
-      );
       if (resVideo.ok) {
         const data = await resVideo.json();
         setYoutubeVideoId(data.videoId || null);

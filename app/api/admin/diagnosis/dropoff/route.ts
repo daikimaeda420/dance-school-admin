@@ -44,15 +44,26 @@ export async function GET(req: NextRequest) {
       createdAt: { gte: since },
     };
 
-    // 全ログを取得してJSでユニークセッション数を集計
-    const allLogs = await prisma.diagnosisSessionLog.findMany({
-      where,
-      select: { stepKey: true, sessionId: true },
-    });
+    // 同じステップを複数回操作したログは、DB側でユニークな組み合わせに集約する。
+    // これにより、長期間・高トラフィック校でも大量ログをアプリへ転送しない。
+    const [uniqueLogs, iconClickCounts] = await Promise.all([
+      prisma.diagnosisSessionLog.groupBy({
+        by: ["stepKey", "sessionId"],
+        where,
+      }),
+      prisma.diagnosisSessionLog.groupBy({
+        by: ["stepKey"],
+        where: {
+          ...where,
+          stepKey: { in: ICON_KEYS.map(({ key }) => key) },
+        },
+        _count: { _all: true },
+      }),
+    ]);
 
     // stepKey ごとのユニークsessionId数をカウント
     const uniqueByStep = new Map<string, Set<string>>();
-    for (const log of allLogs) {
+    for (const log of uniqueLogs) {
       if (!uniqueByStep.has(log.stepKey)) {
         uniqueByStep.set(log.stepKey, new Set());
       }
@@ -60,7 +71,7 @@ export async function GET(req: NextRequest) {
     }
 
     // 母数 = Q1_VIEW のユニークセッション数（診断を開いた人）
-    const allSessions = new Set(allLogs.map((l) => l.sessionId));
+    const allSessions = new Set(uniqueLogs.map((l) => l.sessionId));
     const totalSessions =
       uniqueByStep.get(START_KEY)?.size ?? allSessions.size;
 
@@ -91,10 +102,13 @@ export async function GET(req: NextRequest) {
 
     // ── アイコンクリック集計 ──
     // allowDuplicate=true のため totalClicks は延べ回数、uniqueSessions はユニーク人数
+    const totalClicksByStep = new Map(
+      iconClickCounts.map((entry) => [entry.stepKey, entry._count._all]),
+    );
     const iconClickStats = ICON_KEYS.map(({ key, label }) => ({
       stepKey: key,
       label,
-      totalClicks: allLogs.filter((l) => l.stepKey === key).length,
+      totalClicks: totalClicksByStep.get(key) ?? 0,
       uniqueSessions: uniqueByStep.get(key)?.size ?? 0,
     }));
 
@@ -103,7 +117,7 @@ export async function GET(req: NextRequest) {
     // FORM_ABANDON_* : そのフィールドで離脱したユニーク人数（最後にタッチして閉じた）
     const formFieldKeys = Array.from(
       new Set(
-        allLogs
+        uniqueLogs
           .filter((l) => l.stepKey.startsWith("FORM_FIELD_"))
           .map((l) => l.stepKey)
       )

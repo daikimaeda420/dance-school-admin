@@ -311,11 +311,18 @@ export default function FormAdminClient({ schoolId }: { schoolId: string }) {
       setEmailErr(null);
 
       try {
-        // ✅ フォーム
-        const res = await fetch(
+        // 独立した設定は同時に取得して、初期表示の待ち時間を減らす。
+        const formRequest = fetch(
           `/api/admin/diagnosis/form?schoolId=${encodeURIComponent(schoolId)}`,
           { cache: "no-store" },
         );
+        const emailSettingRequest = fetch(
+          `/api/admin/diagnosis/form-email?schoolId=${encodeURIComponent(schoolId)}`,
+          { cache: "no-store" },
+        );
+
+        // ✅ フォーム
+        const res = await formRequest;
 
         const text = await res.text();
         ensureJsonContentType(res, text);
@@ -331,12 +338,7 @@ export default function FormAdminClient({ schoolId }: { schoolId: string }) {
         // ✅ メール設定（別API）
         // API未実装/テーブル未作成などで失敗しても、フォーム編集は生かす
         try {
-          const res2 = await fetch(
-            `/api/admin/diagnosis/form-email?schoolId=${encodeURIComponent(
-              schoolId,
-            )}`,
-            { cache: "no-store" },
-          );
+          const res2 = await emailSettingRequest;
 
           const text2 = await res2.text();
           ensureJsonContentType(res2, text2);

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { cache } from "react";
 import { getServerSession } from "next-auth";
 import { UserRole } from "@prisma/client";
 import { authOptions } from "@/lib/authOptions";
@@ -39,7 +40,7 @@ export function authzError(message: string, status: number) {
   return NextResponse.json({ message }, { status });
 }
 
-export async function getPrincipal(): Promise<Principal | null> {
+export const getPrincipal = cache(async (): Promise<Principal | null> => {
   const session = await getServerSession(authOptions);
   const email = session?.user?.email?.toLowerCase().trim();
   if (!email) return null;
@@ -65,7 +66,7 @@ export async function getPrincipal(): Promise<Principal | null> {
     schoolId,
     isSuperAdmin: role === UserRole.SUPERADMIN || Boolean(superAdmin),
   };
-}
+});
 
 export async function requireAuthenticated(): Promise<AuthzResult> {
   const principal = await getPrincipal();
