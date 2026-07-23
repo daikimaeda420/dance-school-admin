@@ -3,14 +3,17 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { BarChart3, Bot, CalendarCheck, ClipboardCheck, ClipboardList, ExternalLink, HelpCircle, Home, ListChecks, MessagesSquare, Settings, Sparkles, TimerReset, UserCog, X } from "lucide-react";
-import { MouseEvent, useEffect } from "react";
+import { MouseEvent, useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 
 type Props = { showDesktop?: boolean; mobileOpen?: boolean; onClose?: () => void };
 type Item = { href: string; label: string; icon: typeof Home; superOnly?: boolean };
 
 export default function Sidebar({ showDesktop = true, mobileOpen = false, onClose }: Props) {
   const pathname = usePathname();
+  const router = useRouter();
+  const [navigating, setNavigating] = useState(false);
   const { data: session } = useSession();
   const schoolId = (session?.user as { schoolId?: string } | undefined)?.schoolId;
   const role = String((session?.user as { role?: string } | undefined)?.role ?? "");
@@ -33,6 +36,10 @@ export default function Sidebar({ showDesktop = true, mobileOpen = false, onClos
     return () => { document.body.style.overflow = previous; };
   }, [mobileOpen]);
 
+  useEffect(() => {
+    setNavigating(false);
+  }, [pathname]);
+
   const openPreview = (event?: MouseEvent<HTMLButtonElement>) => {
     if (event?.metaKey || event?.ctrlKey || event?.shiftKey) { window.open(chatbotPreview, "_blank", "noopener,noreferrer"); return; }
     const popup = window.open(chatbotPreview, "rizboChatPreview", "popup=yes,width=420,height=720,resizable=yes,scrollbars=yes");
@@ -49,9 +56,9 @@ export default function Sidebar({ showDesktop = true, mobileOpen = false, onClos
   ];
 
   const nav = (mobile = false) => <nav className={mobile ? "space-y-5 p-3" : "flex h-full flex-col p-3"}>
-    <div className="space-y-5">{groups.map((group, index) => <section key={group.label ?? index}>{group.label && <p className="mb-2 px-3 text-[11px] font-bold tracking-[0.08em] text-slate-400">{group.label}</p>}<div className="space-y-1">{group.items.filter((item) => !item.superOnly || isSuperAdmin).map(({ href, label, icon: Icon }) => <Link key={href} href={href} onClick={mobile ? onClose : undefined} aria-current={isActive(href) ? "page" : undefined} className={`group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${isActive(href) ? "bg-[#fff0ed] text-[#dd4d36] shadow-[inset_3px_0_0_#fe6147]" : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"}`}><Icon size={18} className={isActive(href) ? "text-[#fe6147]" : "text-slate-400 group-hover:text-[#2563eb]"} /><span>{label}</span></Link>)}</div></section>)}</div>
+    <div className="space-y-5">{groups.map((group, index) => <section key={group.label ?? index}>{group.label && <p className="mb-2 px-3 text-[11px] font-bold tracking-[0.08em] text-slate-400">{group.label}</p>}<div className="space-y-1">{group.items.filter((item) => !item.superOnly || isSuperAdmin).map(({ href, label, icon: Icon }) => <Link key={href} href={href} onMouseEnter={() => router.prefetch(href)} onFocus={() => router.prefetch(href)} onClick={() => { setNavigating(true); mobile && onClose?.(); }} aria-current={isActive(href) ? "page" : undefined} className={`group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${isActive(href) ? "bg-[#fff0ed] text-[#dd4d36] shadow-[inset_3px_0_0_#fe6147]" : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"}`}><Icon size={18} className={isActive(href) ? "text-[#fe6147]" : "text-slate-400 group-hover:text-[#2563eb]"} /><span>{label}</span></Link>)}</div></section>)}</div>
     {!mobile && <div className="mt-auto space-y-1 border-t border-slate-100 pt-3"><button type="button" onClick={openPreview} className="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left text-sm font-medium text-slate-600 hover:bg-slate-100"><span className="flex items-center gap-3"><Bot size={18} className="text-[#2563eb]" />チャットプレビュー</span><ExternalLink size={14} /></button><a href={diagnosisPreview} target="_blank" rel="noopener noreferrer" className="flex items-center justify-between rounded-lg px-3 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-100"><span className="flex items-center gap-3"><ClipboardList size={18} className="text-[#2563eb]" />診断プレビュー</span><ExternalLink size={14} /></a></div>}
   </nav>;
 
-  return <>{showDesktop && <aside className="sticky top-16 hidden h-[calc(100vh-4rem)] w-64 shrink-0 border-r border-slate-200 bg-white md:block">{nav()}</aside>}{mobileOpen && <div className="fixed inset-0 z-[60] md:hidden"><button aria-label="メニューを閉じる" onClick={onClose} className="absolute inset-0 bg-slate-900/30" /><aside role="dialog" aria-modal="true" className="absolute left-0 top-0 h-full w-72 overflow-y-auto bg-white shadow-2xl"><div className="flex items-center justify-between border-b border-slate-200 px-4 py-4"><p className="font-bold text-slate-800">メニュー</p><button type="button" aria-label="閉じる" onClick={onClose} className="rounded-md p-2 text-slate-500 hover:bg-slate-100"><X size={18} /></button></div>{nav(true)}<div className="space-y-1 border-t border-slate-100 p-3"><button type="button" onClick={(e) => { openPreview(e); onClose?.(); }} className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-600"><Bot size={18} className="text-[#2563eb]" />チャットプレビュー</button><a href={diagnosisPreview} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-600"><ClipboardList size={18} className="text-[#2563eb]" />診断プレビュー</a></div></aside></div>}</>;
+  return <>{navigating && <div className="fixed inset-x-0 top-0 z-[100] h-1 overflow-hidden bg-orange-100"><div className="h-full w-1/2 animate-pulse rounded-full bg-[#fe6147]" /></div>}{showDesktop && <aside className="sticky top-16 hidden h-[calc(100vh-4rem)] w-64 shrink-0 border-r border-slate-200 bg-white md:block">{nav()}</aside>}{mobileOpen && <div className="fixed inset-0 z-[60] md:hidden"><button aria-label="メニューを閉じる" onClick={onClose} className="absolute inset-0 bg-slate-900/30" /><aside role="dialog" aria-modal="true" className="absolute left-0 top-0 h-full w-72 overflow-y-auto bg-white shadow-2xl"><div className="flex items-center justify-between border-b border-slate-200 px-4 py-4"><p className="font-bold text-slate-800">メニュー</p><button type="button" aria-label="閉じる" onClick={onClose} className="rounded-md p-2 text-slate-500 hover:bg-slate-100"><X size={18} /></button></div>{nav(true)}<div className="space-y-1 border-t border-slate-100 p-3"><button type="button" onClick={(e) => { openPreview(e); onClose?.(); }} className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-600"><Bot size={18} className="text-[#2563eb]" />チャットプレビュー</button><a href={diagnosisPreview} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-600"><ClipboardList size={18} className="text-[#2563eb]" />診断プレビュー</a></div></aside></div>}</>;
 }
