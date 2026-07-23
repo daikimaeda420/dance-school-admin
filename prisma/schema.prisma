@@ -85,6 +85,19 @@ model AnalyticsSnapshot {
   @@index([schoolId, kind, updatedAt])
 }
 
+/// スクールが入力する売上シミュレーションの前提条件。
+model RevenueSimulationSettings {
+  id                   String   @id @default(cuid())
+  schoolId             String   @unique
+  expectedEnrollmentRate Float  @default(50)
+  enrollmentFee        Int      @default(0)
+  monthlyFee           Int      @default(0)
+  otherFees            Int      @default(0)
+  averageRetentionMonths Int    @default(6)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+}
+
 model FaqLog {
   id        Int      @id @default(autoincrement())
   school    String
