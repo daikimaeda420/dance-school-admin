@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { unstable_cache } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { resolveAccessibleSchool } from "@/lib/authz";
 
@@ -133,14 +134,7 @@ export async function GET(req: NextRequest) {
     const days = parseDays(url.searchParams.get("days"));
     const since = new Date(Date.now() - days * DAY_MS);
 
-    const [
-      faqRow,
-      faqLogs,
-      diagnosisUniqueSteps,
-      diagnosisClickTotals,
-      submissionCount,
-      recentSubmissions,
-    ] = await Promise.all([
+    const loadReportRows = unstable_cache(async () => Promise.all([
       prisma.faq.findUnique({
         where: { schoolId },
         select: { items: true, chatEnabled: true, diagnosisEnabled: true },
@@ -183,7 +177,15 @@ export async function GET(req: NextRequest) {
         take: 8,
         select: { id: true, fields: true, createdAt: true },
       }),
-    ]);
+    ]), ["admin-reports", schoolId, String(days)], { revalidate: 30 });
+    const [
+      faqRow,
+      faqLogs,
+      diagnosisUniqueSteps,
+      diagnosisClickTotals,
+      submissionCount,
+      recentSubmissions,
+    ] = await loadReportRows();
 
     const faqItemCount = countFaqItems((faqRow?.items as FAQItem[] | null) ?? null);
     const qaSessions = new Set(faqLogs.map((log) => log.sessionId)).size;
@@ -486,7 +488,7 @@ export async function GET(req: NextRequest) {
         recent: recentConversions,
       },
       recommendations,
-    });
+    }, { headers: { "Cache-Control": "private, max-age=30, stale-while-revalidate=60" } });
   } catch (error) {
     console.error("[admin reports] error:", error);
     return NextResponse.json(

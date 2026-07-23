@@ -176,9 +176,7 @@ export default function OperationReportClient({
       params.set("days", String(days));
       if (initialSchoolId) params.set("schoolId", initialSchoolId);
 
-      const res = await fetch(`/api/admin/reports?${params.toString()}`, {
-        cache: "no-store",
-      });
+      const res = await fetch(`/api/admin/reports?${params.toString()}`);
       if (!res.ok) {
         throw new Error(`${res.status} ${res.statusText}`);
       }

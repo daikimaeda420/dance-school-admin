@@ -1,5 +1,6 @@
 // app/api/dashboard/route.ts
 import { NextRequest, NextResponse } from "next/server";
+import { unstable_cache } from "next/cache";
 export const dynamic = "force-dynamic";
 import { prisma } from "@/lib/prisma";
 import { resolveAccessibleSchool } from "@/lib/authz";
@@ -64,27 +65,7 @@ export async function GET(req: NextRequest) {
     const schoolFilterStr = { school };
 
     // ── Prisma 直接クエリで全データ取得 ──
-    const [
-      // Q&A系
-      faqSessionCount,
-      faqLogCount,
-      recentLogs,
-      // 診断系
-      courseCount,
-      instructorCount,
-      campusCount,
-      scheduleSlotCount,
-      faqRow,
-      formRow,
-      formSubmissionCount,
-      recentSubmissions,
-      // 設置先サイトの訪問UU（匿名 visitorId を sessionId として記録）
-      siteVisitorCount,
-      // 診断を開始したユニークユーザー数（Q1表示）
-      diagnosisStartSessionCount,
-      // 離脱ファネル（直近のセッション数）
-      sessionLogCount,
-    ] = await Promise.all([
+    const loadDashboardRows = unstable_cache(async () => Promise.all([
       // [Q&A] チャットセッション数（期間内）
       prisma.faqLog
         .findMany({
@@ -180,7 +161,23 @@ export async function GET(req: NextRequest) {
       prisma.diagnosisSessionLog.count({
         where: { ...schoolFilter, createdAt: { gte: since } },
       }),
-    ]);
+    ]), ["dashboard", school, String(days)], { revalidate: 30 });
+    const [
+      faqSessionCount,
+      faqLogCount,
+      recentLogs,
+      courseCount,
+      instructorCount,
+      campusCount,
+      scheduleSlotCount,
+      faqRow,
+      formRow,
+      formSubmissionCount,
+      recentSubmissions,
+      siteVisitorCount,
+      diagnosisStartSessionCount,
+      sessionLogCount,
+    ] = await loadDashboardRows();
 
     // FAQ件数
     const faqItems = (faqRow?.items as FAQItem[] | null) ?? [];
@@ -282,7 +279,7 @@ export async function GET(req: NextRequest) {
       system,
       // 後方互換性のために kpis も返す（既存コードが参照している場合）
       kpis: [...qaKpis, ...diagnosisKpis],
-    });
+    }, { headers: { "Cache-Control": "private, max-age=30, stale-while-revalidate=60" } });
   } catch (e: any) {
     console.error("[dashboard] error:", e);
     return NextResponse.json(

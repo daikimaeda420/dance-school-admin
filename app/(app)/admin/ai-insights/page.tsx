@@ -83,7 +83,7 @@ export default function AiInsightsPage() {
     setLoading(true);
     try {
       const encodedSchool = encodeURIComponent(schoolId);
-      const insightsRes = await fetch(`/api/admin/ai-insights?schoolId=${encodedSchool}&days=${days}`, { cache: "no-store" });
+      const insightsRes = await fetch(`/api/admin/ai-insights?schoolId=${encodedSchool}&days=${days}`);
       if (!insightsRes.ok) throw new Error();
       const insights = await insightsRes.json() as Insight;
       setData(insights);

@@ -1615,9 +1615,7 @@ export default function HomePage() {
       if (schoolId) q.set("school", schoolId);
       q.set("days", String(range));
 
-      const res = await fetch(`/api/dashboard?${q.toString()}`, {
-        cache: "no-store",
-      });
+      const res = await fetch(`/api/dashboard?${q.toString()}`);
       if (!res.ok) throw new Error(await res.text());
 
       const data: DashboardResponse = await res.json();
