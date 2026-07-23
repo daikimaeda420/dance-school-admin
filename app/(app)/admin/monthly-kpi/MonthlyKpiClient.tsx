@@ -77,7 +77,7 @@ export default function MonthlyKpiClient({ initialData = null, initialSchoolId }
     } catch (error) { setMessage(error instanceof Error ? error.message : "保存に失敗しました"); } finally { setSaving(false); }
   };
 
-  if (!data) return <main className="mx-auto max-w-[1540px] px-4 py-6 md:px-6"><div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-4 text-sm text-slate-500 shadow-sm"><LoaderCircle className="h-4 w-4 animate-spin" />読み込み中...</div></main>;
+  if (!data) return <main className="mx-auto max-w-[1540px] px-4 py-6 text-slate-800 md:px-6"><header className="mb-6"><h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight"><TrendingUp className="h-6 w-6 text-[#fe6147]" />月次KPI・売上シミュレーション</h1><p className="mt-1 text-sm text-slate-500">体験予約から売上までの推移を可視化し、リズボ経由の成果を振り返れます。</p></header><div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-4 text-sm text-slate-500 shadow-sm"><LoaderCircle className="h-4 w-4 animate-spin" />読み込み中...</div></main>;
   const fields: { key: keyof Settings; label: string; suffix: string; min?: number; max?: number }[] = [
     { key: "expectedEnrollmentRate", label: "想定入会率", suffix: "%", max: 100 }, { key: "enrollmentFee", label: "入会金", suffix: "円" }, { key: "monthlyFee", label: "月謝", suffix: "円" }, { key: "otherFees", label: "その他費用", suffix: "円" }, { key: "averageRetentionMonths", label: "平均継続月数", suffix: "か月", min: 1, max: 120 },
   ];
