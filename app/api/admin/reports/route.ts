@@ -132,6 +132,13 @@ export async function GET(req: NextRequest) {
 
     const schoolId = access.schoolId;
     const days = parseDays(url.searchParams.get("days"));
+    const snapshot = await prisma.analyticsSnapshot.findUnique({
+      where: { schoolId_kind_periodDays: { schoolId, kind: "operation-report", periodDays: days } },
+      select: { payload: true, generatedAt: true },
+    });
+    if (snapshot && Date.now() - snapshot.generatedAt.getTime() < 5 * 60_000) {
+      return NextResponse.json(snapshot.payload, { headers: { "Cache-Control": "private, max-age=30, stale-while-revalidate=60" } });
+    }
     const since = new Date(Date.now() - days * DAY_MS);
 
     const loadReportRows = unstable_cache(async () => Promise.all([
@@ -415,7 +422,7 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    return NextResponse.json({
+    const payload = {
       schoolId,
       days,
       generatedAt: new Date(),
@@ -488,7 +495,13 @@ export async function GET(req: NextRequest) {
         recent: recentConversions,
       },
       recommendations,
-    }, { headers: { "Cache-Control": "private, max-age=30, stale-while-revalidate=60" } });
+    };
+    await prisma.analyticsSnapshot.upsert({
+      where: { schoolId_kind_periodDays: { schoolId, kind: "operation-report", periodDays: days } },
+      create: { schoolId, kind: "operation-report", periodDays: days, payload: JSON.parse(JSON.stringify(payload)) },
+      update: { payload: JSON.parse(JSON.stringify(payload)), generatedAt: new Date() },
+    });
+    return NextResponse.json(payload, { headers: { "Cache-Control": "private, max-age=30, stale-while-revalidate=60" } });
   } catch (error) {
     console.error("[admin reports] error:", error);
     return NextResponse.json(

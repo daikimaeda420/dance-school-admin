@@ -59,6 +59,13 @@ export async function GET(req: NextRequest) {
 
     const school = access.schoolId;
     const days = Math.max(1, Number(url.searchParams.get("days") || 7));
+    const snapshot = await prisma.analyticsSnapshot.findUnique({
+      where: { schoolId_kind_periodDays: { schoolId: school, kind: "dashboard", periodDays: days } },
+      select: { payload: true, generatedAt: true },
+    });
+    if (snapshot && Date.now() - snapshot.generatedAt.getTime() < 5 * 60_000) {
+      return NextResponse.json(snapshot.payload, { headers: { "Cache-Control": "private, max-age=30, stale-while-revalidate=60" } });
+    }
     const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
 
     const schoolFilter = { schoolId: school };
@@ -265,7 +272,7 @@ export async function GET(req: NextRequest) {
       lastBackup: "-",
     };
 
-    return NextResponse.json({
+    const payload = {
       // Q&A
       qaKpis,
       activities,
@@ -279,7 +286,13 @@ export async function GET(req: NextRequest) {
       system,
       // 後方互換性のために kpis も返す（既存コードが参照している場合）
       kpis: [...qaKpis, ...diagnosisKpis],
-    }, { headers: { "Cache-Control": "private, max-age=30, stale-while-revalidate=60" } });
+    };
+    await prisma.analyticsSnapshot.upsert({
+      where: { schoolId_kind_periodDays: { schoolId: school, kind: "dashboard", periodDays: days } },
+      create: { schoolId: school, kind: "dashboard", periodDays: days, payload: JSON.parse(JSON.stringify(payload)) },
+      update: { payload: JSON.parse(JSON.stringify(payload)), generatedAt: new Date() },
+    });
+    return NextResponse.json(payload, { headers: { "Cache-Control": "private, max-age=30, stale-while-revalidate=60" } });
   } catch (e: any) {
     console.error("[dashboard] error:", e);
     return NextResponse.json(
