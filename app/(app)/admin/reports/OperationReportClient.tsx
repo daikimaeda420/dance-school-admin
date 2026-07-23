@@ -39,7 +39,7 @@ type FunnelStep = {
   dropoffRate: number | null;
 };
 
-type OperationReport = {
+export type OperationReport = {
   schoolId: string;
   days: number;
   generatedAt: string;
@@ -155,13 +155,15 @@ function eventLabel(type: OperationReport["qa"]["recent"][number]["eventType"]) 
 export default function OperationReportClient({
   initialSchoolId,
   view = "diagnosis",
+  initialReport = null,
 }: {
   initialSchoolId: string;
   view?: "qa" | "diagnosis";
+  initialReport?: OperationReport | null;
 }) {
   const [days, setDays] = useState(30);
-  const [report, setReport] = useState<OperationReport | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [report, setReport] = useState<OperationReport | null>(initialReport);
+  const [loading, setLoading] = useState(!initialReport);
   const [error, setError] = useState<string | null>(null);
 
   const schoolId = report?.schoolId ?? initialSchoolId;
@@ -192,8 +194,10 @@ export default function OperationReportClient({
   }, [days, initialSchoolId]);
 
   useEffect(() => {
+    // 初回はサーバーで取得済みのデータを使い、期間を変えたときだけ再取得する。
+    if (initialReport && days === 30) return;
     void fetchReport();
-  }, [fetchReport]);
+  }, [days, fetchReport, initialReport]);
 
   const conversionRate = useMemo(() => {
     if (!report || report.diagnosis.totalSessions <= 0) return null;
