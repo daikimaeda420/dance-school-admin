@@ -111,13 +111,15 @@ export default function AiInsightsClient({ initialInsight = null }: { initialIns
     return Math.min(100, Math.round(total / 2));
   }, [data]);
   const funnelOutline = useMemo(() => {
-    const rowHeight = 10;
+    const rowHeight = 16;
     const rowGap = 8;
+    const barHeight = 10;
+    const barOffset = (rowHeight - barHeight) / 2;
     const totalHeight = data ? data.funnel.length * rowHeight + (data.funnel.length - 1) * rowGap : 1;
     const stages = (data?.funnel ?? []).map((item, index) => {
       const x = Math.max(3, (item.count / funnelMax) * 100);
-      const top = (index * (rowHeight + rowGap) / totalHeight) * 100;
-      const bottom = ((index * (rowHeight + rowGap) + rowHeight) / totalHeight) * 100;
+      const top = ((index * (rowHeight + rowGap) + barOffset) / totalHeight) * 100;
+      const bottom = ((index * (rowHeight + rowGap) + barOffset + barHeight) / totalHeight) * 100;
       return { x, top, bottom };
     });
     return stages.slice(0, -1).map((stage, index) => {
