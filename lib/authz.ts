@@ -45,10 +45,35 @@ export const getPrincipal = cache(async (): Promise<Principal | null> => {
   const email = session?.user?.email?.toLowerCase().trim();
   if (!email) return null;
 
-  const [user, superAdmin] = await Promise.all([
-    prisma.user.findUnique({ where: { email } }),
-    prisma.superAdmin.findUnique({ where: { email } }),
-  ]);
+  const sessionUser = session.user as {
+    role?: UserRole | string;
+    schoolId?: string;
+  };
+  const sessionRole = sessionUser.role as UserRole | undefined;
+  const sessionSchoolId = normalizeSchoolId(sessionUser.schoolId);
+
+  // JWT にログイン時点の権限・校舎IDを保持しているため、通常のAPI呼び出しで
+  // User / SuperAdmin を毎回DB照会する必要はない。古いセッションや不足データだけ
+  // 従来のDB照会へフォールバックする。
+  if (sessionRole && sessionSchoolId) {
+    return {
+      email,
+      role: sessionRole,
+      schoolId: sessionSchoolId,
+      isSuperAdmin: sessionRole === UserRole.SUPERADMIN,
+    };
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { email },
+    select: { role: true, schoolId: true },
+  });
+  const superAdmin = user
+    ? null
+    : await prisma.superAdmin.findUnique({
+        where: { email },
+        select: { schoolId: true },
+      });
 
   if (!user && !superAdmin) return null;
 
@@ -58,7 +83,7 @@ export const getPrincipal = cache(async (): Promise<Principal | null> => {
   const schoolId =
     normalizeSchoolId(user?.schoolId) ||
     normalizeSchoolId(superAdmin?.schoolId) ||
-    normalizeSchoolId((session.user as any)?.schoolId);
+    sessionSchoolId;
 
   return {
     email,
