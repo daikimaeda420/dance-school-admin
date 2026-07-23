@@ -25,16 +25,35 @@ function monthsForRange(count: number) {
 async function loadKpi(schoolId: string, count: number) {
   const months = monthsForRange(count);
   const since = months[0].start;
-  const [logs, submissions, settings] = await Promise.all([
+  const periodDays = count * 31;
+  const [settings, snapshot] = await Promise.all([
+    prisma.revenueSimulationSettings.upsert({ where: { schoolId }, update: {}, create: { schoolId } }),
+    prisma.analyticsSnapshot.findUnique({
+      where: { schoolId_kind_periodDays: { schoolId, kind: "monthly-kpi-v1", periodDays } },
+      select: { payload: true, generatedAt: true },
+    }),
+  ]);
+  type RawMonth = Omit<MonthPayload, "firstMonthRevenue" | "ltvRevenue">;
+  const toRevenue = (rawMonths: RawMonth[]) => rawMonths.map((month) => {
+    const enrolled = month.applications * settings.expectedEnrollmentRate / 100;
+    return {
+      ...month,
+      firstMonthRevenue: Math.round(enrolled * (settings.enrollmentFee + settings.monthlyFee + settings.otherFees)),
+      ltvRevenue: Math.round(enrolled * (settings.enrollmentFee + settings.otherFees + settings.monthlyFee * settings.averageRetentionMonths)),
+    };
+  });
+  if (snapshot && Date.now() - snapshot.generatedAt.getTime() < 5 * 60_000) {
+    return { months: toRevenue((snapshot.payload as { months: RawMonth[] }).months), settings };
+  }
+  const [logs, submissions] = await Promise.all([
     prisma.diagnosisSessionLog.findMany({
       where: { schoolId, createdAt: { gte: since }, stepKey: { in: ["SITE_VISIT", "Q1_VIEW", "FORM_OPEN", "FORM_SUBMIT"] } },
       select: { sessionId: true, stepKey: true, createdAt: true },
     }),
     prisma.diagnosisFormSubmission.findMany({ where: { schoolId, createdAt: { gte: since } }, select: { createdAt: true } }),
-    prisma.revenueSimulationSettings.upsert({ where: { schoolId }, update: {}, create: { schoolId } }),
   ]);
 
-  const monthly = months.map((month) => {
+  const rawMonths: RawMonth[] = months.map((month) => {
     const stepSessions = new Map<string, Set<string>>();
     logs.filter((log) => log.createdAt >= month.start && log.createdAt < month.end).forEach((log) => {
       if (!stepSessions.has(log.stepKey)) stepSessions.set(log.stepKey, new Set());
@@ -46,18 +65,21 @@ async function loadKpi(schoolId: string, count: number) {
     const loggedSubmits = stepSessions.get("FORM_SUBMIT")?.size ?? 0;
     const submissionCount = submissions.filter((submission) => submission.createdAt >= month.start && submission.createdAt < month.end).length;
     const applications = Math.max(loggedSubmits, submissionCount);
-    const enrolled = applications * settings.expectedEnrollmentRate / 100;
-    const firstMonthRevenue = Math.round(enrolled * (settings.enrollmentFee + settings.monthlyFee + settings.otherFees));
-    const ltvRevenue = Math.round(enrolled * (settings.enrollmentFee + settings.otherFees + settings.monthlyFee * settings.averageRetentionMonths));
     return {
       key: month.key, label: month.label, applications, bookingRate: percentage(applications, starts),
       diagnosisStartRate: starts <= siteVisitors ? percentage(starts, siteVisitors) : 0,
-      formSubmitRate: percentage(applications, formOpens), firstMonthRevenue, ltvRevenue,
+      formSubmitRate: percentage(applications, formOpens),
     };
   });
-
-  return { months: monthly, settings };
+  await prisma.analyticsSnapshot.upsert({
+    where: { schoolId_kind_periodDays: { schoolId, kind: "monthly-kpi-v1", periodDays } },
+    create: { schoolId, kind: "monthly-kpi-v1", periodDays, payload: { months: rawMonths } },
+    update: { payload: { months: rawMonths }, generatedAt: new Date() },
+  });
+  return { months: toRevenue(rawMonths), settings };
 }
+
+type MonthPayload = { key: string; label: string; applications: number; bookingRate: number; diagnosisStartRate: number; formSubmitRate: number; firstMonthRevenue: number; ltvRevenue: number };
 
 export async function GET(req: NextRequest) {
   try {
