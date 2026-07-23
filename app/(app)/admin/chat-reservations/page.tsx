@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
-import { CalendarCheck, Mail, Phone, Users } from "lucide-react";
+import { CalendarCheck, LoaderCircle, Mail, Phone, Users } from "lucide-react";
 
 type Reservation = { id: string; name: string; email: string | null; phone: string | null; preferredDate: string | null; note: string | null; status: string; createdAt: string };
 
@@ -21,7 +21,20 @@ export default function ChatReservationsPage() {
       .finally(() => setLoading(false));
   }, [schoolId]);
 
-  if (status === "loading" || loading) return <p className="p-6 text-slate-500">読み込み中...</p>;
+  if (status === "loading" || loading) {
+    return (
+      <div className="mx-auto max-w-[1540px] px-4 py-6 text-slate-800 md:px-6">
+        <div className="mb-6">
+          <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight"><CalendarCheck className="h-6 w-6 text-[#fe6147]" />チャット予約</h1>
+          <p className="mt-1 text-sm text-slate-500">チャット内で受け付けた体験予約のご希望を一覧で管理できます。</p>
+        </div>
+        <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-4 text-sm text-slate-500 shadow-sm">
+          <LoaderCircle className="h-4 w-4 animate-spin" aria-hidden />
+          読み込み中…
+        </div>
+      </div>
+    );
+  }
   return <div className="mx-auto max-w-[1540px] px-4 py-6 text-slate-800 md:px-6">
     <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between"><div><h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight"><CalendarCheck className="h-6 w-6 text-[#fe6147]" />チャット予約</h1><p className="mt-1 text-sm text-slate-500">チャット内で受け付けた体験予約のご希望を一覧で管理できます。</p></div><div className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm"><span className="flex items-center gap-2 text-xs font-semibold text-slate-500"><Users className="h-4 w-4 text-blue-600" />予約希望</span><strong className="mt-1 block text-2xl text-slate-900">{items.length}件</strong></div></div>
     <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">

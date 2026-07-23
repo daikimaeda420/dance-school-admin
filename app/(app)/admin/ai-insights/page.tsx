@@ -145,7 +145,20 @@ export default function AiInsightsPage() {
     }
   };
 
-  if (status === "loading" || loading) return <p className="p-6 text-slate-500">AIコンサル・分析を読み込んでいます...</p>;
+  if (status === "loading" || loading) {
+    return (
+      <div className="mx-auto max-w-[1540px] px-4 py-6 text-slate-800 md:px-6">
+        <div className="mb-6">
+          <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight"><Sparkles className="h-6 w-6 text-[#fe6147]" />AIコンサル・分析</h1>
+          <p className="mt-1 text-sm text-slate-500">分析から改善の反映、効果測定まで。毎月サイトを育て続けます。</p>
+        </div>
+        <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-4 text-sm text-slate-500 shadow-sm">
+          <LoaderCircle className="h-4 w-4 animate-spin" aria-hidden />
+          読み込み中…
+        </div>
+      </div>
+    );
+  }
   if (!data) return <div className="m-6 rounded-xl border border-slate-200 bg-white p-8 text-slate-500">分析データを取得できませんでした。</div>;
 
   const metrics = [
