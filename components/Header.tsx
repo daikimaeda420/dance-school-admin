@@ -84,8 +84,9 @@ export default function Header() {
 
   // 表示判定（/embed は非表示）
   if (pathname?.startsWith("/embed")) return null;
-  if (status === "loading" || !mounted)
-    return <div className="h-16" aria-hidden />;
+  // LayoutShell が固定ヘッダー分（64px）の余白を常に確保しているため、
+  // 初期化中にここでも高さを確保すると一瞬128pxの余白が発生する。
+  if (status === "loading" || !mounted) return null;
 
   const user = session?.user as {
     name?: string;
