@@ -30,6 +30,7 @@ type Insight = {
   demand: { slug: string; label: string; count: number; change: number | null }[];
   qaTopics: { label: string; count: number }[];
   suggestions: Suggestion[];
+  improvements: Improvement[];
 };
 
 type Improvement = {
@@ -82,14 +83,11 @@ export default function AiInsightsPage() {
     setLoading(true);
     try {
       const encodedSchool = encodeURIComponent(schoolId);
-      const [insightsRes, historyRes] = await Promise.all([
-        fetch(`/api/admin/ai-insights?schoolId=${encodedSchool}&days=${days}`, { cache: "no-store" }),
-        fetch(`/api/admin/ai-improvements?schoolId=${encodedSchool}`, { cache: "no-store" }),
-      ]);
+      const insightsRes = await fetch(`/api/admin/ai-insights?schoolId=${encodedSchool}&days=${days}`, { cache: "no-store" });
       if (!insightsRes.ok) throw new Error();
-      const [insights, improvements] = await Promise.all([insightsRes.json(), historyRes.ok ? historyRes.json() : { improvements: [] }]);
+      const insights = await insightsRes.json() as Insight;
       setData(insights);
-      setHistory(Array.isArray(improvements.improvements) ? improvements.improvements : []);
+      setHistory(Array.isArray(insights.improvements) ? insights.improvements : []);
     } catch {
       setData(null);
       setHistory([]);

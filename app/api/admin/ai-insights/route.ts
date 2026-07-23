@@ -3,7 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { resolveAccessibleSchool } from "@/lib/authz";
 
 const DAY = 86_400_000;
-const uniqueCount = (rows: { sessionId: string }[]) => new Set(rows.map((row) => row.sessionId)).size;
+type AggregatedLog = { sessionId: string; stepKey: string; stepLabel: string | null };
+const uniqueCount = (rows: AggregatedLog[]) => new Set(rows.map((row) => row.sessionId)).size;
 const percent = (part: number, total: number) => total > 0 ? Math.round((part / total) * 100) : null;
 const change = (current: number, previous: number) => previous > 0 ? Math.round(((current - previous) / previous) * 100) : null;
 
@@ -32,20 +33,30 @@ export async function GET(req: NextRequest) {
     const now = Date.now();
     const since = new Date(now - days * DAY);
     const previousSince = new Date(now - days * 2 * DAY);
-    const logWhere = { schoolId, createdAt: { gte: previousSince } };
-
-    const [logs, faqLogs, genres, lifestyles, forms, reservations] = await Promise.all([
-      prisma.diagnosisSessionLog.findMany({ where: logWhere, select: { sessionId: true, stepKey: true, stepLabel: true, createdAt: true } }),
-      prisma.faqLog.findMany({ where: { school: schoolId, timestamp: { gte: since } }, select: { question: true, sessionId: true } }),
+    const [currentLogs, previousLogs, faqLogs, genres, lifestyles, forms, reservations, improvements] = await Promise.all([
+      // 画面で必要なのは行動ごとのユニークユーザー数だけなので、
+      // 生ログではなくDB側で集約して転送量とNode.jsでの集計負荷を抑える。
+      prisma.diagnosisSessionLog.groupBy({
+        by: ["sessionId", "stepKey", "stepLabel"],
+        where: { schoolId, createdAt: { gte: since } },
+      }),
+      prisma.diagnosisSessionLog.groupBy({
+        by: ["sessionId", "stepKey", "stepLabel"],
+        where: { schoolId, createdAt: { gte: previousSince, lt: since } },
+      }),
+      prisma.faqLog.findMany({
+        where: { school: schoolId, timestamp: { gte: since } },
+        distinct: ["sessionId", "question"],
+        select: { question: true, sessionId: true },
+      }),
       prisma.diagnosisGenre.findMany({ where: { schoolId, isActive: true }, select: { slug: true, label: true } }),
       prisma.diagnosisLifestyle.findMany({ where: { schoolId, isActive: true }, select: { slug: true, label: true } }),
       prisma.diagnosisFormSubmission.count({ where: { schoolId, createdAt: { gte: since } } }),
       prisma.chatReservation.count({ where: { schoolId, createdAt: { gte: since } } }),
+      prisma.aiImprovement.findMany({ where: { schoolId }, orderBy: { appliedAt: "desc" }, take: 8 }),
     ]);
 
-    const currentLogs = logs.filter((log) => log.createdAt >= since);
-    const previousLogs = logs.filter((log) => log.createdAt < since);
-    const countStep = (rows: typeof logs, key: string) => uniqueCount(rows.filter((row) => row.stepKey === key));
+    const countStep = (rows: AggregatedLog[], key: string) => uniqueCount(rows.filter((row) => row.stepKey === key));
     const siteVisitors = countStep(currentLogs, "SITE_VISIT");
     const starts = countStep(currentLogs, "Q1_VIEW");
     const results = countStep(currentLogs, "RESULT_VIEW");
@@ -57,7 +68,7 @@ export async function GET(req: NextRequest) {
     const labels = new Map([...genres, ...lifestyles].map((item) => [item.slug, item.label]));
     const currentDemand = new Map<string, Set<string>>();
     const previousDemand = new Map<string, Set<string>>();
-    const addDemand = (target: Map<string, Set<string>>, row: typeof logs[number]) => {
+    const addDemand = (target: Map<string, Set<string>>, row: AggregatedLog) => {
       if (!row.stepKey.endsWith("_ANSWER") || !row.stepLabel) return;
       const match = row.stepLabel.match(/回答（(.+?)）/);
       const slug = match?.[1];
@@ -111,7 +122,7 @@ export async function GET(req: NextRequest) {
     if (results > 0 && (percent(formOpens, results) ?? 0) < 35) suggestions.push({ title: "結果から体験申込への誘導を改善", detail: `結果表示からフォーム到達は${percent(formOpens, results)}%です。結果の直下に、体験のメリットと空き状況を添えたCTAを置く余地があります。`, priority: "medium", href: "/admin/diagnosis/form" });
     if (!suggestions.length) suggestions.push({ title: "分析データを蓄積中", detail: `直近${days}日のデータがまだ少ないため、改善提案を確定できません。設置タグと診断導線を確認して継続計測してください。`, priority: "low", href: "/admin/reports/diagnosis" });
 
-    return NextResponse.json({ days, generatedAt: new Date(), funnel, dropoffs, rates: { diagnosisStartRate, diagnosisCompletionRate: percent(results, starts), formOpenRate: percent(formOpens, results), formSubmitRate: percent(formSubmits, formOpens), overallConversionRate: percent(formSubmits + reservations, starts), diagnosisStartChange: change(starts, previousStarts), diagnosisCompletionChange: change(percent(results, starts) ?? 0, percent(previousResults, previousStarts) ?? 0) }, demand, qaTopics, suggestions });
+    return NextResponse.json({ days, generatedAt: new Date(), funnel, dropoffs, rates: { diagnosisStartRate, diagnosisCompletionRate: percent(results, starts), formOpenRate: percent(formOpens, results), formSubmitRate: percent(formSubmits, formOpens), overallConversionRate: percent(formSubmits + reservations, starts), diagnosisStartChange: change(starts, previousStarts), diagnosisCompletionChange: change(percent(results, starts) ?? 0, percent(previousResults, previousStarts) ?? 0) }, demand, qaTopics, suggestions, improvements });
   } catch (error) {
     console.error("[ai-insights]", error);
     return NextResponse.json({ error: "分析データの取得に失敗しました" }, { status: 500 });
