@@ -30,6 +30,11 @@ export default function Sidebar({ showDesktop = true, mobileOpen = false, onClos
   const isActive = (href: string) => pathname === href.split("?")[0] || pathname.startsWith(`${href.split("?")[0]}/`);
 
   useEffect(() => {
+    // 分析ページの画面枠を先読みし、メニューをクリックしてからの遷移待ちを減らす。
+    ["/", "/admin/monthly-kpi", "/admin/ai-insights", reportDiagnosis, reportQa].forEach((href) => router.prefetch(href));
+  }, [reportDiagnosis, reportQa, router]);
+
+  useEffect(() => {
     if (!mobileOpen) return;
     const previous = document.body.style.overflow;
     document.body.style.overflow = "hidden";
