@@ -15,21 +15,28 @@ const labelFor: Record<Metric, string> = { applications: "体験予約数", book
 function RevenueChart({ months, metric }: { months: Month[]; metric: Metric }) {
   const values = months.map((month) => month[metric]);
   const cumulativeValues = values.reduce<number[]>((total, value) => [...total, (total.at(-1) ?? 0) + value], []);
-  const max = Math.max(1, ...values) * 1.18;
-  const cumulativeMax = Math.max(50_000, Math.ceil(Math.max(1, ...cumulativeValues) / 50_000) * 50_000);
-  const xFor = (index: number) => 66 + index * (264 / Math.max(1, values.length - 1));
-  const points = values.map((value, index) => `${xFor(index)},${158 - value / max * 112}`).join(" ");
-  const cumulativePoints = cumulativeValues.map((value, index) => `${xFor(index)},${158 - value / cumulativeMax * 112}`).join(" ");
-  const area = `66,158 ${points} ${330},158`;
-  const display = (value: number) => metric === "firstMonthRevenue" ? formatYen(value) : metric === "applications" ? `${value}件` : `${value}%`;
   const showCumulative = metric === "firstMonthRevenue";
-  return <div className="relative mt-5 overflow-x-auto rounded-xl border border-slate-100 bg-gradient-to-b from-slate-50/70 to-white px-3 pb-1 pt-3"><div className="mb-2 flex justify-end gap-2 text-[11px] font-semibold"><span className="flex items-center gap-1.5 rounded-full bg-orange-50 px-2.5 py-1 text-[#e84f36]"><i className="h-0.5 w-4 bg-[#fe6147]" />月次 推定売上</span>{showCumulative && <span className="flex items-center gap-1.5 rounded-full bg-blue-50 px-2.5 py-1 text-blue-700"><i className="w-4 border-t-2 border-dashed border-blue-600" />累計 推定売上</span>}</div><svg viewBox="0 0 430 206" className="min-w-[620px] w-full" role="img" aria-label={`${labelFor[metric]}の月次推移`}>
-    <defs><linearGradient id="revenue-area" x1="0" x2="0" y1="0" y2="1"><stop stopColor="#fe6147" stopOpacity=".30" /><stop offset="1" stopColor="#fe6147" stopOpacity=".015" /></linearGradient><filter id="point-shadow" x="-40%" y="-40%" width="180%" height="180%"><feDropShadow dx="0" dy="2" stdDeviation="1.5" floodColor="#0f172a" floodOpacity=".16" /></filter></defs>
-    {[42, 82, 122, 162].map((y) => <line key={y} x1="58" x2="338" y1={y} y2={y} stroke="#dbe5f1" strokeWidth="1" />)}
+  const primaryStep = metric === "firstMonthRevenue" ? 10_000 : metric === "applications" ? 5 : 10;
+  const max = Math.max(primaryStep, Math.ceil(Math.max(...values) / primaryStep) * primaryStep);
+  const cumulativeMax = Math.max(50_000, Math.ceil(Math.max(1, ...cumulativeValues) / 50_000) * 50_000);
+  const plot = { left: 112, right: 452, top: 44, bottom: 166 };
+  const plotHeight = plot.bottom - plot.top;
+  const xFor = (index: number) => plot.left + index * ((plot.right - plot.left) / Math.max(1, values.length - 1));
+  const yFor = (value: number, axisMax: number) => plot.bottom - value / axisMax * plotHeight;
+  const points = values.map((value, index) => `${xFor(index)},${yFor(value, max)}`).join(" ");
+  const cumulativePoints = cumulativeValues.map((value, index) => `${xFor(index)},${yFor(value, cumulativeMax)}`).join(" ");
+  const area = `${plot.left},${plot.bottom} ${points} ${plot.right},${plot.bottom}`;
+  const display = (value: number) => metric === "firstMonthRevenue" ? formatYen(value) : metric === "applications" ? `${value}件` : `${value}%`;
+  const primaryTicks = Array.from({ length: Math.round(max / primaryStep) + 1 }, (_, index) => max - index * primaryStep);
+  const cumulativeTicks = Array.from({ length: Math.round(cumulativeMax / 50_000) + 1 }, (_, index) => cumulativeMax - index * 50_000);
+  const axisLabel = (value: number) => metric === "firstMonthRevenue" ? `¥${value / 10_000}万` : metric === "applications" ? `${value}件` : `${value}%`;
+  return <div className="relative mt-5 overflow-x-auto rounded-xl border border-slate-100 bg-gradient-to-b from-slate-50/80 to-white px-3 pb-1 pt-3"><div className="mb-2 flex justify-end gap-2 text-[11px] font-medium"><span className="flex items-center gap-1.5 rounded-full bg-orange-50 px-2.5 py-1 text-[#e84f36]"><i className="h-0.5 w-4 bg-[#fe6147]" />{showCumulative ? "月次 推定売上" : labelFor[metric]}</span>{showCumulative && <span className="flex items-center gap-1.5 rounded-full bg-blue-50 px-2.5 py-1 text-blue-700"><i className="w-4 border-t-2 border-dashed border-blue-600" />累計 推定売上</span>}</div><svg viewBox="0 0 520 210" className="min-w-[680px] w-full" role="img" aria-label={`${labelFor[metric]}の月次推移`}>
+    <defs><linearGradient id="revenue-area" x1="0" x2="0" y1="0" y2="1"><stop stopColor="#fe6147" stopOpacity=".24" /><stop offset="1" stopColor="#fe6147" stopOpacity=".015" /></linearGradient><filter id="point-shadow" x="-40%" y="-40%" width="180%" height="180%"><feDropShadow dx="0" dy="1" stdDeviation="1.2" floodColor="#0f172a" floodOpacity=".14" /></filter></defs>
+    {primaryTicks.map((value) => <g key={value}><line x1={plot.left} x2={plot.right} y1={yFor(value, max)} y2={yFor(value, max)} stroke="#dbe5f1" strokeWidth="1" /><text x="104" y={yFor(value, max) + 3} textAnchor="end" fontSize="8" fontWeight="500" fill={showCumulative ? "#e84f36" : "#64748b"}>{axisLabel(value)}</text></g>)}
+    {showCumulative && <><text x="16" y="26" fontSize="7" fontWeight="600" fill="#2563eb">累計</text>{cumulativeTicks.map((value) => <text key={value} x="48" y={yFor(value, cumulativeMax) + 3} textAnchor="end" fontSize="8" fontWeight="500" fill="#2563eb">{`¥${value / 10_000}万`}</text>)}</>}
     <path d={`M ${area.replaceAll(" ", " L ")} Z`} fill="url(#revenue-area)" /><polyline points={points} fill="none" stroke="#fe6147" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
     {showCumulative && <polyline points={cumulativePoints} fill="none" stroke="#2563eb" strokeWidth="2.2" strokeDasharray="5 5" strokeLinejoin="round" strokeLinecap="round" />}
-    {values.map((value, index) => { const x = xFor(index); const y = 158 - value / max * 112; const cumulativeY = 158 - cumulativeValues[index] / cumulativeMax * 112; const cumulativeLabelY = cumulativeY > y - 18 ? cumulativeY + 15 : cumulativeY - 9; return <g key={months[index].key}><circle cx={x} cy={y} r="4.8" fill="#fe6147" stroke="white" strokeWidth="2.4" filter="url(#point-shadow)" /><text x={x} y={y - 11} textAnchor="middle" fontSize="9" fontWeight="700" fill="#334155">{display(value)}</text>{showCumulative && <><circle cx={x} cy={cumulativeY} r="3.8" fill="white" stroke="#2563eb" strokeWidth="1.8" filter="url(#point-shadow)" />{index > 0 && <text x={x + 7} y={cumulativeLabelY} fontSize="8" fontWeight="700" fill="#2563eb">{formatYen(cumulativeValues[index])}</text>}</>}<text x={x} y="184" textAnchor="middle" fontSize="10" fontWeight="600" fill="#64748b">{months[index].label}</text></g>; })}
-    {showCumulative && [3, 2, 1, 0].map((step) => <text key={step} x="2" y={45 + (3 - step) * 40} fontSize="8" fontWeight="700" fill="#2563eb">{`¥${cumulativeMax * step / 3 / 10_000}万`}</text>)}
+    {values.map((value, index) => { const x = xFor(index); const y = yFor(value, max); const cumulativeY = yFor(cumulativeValues[index], cumulativeMax); const cumulativeLabelY = cumulativeY > y - 18 ? cumulativeY + 15 : cumulativeY - 9; return <g key={months[index].key}><circle cx={x} cy={y} r="4.5" fill="#fe6147" stroke="white" strokeWidth="2.2" filter="url(#point-shadow)" /><text x={x} y={y - 10} textAnchor="middle" fontSize="8.5" fontWeight="600" fill="#334155">{display(value)}</text>{showCumulative && <><circle cx={x} cy={cumulativeY} r="3.6" fill="white" stroke="#2563eb" strokeWidth="1.7" filter="url(#point-shadow)" />{index > 0 && <text x={x + 7} y={cumulativeLabelY} fontSize="7.5" fontWeight="600" fill="#2563eb">{formatYen(cumulativeValues[index])}</text>}</>}<text x={x} y="190" textAnchor="middle" fontSize="9" fontWeight="500" fill="#64748b">{months[index].label}</text></g>; })}
   </svg></div>;
 }
 
