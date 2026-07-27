@@ -16,20 +16,20 @@ function RevenueChart({ months, metric }: { months: Month[]; metric: Metric }) {
   const values = months.map((month) => month[metric]);
   const cumulativeValues = values.reduce<number[]>((total, value) => [...total, (total.at(-1) ?? 0) + value], []);
   const max = Math.max(1, ...values) * 1.18;
-  const cumulativeMax = Math.max(1, ...cumulativeValues) * 1.18;
-  const xFor = (index: number) => 52 + index * (278 / Math.max(1, values.length - 1));
+  const cumulativeMax = Math.max(50_000, Math.ceil(Math.max(1, ...cumulativeValues) / 50_000) * 50_000);
+  const xFor = (index: number) => 66 + index * (264 / Math.max(1, values.length - 1));
   const points = values.map((value, index) => `${xFor(index)},${158 - value / max * 112}`).join(" ");
   const cumulativePoints = cumulativeValues.map((value, index) => `${xFor(index)},${158 - value / cumulativeMax * 112}`).join(" ");
-  const area = `52,158 ${points} ${330},158`;
+  const area = `66,158 ${points} ${330},158`;
   const display = (value: number) => metric === "firstMonthRevenue" ? formatYen(value) : metric === "applications" ? `${value}件` : `${value}%`;
   const showCumulative = metric === "firstMonthRevenue";
   return <div className="relative mt-4 overflow-x-auto"><div className="mb-1 flex justify-end gap-4 text-[11px] font-semibold"><span className="flex items-center gap-1.5 text-[#fe6147]"><i className="h-0.5 w-4 bg-[#fe6147]" />月次 推定売上</span>{showCumulative && <span className="flex items-center gap-1.5 text-blue-700"><i className="w-4 border-t-2 border-dashed border-blue-600" />累計 推定売上</span>}</div><svg viewBox="0 0 430 196" className="min-w-[620px] w-full" role="img" aria-label={`${labelFor[metric]}の月次推移`}>
     <defs><linearGradient id="revenue-area" x1="0" x2="0" y1="0" y2="1"><stop stopColor="#fe6147" stopOpacity=".28" /><stop offset="1" stopColor="#fe6147" stopOpacity=".02" /></linearGradient></defs>
-    {[46, 83, 120, 158].map((y) => <line key={y} x1="40" x2="338" y1={y} y2={y} stroke="#e2e8f0" strokeWidth="1" />)}
+    {[46, 83, 120, 158].map((y) => <line key={y} x1="58" x2="338" y1={y} y2={y} stroke="#e2e8f0" strokeWidth="1" />)}
     <path d={`M ${area.replaceAll(" ", " L ")} Z`} fill="url(#revenue-area)" /><polyline points={points} fill="none" stroke="#fe6147" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
     {showCumulative && <polyline points={cumulativePoints} fill="none" stroke="#2563eb" strokeWidth="2" strokeDasharray="5 5" strokeLinejoin="round" strokeLinecap="round" />}
     {values.map((value, index) => { const x = xFor(index); const y = 158 - value / max * 112; const cumulativeY = 158 - cumulativeValues[index] / cumulativeMax * 112; const cumulativeLabelY = cumulativeY > y - 18 ? cumulativeY + 15 : cumulativeY - 9; return <g key={months[index].key}><circle cx={x} cy={y} r="4.5" fill="#fe6147" stroke="white" strokeWidth="2" /><text x={x} y={y - 10} textAnchor="middle" fontSize="9" fontWeight="700" fill="#475569">{display(value)}</text>{showCumulative && <><circle cx={x} cy={cumulativeY} r="3.5" fill="white" stroke="#2563eb" strokeWidth="1.5" /><text x={x + 7} y={cumulativeLabelY} fontSize="8" fontWeight="700" fill="#2563eb">{formatYen(cumulativeValues[index])}</text></>}<text x={x} y="180" textAnchor="middle" fontSize="10" fill="#64748b">{months[index].label}</text></g>; })}
-    {showCumulative && [0, 1, 2, 3].map((step) => <text key={step} x="350" y={160 - step * 37} fontSize="8" fill="#64748b">{formatYen(Math.round(cumulativeMax * step / 3))}</text>)}
+    {showCumulative && [3, 2, 1, 0].map((step) => <text key={step} x="2" y={49 + (3 - step) * 37} fontSize="8" fontWeight="600" fill="#2563eb">{`¥${cumulativeMax * step / 10_000}万`}</text>)}
   </svg></div>;
 }
 
