@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>RIZBO 初期設定ガイド</title>
+    <style>
+      @page { size: A4; margin: 17mm 16mm 16mm; }
+      :root { --orange:#fe6147; --blue:#2563eb; --ink:#172033; --muted:#526176; --line:#e5eaf1; }
+      * { box-sizing: border-box; }
+      body { margin:0; color:var(--ink); font-family:YuGothic, "Hiragino Sans", sans-serif; font-size:10.5pt; line-height:1.7; }
+      .document { max-width: 760px; margin: 0 auto; }
+      .brand { display:inline-flex; align-items:center; gap:8px; font-weight:800; font-size:13px; letter-spacing:.04em; color:var(--orange); }
+      .brand-mark { width:20px; height:20px; border-radius:50%; background:var(--orange); position:relative; }
+      .brand-mark:after { content:""; position:absolute; width:8px; height:4px; border-bottom:2px solid #fff; border-radius:50%; left:6px; top:7px; }
+      h1 { margin:14px 0 4px; font-size:27px; line-height:1.25; letter-spacing:-.04em; }
+      .lead { margin:0; color:var(--muted); font-size:12px; }
+      .meta { display:flex; gap:1px; margin:20px 0 24px; border:1px solid var(--line); border-radius:12px; overflow:hidden; }
+      .meta div { flex:1; padding:11px 13px; background:#f8fafc; }
+      .meta div + div { border-left:1px solid var(--line); }
+      .meta span { display:block; color:var(--muted); font-size:9px; font-weight:700; }
+      .meta strong { display:block; margin-top:2px; font-size:11px; }
+      h2 { margin:26px 0 9px; color:var(--blue); font-size:16px; line-height:1.4; }
+      h3 { margin:0; font-size:15px; line-height:1.45; }
+      p { margin:0 0 9px; }
+      ul { margin:9px 0 10px; padding-left:1.25em; }
+      li { margin:3px 0; }
+      .note { margin:13px 0 18px; padding:10px 12px; border-radius:9px; background:#fff3ee; color:#5f342c; font-size:10px; }
+      .note b { color:#d94c36; }
+      .step { position:relative; padding:0 0 19px 46px; border-left:1px dashed #fdc5ba; margin-left:15px; }
+      .step:last-of-type { border-left-color:transparent; }
+      .number { position:absolute; top:0; left:-16px; width:31px; height:31px; display:grid; place-items:center; border:1px solid #fed1c7; border-radius:50%; background:#fff8f6; color:#d94c36; font-size:12px; font-weight:800; }
+      .step .purpose { margin-top:4px; color:var(--muted); }
+      .check { margin-top:11px; padding:8px 10px; border-left:3px solid var(--orange); background:#fffaf7; color:#5f342c; font-size:9.5px; }
+      .check b { color:#c7432f; }
+      .after { margin-top:10px; padding:15px; border:1px solid #bfdbfe; border-radius:12px; background:#f6faff; }
+      .after h2 { margin:0 0 7px; color:var(--ink); font-size:14px; }
+      .footer { margin-top:28px; padding-top:12px; border-top:1px solid var(--line); color:#7a8698; font-size:8.5px; display:flex; justify-content:space-between; }
+      @media print { .document { max-width:none; } .step { break-inside:avoid; } h2, h3 { break-after:avoid; } }
+    </style>
+  </head>
+  <body>
+    <main class="document">
+      <div class="brand"><span class="brand-mark"></span>rizbo</div>
+      <h1>初期設定ガイド</h1>
+      <p class="lead">Q&A・相性診断・予約フォームを整え、スクールサイトへ公開するまでの手順です。</p>
+
+      <div class="meta">
+        <div><span>対象</span><strong>RIZBOを導入するスクールご担当者</strong></div>
+        <div><span>所要時間の目安</span><strong>初回設定：20〜40分</strong></div>
+      </div>
+
+      <h2>はじめる前に</h2>
+      <p>設定を始める前に、次の2点をご用意ください。</p>
+      <ul>
+        <li>スクールサイトを編集できる権限（自社・制作会社のどちらが編集するかも確認）</li>
+        <li>体験予約を受け取るメールアドレス</li>
+      </ul>
+
+      <section class="step"><span class="number">1</span><h3>Q&Aを整える</h3><p class="purpose">よくある質問と回答を登録し、サイト訪問者が迷わず次の行動へ進めるようにします。</p><ul><li>管理画面の「コンテンツ設定」→「Q&A編集」を開きます。</li><li>料金・体験・初心者・アクセス・予約に関する質問から追加します。</li><li>各質問に、短く具体的な回答と必要に応じたリンクを設定して保存します。</li></ul><p class="check"><b>確認：</b>質問と回答が空欄になっていないか、料金や予約に関する案内が入っているかを確認します。</p></section>
+      <section class="step"><span class="number">2</span><h3>Q&Aの完成度を確認する</h3><p class="purpose">公開前の設定漏れや申込導線の不足を、チェック形式で確認できます。</p><ul><li>「Q&A完成度」を開きます。</li><li>「未設定」「要確認」と表示される項目を、案内に沿って修正します。</li><li>すべての項目を確認したら、次の診断設定へ進みます。</li></ul><p class="check"><b>確認：</b>完成度だけでなく、各項目の説明を読み、実際のスクール情報と合っているかも確認します。</p></section>
+      <section class="step"><span class="number">3</span><h3>診断コンテンツを設定する</h3><p class="purpose">相性診断で提案するコース・講師・スケジュールを登録します。</p><ul><li>「診断編集」を開き、まず校舎とコースを登録します。</li><li>ジャンル・年代／ライフスタイル・講師・スケジュールを順に設定します。</li><li>コースと講師の説明は、初めての方にも伝わる内容にします。</li></ul><p class="check"><b>確認：</b>診断の回答に対して、紹介したいコースがきちんと候補に出る状態を目指します。</p></section>
+      <section class="step"><span class="number">4</span><h3>予約フォームを設定する</h3><p class="purpose">診断後の体験予約を受け取れるよう、フォームと通知先を確認します。</p><ul><li>「診断編集」→「フォーム」を開きます。</li><li>氏名・メールアドレスなど、予約に必要な項目だけを必須にします。</li><li>送信先メールアドレスを確認し、テスト送信で受信できるか確認します。</li></ul><p class="check"><b>確認：</b>入力項目が多すぎると離脱につながるため、最初は必要最小限の項目がおすすめです。</p></section>
+      <section class="step"><span class="number">5</span><h3>プレビューで体験する</h3><p class="purpose">サイト訪問者と同じ流れを実際に操作して、公開前に見え方を確認します。</p><ul><li>左メニュー下部の「チャットプレビュー」でQ&Aを確認します。</li><li>「診断プレビュー」で、診断開始からフォーム送信まで操作します。</li><li>スマートフォンでも表示と入力のしやすさを確認します。</li></ul><p class="check"><b>確認：</b>質問の順番、選択肢の分かりやすさ、フォームの入力負担を重点的に見てください。</p></section>
+      <section class="step"><span class="number">6</span><h3>サイトに設置して公開する</h3><p class="purpose">RIZBOの設置コードをスクールサイトへ追加し、公開後に動作を確認します。</p><ul><li>管理画面の「ホーム」を開き、「設置コード」をコピーします。</li><li>スクールサイトのHTMLにコードを追加します。制作会社が管理している場合は、コピーしたコードを共有します。</li><li>公開後、実際のサイトでチャットと診断が表示されることを確認します。</li></ul><p class="check"><b>確認：</b>設置後は「ホーム」で設置サイトUU、「AIコンサル・分析」で診断完了率・予約率を確認できます。</p></section>
+
+      <section class="after"><h2>公開後の運用</h2><p>公開して終わりではなく、月に一度は成果を見ながら改善を続けることが大切です。</p><ul><li>ホーム：設置サイトUU、Q&A・診断の利用状況を確認</li><li>AIコンサル・分析：離脱ポイント、需要トレンド、改善提案を確認</li><li>月次KPI・売上シミュレーション：予約数と推定売上を振り返り</li></ul></section>
+      <div class="footer"><span>困ったときは、管理画面の「設定ガイド」に戻ると、各設定画面へのリンクと確認の順番をいつでも確認できます。</span><span>rizbo</span></div>
+    </main>
+  </body>
+</html>

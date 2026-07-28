@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BarChart3, Bot, CalendarCheck, ClipboardCheck, ClipboardList, ExternalLink, HelpCircle, Home, ListChecks, MessagesSquare, Settings, Sparkles, TimerReset, TrendingUp, UserCog, X } from "lucide-react";
+import { BarChart3, Bot, CalendarCheck, ClipboardCheck, ClipboardList, Compass, ExternalLink, HelpCircle, Home, ListChecks, MessagesSquare, Settings, Sparkles, TimerReset, TrendingUp, UserCog, X } from "lucide-react";
 import { MouseEvent, useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
@@ -25,6 +25,7 @@ export default function Sidebar({ showDesktop = true, mobileOpen = false, onClos
   const reportDiagnosis = withSchool("/admin/reports/diagnosis");
   const diagnosisEdit = withSchool("/admin/diagnosis/campuses");
   const qaChecklist = withSchool("/admin/qa/checklist");
+  const setupGuide = withSchool("/admin/setup-guide");
   const chatbotPreview = `/embed/chatbot${schoolId ? `?school=${encodeURIComponent(schoolId)}` : ""}`;
   const diagnosisPreview = `https://rizbo.dansul.jp/embed/diagnosis${schoolId ? `?schoolId=${encodeURIComponent(schoolId)}` : ""}`;
   const isActive = (href: string) => pathname === href.split("?")[0] || pathname.startsWith(`${href.split("?")[0]}/`);
@@ -55,7 +56,7 @@ export default function Sidebar({ showDesktop = true, mobileOpen = false, onClos
   const groups: { label?: string; items: Item[] }[] = [
     { items: [{ href: "/", label: "ホーム", icon: Home }] },
     { label: "分析・改善", items: [{ href: "/admin/monthly-kpi", label: "月次KPI・売上シミュレーション", icon: TrendingUp }, { href: "/admin/ai-insights", label: "AIコンサル・分析", icon: Sparkles }, { href: reportDiagnosis, label: "相性診断レポート", icon: ClipboardList }, { href: reportQa, label: "Q&Aレポート", icon: BarChart3 }] },
-    { label: "コンテンツ設定", items: [{ href: "/faq", label: "Q&A編集", icon: MessagesSquare }, { href: qaChecklist, label: "Q&A完成度", icon: ClipboardCheck }, { href: diagnosisEdit, label: "診断編集", icon: ListChecks }] },
+    { label: "コンテンツ設定", items: [{ href: setupGuide, label: "設定ガイド", icon: Compass }, { href: "/faq", label: "Q&A編集", icon: MessagesSquare }, { href: qaChecklist, label: "Q&A完成度", icon: ClipboardCheck }, { href: diagnosisEdit, label: "診断編集", icon: ListChecks }] },
     { label: "運用", items: [{ href: "/admin/chat-history", label: "ユーザーログ", icon: TimerReset }, { href: "/admin/chat-reservations", label: "チャット予約", icon: CalendarCheck }] },
     { label: "管理", items: [{ href: "/superadmin", label: "アカウント管理", icon: UserCog }, { href: "/admin/system", label: "システム設定", icon: Settings, superOnly: true }, { href: "/help", label: "ヘルプ", icon: HelpCircle }] },
   ];
