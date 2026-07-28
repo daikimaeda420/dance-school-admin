@@ -175,7 +175,7 @@ export default async function SetupGuidePage({
       </section>
 
       <section className="rounded-xl border border-slate-200 bg-white px-5 shadow-[0_1px_2px_rgba(15,23,42,0.035)]">
-        <ol className="relative before:absolute before:bottom-9 before:left-[2.25rem] before:top-9 before:border-l before:border-dashed before:border-orange-200 md:before:left-[2.25rem]">
+        <ol className="relative before:absolute before:bottom-9 before:left-[1.125rem] before:top-9 before:border-l before:border-dashed before:border-orange-200">
           {steps.map((step, index) => <SetupStep key={step.title} step={step} index={index + 1} />)}
         </ol>
       </section>
