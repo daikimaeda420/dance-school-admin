@@ -3,6 +3,7 @@
 
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
+import type { FormEvent } from "react";
 import { RefreshCcw } from "lucide-react";
 import Image from "next/image";
 
@@ -96,10 +97,13 @@ export default function ChatbotEmbedClient({
   // ✅ 下部CTA（DBから取得した値を持つ）
   const [ctaLabel, setCtaLabel] = useState<string | null>(null);
   const [ctaUrl, setCtaUrl] = useState<string | null>(null);
+  const [chatMode, setChatMode] = useState<"FAQ_ONLY" | "FAQ_PLUS_AI">("FAQ_ONLY");
   const [reservationMode, setReservationMode] = useState<"NONE" | "RIZBO" | "EXTERNAL">("NONE");
   const [reservationUrl, setReservationUrl] = useState<string | null>(null);
   const [reservationOpen, setReservationOpen] = useState(false);
   const [reservationStatus, setReservationStatus] = useState<"idle" | "sending" | "done" | "error">("idle");
+  const [aiInput, setAiInput] = useState("");
+  const [aiStatus, setAiStatus] = useState<"idle" | "sending">("idle");
   const hasCta = !!ctaLabel && !!ctaUrl;
 
   // ---- helpers ----
@@ -212,6 +216,7 @@ export default function ChatbotEmbedClient({
                   ? d.ctaUrl
                   : null
               );
+              setChatMode(d.chatMode === "FAQ_PLUS_AI" ? "FAQ_PLUS_AI" : "FAQ_ONLY");
               setReservationMode(d.reservationMode === "RIZBO" || d.reservationMode === "EXTERNAL" ? d.reservationMode : "NONE");
               setReservationUrl(typeof d.reservationUrl === "string" && d.reservationUrl.trim() ? d.reservationUrl : null);
             }
@@ -235,9 +240,11 @@ export default function ChatbotEmbedClient({
             setCtaUrl(
               typeof d.ctaUrl === "string" && d.ctaUrl.trim() ? d.ctaUrl : null
             );
+            setChatMode(d.chatMode === "FAQ_PLUS_AI" ? "FAQ_PLUS_AI" : "FAQ_ONLY");
           } else {
             setCtaLabel(null);
             setCtaUrl(null);
+            setChatMode("FAQ_ONLY");
           }
           setReservationMode("NONE");
           setReservationUrl(null);
@@ -248,6 +255,7 @@ export default function ChatbotEmbedClient({
           setFaq([]);
           setCtaLabel(null);
           setCtaUrl(null);
+          setChatMode("FAQ_ONLY");
           setReservationMode("NONE");
           setReservationUrl(null);
         }
@@ -342,6 +350,38 @@ export default function ChatbotEmbedClient({
     }
   };
 
+  const submitAiMessage = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const message = aiInput.trim();
+    if (!message || !schoolId || aiStatus === "sending") return;
+
+    const history = messages
+      .slice(-8)
+      .map((item) => ({ role: item.role === "user" ? "user" : "assistant", content: item.text }));
+
+    setAiInput("");
+    setAiStatus("sending");
+    setMessages((prev) => [...prev, userMsg(message)]);
+    try {
+      const res = await fetch(`${getApiBase()}/api/chat/ai`, {
+        method: "POST",
+        mode: "cors",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ schoolId, sessionId: getSessionId(), message, history }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || typeof data.answer !== "string") throw new Error(data.error || "AI会話を利用できません。");
+
+      setMessages((prev) => [...prev, bot(data.answer)]);
+      void logToServer(`AI会話: ${message}`, data.answer);
+    } catch (error) {
+      console.error("AI会話エラー:", error);
+      setMessages((prev) => [...prev, bot("ただいまAI会話を準備しています。選択肢からご質問を選ぶか、スクールへ直接お問い合わせください。")]);
+    } finally {
+      setAiStatus("idle");
+    }
+  };
+
   const makeFollowup = (): Message[] => {
     const first = faq[0];
     if (first?.type === "select" && first.options?.length) {
@@ -360,6 +400,8 @@ export default function ChatbotEmbedClient({
     setMessages([]);
     setReservationOpen(false);
     setReservationStatus("idle");
+    setAiInput("");
+    setAiStatus("idle");
     localStorage.removeItem("sessionId");
     if (!faq.length) return;
 
@@ -513,6 +555,22 @@ export default function ChatbotEmbedClient({
             <textarea name="note" placeholder="ご質問・ご要望（任意）" rows={2} />
             {reservationStatus === "error" && <span className="rzw-error">送信できませんでした。メールアドレスまたは電話番号をご確認ください。</span>}
             <button className="rzw-cta-btn" disabled={reservationStatus === "sending"}>{reservationStatus === "sending" ? "送信中…" : "予約希望を送信"}</button>
+          </form>
+        )}
+
+        {chatMode === "FAQ_PLUS_AI" && !reservationOpen && (
+          <form className="rzw-ai-input" onSubmit={submitAiMessage}>
+            <input
+              value={aiInput}
+              onChange={(event) => setAiInput(event.target.value)}
+              maxLength={1200}
+              placeholder="自由に質問する"
+              aria-label="AIへの質問"
+              disabled={aiStatus === "sending"}
+            />
+            <button type="submit" disabled={aiStatus === "sending" || !aiInput.trim()}>
+              {aiStatus === "sending" ? "回答中…" : "送信"}
+            </button>
           </form>
         )}
 
@@ -768,6 +826,10 @@ export default function ChatbotEmbedClient({
         }
         .rzw-reservation { padding: 10px 12px; display: grid; gap: 7px; background: #fff; border-top: 1px solid var(--rz-border); font-size: 12px; }
         .rzw-reservation input, .rzw-reservation textarea { width: 100%; border: 1px solid var(--rz-border); border-radius: 8px; padding: 8px; font: inherit; }
+        .rzw-ai-input { display: flex; gap: 8px; padding: 10px 12px; background: #fff; border-top: 1px solid var(--rz-border); }
+        .rzw-ai-input input { min-width: 0; flex: 1; border: 1px solid var(--rz-border); border-radius: 999px; padding: 9px 12px; color: #243247; font: inherit; }
+        .rzw-ai-input button { flex: none; border: none; border-radius: 999px; padding: 9px 13px; background: var(--rz-primary); color: #fff; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
+        .rzw-ai-input button:disabled { cursor: not-allowed; opacity: .55; }
         .rzw-error { color: #b91c1c; }
         .rzw-cta-btn {
           display: inline-flex;

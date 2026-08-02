@@ -643,7 +643,7 @@ export default function FAQPage() {
               <div className="grid gap-3 sm:grid-cols-2">
                 {([
                   ["FAQ_ONLY", "Q&Aのみ", "登録した選択肢でご案内します。"],
-                  ["FAQ_PLUS_AI", "Q&A + AI会話", "AI APIの接続後に自然文の会話を追加します。現在はQ&Aとして動作します。"],
+                  ["FAQ_PLUS_AI", "Q&A + AI会話", "登録済みFAQと読み込んだサイト情報を参照し、自由入力の質問にも回答します。"],
                 ] as const).map(([value, label, description]) => (
                   <label key={value} className="flex cursor-pointer gap-3 rounded-lg border p-3">
                     <input type="radio" name="chatMode" checked={chatMode === value} onChange={() => { setChatMode(value); setDirty(true); }} />
