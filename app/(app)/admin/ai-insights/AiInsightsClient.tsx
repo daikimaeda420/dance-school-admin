@@ -85,6 +85,19 @@ function faqDraft(topic?: string) {
   return { question: `${topic ?? "よくある質問"}について教えてください`, answer: "詳しい内容は、スクールへお気軽にお問い合わせください。ご希望に合わせてご案内します。" };
 }
 
+function defaultChangePreview(suggestion: Suggestion) {
+  if (suggestion.action === "PROMOTE_DEMAND_GENRE") {
+    return `診断のジャンル選択で「${suggestion.payload?.label ?? suggestion.title}」を先頭に移動します。ほかの選択肢や回答内容は変更しません。`;
+  }
+  if (suggestion.action === "SIMPLIFY_FORM") {
+    return "予約フォーム内の「電話・備考・質問・相談・住所・年齢」に該当する必須項目を任意入力へ変更します。該当項目がない場合は変更しません。";
+  }
+  if (suggestion.action === "ADD_FAQ") {
+    return "下記の質問と回答を、設置チャットで公開するQ&Aに1件追加します。公開前に文面を編集できます。";
+  }
+  return "変更内容を確認してから反映します。";
+}
+
 export default function AiInsightsClient({ initialInsight = null }: { initialInsight?: Insight | null }) {
   const { data: session, status } = useSession();
   const schoolId = (session?.user as { schoolId?: string } | undefined)?.schoolId;
@@ -246,7 +259,7 @@ export default function AiInsightsClient({ initialInsight = null }: { initialIns
       metricKey: proposal.metricKey,
       payload: proposal.payload,
     }))
-    : data.suggestions;
+    : data.suggestions.map((suggestion) => ({ ...suggestion, changePreview: suggestion.changePreview ?? defaultChangePreview(suggestion) }));
 
   const metrics = [
     ["設置サイトUU", data.funnel[0]?.count.toLocaleString() ?? "0", "訪問状況", "bg-blue-50 text-blue-700"],
