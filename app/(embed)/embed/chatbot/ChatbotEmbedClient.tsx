@@ -372,7 +372,13 @@ export default function ChatbotEmbedClient({
       const data = await res.json().catch(() => ({}));
       if (!res.ok || typeof data.answer !== "string") throw new Error(data.error || "AI会話を利用できません。");
 
-      setMessages((prev) => [...prev, bot(data.answer)]);
+      setMessages((prev) => [
+        ...prev,
+        bot(data.answer),
+        ...(data.shouldOfferReservation === true && reservationMode === "RIZBO"
+          ? [bot("体験レッスンをご希望の場合は、希望日時を入力して受付できます。", { action: "reservation" })]
+          : []),
+      ]);
       void logToServer(`AI会話: ${message}`, data.answer);
     } catch (error) {
       console.error("AI会話エラー:", error);

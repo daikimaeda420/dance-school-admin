@@ -18,7 +18,26 @@ type Suggestion = {
   priority: "high" | "medium" | "low";
   href: string;
   action?: ActionKey;
+  metricKey?: MetricKey;
+  changePreview?: string;
   payload?: Record<string, string>;
+};
+
+type AiReport = {
+  generatedAt: string;
+  summary: string;
+  demandNarrative: string;
+  dropoffNarrative: string;
+  monthlyReport: string;
+  proposals: Array<{
+    actionKey: ActionKey | "NONE";
+    title: string;
+    detail: string;
+    changePreview: string;
+    priority: "high" | "medium" | "low";
+    metricKey: MetricKey;
+    payload: Record<string, string>;
+  }>;
 };
 
 export type Insight = {
@@ -75,6 +94,8 @@ export default function AiInsightsClient({ initialInsight = null }: { initialIns
   const [loading, setLoading] = useState(!initialInsight);
   const [selected, setSelected] = useState<Suggestion | null>(null);
   const [applying, setApplying] = useState(false);
+  const [aiReport, setAiReport] = useState<AiReport | null>(null);
+  const [generatingReport, setGeneratingReport] = useState(false);
   const [scoreDetailOpen, setScoreDetailOpen] = useState(false);
   const [message, setMessage] = useState("");
   const [faq, setFaq] = useState(faqDraft());
@@ -84,14 +105,20 @@ export default function AiInsightsClient({ initialInsight = null }: { initialIns
     if (!background) setLoading(true);
     try {
       const encodedSchool = encodeURIComponent(schoolId);
-      const insightsRes = await fetch(`/api/admin/ai-insights?schoolId=${encodedSchool}&days=${days}`);
+      const [insightsRes, reportRes] = await Promise.all([
+        fetch(`/api/admin/ai-insights?schoolId=${encodedSchool}&days=${days}`),
+        fetch(`/api/admin/ai-consultant?schoolId=${encodedSchool}&days=${days}`),
+      ]);
       if (!insightsRes.ok) throw new Error();
       const insights = await insightsRes.json() as Insight;
+      const reportResult = reportRes.ok ? await reportRes.json() as { report?: AiReport | null } : { report: null };
       setData(insights);
+      setAiReport(reportResult.report ?? null);
       setHistory(Array.isArray(insights.improvements) ? insights.improvements : []);
       sessionStorage.setItem(`rizbo:ai-insights:${schoolId}:${days}`, JSON.stringify(insights));
     } catch {
       setData(null);
+      setAiReport(null);
       setHistory([]);
     } finally {
       setLoading(false);
@@ -134,7 +161,10 @@ export default function AiInsightsClient({ initialInsight = null }: { initialIns
 
   const openApply = (suggestion: Suggestion) => {
     if (!suggestion.action) return;
-    if (suggestion.action === "ADD_FAQ") setFaq(faqDraft(suggestion.payload?.topic));
+    if (suggestion.action === "ADD_FAQ") {
+      const draft = faqDraft(suggestion.payload?.topic);
+      setFaq({ question: suggestion.payload?.question || draft.question, answer: suggestion.payload?.answer || draft.answer });
+    }
     setMessage("");
     setSelected(suggestion);
   };
@@ -143,7 +173,7 @@ export default function AiInsightsClient({ initialInsight = null }: { initialIns
     if (!schoolId || !selected?.action || !data) return;
     setApplying(true);
     setMessage("");
-    const metricKey = metricFor(selected.action);
+    const metricKey = selected.metricKey ?? metricFor(selected.action);
     try {
       const res = await fetch("/api/admin/ai-improvements", {
         method: "POST",
@@ -168,6 +198,27 @@ export default function AiInsightsClient({ initialInsight = null }: { initialIns
     }
   };
 
+  const generateAiReport = async () => {
+    if (!schoolId) return;
+    setGeneratingReport(true);
+    setMessage("");
+    try {
+      const res = await fetch("/api/admin/ai-consultant", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ schoolId, days }),
+      });
+      const result = await res.json().catch(() => ({}));
+      if (!res.ok || !result.report) throw new Error(result.error || "AIレポートを生成できませんでした。");
+      setAiReport(result.report as AiReport);
+      setMessage("AIレポートを更新しました。提案内容を確認してから適用できます。");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "AIレポートを生成できませんでした。");
+    } finally {
+      setGeneratingReport(false);
+    }
+  };
+
   if (status === "loading" || loading) {
     return (
       <div className="mx-auto max-w-[1540px] px-4 py-6 text-slate-800 md:px-6">
@@ -184,6 +235,19 @@ export default function AiInsightsClient({ initialInsight = null }: { initialIns
   }
   if (!data) return <div className="m-6 rounded-xl border border-slate-200 bg-white p-8 text-slate-500">分析データを取得できませんでした。</div>;
 
+  const displayedSuggestions: Suggestion[] = aiReport?.proposals.length
+    ? aiReport.proposals.map((proposal) => ({
+      title: proposal.title,
+      detail: proposal.detail,
+      changePreview: proposal.changePreview,
+      priority: proposal.priority,
+      href: proposal.actionKey === "PROMOTE_DEMAND_GENRE" ? "/admin/diagnosis/genres" : proposal.actionKey === "SIMPLIFY_FORM" ? "/admin/diagnosis/form" : "/faq",
+      action: proposal.actionKey === "NONE" ? undefined : proposal.actionKey,
+      metricKey: proposal.metricKey,
+      payload: proposal.payload,
+    }))
+    : data.suggestions;
+
   const metrics = [
     ["設置サイトUU", data.funnel[0]?.count.toLocaleString() ?? "0", "訪問状況", "bg-blue-50 text-blue-700"],
     ["診断開始率", rate(data.rates.diagnosisStartRate), "診断への流入", "bg-sky-50 text-sky-700"],
@@ -194,7 +258,7 @@ export default function AiInsightsClient({ initialInsight = null }: { initialIns
   return <div className="mx-auto max-w-[1540px] px-4 py-6 text-slate-800 md:px-6">
     <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
       <div><h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight"><Sparkles className="h-6 w-6 text-[#fe6147]" />AIコンサル・分析</h1><p className="mt-1 text-sm text-slate-500">分析から改善の反映、効果測定まで。毎月サイトを育て続けます。</p></div>
-      <div className="flex flex-wrap gap-2"><select className="input h-10" value={days} onChange={(event) => setDays(Number(event.target.value))}><option value={30}>直近30日</option><option value={60}>直近60日</option><option value={90}>直近90日</option></select><button className="btn-ghost inline-flex items-center gap-2" onClick={() => void load()}><RefreshCw className="h-4 w-4" />更新</button></div>
+      <div className="flex flex-wrap gap-2"><select className="input h-10" value={days} onChange={(event) => setDays(Number(event.target.value))}><option value={30}>直近30日</option><option value={60}>直近60日</option><option value={90}>直近90日</option></select><button className="btn-ghost inline-flex items-center gap-2" onClick={() => void load()}><RefreshCw className="h-4 w-4" />更新</button><button className="btn-primary inline-flex items-center gap-2" onClick={() => void generateAiReport()} disabled={generatingReport}>{generatingReport ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <WandSparkles className="h-4 w-4" />}AIレポートを生成</button></div>
     </div>
 
     {message && <div className="mb-4 flex items-center justify-between gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800"><span className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4" />{message}</span><button aria-label="お知らせを閉じる" onClick={() => setMessage("")}><X className="h-4 w-4" /></button></div>}
@@ -204,6 +268,11 @@ export default function AiInsightsClient({ initialInsight = null }: { initialIns
       <article className="rounded-xl border border-orange-200 bg-gradient-to-br from-orange-50 to-white p-4 shadow-sm"><p className="text-sm font-semibold text-[#c53f2b]">AI改善スコア</p><div className="mt-2 flex items-end gap-2"><strong className="text-4xl text-[#fe6147]">{improvementScore}</strong><span className="mb-1 text-sm text-slate-500">/ 100</span></div><p className="mt-2 text-xs text-slate-500">提案を適用して、効果を積み上げましょう。</p><button type="button" onClick={() => setScoreDetailOpen(true)} className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-[#fe6147] to-[#f04b34] px-3 py-2.5 text-sm font-bold text-white shadow-md shadow-orange-200 transition hover:-translate-y-0.5 hover:shadow-lg hover:shadow-orange-200 focus:outline-none focus:ring-2 focus:ring-orange-300 focus:ring-offset-2"><Sparkles className="h-4 w-4" />スコアの詳細を見る <ChevronRight className="h-4 w-4" /></button></article>
     </section>
 
+    <section className="mt-4 rounded-xl border border-orange-200 bg-gradient-to-r from-orange-50 via-white to-blue-50 p-5 shadow-sm">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"><div><h2 className="flex items-center gap-2 font-bold text-slate-900"><BrainCircuit className="h-5 w-5 text-[#fe6147]" />今月のAIマーケターレポート</h2><p className="mt-1 text-xs text-slate-500">集計済みの行動データをもとに生成します。個人の会話本文や連絡先は分析に使用しません。</p></div>{aiReport && <span className="text-xs text-slate-400">更新：{new Date(aiReport.generatedAt).toLocaleString("ja-JP")}</span>}</div>
+      {aiReport ? <div className="mt-4 grid gap-4 lg:grid-cols-3"><article className="rounded-lg border border-white bg-white/90 p-4"><h3 className="text-sm font-bold text-slate-800">総評</h3><p className="mt-2 text-sm leading-6 text-slate-600">{aiReport.summary}</p></article><article className="rounded-lg border border-white bg-white/90 p-4"><h3 className="text-sm font-bold text-slate-800">需要の変化</h3><p className="mt-2 text-sm leading-6 text-slate-600">{aiReport.demandNarrative}</p></article><article className="rounded-lg border border-white bg-white/90 p-4"><h3 className="text-sm font-bold text-slate-800">離脱・次の一手</h3><p className="mt-2 text-sm leading-6 text-slate-600">{aiReport.dropoffNarrative}</p></article><article className="lg:col-span-3 rounded-lg border border-orange-100 bg-white p-4"><h3 className="text-sm font-bold text-[#9a3525]">月次改善サマリー</h3><p className="mt-2 text-sm leading-6 text-slate-700">{aiReport.monthlyReport}</p></article></div> : <div className="mt-4 rounded-lg border border-dashed border-orange-200 bg-white/80 p-4 text-sm leading-6 text-slate-600">「AIレポートを生成」を押すと、離脱傾向・需要・KPIを読み取り、今月の改善優先順位を文章でまとめます。</div>}
+    </section>
+
     <div className="mt-4 grid gap-4 xl:grid-cols-[1.22fr_1fr]">
       <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm"><div className="flex items-center justify-between"><div><h2 className="font-bold">体験予約までの流れ</h2><p className="mt-1 text-xs text-slate-500">相性診断からフォーム送信までの離脱状況を確認します。</p></div><ClipboardCheck className="h-5 w-5 text-blue-600" /></div><div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-5">{data.funnel.map((item, index) => <div key={item.label} className="relative rounded-lg bg-slate-50 p-3 last:after:hidden sm:after:absolute sm:after:-right-2 sm:after:top-1/2 sm:after:z-10 sm:after:h-3 sm:after:w-3 sm:after:-translate-y-1/2 sm:after:rotate-45 sm:after:border-r sm:after:border-t sm:after:border-slate-200 sm:after:bg-white"><p className="text-[11px] font-medium text-slate-500">{item.label}</p><strong className="mt-1 block text-xl text-slate-800">{item.count.toLocaleString()}</strong>{index > 0 && <span className="mt-1 block text-[10px] text-slate-400">前段比 {data.funnel[index - 1].count ? Math.round(item.count / data.funnel[index - 1].count * 100) : 0}%</span>}</div>)}</div><div className="mt-5 space-y-2">{data.funnel.map((item) => <div key={item.label} className="grid grid-cols-[90px_1fr_38px] items-center gap-3 text-xs"><span className="text-slate-500">{item.label}</span><div className="h-2.5 overflow-hidden rounded-full bg-slate-100"><div className="h-full rounded-full bg-gradient-to-r from-blue-500 to-[#fe6147]" style={{ width: `${item.count === 0 ? 0 : Math.max(3, item.count / funnelMax * 100)}%` }} /></div><strong className="text-right text-slate-700">{item.count}</strong></div>)}</div></section>
       <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm"><div className="flex items-center justify-between"><div><h2 className="font-bold">離脱ポイント TOP5</h2><p className="mt-1 text-xs text-slate-500">優先して改善する箇所をAIが特定します。</p></div><BrainCircuit className="h-5 w-5 text-[#fe6147]" /></div><div className="mt-4 divide-y divide-slate-100">{data.dropoffs.map((item, index) => <div key={item.label} className="grid grid-cols-[28px_minmax(100px,1fr)_minmax(90px,1fr)_48px] items-center gap-2 py-3 text-xs"><span className="grid h-5 w-5 place-items-center rounded-full bg-rose-50 font-bold text-rose-500">{index + 1}</span><span className="font-medium text-slate-700">{item.label}</span><div className="h-2 rounded-full bg-slate-100"><div className="h-2 rounded-full bg-rose-400" style={{ width: `${Math.min(100, item.dropoffRate ?? 0)}%` }} /></div><strong className="text-right text-rose-600">{rate(item.dropoffRate)}</strong></div>)}</div></section>
@@ -211,7 +280,7 @@ export default function AiInsightsClient({ initialInsight = null }: { initialIns
 
     <div className="mt-4 grid gap-4 xl:grid-cols-[.9fr_1.25fr_.85fr]">
       <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm"><div className="flex items-center justify-between"><div><h2 className="font-bold">需要トレンド</h2><p className="mt-1 text-xs text-slate-500">今伸びている希望を施策へ反映</p></div><Users className="h-5 w-5 text-blue-600" /></div><ol className="mt-4 space-y-3">{data.demand.slice(0, 5).map((item, index) => <li key={item.slug} className="grid grid-cols-[24px_1fr_auto] items-center gap-2 text-xs"><span className="grid h-5 w-5 place-items-center rounded-full bg-blue-50 font-bold text-blue-600">{index + 1}</span><span className="truncate font-medium text-slate-700">{item.label}</span><span className={item.change != null && item.change < 0 ? "text-slate-400" : "font-semibold text-emerald-600"}>{item.count}人 {item.change != null && `${item.change > 0 ? "+" : ""}${item.change}%`}</span></li>)}</ol></section>
-      <section className="rounded-xl border border-orange-200 bg-white p-5 shadow-sm"><div className="flex items-center justify-between"><div><h2 className="flex items-center gap-2 font-bold"><WandSparkles className="h-5 w-5 text-[#fe6147]" />AI改善提案</h2><p className="mt-1 text-xs text-slate-500">提案内容を確認して、そのままサイト設定へ反映できます。</p></div><span className="rounded-full bg-orange-50 px-2.5 py-1 text-xs font-semibold text-[#c53f2b]">{data.suggestions.filter((item) => item.action).length}件を適用可能</span></div><div className="mt-4 space-y-3">{data.suggestions.slice(0, 3).map((item) => <article key={item.title} className="rounded-lg border border-slate-200 p-3"><div className="flex gap-3"><span className={`mt-0.5 h-2.5 w-2.5 shrink-0 rounded-full ${item.priority === "high" ? "bg-rose-500" : item.priority === "medium" ? "bg-amber-400" : "bg-emerald-500"}`} /><div className="min-w-0 flex-1"><h3 className="text-sm font-bold text-slate-800">{item.title}</h3><p className="mt-1 text-xs leading-5 text-slate-600">{item.detail}</p><div className="mt-3 flex flex-wrap items-center gap-2">{item.action ? <><button onClick={() => openApply(item)} className="inline-flex items-center gap-1.5 rounded-md bg-[#fe6147] px-3 py-2 text-xs font-bold text-white transition hover:bg-[#eb4f35]"><Sparkles className="h-3.5 w-3.5" />AIで適用</button><button type="button" onClick={() => openApply(item)} className="inline-flex items-center gap-1 rounded-md px-1 py-2 text-[11px] font-semibold text-slate-500 transition hover:text-[#c53f2b] focus:outline-none focus:underline"><span>変更内容を確認</span><ChevronRight className="h-3.5 w-3.5" /></button></> : <Link href={item.href} className="inline-flex items-center gap-1.5 rounded-md border border-slate-200 px-3 py-2 text-xs font-semibold text-blue-700 hover:bg-blue-50">設定を確認 <ChevronRight className="h-3.5 w-3.5" /></Link>}</div></div></div></article>)}</div></section>
+      <section className="rounded-xl border border-orange-200 bg-white p-5 shadow-sm"><div className="flex items-center justify-between"><div><h2 className="flex items-center gap-2 font-bold"><WandSparkles className="h-5 w-5 text-[#fe6147]" />AI改善提案</h2><p className="mt-1 text-xs text-slate-500">提案内容を確認して、そのままサイト設定へ反映できます。</p></div><span className="rounded-full bg-orange-50 px-2.5 py-1 text-xs font-semibold text-[#c53f2b]">{displayedSuggestions.filter((item) => item.action).length}件を適用可能</span></div><div className="mt-4 space-y-3">{displayedSuggestions.slice(0, 3).map((item) => <article key={item.title} className="rounded-lg border border-slate-200 p-3"><div className="flex gap-3"><span className={`mt-0.5 h-2.5 w-2.5 shrink-0 rounded-full ${item.priority === "high" ? "bg-rose-500" : item.priority === "medium" ? "bg-amber-400" : "bg-emerald-500"}`} /><div className="min-w-0 flex-1"><h3 className="text-sm font-bold text-slate-800">{item.title}</h3><p className="mt-1 text-xs leading-5 text-slate-600">{item.detail}</p><div className="mt-3 flex flex-wrap items-center gap-2">{item.action ? <><button onClick={() => openApply(item)} className="inline-flex items-center gap-1.5 rounded-md bg-[#fe6147] px-3 py-2 text-xs font-bold text-white transition hover:bg-[#eb4f35]"><Sparkles className="h-3.5 w-3.5" />AIで適用</button><button type="button" onClick={() => openApply(item)} className="inline-flex items-center gap-1 rounded-md px-1 py-2 text-[11px] font-semibold text-slate-500 transition hover:text-[#c53f2b] focus:outline-none focus:underline"><span>変更内容を確認</span><ChevronRight className="h-3.5 w-3.5" /></button></> : <Link href={item.href} className="inline-flex items-center gap-1.5 rounded-md border border-slate-200 px-3 py-2 text-xs font-semibold text-blue-700 hover:bg-blue-50">設定を確認 <ChevronRight className="h-3.5 w-3.5" /></Link>}</div></div></div></article>)}</div></section>
       <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm"><div className="flex items-center justify-between"><div><h2 className="font-bold">改善履歴・効果測定</h2><p className="mt-1 text-xs text-slate-500">適用後7日から効果を追跡</p></div><CheckCircle2 className="h-5 w-5 text-emerald-600" /></div><div className="mt-4 space-y-3">{history.length ? history.slice(0, 4).map((item) => { const current = item.metricKey ? data.rates[item.metricKey] : null; const measurable = Date.now() - new Date(item.appliedAt).getTime() >= 7 * 86_400_000 && current != null && item.baselineValue != null; const delta = measurable ? Math.round((current - item.baselineValue) * 10) / 10 : null; return <article key={item.id} className="border-b border-slate-100 pb-3 last:border-0"><div className="flex items-start justify-between gap-2"><p className="text-xs font-bold text-slate-700">{item.title}</p><span className="shrink-0 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">適用済み</span></div><p className="mt-1 text-[11px] leading-4 text-slate-500">{item.summary}</p><div className="mt-2 flex items-center justify-between text-[11px]"><span className="text-slate-400">{new Date(item.appliedAt).toLocaleDateString("ja-JP")}</span>{delta == null ? <span className="text-blue-600">効果測定中</span> : <span className={delta >= 0 ? "font-bold text-emerald-600" : "font-bold text-rose-500"}>{metricLabels[item.metricKey!]} {delta >= 0 ? "+" : ""}{delta}pt</span>}</div></article>; }) : <div className="rounded-lg bg-slate-50 p-4 text-center text-xs leading-5 text-slate-500">AI提案を適用すると、ここに改善履歴と効果測定が表示されます。</div>}</div></section>
     </div>
 
@@ -223,12 +292,12 @@ export default function AiInsightsClient({ initialInsight = null }: { initialIns
             <button aria-label="閉じる" onClick={() => setScoreDetailOpen(false)} className="rounded-md p-1 text-slate-400 hover:bg-slate-100"><X className="h-5 w-5" /></button>
           </div>
           <div className="mt-5 space-y-3">{scoreBreakdown.map((item) => <article key={item.key} className="rounded-xl border border-slate-200 p-4"><div className="flex items-start justify-between gap-4"><div><h3 className="text-sm font-bold text-slate-800">{metricLabels[item.key]}</h3><p className="mt-1 text-xs text-slate-500">{item.note}</p></div><strong className="text-lg text-[#fe6147]">{item.score}<span className="text-xs font-medium text-slate-400"> / 25点</span></strong></div><div className="mt-3 flex items-center gap-3"><div className="h-2 flex-1 overflow-hidden rounded-full bg-slate-100"><div className="h-full rounded-full bg-gradient-to-r from-blue-500 to-[#fe6147]" style={{ width: `${item.value == null ? 0 : Math.min(100, item.value / item.target * 100)}%` }} /></div><span className="w-28 text-right text-xs font-semibold text-slate-700">{rate(item.value)} <span className="font-normal text-slate-400">/ 目標{item.target}%</span></span></div></article>)}</div>
-          <section className="mt-5 rounded-xl border border-orange-200 bg-orange-50 p-4"><div><p className="text-sm font-bold text-[#9a3525]">次に優先する改善</p><p className="mt-1 text-xs text-[#9a3525]/80">スコアを上げるために、効果が大きい順に取り組みましょう。</p></div><div className="mt-3 space-y-2">{data.suggestions.slice(0, 2).map((suggestion, index) => <article key={suggestion.title} className="flex items-center gap-3 rounded-lg border border-orange-100 bg-white p-3"><span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-orange-100 text-xs font-bold text-[#c53f2b]">{index + 1}</span><div className="min-w-0 flex-1"><p className="text-sm font-semibold text-slate-800">{suggestion.title}</p><p className="mt-1 text-xs leading-5 text-slate-500">{suggestion.detail}</p></div>{suggestion.action ? <button onClick={() => { setScoreDetailOpen(false); openApply(suggestion); }} className="shrink-0 rounded-md bg-[#fe6147] px-3 py-2 text-xs font-bold text-white transition hover:bg-[#eb4f35]">この改善を適用</button> : <Link href={suggestion.href} className="shrink-0 rounded-md border border-slate-200 px-3 py-2 text-xs font-semibold text-blue-700">確認する</Link>}</article>)}</div></section>
+          <section className="mt-5 rounded-xl border border-orange-200 bg-orange-50 p-4"><div><p className="text-sm font-bold text-[#9a3525]">次に優先する改善</p><p className="mt-1 text-xs text-[#9a3525]/80">スコアを上げるために、効果が大きい順に取り組みましょう。</p></div><div className="mt-3 space-y-2">{displayedSuggestions.slice(0, 2).map((suggestion, index) => <article key={suggestion.title} className="flex items-center gap-3 rounded-lg border border-orange-100 bg-white p-3"><span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-orange-100 text-xs font-bold text-[#c53f2b]">{index + 1}</span><div className="min-w-0 flex-1"><p className="text-sm font-semibold text-slate-800">{suggestion.title}</p><p className="mt-1 text-xs leading-5 text-slate-500">{suggestion.detail}</p></div>{suggestion.action ? <button onClick={() => { setScoreDetailOpen(false); openApply(suggestion); }} className="shrink-0 rounded-md bg-[#fe6147] px-3 py-2 text-xs font-bold text-white transition hover:bg-[#eb4f35]">この改善を適用</button> : <Link href={suggestion.href} className="shrink-0 rounded-md border border-slate-200 px-3 py-2 text-xs font-semibold text-blue-700">確認する</Link>}</article>)}</div></section>
           <div className="mt-6 flex justify-end"><button className="btn-ghost" onClick={() => setScoreDetailOpen(false)}>閉じる</button></div>
         </div>
       </div>
     )}
 
-    {selected?.action && <div className="fixed inset-0 z-[70] grid place-items-center bg-slate-900/40 p-4" role="dialog" aria-modal="true" aria-labelledby="apply-title"><div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl"><div className="flex items-start justify-between gap-4"><div><p className="flex items-center gap-2 text-sm font-semibold text-[#fe6147]"><Sparkles className="h-4 w-4" />AI改善を適用</p><h2 id="apply-title" className="mt-1 text-lg font-bold text-slate-900">{selected.title}</h2></div><button aria-label="閉じる" onClick={() => setSelected(null)} className="rounded-md p-1 text-slate-400 hover:bg-slate-100"><X className="h-5 w-5" /></button></div><p className="mt-3 text-sm leading-6 text-slate-600">{selected.detail}</p><div className="mt-4 rounded-lg border border-orange-200 bg-orange-50 p-3 text-xs leading-5 text-[#9a3525]"><Lightbulb className="mr-1 inline h-4 w-4" />適用内容は履歴に保存され、適用時点の{metricLabels[metricFor(selected.action)]}と比較して効果を追跡します。</div>{selected.action === "ADD_FAQ" && <div className="mt-4 space-y-3"><label className="block text-xs font-semibold text-slate-700">質問<input className="input mt-1 w-full" value={faq.question} onChange={(event) => setFaq((current) => ({ ...current, question: event.target.value }))} /></label><label className="block text-xs font-semibold text-slate-700">回答<textarea className="input mt-1 min-h-24 w-full" value={faq.answer} onChange={(event) => setFaq((current) => ({ ...current, answer: event.target.value }))} /></label></div>}<div className="mt-6 flex justify-end gap-2"><button className="btn-ghost" onClick={() => setSelected(null)} disabled={applying}>キャンセル</button><button className="btn-primary inline-flex items-center gap-2" onClick={apply} disabled={applying}>{applying ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <WandSparkles className="h-4 w-4" />}この内容で適用</button></div></div></div>}
+    {selected?.action && <div className="fixed inset-0 z-[70] grid place-items-center bg-slate-900/40 p-4" role="dialog" aria-modal="true" aria-labelledby="apply-title"><div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl"><div className="flex items-start justify-between gap-4"><div><p className="flex items-center gap-2 text-sm font-semibold text-[#fe6147]"><Sparkles className="h-4 w-4" />AI改善を適用</p><h2 id="apply-title" className="mt-1 text-lg font-bold text-slate-900">{selected.title}</h2></div><button aria-label="閉じる" onClick={() => setSelected(null)} className="rounded-md p-1 text-slate-400 hover:bg-slate-100"><X className="h-5 w-5" /></button></div><p className="mt-3 text-sm leading-6 text-slate-600">{selected.detail}</p>{selected.changePreview && <section className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-3"><p className="text-xs font-bold text-slate-700">適用前の変更内容</p><p className="mt-1 text-xs leading-5 text-slate-600">{selected.changePreview}</p></section>}<div className="mt-4 rounded-lg border border-orange-200 bg-orange-50 p-3 text-xs leading-5 text-[#9a3525]"><Lightbulb className="mr-1 inline h-4 w-4" />適用内容は履歴に保存され、適用時点の{metricLabels[selected.metricKey ?? metricFor(selected.action)]}と比較して効果を追跡します。</div>{selected.action === "ADD_FAQ" && <div className="mt-4 space-y-3"><label className="block text-xs font-semibold text-slate-700">質問<input className="input mt-1 w-full" value={faq.question} onChange={(event) => setFaq((current) => ({ ...current, question: event.target.value }))} /></label><label className="block text-xs font-semibold text-slate-700">回答<textarea className="input mt-1 min-h-24 w-full" value={faq.answer} onChange={(event) => setFaq((current) => ({ ...current, answer: event.target.value }))} /></label></div>}<div className="mt-6 flex justify-end gap-2"><button className="btn-ghost" onClick={() => setSelected(null)} disabled={applying}>キャンセル</button><button className="btn-primary inline-flex items-center gap-2" onClick={apply} disabled={applying}>{applying ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <WandSparkles className="h-4 w-4" />}この内容で適用</button></div></div></div>}
   </div>;
 }
