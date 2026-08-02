@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation";
 
 type Props = { showDesktop?: boolean; mobileOpen?: boolean; onClose?: () => void };
 type Item = { href: string; label: string; icon: typeof Home; superOnly?: boolean };
+type Group = { label?: string; icon?: typeof Home; items: Item[] };
 
 export default function Sidebar({ showDesktop = true, mobileOpen = false, onClose }: Props) {
   const pathname = usePathname();
@@ -54,12 +55,12 @@ export default function Sidebar({ showDesktop = true, mobileOpen = false, onClos
     else popup.focus();
   };
 
-  const groups: { label?: string; items: Item[] }[] = [
+  const groups: Group[] = [
     { items: [{ href: "/", label: "ホーム", icon: Home }] },
-    { label: "分析・改善", items: [{ href: "/admin/monthly-kpi", label: "月次KPI・売上シミュレーション", icon: TrendingUp }, { href: "/admin/ai-insights", label: "AIコンサル・分析", icon: Sparkles }, { href: reportDiagnosis, label: "相性診断レポート", icon: ClipboardList }, { href: reportQa, label: "Q&Aレポート", icon: BarChart3 }] },
-    { label: "コンテンツ設定", items: [{ href: setupGuide, label: "設定ガイド", icon: Compass }, { href: "/faq", label: "Q&A編集", icon: MessagesSquare }, { href: qaChecklist, label: "Q&A完成度", icon: ClipboardCheck }, { href: diagnosisEdit, label: "診断編集", icon: ListChecks }] },
-    { label: "運用", items: [{ href: "/admin/chat-history", label: "ユーザーログ", icon: TimerReset }, { href: "/admin/chat-reservations", label: "チャット予約", icon: CalendarCheck }] },
-    { label: "管理", items: [{ href: "/superadmin", label: "アカウント管理", icon: UserCog }, { href: "/admin/system", label: "システム設定", icon: Settings, superOnly: true }, { href: "/help", label: "ヘルプ", icon: HelpCircle }] },
+    { label: "分析・改善", icon: BarChart3, items: [{ href: "/admin/monthly-kpi", label: "月次KPI・売上シミュレーション", icon: TrendingUp }, { href: "/admin/ai-insights", label: "AIコンサル・分析", icon: Sparkles }, { href: reportDiagnosis, label: "相性診断レポート", icon: ClipboardList }, { href: reportQa, label: "Q&Aレポート", icon: BarChart3 }] },
+    { label: "コンテンツ設定", icon: MessagesSquare, items: [{ href: setupGuide, label: "設定ガイド", icon: Compass }, { href: "/faq", label: "Q&A編集", icon: MessagesSquare }, { href: qaChecklist, label: "Q&A完成度", icon: ClipboardCheck }, { href: diagnosisEdit, label: "診断編集", icon: ListChecks }] },
+    { label: "運用", icon: TimerReset, items: [{ href: "/admin/chat-history", label: "ユーザーログ", icon: TimerReset }, { href: "/admin/chat-reservations", label: "チャット予約", icon: CalendarCheck }] },
+    { label: "管理", icon: Settings, items: [{ href: "/superadmin", label: "アカウント管理", icon: UserCog }, { href: "/admin/system", label: "システム設定", icon: Settings, superOnly: true }, { href: "/help", label: "ヘルプ", icon: HelpCircle }] },
   ];
 
   const activeGroup = groups.find((group) => group.label && group.items.some((item) => (!item.superOnly || isSuperAdmin) && isActive(item.href)))?.label ?? null;
@@ -72,10 +73,12 @@ export default function Sidebar({ showDesktop = true, mobileOpen = false, onClos
     <div className="space-y-3">{groups.map((group, index) => {
       const items = group.items.filter((item) => !item.superOnly || isSuperAdmin);
       const expanded = Boolean(group.label && openGroup === group.label);
+      const groupIsActive = Boolean(group.label && activeGroup === group.label);
+      const GroupIcon = group.icon;
 
       return <section key={group.label ?? index}>
-        {group.label ? <button type="button" onClick={() => setOpenGroup(expanded ? null : group.label!)} aria-expanded={expanded} className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-[11px] font-bold tracking-[0.08em] text-slate-400 transition hover:bg-slate-50 hover:text-slate-600"><span>{group.label}</span><ChevronDown size={14} className={`transition-transform ${expanded ? "rotate-180" : ""}`} /></button> : null}
-        {(!group.label || expanded) && <div className={group.label ? "mt-1 space-y-1" : "space-y-1"}>{items.map(({ href, label, icon: Icon }) => <Link key={href} href={href} onMouseEnter={() => router.prefetch(href)} onFocus={() => router.prefetch(href)} onClick={() => { setNavigating(true); mobile && onClose?.(); }} aria-current={isActive(href) ? "page" : undefined} className={`group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${isActive(href) ? "bg-[#fff0ed] text-[#dd4d36] shadow-[inset_3px_0_0_#fe6147]" : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"}`}><Icon size={18} className={isActive(href) ? "text-[#fe6147]" : "text-slate-400 group-hover:text-[#2563eb]"} /><span>{label}</span></Link>)}</div>}
+        {group.label ? <button type="button" onClick={() => setOpenGroup(expanded ? null : group.label!)} aria-expanded={expanded} className={`flex min-h-10 w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm font-semibold transition ${expanded ? "bg-slate-100 text-slate-900" : "text-slate-500 hover:bg-slate-50 hover:text-slate-800"}`}><span className="flex items-center gap-2.5">{GroupIcon && <span className={`grid h-6 w-6 place-items-center rounded-md ${groupIsActive ? "bg-[#fff0ed] text-[#fe6147]" : "bg-slate-100 text-slate-400"}`}><GroupIcon size={14} strokeWidth={2.1} /></span>}<span>{group.label}</span></span><span className={`grid h-6 w-6 place-items-center rounded-full ${expanded ? "bg-white text-slate-600 shadow-sm" : "text-slate-400"}`}><ChevronDown size={15} className={`transition-transform ${expanded ? "rotate-180" : ""}`} /></span></button> : null}
+        {(!group.label || expanded) && <div className={group.label ? "relative ml-6 mt-1.5 space-y-1 border-l-2 border-slate-100 py-1 pl-2.5" : "space-y-1"}>{items.map(({ href, label, icon: Icon }) => <Link key={href} href={href} onMouseEnter={() => router.prefetch(href)} onFocus={() => router.prefetch(href)} onClick={() => { setNavigating(true); mobile && onClose?.(); }} aria-current={isActive(href) ? "page" : undefined} className={`group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${isActive(href) ? "bg-[#fff0ed] text-[#dd4d36] shadow-[inset_3px_0_0_#fe6147]" : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"}`}><Icon size={18} className={isActive(href) ? "text-[#fe6147]" : "text-slate-400 group-hover:text-[#2563eb]"} /><span>{label}</span></Link>)}</div>}
       </section>;
     })}</div>
     {!mobile && <div className="mt-auto space-y-1 border-t border-slate-100 pt-3"><button type="button" onClick={openPreview} className="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left text-sm font-medium text-slate-600 hover:bg-slate-100"><span className="flex items-center gap-3"><Bot size={18} className="text-[#2563eb]" />チャットプレビュー</span><ExternalLink size={14} /></button><a href={diagnosisPreview} target="_blank" rel="noopener noreferrer" className="flex items-center justify-between rounded-lg px-3 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-100"><span className="flex items-center gap-3"><ClipboardList size={18} className="text-[#2563eb]" />診断プレビュー</span><ExternalLink size={14} /></a></div>}
