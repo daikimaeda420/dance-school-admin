@@ -53,6 +53,8 @@ export type OperationReport = {
     unansweredCount: number;
     selectViewCount: number;
     ctaClicks: number;
+    reservationCount: number;
+    reservationRate: number | null;
     topQuestions: { question: string; count: number }[];
     recent: {
       id: number;
@@ -279,7 +281,9 @@ export default function OperationReportClient({
                 isQaReport
                   ? item.key === "siteVisitors" ||
                     item.key === "qaSessions" ||
-                    item.key === "qaAnswers"
+                    item.key === "qaAnswers" ||
+                    item.key === "qaReservations" ||
+                    item.key === "qaReservationRate"
                   : item.key !== "qaSessions" && item.key !== "qaAnswers",
               )
               .map((item) => (
@@ -426,7 +430,7 @@ export default function OperationReportClient({
                 </Link>
               </div>
 
-              <div className="grid gap-3 sm:grid-cols-3">
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                 <div className="rounded-xl bg-gray-50 p-3 dark:bg-gray-950/50">
                   <div className="text-xs text-gray-500 dark:text-gray-400">
                     回答ログ
@@ -451,7 +455,23 @@ export default function OperationReportClient({
                     {report.qa.unansweredCount.toLocaleString()}件
                   </div>
                 </div>
+                <div className="rounded-xl border border-orange-100 bg-orange-50 p-3 dark:border-orange-900/50 dark:bg-orange-950/20">
+                  <div className="text-xs text-orange-700 dark:text-orange-200">
+                    チャット予約希望
+                  </div>
+                  <div className="mt-1 text-lg font-bold text-orange-900 dark:text-orange-50">
+                    {report.qa.reservationCount.toLocaleString()}件
+                  </div>
+                  <div className="mt-1 text-xs text-orange-700/80 dark:text-orange-200/80">
+                    Q&amp;Aセッション比 {formatNumber(report.qa.reservationRate, "%")}
+                  </div>
+                </div>
               </div>
+
+              {isQaReport && <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs text-slate-600 dark:border-slate-800 dark:bg-slate-950/40 dark:text-slate-300">
+                <p>チャット内で受付した予約希望を集計しています。外部予約ページの申込完了は、予約ツールとの連携後に計測できます。</p>
+                <Link href={appendSchoolId("/admin/chat-reservations", schoolId)} className="shrink-0 font-semibold text-[#dd4d36] hover:underline">予約希望を見る →</Link>
+              </div>}
 
               <div className="mt-5">
                 <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400">

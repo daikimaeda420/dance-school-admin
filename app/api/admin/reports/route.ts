@@ -16,6 +16,7 @@ type FAQItem =
     };
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+const SNAPSHOT_KIND = "operation-report-v2";
 
 const FUNNEL_STEPS = [
   { key: "Q1_VIEW", label: "診断開始" },
@@ -133,7 +134,7 @@ export async function GET(req: NextRequest) {
     const schoolId = access.schoolId;
     const days = parseDays(url.searchParams.get("days"));
     const snapshot = await prisma.analyticsSnapshot.findUnique({
-      where: { schoolId_kind_periodDays: { schoolId, kind: "operation-report", periodDays: days } },
+      where: { schoolId_kind_periodDays: { schoolId, kind: SNAPSHOT_KIND, periodDays: days } },
       select: { payload: true, generatedAt: true },
     });
     if (snapshot && Date.now() - snapshot.generatedAt.getTime() < 5 * 60_000) {
@@ -184,7 +185,11 @@ export async function GET(req: NextRequest) {
         take: 8,
         select: { id: true, fields: true, createdAt: true },
       }),
-    ]), ["admin-reports", schoolId, String(days)], { revalidate: 30 });
+      // チャット内の予約フォームから送られた、Q&A起点の予約希望を集計する。
+      prisma.chatReservation.count({
+        where: { schoolId, createdAt: { gte: since } },
+      }),
+    ]), ["admin-reports-v2", schoolId, String(days)], { revalidate: 30 });
     const [
       faqRow,
       faqLogs,
@@ -192,6 +197,7 @@ export async function GET(req: NextRequest) {
       diagnosisClickTotals,
       submissionCount,
       recentSubmissions,
+      chatReservationCount,
     ] = await loadReportRows();
 
     const faqItemCount = countFaqItems((faqRow?.items as FAQItem[] | null) ?? null);
@@ -446,6 +452,19 @@ export async function GET(req: NextRequest) {
           note: `選択肢表示 ${selectViewCount.toLocaleString()}件`,
         },
         {
+          key: "qaReservations",
+          label: "チャット予約希望",
+          value: chatReservationCount,
+          note: `Q&Aセッション比 ${rate(chatReservationCount, qaSessions) ?? 0}%`,
+        },
+        {
+          key: "qaReservationRate",
+          label: "チャット予約率",
+          value: rate(chatReservationCount, qaSessions),
+          suffix: "%",
+          note: `${chatReservationCount.toLocaleString()} / ${qaSessions.toLocaleString()} セッション`,
+        },
+        {
           key: "diagnosisStarts",
           label: "診断LP UU（推定）",
           value: totalDiagnosisSessions,
@@ -474,6 +493,8 @@ export async function GET(req: NextRequest) {
         unansweredCount,
         selectViewCount,
         ctaClicks,
+        reservationCount: chatReservationCount,
+        reservationRate: rate(chatReservationCount, qaSessions),
         topQuestions,
         recent: recentQa,
       },
@@ -497,8 +518,8 @@ export async function GET(req: NextRequest) {
       recommendations,
     };
     await prisma.analyticsSnapshot.upsert({
-      where: { schoolId_kind_periodDays: { schoolId, kind: "operation-report", periodDays: days } },
-      create: { schoolId, kind: "operation-report", periodDays: days, payload: JSON.parse(JSON.stringify(payload)) },
+      where: { schoolId_kind_periodDays: { schoolId, kind: SNAPSHOT_KIND, periodDays: days } },
+      create: { schoolId, kind: SNAPSHOT_KIND, periodDays: days, payload: JSON.parse(JSON.stringify(payload)) },
       update: { payload: JSON.parse(JSON.stringify(payload)), generatedAt: new Date() },
     });
     return NextResponse.json(payload, { headers: { "Cache-Control": "private, max-age=30, stale-while-revalidate=60" } });

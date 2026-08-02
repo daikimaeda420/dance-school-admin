@@ -666,8 +666,8 @@ export default function FAQPage() {
                   </label>
                 ))}
               </div>
-              {reservationMode === "RIZBO" && <p className="mt-2 text-xs text-gray-500">お名前・連絡先・希望日時・備考をチャット内で受け付け、管理データとして保存します。通知連携は次の段階で追加できます。</p>}
-              {reservationMode === "RIZBO" && <Link className="mt-2 inline-block text-xs text-blue-600 hover:underline" href="/admin/chat-reservations">受付済みの予約希望を見る →</Link>}
+              {reservationMode === "RIZBO" && <p className="mt-2 text-xs text-gray-500">お名前・連絡先・希望日時・備考をチャット内で受け付け、管理データとして保存します。受付時はフォーム設定の「スクールへの通知先」にもメールで共有されます。</p>}
+              {reservationMode === "RIZBO" && <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1"><Link className="inline-block text-xs text-blue-600 hover:underline" href="/admin/chat-reservations">受付済みの予約希望を見る →</Link><Link className="inline-block text-xs text-blue-600 hover:underline" href={`/admin/diagnosis/form?schoolId=${encodeURIComponent(schoolId)}`}>通知先メールを設定する →</Link></div>}
               {reservationMode === "EXTERNAL" && (
                 <div className="mt-3 max-w-xl">
                   <label className="block text-sm font-medium mb-1">外部予約ページURL</label>
