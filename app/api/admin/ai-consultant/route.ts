@@ -71,6 +71,12 @@ function extractOutput(body: unknown) {
     .trim();
 }
 
+function isInsufficientQuota(body: unknown) {
+  if (!body || typeof body !== "object") return false;
+  const apiError = (body as { error?: { code?: unknown } }).error;
+  return apiError?.code === "insufficient_quota";
+}
+
 function asInsight(value: unknown): InsightSnapshot | null {
   if (!value || typeof value !== "object") return null;
   const candidate = value as Partial<InsightSnapshot>;
@@ -227,6 +233,9 @@ export async function POST(req: NextRequest) {
     const result = await apiResponse.json().catch(() => null);
     if (!apiResponse.ok) {
       console.error("AI consultant response error:", apiResponse.status, result);
+      if (apiResponse.status === 429 && isInsufficientQuota(result)) {
+        return error("OpenAI APIの利用上限に達しています。OpenAI Platformで請求設定・利用上限を確認してから、もう一度お試しください。", 429);
+      }
       return error("AIレポートを生成できませんでした。時間をおいてお試しください。", 502);
     }
     let parsed: unknown;

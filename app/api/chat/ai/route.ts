@@ -84,6 +84,12 @@ function extractOutput(body: unknown) {
     .trim();
 }
 
+function isInsufficientQuota(body: unknown) {
+  if (!body || typeof body !== "object") return false;
+  const apiError = (body as { error?: { code?: unknown } }).error;
+  return apiError?.code === "insufficient_quota";
+}
+
 function chatResponseSchema() {
   return {
     type: "object",
@@ -175,6 +181,9 @@ export async function POST(req: NextRequest) {
     const result = (await apiResponse.json().catch(() => null)) as unknown;
     if (!apiResponse.ok) {
       console.error("OpenAI chat response error:", apiResponse.status, result);
+      if (apiResponse.status === 429 && isInsufficientQuota(result)) {
+        return response({ error: "AI会話は現在利用上限に達しています。しばらくしてからお試しください。" }, { status: 429 });
+      }
       return response({ error: "AI会話を一時的に利用できません。時間をおいてお試しください。" }, { status: 502 });
     }
 
