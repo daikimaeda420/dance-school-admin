@@ -714,7 +714,7 @@ export default function FAQPage() {
           <div className="card-body space-y-4">
             <div className="flex flex-col gap-2 sm:flex-row">
               <input className="input flex-1" value={knowledgeUrl} onChange={(e) => setKnowledgeUrl(e.target.value)} placeholder="https://スクールのサイトURL" />
-              <button type="button" className="btn-primary inline-flex whitespace-nowrap" disabled={!knowledgeUrl.trim() || isReadingKnowledge} onClick={readSiteKnowledge}>
+              <button type="button" className="btn-primary inline-flex items-center justify-center gap-2 whitespace-nowrap" disabled={!knowledgeUrl.trim() || isReadingKnowledge} onClick={readSiteKnowledge}>
                 <RefreshCw className={`h-4 w-4 ${isReadingKnowledge ? "animate-spin" : ""}`} aria-hidden="true" />
                 {isReadingKnowledge ? "最新情報を取得中..." : knowledgeContent ? "最新情報に更新" : "サイト情報を読み込む"}
               </button>
