@@ -15,6 +15,7 @@ import {
   MonitorCog,
   Palette,
   Plus,
+  RefreshCw,
   Save,
   Settings2,
 } from "lucide-react";
@@ -708,15 +709,19 @@ export default function FAQPage() {
         {activeTab === "knowledge" && <section className="card">
           <div className="card-header">
             <h3 className="font-semibold">会話用ナレッジ</h3>
-            <p className="text-xs text-gray-500">設置サイトの内容を読み込み、今後のAI会話が参照する最新情報として保存します。現在は内容の保存・確認まで利用できます。</p>
+            <p className="text-xs text-gray-500">設置サイトの内容を読み込み、AI会話が参照する最新情報として保存します。サイトを更新した時だけ、ここから手動で更新してください。</p>
           </div>
-          <div className="card-body space-y-3">
+          <div className="card-body space-y-4">
             <div className="flex flex-col gap-2 sm:flex-row">
               <input className="input flex-1" value={knowledgeUrl} onChange={(e) => setKnowledgeUrl(e.target.value)} placeholder="https://スクールのサイトURL" />
-              <button type="button" className="btn-primary whitespace-nowrap" disabled={!knowledgeUrl.trim() || isReadingKnowledge} onClick={readSiteKnowledge}>{isReadingKnowledge ? "読み込み中..." : "サイト情報を読み込む"}</button>
+              <button type="button" className="btn-primary inline-flex whitespace-nowrap" disabled={!knowledgeUrl.trim() || isReadingKnowledge} onClick={readSiteKnowledge}>
+                <RefreshCw className={`h-4 w-4 ${isReadingKnowledge ? "animate-spin" : ""}`} aria-hidden="true" />
+                {isReadingKnowledge ? "最新情報を取得中..." : knowledgeContent ? "最新情報に更新" : "サイト情報を読み込む"}
+              </button>
             </div>
+            <p className="rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-xs leading-5 text-slate-600">このボタンはサイト情報を取得して保存するだけです。OpenAI APIは呼び出さないため、更新操作自体にAI料金はかかりません。</p>
             {knowledgeError && <p className="text-sm text-red-600">{knowledgeError}</p>}
-            {knowledgeUpdatedAt && <p className="text-xs text-gray-500">最終読み込み：{new Date(knowledgeUpdatedAt).toLocaleString("ja-JP")}（{knowledgeContent.length.toLocaleString()}文字）</p>}
+            {knowledgeUpdatedAt && <p className="text-xs text-gray-500">最終更新：{new Date(knowledgeUpdatedAt).toLocaleString("ja-JP")}（{knowledgeContent.length.toLocaleString()}文字を保存済み）</p>}
             {knowledgeContent && <details><summary className="cursor-pointer text-sm text-blue-600">読み込んだ内容を確認する</summary><p className="mt-2 max-h-52 overflow-auto whitespace-pre-wrap rounded border bg-gray-50 p-3 text-xs text-gray-700">{knowledgeContent}</p></details>}
           </div>
         </section>}
