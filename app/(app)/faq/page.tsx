@@ -9,6 +9,7 @@ import {
   BookOpen,
   BadgeCheck,
   CalendarCheck,
+  Check,
   CodeXml,
   MessagesSquare,
   MonitorCog,
@@ -639,32 +640,58 @@ export default function FAQPage() {
           </div>
           <div className="card-body space-y-5">
             <fieldset>
-              <legend className="text-sm font-medium mb-2">会話モード</legend>
+              <legend className="mb-3 text-sm font-semibold text-slate-800">会話モード</legend>
               <div className="grid gap-3 sm:grid-cols-2">
                 {([
                   ["FAQ_ONLY", "Q&Aのみ", "登録した選択肢でご案内します。"],
                   ["FAQ_PLUS_AI", "Q&A + AI会話", "登録済みFAQと読み込んだサイト情報を参照し、自由入力の質問にも回答します。"],
-                ] as const).map(([value, label, description]) => (
-                  <label key={value} className="flex cursor-pointer gap-3 rounded-lg border p-3">
-                    <input type="radio" name="chatMode" checked={chatMode === value} onChange={() => { setChatMode(value); setDirty(true); }} />
-                    <span><span className="block text-sm font-medium">{label}</span><span className="block mt-1 text-xs text-gray-500">{description}</span></span>
+                ] as const).map(([value, label, description]) => {
+                  const isSelected = chatMode === value;
+                  return (
+                  <label
+                    key={value}
+                    className={`group relative flex min-h-[92px] cursor-pointer gap-3 rounded-xl border p-4 transition-all duration-150 hover:border-[#fb735f] hover:bg-[#fff9f7] ${isSelected ? "border-[#fb5a43] bg-[#fff3ef] shadow-[0_6px_18px_rgba(251,90,67,0.10)] ring-1 ring-[#fb5a43]/20" : "border-slate-200 bg-white"}`}
+                  >
+                    <input className="sr-only" type="radio" name="chatMode" checked={isSelected} onChange={() => { setChatMode(value); setDirty(true); }} />
+                    <span className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 transition-colors ${isSelected ? "border-[#f4513a] bg-[#f4513a]" : "border-slate-300 bg-white group-hover:border-[#fb735f]"}`} aria-hidden="true">
+                      {isSelected && <Check className="h-3.5 w-3.5 stroke-[3] text-white" />}
+                    </span>
+                    <span className="pr-16">
+                      <span className="block text-sm font-semibold text-slate-800">{label}</span>
+                      <span className="mt-1 block text-xs leading-5 text-slate-500">{description}</span>
+                    </span>
+                    {isSelected && <span className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full bg-[#f4513a] px-2 py-1 text-[11px] font-semibold text-white"><Check className="h-3 w-3 stroke-[3]" />選択中</span>}
                   </label>
-                ))}
+                  );
+                })}
               </div>
             </fieldset>
             <fieldset>
-              <legend className="text-sm font-medium mb-2">体験予約の受付方法</legend>
+              <legend className="mb-3 text-sm font-semibold text-slate-800">体験予約の受付方法</legend>
               <div className="grid gap-3 sm:grid-cols-3">
                 {([
-                  ["NONE", "予約導線なし"],
-                  ["RIZBO", "チャット内で受付"],
-                  ["EXTERNAL", "外部予約ページへ"],
-                ] as const).map(([value, label]) => (
-                  <label key={value} className="flex cursor-pointer items-center gap-2 rounded-lg border p-3 text-sm">
-                    <input type="radio" name="reservationMode" checked={reservationMode === value} onChange={() => { setReservationMode(value); setDirty(true); }} />
-                    {label}
+                  ["NONE", "予約導線なし", "予約に関する案内は表示しません"],
+                  ["RIZBO", "チャット内で受付", "名前・希望日時をチャットで受け付けます"],
+                  ["EXTERNAL", "外部予約ページへ", "登録した予約ページへ案内します"],
+                ] as const).map(([value, label, description]) => {
+                  const isSelected = reservationMode === value;
+                  return (
+                  <label
+                    key={value}
+                    className={`group relative flex min-h-[102px] cursor-pointer gap-3 rounded-xl border p-4 transition-all duration-150 hover:border-[#fb735f] hover:bg-[#fff9f7] ${isSelected ? "border-[#fb5a43] bg-[#fff3ef] shadow-[0_6px_18px_rgba(251,90,67,0.10)] ring-1 ring-[#fb5a43]/20" : "border-slate-200 bg-white"}`}
+                  >
+                    <input className="sr-only" type="radio" name="reservationMode" checked={isSelected} onChange={() => { setReservationMode(value); setDirty(true); }} />
+                    <span className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 transition-colors ${isSelected ? "border-[#f4513a] bg-[#f4513a]" : "border-slate-300 bg-white group-hover:border-[#fb735f]"}`} aria-hidden="true">
+                      {isSelected && <Check className="h-3.5 w-3.5 stroke-[3] text-white" />}
+                    </span>
+                    <span className="pr-2">
+                      <span className="block text-sm font-semibold text-slate-800">{label}</span>
+                      <span className="mt-1 block text-xs leading-5 text-slate-500">{description}</span>
+                    </span>
+                    {isSelected && <span className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full bg-[#f4513a] px-2 py-1 text-[11px] font-semibold text-white"><Check className="h-3 w-3 stroke-[3]" />選択中</span>}
                   </label>
-                ))}
+                  );
+                })}
               </div>
               {reservationMode === "RIZBO" && <p className="mt-2 text-xs text-gray-500">お名前・連絡先・希望日時・備考をチャット内で受け付け、管理データとして保存します。受付時はフォーム設定の「スクールへの通知先」にもメールで共有されます。</p>}
               {reservationMode === "RIZBO" && <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1"><Link className="inline-block text-xs text-blue-600 hover:underline" href="/admin/chat-reservations">受付済みの予約希望を見る →</Link><Link className="inline-block text-xs text-blue-600 hover:underline" href={`/admin/diagnosis/form?schoolId=${encodeURIComponent(schoolId)}`}>通知先メールを設定する →</Link></div>}
