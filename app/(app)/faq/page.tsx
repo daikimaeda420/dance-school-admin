@@ -403,8 +403,11 @@ export default function FAQPage() {
           ) : (
             <span className="px-2 text-xs font-medium text-emerald-600">保存済み</span>
           )}
-          <Link href={readinessHref} className="btn-ghost">
-            <Settings2 aria-hidden="true" className="h-4 w-4" />
+          <Link
+            href={readinessHref}
+            className="btn-ghost inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap"
+          >
+            <Settings2 aria-hidden="true" className="h-4 w-4 shrink-0" />
             完成度チェック
           </Link>
           <button
