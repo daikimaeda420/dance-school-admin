@@ -322,7 +322,13 @@ export function FAQEditor({
           breadcrumb={breadcrumb}
         />
 
-        <div className="space-y-4">
+        <div
+          className={
+            level === 0
+              ? "space-y-4 rounded-xl border border-orange-100 bg-orange-50/45 p-3 sm:p-4"
+              : "space-y-4"
+          }
+        >
           <div className="grid gap-2">
             <FieldLabel emphasized={level === 0}>
               質問 {qErr && <RequiredBadge />}
@@ -379,27 +385,35 @@ export function FAQEditor({
       />
 
       <div className="space-y-4">
-        <div className="grid gap-2">
-          <FieldLabel emphasized={level === 0}>
-            質問 {invalid(path, "question") && <RequiredBadge />}
-          </FieldLabel>
-          <input
-            className="input"
-            aria-invalid={invalid(path, "question") || undefined}
-            value={item.question}
-            onChange={(e) => update({ ...item, question: e.target.value })}
-            placeholder="質問文（分岐の親）"
-          />
-        </div>
+        <div
+          className={
+            level === 0
+              ? "space-y-4 rounded-xl border border-orange-100 bg-orange-50/45 p-3 sm:p-4"
+              : "space-y-4"
+          }
+        >
+          <div className="grid gap-2">
+            <FieldLabel emphasized={level === 0}>
+              質問 {invalid(path, "question") && <RequiredBadge />}
+            </FieldLabel>
+            <input
+              className="input"
+              aria-invalid={invalid(path, "question") || undefined}
+              value={item.question}
+              onChange={(e) => update({ ...item, question: e.target.value })}
+              placeholder="質問文（分岐の親）"
+            />
+          </div>
 
-        <div className="grid gap-2">
-          <FieldLabel>選択後の案内文（任意）</FieldLabel>
-          <input
-            className="input"
-            value={item.answer ?? ""}
-            onChange={(e) => update({ ...item, answer: e.target.value })}
-            placeholder="（例）下の選択肢から選んでください"
-          />
+          <div className="grid gap-2">
+            <FieldLabel>選択後の案内文（任意）</FieldLabel>
+            <input
+              className="input"
+              value={item.answer ?? ""}
+              onChange={(e) => update({ ...item, answer: e.target.value })}
+              placeholder="（例）下の選択肢から選んでください"
+            />
+          </div>
         </div>
 
         <div className="space-y-3 rounded-xl border border-slate-100 bg-slate-50/70 p-3 sm:p-4">
