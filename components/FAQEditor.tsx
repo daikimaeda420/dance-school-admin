@@ -96,8 +96,22 @@ function NodeHeader({
   );
 }
 
-const FieldLabel = ({ children }: { children: React.ReactNode }) => (
-  <label className="text-sm font-semibold text-slate-700">{children}</label>
+const FieldLabel = ({
+  children,
+  emphasized = false,
+}: {
+  children: React.ReactNode;
+  emphasized?: boolean;
+}) => (
+  <label
+    className={
+      emphasized
+        ? "inline-flex w-fit items-center rounded-lg border border-orange-200 bg-orange-50 px-3 py-1.5 text-sm font-bold text-[#c53f2b]"
+        : "text-sm font-semibold text-slate-700"
+    }
+  >
+    {children}
+  </label>
 );
 
 const RequiredBadge = () => (
@@ -310,7 +324,9 @@ export function FAQEditor({
 
         <div className="space-y-4">
           <div className="grid gap-2">
-            <FieldLabel>質問 {qErr && <RequiredBadge />}</FieldLabel>
+            <FieldLabel emphasized={level === 0}>
+              質問 {qErr && <RequiredBadge />}
+            </FieldLabel>
             <input
               className="input"
               aria-invalid={qErr || undefined}
@@ -364,7 +380,7 @@ export function FAQEditor({
 
       <div className="space-y-4">
         <div className="grid gap-2">
-          <FieldLabel>
+          <FieldLabel emphasized={level === 0}>
             質問 {invalid(path, "question") && <RequiredBadge />}
           </FieldLabel>
           <input
@@ -387,8 +403,16 @@ export function FAQEditor({
         </div>
 
         <div className="space-y-3 rounded-xl border border-slate-100 bg-slate-50/70 p-3 sm:p-4">
-          <div className="flex items-center justify-between">
-            <div className="text-sm font-semibold text-slate-800">選択肢</div>
+          <div className="flex items-center justify-between gap-3">
+            <div
+              className={
+                level === 0
+                  ? "inline-flex items-center rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-sm font-bold text-blue-700"
+                  : "text-sm font-semibold text-slate-800"
+              }
+            >
+              選択肢
+            </div>
             <span className="text-xs text-slate-400">ドラッグせず、ボタンで並び替えできます</span>
           </div>
 
